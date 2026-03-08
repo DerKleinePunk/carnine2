@@ -1,0 +1,3 @@
+# 00 Introduction
+
+This document captures the architecture of the CarPC project, a custom in‑vehicle computer built on a Raspberry Pi 4. The system provides navigation, media playback, vehicle diagnostics, and other features via a Flutter‑based touchscreen interface. The audience includes developers, integrators, and anyone maintaining or extending the system. Background: the project is part hobbyist/educational effort and to explore KI‑assisted development while integrating modern cross‑platform UI with a high‑performance Rust backend.
