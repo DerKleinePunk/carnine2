@@ -41,7 +41,7 @@ CAN-Bus data updates:
 2. Data is processed and sent via gRPC to Frontend.
 3. UI Widgets update displays in real-time.
 
-### Scenario 6: Relay Control
+### Scenario 5: Relay Control
 
 User toggles a relay (e.g., interior light) via UI:
 
