@@ -22,4 +22,7 @@ This directory contains the Arc42 template for documenting the architecture of t
 16. [15 – Appendices](15-appendices.md)
 17. [16 – Conclusion](16-conclusion.md)
 
-> Replace placeholders with actual content as you flesh out the documentation.
+## Additional Documentation
+
+18. [17 – Ideas & Roadmap](17-ideas-roadmap.md)
+19. [18 – Future Work](18-future-work.md)
