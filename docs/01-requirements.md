@@ -4,6 +4,7 @@
 
 * Display real‑time navigation/map data with routing and traffic information.
 * Play audio and video from local storage and network sources.
+* Display rear camera feed when available.
 * Show vehicle telemetry (speed, RPM, temperatures) by reading the CAN bus.
 * Provide a settings UI for user preferences and system configuration.
 * Offer OTA updates when connected to the internet.

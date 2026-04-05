@@ -103,3 +103,14 @@ This section describes architectural principles, patterns, and technologies that
 - **Primary**: German (de) with English (en) fallback
 - **Implementation**: Flutter's intl package; Rust uses fluent for backend strings
 - **Date/Number Formats**: Locale-aware formatting for vehicle data display
+
+## 8.10 UI/UX Design Workflow
+
+### Design Template Source
+- **Tool**: Stitch
+- **Project**: https://stitch.withgoogle.com/projects/11236860998423822860
+- **Rule**: Stitch project is the source of truth for screens, components, spacing, and visual hierarchy.
+
+### Handoff to Flutter
+- **Implementation**: Flutter UI implementation follows approved Stitch templates.
+- **Change Process**: Significant UI changes are first updated in Stitch, then implemented in Flutter.
