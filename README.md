@@ -1,4 +1,4 @@
-# Build an CarPC Software for Rasbberry 4
+# Build an CarPC Software for Raspberry 4
 Yes i Try Build in with KI this is the Second Reason for create this Repro
 
 ## Architecture Documentation
