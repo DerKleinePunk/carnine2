@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:grpc/grpc.dart';
-import 'lib/carnine.pb.dart';
 import 'lib/carnine.pbgrpc.dart';
 import 'styles/colors.dart';
 import 'styles/text_styles.dart';

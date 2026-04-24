@@ -24,3 +24,4 @@ pubspec.lock
 src/frontend/linux/
 src/frontend/.metadata
 src/frontend/.gitignore
+.vscode/settings.json
