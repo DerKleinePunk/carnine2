@@ -1,1 +1,17 @@
 .vscode/
+
+# Rust
+target/
+**/target/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+**/build/
+pubspec.lock
+
+# IDE
+.idea/
