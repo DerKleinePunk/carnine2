@@ -9,7 +9,7 @@ List the quality attributes (performance, security, maintainability, etc.) and h
 | 1 | **Reliability** | Backend availability ≥ 99.5% | UI fully depends on backend; loss of backend = system failure |
 | 2 | **Responsiveness** | Connection loss detected within ≤ 500ms | User must immediately know of backend disconnect |
 | 3 | **Performance** | UI remains responsive during operations | Raspberry Pi 4 is resource-constrained |
-| 4 | **Security** | Encrypted communication (Backend ↔ UI) | CarPC may contain sensitive vehicle data |
+| 4 | **Security** | Encrypted and authenticated communication for network-exposed endpoints | Remote control and diagnostics can carry sensitive vehicle data |
 | 5 | **Maintainability** | Code follows style guides (Rust/Flutter) | Two separate Code bases need clear conventions |
 | 6 | **Robustness** | Graceful degradation on failures | Show error states instead of crashes |
 
@@ -33,8 +33,8 @@ List the quality attributes (performance, security, maintainability, etc.) and h
 - **Success Criterion:** Frame rate ≥ 60 FPS on Raspberry Pi 4
 
 ### Scenario 4: Security Threat
-- **Trigger:** Network sniffing attempt on Backend ↔ UI communication
-- **Expected Response:** All messages encrypted; unencrypted requests rejected
+- **Trigger:** Network sniffing or unauthorized access attempt on LAN-exposed control endpoints
+- **Expected Response:** Encrypted transport and authentication enforced; unauthorized requests rejected
 - **Success Criterion:** No sensitive data exposed in transit
 
 ---
@@ -57,7 +57,11 @@ List the quality attributes (performance, security, maintainability, etc.) and h
 - **Tools:** Flutter DevTools; Cargo profiling
 
 ### Security
-- **How:** TLS/SSL encryption for all communication; input validation
+- **How:**
+	- Local frontend-backend IPC uses Unix domain sockets with strict filesystem permissions
+	- LAN-exposed remote endpoints use TLS plus authentication/authorization
+	- No internet exposure of control interfaces (LAN-only policy)
+	- Input validation on all RPC messages
 - **Metric:** Zero security vulnerabilities in dependency scan
 - **Tools:** `cargo audit`; Flutter security best practices
 
@@ -117,6 +121,7 @@ Revisit the protocol strategy only if all of the following are true on Raspberry
 - **Backend Language:** Rust (must handle async I/O efficiently)
 - **Frontend Language:** Flutter (cross-platform; must work on ARM Linux)
 - **Network:** No guaranteed high-bandwidth connection; assume potential latency/packet loss
+- **Remote Access Boundary:** Remote control reachable only from local network (LAN), not from public internet
 - **Battery:** N/A (plugged into car power)
 
 ---

@@ -43,11 +43,11 @@ Identify risks and areas of technical debt, along with mitigation strategies.
 
 | Attribute | Value |
 |-----------|-------|
-| **Risk** | gRPC + tonic don't have built-in Unix socket support; requires custom `tower` transport |
+| **Risk** | Unix socket integration details in chosen gRPC stack may require adapter code and careful testing |
 | **Impact** | Medium — Significant complexity; potential bugs in IPC layer; performance implications |
-| **Likelihood** | High — Must implement custom transport for Unix socket support |
-| **Mitigation** | • Use `tonic` with custom `tower::Service` impl for Unix streams<br>• Test connection pooling, reconnection logic, error handling<br>• Reference: tonic issue/PR discussions on Unix socket support<br>• Ensure protobuf code generation is automated in build.rs<br>• Document custom transport layer thoroughly<br>• Monitor tonic roadmap for native Unix socket support |
-| **Status** | High — Design & implementation in progress |
+| **Likelihood** | Medium-High — Depends on final library/runtime choices |
+| **Mitigation** | • Validate UDS approach with a minimal end-to-end spike early<br>• Test reconnection logic, error handling, and lifecycle behavior<br>• Ensure protobuf code generation is automated in build.rs<br>• Document socket path, permissions, and connection model thoroughly |
+| **Status** | Open — Requires implementation spike and validation |
 | **Owner** | Backend Team |
 
 ### 5. Dependency Updates & Breaking Changes
@@ -119,7 +119,7 @@ Identify risks and areas of technical debt, along with mitigation strategies.
 |------|-------------|--------|--------|----------|
 | **No CI/CD Pipeline** | Manual builds; no automated testing / linting on commits | High | High | High |
 | **Backend Autostart** | No systemd service or supervisor config; manual restart required | High | Low | High |
-| **Deployment Process** | Undefined; no documentation for deploying to RPi4 | High | Medium | High |
+| **Deployment Process** | Partially documented in `docs/07-deployment.md`, but not automated or validated with reproducible scripts | High | Medium | High |
 | **Monitoring & Logging** | No centralized logging; hard to diagnose failures in field | Medium | Medium | Medium |
 | **Image Management** | Building/distributing OS images for deployments not documented | Medium | Medium | Medium |
 
@@ -127,9 +127,9 @@ Identify risks and areas of technical debt, along with mitigation strategies.
 
 | Item | Description | Impact | Effort | Priority |
 |------|-------------|--------|--------|----------|
-| **Architecture Decision Log** | [09-architecture-decisions.md](09-architecture-decisions.md) mostly empty | Medium | Low | Medium |
+| **Architecture Decision Log** | ADRs are available, but consistency checks against quality/risk docs must be maintained continuously | Medium | Low | Medium |
 | **API Specification** | No formal spec (OpenAPI, protobuf); backend API contracts unclear | High | Medium | High |
-| **Setup/Deploy Guide** | Environment setup & deployment steps not documented | High | Low | High |
+| **Setup/Deploy Guide** | Initial deployment guide exists, but concrete scripts/checklists for reproducible setup are missing | High | Low | High |
 | **Code Comments** | Business logic not explained; future maintainers confused | Medium | Low | Medium |
 
 ---

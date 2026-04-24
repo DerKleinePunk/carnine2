@@ -30,14 +30,16 @@ This section describes architectural principles, patterns, and technologies that
 ## 8.3 Security
 
 ### Authentication and Authorization
-- **Local Access**: No authentication required (embedded device)
+- **On-device IPC**: Frontend/backend over Unix domain socket; no user login flow on the device itself
+- **Remote Control Scope**: Remote control is allowed only from the local network (LAN) and is not exposed to the public internet
+- **Remote Access Control**: Any LAN-exposed control endpoint must require authentication (token or mTLS) and authorization checks
 - **OTA Updates**: Signed packages with GPG verification
-- **Network Security**: gRPC over local socket (no external exposure); SSH for remote access
+- **Network Security**: gRPC over local socket for IPC; firewall defaults deny WAN ingress; SSH access is LAN/VPN-restricted
 
 ### Data Protection
 - **Sensitive Data**: Vehicle telemetry encrypted at rest using AES-256
 - **Input Validation**: All gRPC messages validated against protobuf schemas
-- **Secure Boot**: Raspberry Pi secure boot enabled for firmware integrity
+- **Secure Boot**: Evaluate hardware/boot-chain support; treat as a hardening goal, not as a guaranteed baseline
 
 ## 8.4 Performance and Resource Management
 
@@ -79,11 +81,11 @@ This section describes architectural principles, patterns, and technologies that
 - **Flutter**: Widget tests and unit tests with Mockito for gRPC mocking
 
 ### Integration Testing
-- **End-to-End**: Automated tests on target hardware using Flutter Driver
+- **End-to-End**: Automated tests on target hardware using `integration_test`
 - **CAN Simulation**: Virtual CAN interfaces for testing without real vehicle
 
 ### Continuous Integration
-- **Build Pipeline**: GitHub Actions for cross-compilation and basic tests
+- **Build Pipeline**: Planned GitHub Actions pipeline for cross-compilation and basic tests (currently not implemented in repository)
 - **Code Quality**: Clippy (Rust), Flutter analyze; pre-commit hooks
 
 ## 8.8 Deployment and Updates
