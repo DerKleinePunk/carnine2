@@ -139,8 +139,9 @@ Identify risks and areas of technical debt, along with mitigation strategies.
 ### Phase 1 (Immediate — Next Sprint)
 - [ ] Implement CI/CD pipeline (GitHub Actions or similar)
 - [ ] Add systemd service for auto-restart backend
-- [ ] Write deployment guide
+- [ ] Convert deployment guide into reproducible scripts/checklists
 - [ ] Standardize error handling patterns (Rust `anyhow`, Flutter `try-catch`)
+- [ ] Enforce and test LAN-only inbound policy (firewall + bind-address checks)
 
 ### Phase 2 (Short-term — Next 2-4 Weeks)
 - [ ] Achieve ≥ 70% test coverage (Rust + Flutter)

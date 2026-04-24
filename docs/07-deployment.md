@@ -188,3 +188,62 @@ sudo apt-get update && sudo apt-get install -y \
    ssh pi@<pi-ip>
    /opt/carnine/carpc_frontend
    ```
+
+---
+
+## 7.4 Network Exposure and Firewall Policy
+
+Remote control must be reachable only from the local network (LAN). Public internet exposure is not allowed.
+
+### Inbound Policy (default deny)
+- Block all unsolicited inbound traffic from WAN interfaces.
+- Allow only explicit LAN inbound rules required for operations.
+- Prefer binding control endpoints to LAN interface addresses, not `0.0.0.0`.
+
+### Example `nftables` baseline
+
+```bash
+sudo tee /etc/nftables.conf > /dev/null <<'EOF'
+#!/usr/sbin/nft -f
+
+flush ruleset
+
+table inet filter {
+   chain input {
+      type filter hook input priority 0;
+      policy drop;
+
+      iif "lo" accept
+      ct state established,related accept
+
+      # Optional: SSH from LAN only
+      ip saddr 192.168.0.0/16 tcp dport 22 accept
+
+      # Optional: Remote control API from LAN only
+      ip saddr 192.168.0.0/16 tcp dport 50051 accept
+
+      # ICMP for diagnostics
+      ip protocol icmp accept
+      ip6 nexthdr ipv6-icmp accept
+   }
+
+   chain forward {
+      type filter hook forward priority 0;
+      policy drop;
+   }
+
+   chain output {
+      type filter hook output priority 0;
+      policy accept;
+   }
+}
+EOF
+
+sudo systemctl enable nftables
+sudo systemctl restart nftables
+```
+
+### Operational Notes
+- If remote control is not yet implemented, keep the remote control port closed.
+- If remote control is enabled, require TLS and application-level authentication.
+- Keep SSH disabled by default unless required for maintenance windows.
