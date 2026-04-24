@@ -13,7 +13,7 @@ dependencies:
   grpc: ^5.1.0
   protobuf: ^6.0.0
   logging: ^1.2.0
-  window_manager: ^0.4.0
+  window_manager: ^0.5.1
 
 dev_dependencies:
   flutter_test:
