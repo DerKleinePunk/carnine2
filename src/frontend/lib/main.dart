@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:grpc/grpc.dart';
 import 'package:logging/logging.dart';
+import 'package:window_manager/window_manager.dart';
 import 'lib/carnine.pbgrpc.dart';
 import 'styles/colors.dart';
 import 'styles/text_styles.dart';
@@ -47,7 +48,29 @@ void _setupLogging() {
   });
 }
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize window manager for desktop platforms
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    await windowManager.ensureInitialized();
+
+    const windowOptions = WindowOptions(
+      size: Size(1024, 600),
+      minimumSize: Size(1024, 600),
+      maximumSize: Size(1024, 600),
+      center: true,
+      backgroundColor: Colors.transparent,
+      skipTaskbar: false,
+      titleBarStyle: TitleBarStyle.normal,
+    );
+
+    await windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+  }
+
   _setupLogging();
   _logger.info('Frontend app started');
   runApp(const CarnineApp());
