@@ -71,6 +71,44 @@ List the quality attributes (performance, security, maintainability, etc.) and h
 - **Metric:** No unhandled exceptions in production; all errors logged
 - **Tools:** Structured logging; error tracking
 
+### Communication Protocol Strategy (linked to ADR-015)
+- **Decision:** Use gRPC/protobuf as unified protocol for local IPC and future remote APIs
+- **Reason:** Minimize complexity and maintenance risk while keeping sufficient performance on Raspberry Pi 4
+- **Transport guideline:** Prefer Unix domain sockets for local IPC, streaming for high-frequency updates, channel reuse for low overhead
+
+#### Protocol Decision Matrix
+
+| Criterion | Weight | gRPC (single protocol) | Hybrid (gRPC remote + Cap'n Proto local) | Notes |
+|---|---:|---:|---:|---|
+| Maintainability | 30% | 5/5 | 2/5 | One IDL and one codegen pipeline vs. two protocol stacks |
+| Flutter/Dart ecosystem maturity | 25% | 5/5 | 2/5 | gRPC Dart is mature; Cap'n Proto Dart path is limited |
+| Raspberry Pi 4 local IPC performance headroom | 20% | 4/5 | 5/5 | Hybrid may win in extreme throughput cases |
+| Mobile remote-control readiness | 15% | 5/5 | 3/5 | gRPC contracts are directly reusable for remote app |
+| Integration/testing complexity | 10% | 5/5 | 2/5 | Single protocol reduces contract drift and test matrix size |
+| **Weighted total** | **100%** | **4.8 / 5** | **2.7 / 5** | Choose gRPC-first unless measurements force re-evaluation |
+
+#### Re-evaluation Triggers (when to consider Cap'n Proto)
+
+Revisit the protocol strategy only if all of the following are true on Raspberry Pi 4:
+
+1. **Measured bottleneck:** IPC path is a top contributor to end-to-end latency or CPU
+2. **Threshold breach (sustained):**
+	 - Backend CPU attributable to IPC serialization/transport > 20% average during representative load, or
+	 - p95 IPC round-trip latency for control commands > 50ms on local link, or
+	 - Telemetry path cannot sustain target update rate (>= 10Hz) without visible UI degradation
+3. **gRPC tuning exhausted:** UDS transport, channel reuse, streaming strategy, payload sizing, and backpressure handling already optimized
+4. **Operational readiness:** A production-viable Dart strategy for Cap'n Proto is available and team accepts long-term dual-protocol ownership
+
+#### Verification Plan for Protocol Fitness
+
+- **Test setup:** Run representative navigation/media/CAN workloads on target Raspberry Pi 4
+- **Metrics to record:** CPU%, RSS memory, p95/p99 local RPC latency, dropped/late telemetry updates, UI frame pacing
+- **Pass criteria (stay on gRPC):**
+	- UI remains responsive (target >= 60 FPS where applicable)
+	- Command RPC p95 < 50ms locally
+	- No sustained IPC-induced CPU pressure violating system targets
+- **Cadence:** Re-run profiling after major feature additions affecting telemetry or command throughput
+
 ---
 
 ## Non-Functional Constraints

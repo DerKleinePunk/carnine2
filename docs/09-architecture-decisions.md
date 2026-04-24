@@ -388,6 +388,53 @@ Backend caches all necessary data locally (SQLite) and syncs with remote service
 
 ---
 
+## ADR-015: Communication Protocol Strategy - gRPC as Unified API, Cap'n Proto by Measured Need
+
+**Status:** Accepted
+
+**Context:**
+The system uses Flutter (Dart) frontend and Rust backend on Raspberry Pi 4. Local IPC must be efficient, and a future companion mobile app should be able to remotely control backend features. A suggestion was made to use Cap'n Proto for local communication while keeping gRPC for remote control. This introduces a potential dual-protocol architecture.
+
+**Decision:**
+Use gRPC (protobuf) as the single communication contract for both local frontend-backend communication and future remote control APIs. Keep Cap'n Proto as a fallback optimization option only if measurements prove gRPC IPC is a critical bottleneck on target hardware.
+
+**Rationale:**
+- **Single source of truth**: One IDL (`.proto`) and one generated client/server contract across Rust and Dart
+- **Lower complexity**: Avoid parallel schema maintenance, duplicate codegen pipelines, and protocol translation layers
+- **Ecosystem maturity**: gRPC in Dart/Flutter and Rust is actively maintained and production-proven
+- **Future readiness**: Remote access via mobile app can reuse existing service contracts instead of introducing a second API surface
+- **Resource balance on RPi4**: gRPC over Unix domain sockets with streaming/channel reuse is typically sufficient for control/state traffic while keeping maintenance cost low
+
+**Alternatives considered:**
+- **Hybrid model (Cap'n Proto local + gRPC remote)**
+	- **Pros**: Potentially lower local serialization overhead in selected high-throughput paths
+	- **Cons**: Two protocol ecosystems, schema drift risk, more testing burden, higher long-term maintenance effort
+- **Cap'n Proto-only end-to-end**
+	- **Pros**: High performance serialization and rich RPC model
+	- **Cons**: No mature official Dart path in current ecosystem strategy; higher adoption and tooling risk for Flutter frontend and mobile roadmap
+
+**Consequences:**
+- IPC and remote APIs share the same contract lifecycle and versioning process
+- Performance tuning focuses first on transport and usage patterns (UDS, streaming, channel reuse, deadlines, backpressure)
+- Team can move faster with fewer integration failure modes
+- If performance issues occur, optimization is evidence-driven rather than speculative
+
+**Revisit / Trigger Conditions (Cap'n Proto Re-evaluation):**
+- Profiling on Raspberry Pi 4 shows sustained CPU or latency bottlenecks where gRPC serialization/transport is the dominant cost
+- The bottleneck cannot be solved by gRPC-level tuning and message design improvements
+- A production-viable Dart strategy for Cap'n Proto exists (maintenance, tooling, compatibility, security posture)
+- Team accepts and plans explicit long-term ownership of a dual-protocol architecture
+
+**Related decisions:**
+- ADR-002 (gRPC over Unix domain socket)
+- ADR-005 (gRPC streaming for telemetry)
+- ADR-011 (integration testing via gRPC)
+
+**Quality linkage:**
+- See Chapter 10 (Quality Requirements), section "Communication Protocol Strategy (linked to ADR-015)" for weighted decision matrix, measurable thresholds, and protocol re-evaluation triggers.
+
+---
+
 ## Decision Rationale Summary
 
 These decisions collectively create a system that is:
