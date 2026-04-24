@@ -2,6 +2,14 @@
 
 Minimal bootstrap service for Carnine.
 
+## Build Dependencies
+
+To build the gRPC code, you need to install Protocol Buffers compiler:
+
+```bash
+sudo apt install protobuf-compiler
+```
+
 ## Commands
 
 - `cargo check`

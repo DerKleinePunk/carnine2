@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:grpc/grpc.dart';
+import 'lib/carnine.pb.dart';
+import 'lib/carnine.pbgrpc.dart';
 import 'styles/colors.dart';
 import 'styles/text_styles.dart';
 
@@ -41,6 +44,8 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
+  String _grpcStatus = 'Not connected';
+  List<CanData> _canData = [];
 
   final List<String> _navItems = ['Home', 'Maps', 'Media', 'Climate', 'Settings'];
   final List<IconData> _navIcons = [
@@ -50,6 +55,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Icons.thermostat,
     Icons.settings,
   ];
+
+  Future<void> _testGrpc() async {
+    try {
+      // For Unix socket, we need to use a custom channel
+      // Since Flutter grpc doesn't directly support Unix sockets, we'll try TCP for testing
+      // In production, this would be Unix socket
+      final channel = ClientChannel(
+        'localhost', // Use localhost for testing, in real app use Unix socket path
+        port: 50051, // Standard gRPC port, but our server uses Unix socket
+        options: const ChannelOptions(
+          credentials: ChannelCredentials.insecure(),
+        ),
+      );
+
+      final stub = CarnineServiceClient(channel);
+
+      // Test GetCanData
+      final request = CanDataRequest(sensorId: 'engine_temp');
+      final response = await stub.getCanData(request);
+
+      setState(() {
+        _grpcStatus = 'Connected - Received ${response.data.length} data points';
+        _canData = response.data;
+      });
+
+      await channel.shutdown();
+    } catch (e) {
+      setState(() {
+        _grpcStatus = 'Error: $e';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -176,9 +213,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 // Body
                 Expanded(
                   child: Center(
-                    child: Text(
-                      'Dashboard Content for ${_navItems[_selectedIndex]}',
-                      style: const TextStyle(color: Colors.white),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Dashboard Content for ${_navItems[_selectedIndex]}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          'gRPC Status: $_grpcStatus',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton(
+                          onPressed: _testGrpc,
+                          child: const Text('Test gRPC'),
+                        ),
+                        const SizedBox(height: 20),
+                        if (_canData.isNotEmpty)
+                          Column(
+                            children: _canData.map((data) => Text(
+                              'Sensor: ${data.sensorId}, Value: ${data.value}, Time: ${data.timestamp}',
+                              style: const TextStyle(color: Colors.white),
+                            )).toList(),
+                          ),
+                      ],
                     ),
                   ),
                 ),

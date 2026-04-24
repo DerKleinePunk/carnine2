@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package carnine;
+
+service CarnineService {
+  rpc GetCanData (CanDataRequest) returns (CanDataResponse);
+  rpc SendCommand (CommandRequest) returns (CommandResponse);
+}
+
+message CanDataRequest {
+  string sensor_id = 1;
+}
+
+message CanDataResponse {
+  repeated CanData data = 1;
+}
+
+message CanData {
+  string sensor_id = 1;
+  double value = 2;
+  int64 timestamp = 3;
+}
+
+message CommandRequest {
+  string command = 1;
+  string parameters = 2;
+}
+
+message CommandResponse {
+  bool success = 1;
+  string message = 2;
+}
