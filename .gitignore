@@ -11,6 +11,7 @@ target/
 .packages
 build/
 **/build/
+build-logs/
 pubspec.lock
 
 # IDE
