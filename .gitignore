@@ -17,8 +17,9 @@ build/
 build-logs/
 pubspec.lock
 
-# IDE
-.idea/
+# Local logs
+src/backend/logs/
+src/frontend/logs/
 
 # Local generated Flutter platform scaffolding (kept out of repo)
 src/frontend/linux/
