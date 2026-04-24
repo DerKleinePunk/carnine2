@@ -1,10 +1,55 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:grpc/grpc.dart';
+import 'package:logging/logging.dart';
 import 'lib/carnine.pbgrpc.dart';
 import 'styles/colors.dart';
 import 'styles/text_styles.dart';
 
+final ValueNotifier<List<String>> appLogLines = ValueNotifier(<String>[]);
+final Logger _logger = Logger('CarnineFrontend');
+
+void _setupLogging() {
+  Directory('logs').createSync(recursive: true);
+  final file = File('logs/frontend.log');
+  final sink = file.openWrite(mode: FileMode.append);
+
+  Logger.root.level = Level.ALL;
+  Logger.root.onRecord.listen((record) {
+    final message = StringBuffer()
+      ..write(record.time.toIso8601String())
+      ..write(' [${record.level.name}] ')
+      ..write(record.loggerName)
+      ..write(': ')
+      ..write(record.message);
+
+    if (record.error != null) {
+      message.write(' | error=${record.error}');
+    }
+    if (record.stackTrace != null) {
+      message.write('\n${record.stackTrace}');
+    }
+
+    final line = message.toString();
+    final currentLogs = List<String>.from(appLogLines.value);
+    currentLogs.add(line);
+    if (currentLogs.length > 200) {
+      currentLogs.removeRange(0, currentLogs.length - 200);
+    }
+    appLogLines.value = currentLogs;
+
+    sink.writeln(line);
+    sink.flush();
+    // Also keep console output for development.
+    // ignore: avoid_print
+    print(line);
+  });
+}
+
 void main() {
+  _setupLogging();
+  _logger.info('Frontend app started');
   runApp(const CarnineApp());
 }
 
@@ -56,6 +101,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   ];
 
   Future<void> _testGrpc() async {
+    _logger.info('Triggering gRPC test request');
     try {
       // For Unix socket, we need to use a custom channel
       // Since Flutter grpc doesn't directly support Unix sockets, we'll try TCP for testing
@@ -74,17 +120,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final request = CanDataRequest(sensorId: 'engine_temp');
       final response = await stub.getCanData(request);
 
+      _logger.info('gRPC response received with ${response.data.length} data points');
       setState(() {
         _grpcStatus = 'Connected - Received ${response.data.length} data points';
         _canData = response.data;
       });
 
       await channel.shutdown();
-    } catch (e) {
+    } catch (e, stack) {
+      _logger.severe('gRPC test failed', e, stack);
       setState(() {
         _grpcStatus = 'Error: $e';
       });
     }
+  }
+
+  void _showLogViewer() {
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Frontend Logs'),
+          content: SizedBox(
+            width: 700,
+            height: 500,
+            child: ValueListenableBuilder<List<String>>(
+              valueListenable: appLogLines,
+              builder: (context, logs, child) {
+                return ListView.builder(
+                  itemCount: logs.length,
+                  itemBuilder: (context, index) {
+                    return Text(
+                      logs[index],
+                      style: const TextStyle(fontSize: 12, color: Colors.white),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -206,6 +289,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Icon(Icons.battery_full, color: AppColors.primary, size: 12),
                       const SizedBox(width: 8),
                       Icon(Icons.light_mode, color: AppColors.primary, size: 12),
+                      const SizedBox(width: 12),
+                      IconButton(
+                        onPressed: _showLogViewer,
+                        icon: const Icon(Icons.article, size: 16),
+                        color: AppColors.primary,
+                        tooltip: 'Show frontend logs',
+                      ),
                     ],
                   ),
                 ),

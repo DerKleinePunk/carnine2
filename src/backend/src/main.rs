@@ -1,6 +1,8 @@
 use anyhow::Result;
 use tonic::{transport::Server, Request, Response, Status};
 use tracing::{info, warn};
+use tracing_appender::rolling;
+use tracing_subscriber::prelude::*;
 
 pub mod carnine {
     tonic::include_proto!("carnine");
@@ -54,10 +56,26 @@ impl CarnineService for CarnineServiceImpl {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter("info")
+    std::fs::create_dir_all("logs")?;
+    let file_appender = rolling::never("logs", "backend.log");
+    let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+
+    let console_layer = tracing_subscriber::fmt::layer()
+        .with_writer(std::io::stdout)
+        .with_ansi(true)
         .with_target(false)
-        .compact()
+        .compact();
+
+    let file_layer = tracing_subscriber::fmt::layer()
+        .with_writer(non_blocking)
+        .with_ansi(false)
+        .with_target(false)
+        .compact();
+
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::EnvFilter::new("info"))
+        .with(console_layer)
+        .with(file_layer)
         .init();
 
     info!("carnine backend bootstrap started");

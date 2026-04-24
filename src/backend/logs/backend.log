@@ -1,0 +1,6 @@
+2026-04-24T12:57:38.991245Z  INFO carnine backend bootstrap started
+2026-04-24T12:57:38.991710Z  INFO Starting gRPC server on [::1]:50051
+2026-04-24T12:57:53.507321Z  INFO Received CAN data request for sensor: engine_temp
+2026-04-24T12:57:56.342454Z  INFO Received CAN data request for sensor: engine_temp
+2026-04-24T12:57:57.020444Z  INFO Received CAN data request for sensor: engine_temp
+2026-04-24T12:57:57.570802Z  INFO Received CAN data request for sensor: engine_temp
