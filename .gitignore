@@ -1,4 +1,7 @@
 .vscode/
+!.vscode/
+!.vscode/launch.json
+!.vscode/tasks.json
 
 # Rust
 target/

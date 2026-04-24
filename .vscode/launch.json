@@ -1,0 +1,28 @@
+{
+    // Verwendet IntelliSense zum Ermitteln möglicher Attribute.
+    // Zeigen Sie auf vorhandene Attribute, um die zugehörigen Beschreibungen anzuzeigen.
+    // Weitere Informationen finden Sie unter https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Flutter: Run Frontend",
+            "type": "dart",
+            "request": "launch",
+            "program": "src/frontend/lib/main.dart",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "-d",
+                "linux"
+            ]
+        },
+        {
+            "name": "Rust: Debug Backend",
+            "type": "lldb-dap",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/backend/target/debug/carnine-backend",
+            "args": [],
+            "cwd": "${workspaceFolder}/src/backend",
+            "preLaunchTask": "cargo build",
+        }
+    ]
+}
