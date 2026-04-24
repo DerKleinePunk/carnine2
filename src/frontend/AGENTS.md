@@ -23,6 +23,7 @@
 * **Null Safety:** NO `!` operator. Use `?` and flow analysis (e.g. `if (x != null)`).
 * **Async:** Use `async/await` for Futures. Catch all errors with `try-catch`.
 * **Logging:** Use `dart:developer` `log()` locally. NEVER use `print`.
+* **Styles:** Zentral definieren in `lib/styles/` (z. B. `colors.dart`, `text_styles.dart`). Keine harten Farb- oder Schriftwerte im Code – nur Referenzen auf `AppColors` und `AppTextStyles`.
 
 ## Flutter Best Practices
 * **Build Methods:** Keep pure and fast. No side effects. No network calls.

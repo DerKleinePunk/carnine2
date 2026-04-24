@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>KINETIC - Climate &amp; Settings (1024x600)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed-dim": "#7da0ff",
+                        "on-surface": "#ffffff",
+                        "outline-variant": "#484848",
+                        "on-primary-fixed-variant": "#005762",
+                        "on-error": "#490006",
+                        "on-secondary": "#400040",
+                        "tertiary-fixed": "#92aeff",
+                        "on-secondary-fixed": "#620061",
+                        "on-error-container": "#ffa8a3",
+                        "secondary": "#ff51fa",
+                        "on-primary-fixed": "#003840",
+                        "on-tertiary-fixed-variant": "#003388",
+                        "surface-container-lowest": "#000000",
+                        "surface": "#0e0e0e",
+                        "background": "#0e0e0e",
+                        "on-primary-container": "#004d57",
+                        "on-tertiary": "#001c53",
+                        "surface-bright": "#2c2c2c",
+                        "error-dim": "#d7383b",
+                        "on-primary": "#005762",
+                        "error": "#ff716c",
+                        "tertiary-container": "#0266ff",
+                        "secondary-fixed-dim": "#ffa6f3",
+                        "primary-fixed": "#00e3fd",
+                        "primary-dim": "#00d4ec",
+                        "surface-container": "#191919",
+                        "on-surface-variant": "#ababab",
+                        "surface-container-high": "#1f1f1f",
+                        "secondary-dim": "#ff51fa",
+                        "on-background": "#ffffff",
+                        "inverse-surface": "#f9f9f9",
+                        "on-tertiary-fixed": "#001441",
+                        "surface-tint": "#81ecff",
+                        "error-container": "#9f0519",
+                        "outline": "#757575",
+                        "on-tertiary-container": "#ffffff",
+                        "secondary-container": "#a900a9",
+                        "inverse-primary": "#006976",
+                        "inverse-on-surface": "#555555",
+                        "on-secondary-container": "#fff5f9",
+                        "tertiary-dim": "#156aff",
+                        "secondary-fixed": "#ffbdf3",
+                        "tertiary": "#759aff",
+                        "surface-variant": "#262626",
+                        "surface-dim": "#0e0e0e",
+                        "primary": "#81ecff",
+                        "surface-container-highest": "#262626",
+                        "primary-container": "#00e3fd",
+                        "primary-fixed-dim": "#00d4ec",
+                        "on-secondary-fixed-variant": "#920091",
+                        "surface-container-low": "#131313"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Manrope"],
+                        "label": ["Space Grotesk"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; background-color: #0e0e0e; color: #ffffff; }
+        .font-headline { font-family: 'Space Grotesk', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .tactile-glow-primary { box-shadow: 0 0 15px rgba(129,236,255,0.4); }
+        .tactile-glow-secondary { box-shadow: 0 0 15px rgba(255,81,250,0.4); }
+        .inset-shadow { box-shadow: inset 2px 2px 4px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); }
+        .glass-panel { backdrop-filter: blur(20px); background: rgba(44, 44, 44, 0.4); }
+        
+        /* Fixed resolution container constraints for 1024x600 */
+        .fixed-screen-container {
+            width: 1024px;
+            height: 600px;
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+            background: #0e0e0e;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen bg-black">
+<div class="fixed-screen-container">
+<!-- SideNavBar -->
+<nav class="absolute left-0 top-0 h-full flex flex-col justify-between z-50 bg-[#0e0e0e] border-r border-[#81ecff]/10 shadow-[10px_0_30px_-15px_rgba(129,236,255,0.3)] w-20">
+<div class="flex flex-col items-center pt-4">
+<div class="text-lg font-bold tracking-tighter text-[#81ecff] drop-shadow-[0_0_8px_rgba(129,236,255,0.8)] font-headline mb-1">KINETIC</div>
+<div class="text-[8px] tracking-[0.2em] text-[#81ecff] font-headline mb-6 opacity-80">V8-ACTIVE</div>
+<div class="flex flex-col w-full gap-1">
+<a class="flex flex-col items-center justify-center text-[#ababab] py-3 opacity-60 hover:bg-[#191919] hover:text-[#81ecff] transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-2xl">home</span>
+<span class="text-[8px] mt-1 uppercase font-headline">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#ababab] py-3 opacity-60 hover:bg-[#191919] hover:text-[#81ecff] transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-2xl">map</span>
+<span class="text-[8px] mt-1 uppercase font-headline">Maps</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#ababab] py-3 opacity-60 hover:bg-[#191919] hover:text-[#81ecff] transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-2xl">play_circle</span>
+<span class="text-[8px] mt-1 uppercase font-headline">Media</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#262626] text-[#81ecff] border-l-4 border-[#81ecff] py-3 shadow-[0_0_15px_rgba(129,236,255,0.4)]" href="#">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">thermostat</span>
+<span class="text-[8px] mt-1 uppercase font-headline">Climate</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#ababab] py-3 opacity-60 hover:bg-[#191919] hover:text-[#81ecff] transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-2xl">settings</span>
+<span class="text-[8px] mt-1 uppercase font-headline">Settings</span>
+</a>
+</div>
+</div>
+<div class="pb-4 px-2">
+<button class="w-full py-2 rounded-lg bg-error-container text-white font-headline text-[8px] font-bold tracking-widest uppercase hover:opacity-80 transition-opacity">
+                SOS
+            </button>
+</div>
+</nav>
+<!-- TopAppBar -->
+<header class="absolute top-0 right-0 w-[calc(100%-5rem)] h-10 flex justify-end items-center px-6 gap-4 z-40 bg-transparent backdrop-blur-xl border-b border-white/5">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-3 text-[#ababab] font-headline text-xs tracking-widest">
+<span class="material-symbols-outlined text-base">signal_cellular_4_bar</span>
+<span class="material-symbols-outlined text-base">battery_full</span>
+<span class="material-symbols-outlined text-base">light_mode</span>
+</div>
+<div class="h-3 w-px bg-outline-variant"></div>
+<div class="text-[#81ecff] font-headline text-xs font-bold tracking-widest">22°C</div>
+<div class="text-[#ababab] font-headline text-xs tracking-widest">12:45 PM</div>
+<div class="font-black tracking-widest text-[#81ecff] text-xs ml-2">CarNiNe</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="ml-20 pt-10 h-full p-4 overflow-hidden flex flex-col gap-4">
+<!-- Climate Control Row (Condensed for 600px height) -->
+<section class="grid grid-cols-12 gap-4 h-[260px]">
+<!-- Left Zone Control -->
+<div class="col-span-4 bg-surface-container rounded-[2rem] p-4 flex flex-col items-center justify-between border border-outline-variant/10 relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-br from-[#81ecff]/5 to-transparent opacity-20 pointer-events-none"></div>
+<div class="flex justify-between w-full mb-2">
+<span class="text-[9px] font-headline font-bold text-[#ababab] tracking-widest">L-ZONE</span>
+<span class="text-[9px] font-headline font-bold text-[#81ecff] tracking-widest">AUTO_ON</span>
+</div>
+<div class="relative w-28 h-28 flex items-center justify-center">
+<div class="absolute inset-0 rounded-full border-4 border-surface-container-highest shadow-[inset_0_0_10px_rgba(0,0,0,0.8)]"></div>
+<div class="text-4xl font-headline font-light tracking-tighter text-[#81ecff] drop-shadow-[0_0_10px_rgba(129,236,255,0.6)]">19</div>
+<div class="absolute top-6 right-6 text-lg font-headline text-[#81ecff]">°C</div>
+</div>
+<div class="flex w-full gap-3 mt-2">
+<button class="flex-1 h-12 bg-surface-container-highest rounded-xl flex items-center justify-center border border-outline-variant/20 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-2xl text-[#81ecff]">remove</span>
+</button>
+<button class="flex-1 h-12 bg-primary-container rounded-xl flex items-center justify-center shadow-[0_0_20px_-5px_rgba(129,236,255,0.5)] active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-2xl text-on-primary-container">add</span>
+</button>
+</div>
+</div>
+<!-- Center Controls -->
+<div class="col-span-4 flex flex-col gap-3">
+<div class="bg-surface-container rounded-[2rem] p-4 border border-outline-variant/10 flex-1 flex flex-col justify-center">
+<div class="flex justify-between items-center mb-3 px-1">
+<span class="text-[9px] font-headline font-bold text-[#ababab] tracking-widest uppercase">Fan_Speed</span>
+<span class="text-[9px] font-headline font-bold text-[#81ecff] tracking-widest">LVL_04</span>
+</div>
+<div class="h-10 flex items-center gap-1.5 px-1">
+<div class="h-full flex-1 bg-[#81ecff] shadow-[0_0_8px_rgba(129,236,255,0.8)]"></div>
+<div class="h-full flex-1 bg-[#81ecff] shadow-[0_0_8px_rgba(129,236,255,0.8)]"></div>
+<div class="h-full flex-1 bg-[#81ecff] shadow-[0_0_8px_rgba(129,236,255,0.8)]"></div>
+<div class="h-full flex-1 bg-[#81ecff] shadow-[0_0_8px_rgba(129,236,255,0.8)]"></div>
+<div class="h-full flex-1 bg-surface-container-highest"></div>
+<div class="h-full flex-1 bg-surface-container-highest"></div>
+<div class="h-full flex-1 bg-surface-container-highest"></div>
+<div class="h-full flex-1 bg-surface-container-highest"></div>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-3">
+<button class="aspect-square rounded-full bg-[#262626] border border-[#81ecff] flex flex-col items-center justify-center text-[#81ecff] shadow-[0_0_10px_rgba(129,236,255,0.4)]">
+<span class="material-symbols-outlined text-xl">air_freshener</span>
+<span class="text-[7px] mt-1 font-headline uppercase font-bold">Dash</span>
+</button>
+<button class="aspect-square rounded-full bg-surface-container-highest flex flex-col items-center justify-center text-[#ababab]">
+<span class="material-symbols-outlined text-xl">smart_ventilation</span>
+<span class="text-[7px] mt-1 font-headline uppercase font-bold">Floor</span>
+</button>
+<button class="aspect-square rounded-full bg-surface-container-highest flex flex-col items-center justify-center text-[#ababab]">
+<span class="material-symbols-outlined text-xl">toys_fan</span>
+<span class="text-[7px] mt-1 font-headline uppercase font-bold">Sync</span>
+</button>
+</div>
+</div>
+<!-- Right Zone Control -->
+<div class="col-span-4 bg-surface-container rounded-[2rem] p-4 flex flex-col items-center justify-between border border-outline-variant/10 relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-bl from-[#ff51fa]/5 to-transparent opacity-20 pointer-events-none"></div>
+<div class="flex justify-between w-full mb-2">
+<span class="text-[9px] font-headline font-bold text-[#ababab] tracking-widest">R-ZONE</span>
+<span class="text-[9px] font-headline font-bold text-[#ff51fa] tracking-widest">BOOST_OFF</span>
+</div>
+<div class="relative w-28 h-28 flex items-center justify-center">
+<div class="absolute inset-0 rounded-full border-4 border-surface-container-highest shadow-[inset_0_0_10px_rgba(0,0,0,0.8)]"></div>
+<div class="text-4xl font-headline font-light tracking-tighter text-[#ff51fa] drop-shadow-[0_0_10px_rgba(255,81,250,0.6)]">24</div>
+<div class="absolute top-6 right-6 text-lg font-headline text-[#ff51fa]">°C</div>
+</div>
+<div class="flex w-full gap-3 mt-2">
+<button class="flex-1 h-12 bg-surface-container-highest rounded-xl flex items-center justify-center border border-outline-variant/20 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-2xl text-[#ff51fa]">remove</span>
+</button>
+<button class="flex-1 h-12 bg-secondary-container rounded-xl flex items-center justify-center shadow-[0_0_20px_-5px_rgba(255,81,250,0.5)] active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-2xl text-on-secondary-container">add</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Vehicle Settings Row -->
+<section class="grid grid-cols-12 gap-4 flex-1">
+<!-- Driving Mode -->
+<div class="col-span-5 bg-surface-container rounded-[2rem] p-4 border border-outline-variant/10 flex flex-col justify-between">
+<div class="text-[9px] font-headline font-bold text-[#ababab] tracking-widest mb-3 uppercase">Performance_Profile</div>
+<div class="flex flex-col gap-2 flex-1 justify-center">
+<button class="w-full flex items-center justify-between p-2.5 bg-surface-container-highest rounded-xl border border-outline-variant/10">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-lg text-[#81ecff]">eco</span>
+<span class="font-headline font-bold text-xs tracking-widest">ECO_HYBRID</span>
+</div>
+<div class="w-3 h-3 rounded-full border border-outline-variant"></div>
+</button>
+<button class="w-full flex items-center justify-between p-2.5 bg-[#262626] rounded-xl border border-[#ff51fa] shadow-[0_0_10px_rgba(255,81,250,0.2)]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-lg text-[#ff51fa]" style="font-variation-settings: 'FILL' 1;">speed</span>
+<span class="font-headline font-bold text-xs tracking-widest text-[#ff51fa]">NEON_SPORT</span>
+</div>
+<div class="w-3 h-3 rounded-full bg-[#ff51fa] shadow-[0_0_5px_#ff51fa]"></div>
+</button>
+<button class="w-full flex items-center justify-between p-2.5 bg-surface-container-highest rounded-xl border border-outline-variant/10">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-lg text-[#ababab]">routine</span>
+<span class="font-headline font-bold text-xs tracking-widest text-[#ababab]">BALANCED</span>
+</div>
+<div class="w-3 h-3 rounded-full border border-outline-variant"></div>
+</button>
+</div>
+</div>
+<!-- Misc Toggles Grid -->
+<div class="col-span-7 grid grid-cols-2 grid-rows-2 gap-3">
+<div class="bg-surface-container rounded-[1.5rem] p-3 border border-outline-variant/10 flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-[8px] font-headline font-bold text-[#ababab] tracking-widest uppercase mb-1">Lights</span>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-xl text-[#81ecff]">wb_twilight</span>
+<span class="font-headline font-black text-sm tracking-tighter">AUTO</span>
+</div>
+</div>
+<button class="w-10 h-5 bg-primary/20 rounded-full border border-primary/40 relative">
+<div class="absolute right-0.5 top-0.5 w-3.5 h-3.5 bg-primary rounded-full"></div>
+</button>
+</div>
+<div class="bg-surface-container rounded-[1.5rem] p-3 border border-outline-variant/10 flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-[8px] font-headline font-bold text-[#ababab] tracking-widest uppercase mb-1">Locks</span>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-xl text-error">lock_open</span>
+<span class="font-headline font-black text-sm tracking-tighter">OPEN</span>
+</div>
+</div>
+<button class="w-10 h-5 bg-surface-container-highest rounded-full border border-outline-variant/20 relative">
+<div class="absolute left-0.5 top-0.5 w-3.5 h-3.5 bg-[#ababab] rounded-full"></div>
+</button>
+</div>
+<button class="bg-surface-container rounded-[1.5rem] p-3 border border-outline-variant/10 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-xl text-[#ff51fa]">heat_pump</span>
+<div class="flex flex-col items-start">
+<span class="text-[8px] font-headline font-bold text-[#ababab] tracking-widest">DRIVE_H</span>
+<span class="font-headline font-bold text-[10px] text-[#ff51fa]">LVL_03</span>
+</div>
+</div>
+<div class="flex gap-0.5">
+<div class="w-1 h-4 bg-[#ff51fa]"></div>
+<div class="w-1 h-4 bg-[#ff51fa]"></div>
+<div class="w-1 h-4 bg-[#ff51fa]"></div>
+</div>
+</button>
+<button class="bg-surface-container rounded-[1.5rem] p-3 border border-outline-variant/10 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-xl text-[#ababab]">heat_pump</span>
+<div class="flex flex-col items-start">
+<span class="text-[8px] font-headline font-bold text-[#ababab] tracking-widest">PASS_H</span>
+<span class="font-headline font-bold text-[10px] text-[#ababab]">OFF</span>
+</div>
+</div>
+<div class="flex gap-0.5">
+<div class="w-1 h-4 bg-surface-container-highest"></div>
+<div class="w-1 h-4 bg-surface-container-highest"></div>
+<div class="w-1 h-4 bg-surface-container-highest"></div>
+</div>
+</button>
+</div>
+</section>
+<!-- Stats Footer -->
+<div class="bg-surface-container-high rounded-full p-2 px-4 flex items-center justify-between border-t border-[#81ecff]/10">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-xs text-[#ababab]">tire_repair</span>
+<span class="text-[9px] font-headline text-[#ababab] tracking-widest uppercase">PSI: 32/32/31/32</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-xs text-[#81ecff]">ev_station</span>
+<span class="text-[9px] font-headline text-[#81ecff] tracking-widest uppercase">Range: 412 km</span>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="px-4 py-1.5 rounded-full border border-outline-variant text-[8px] font-headline font-bold tracking-widest uppercase hover:bg-surface-container-highest">Diagnostics</button>
+<button class="px-4 py-1.5 rounded-full bg-primary text-on-primary-container text-[8px] font-headline font-bold tracking-widest uppercase shadow-[0_0_10px_#81ecff]">Update</button>
+</div>
+</div>
+</main>
+<!-- Floating Voice Assistant -->
+<div class="absolute bottom-6 right-6 z-[60]">
+<button class="w-14 h-14 rounded-full glass-panel border border-[#81ecff]/30 shadow-[0_0_20px_rgba(129,236,255,0.3)] flex items-center justify-center text-[#81ecff] active:scale-90 transition-all">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">mic</span>
+</button>
+</div>
+</div>
+</body></html>

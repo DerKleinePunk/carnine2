@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed-dim": "#7da0ff",
+                        "on-surface": "#ffffff",
+                        "outline-variant": "#484848",
+                        "on-primary-fixed-variant": "#005762",
+                        "on-error": "#490006",
+                        "on-secondary": "#400040",
+                        "tertiary-fixed": "#92aeff",
+                        "on-secondary-fixed": "#620061",
+                        "on-error-container": "#ffa8a3",
+                        "secondary": "#ff51fa",
+                        "on-primary-fixed": "#003840",
+                        "on-tertiary-fixed-variant": "#003388",
+                        "surface-container-lowest": "#000000",
+                        "surface": "#0e0e0e",
+                        "background": "#0e0e0e",
+                        "on-primary-container": "#004d57",
+                        "on-tertiary": "#001c53",
+                        "surface-bright": "#2c2c2c",
+                        "error-dim": "#d7383b",
+                        "on-primary": "#005762",
+                        "error": "#ff716c",
+                        "tertiary-container": "#0266ff",
+                        "secondary-fixed-dim": "#ffa6f3",
+                        "primary-fixed": "#00e3fd",
+                        "primary-dim": "#00d4ec",
+                        "surface-container": "#191919",
+                        "on-surface-variant": "#ababab",
+                        "surface-container-high": "#1f1f1f",
+                        "secondary-dim": "#ff51fa",
+                        "on-background": "#ffffff",
+                        "inverse-surface": "#f9f9f9",
+                        "on-tertiary-fixed": "#001441",
+                        "surface-tint": "#81ecff",
+                        "error-container": "#9f0519",
+                        "outline": "#757575",
+                        "on-tertiary-container": "#ffffff",
+                        "secondary-container": "#a900a9",
+                        "inverse-primary": "#006976",
+                        "inverse-on-surface": "#555555",
+                        "on-secondary-container": "#fff5f9",
+                        "tertiary-dim": "#156aff",
+                        "secondary-fixed": "#ffbdf3",
+                        "tertiary": "#759aff",
+                        "surface-variant": "#262626",
+                        "surface-dim": "#0e0e0e",
+                        "primary": "#81ecff",
+                        "surface-container-highest": "#262626",
+                        "primary-container": "#00e3fd",
+                        "primary-fixed-dim": "#00d4ec",
+                        "on-secondary-fixed-variant": "#920091",
+                        "surface-container-low": "#131313"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Manrope"],
+                        "label": ["Space Grotesk"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glow-primary {
+            box-shadow: 0 0 15px rgba(129, 236, 255, 0.4);
+        }
+        .tactile-inset {
+            box-shadow: inset 1px 1px 2px rgba(255, 255, 255, 0.1), inset -1px -1px 2px rgba(0, 0, 0, 0.5);
+        }
+        /* Lock dimensions to 1024x600 for automotive display feel */
+        body {
+            width: 1024px;
+            height: 600px;
+            overflow: hidden;
+            margin: 0 auto;
+            position: relative;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body flex">
+<!-- SideNavBar (Optimized Width for 1024x600) -->
+<nav class="fixed left-0 top-0 h-full flex flex-col justify-between z-50 w-24 bg-[#0e0e0e] border-r border-[#81ecff]/10 shadow-[10px_0_30px_-15px_rgba(129,236,255,0.3)]">
+<div class="flex flex-col items-center py-4 gap-4">
+<div class="flex flex-col items-center mb-4">
+<span class="text-xl font-bold tracking-tighter text-[#81ecff] drop-shadow-[0_0_8px_rgba(129,236,255,0.8)] font-headline">KINETIC</span>
+<span class="text-[8px] tracking-[0.2em] text-[#81ecff]/60 font-label">V8-ACTIVE</span>
+</div>
+<div class="flex flex-col w-full gap-1">
+<a class="flex flex-col items-center justify-center bg-[#262626] text-[#81ecff] border-l-4 border-[#81ecff] py-4 shadow-[0_0_15px_rgba(129,236,255,0.4)] transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-xl mb-1" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="text-[9px] font-label font-bold tracking-wider">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#ababab] py-4 opacity-60 hover:bg-[#191919] hover:text-[#81ecff] transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-xl mb-1">map</span>
+<span class="text-[9px] font-label font-bold tracking-wider">Maps</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#ababab] py-4 opacity-60 hover:bg-[#191919] hover:text-[#81ecff] transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-xl mb-1">play_circle</span>
+<span class="text-[9px] font-label font-bold tracking-wider">Media</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#ababab] py-4 opacity-60 hover:bg-[#191919] hover:text-[#81ecff] transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-xl mb-1">thermostat</span>
+<span class="text-[9px] font-label font-bold tracking-wider">Climate</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#ababab] py-4 opacity-60 hover:bg-[#191919] hover:text-[#81ecff] transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-xl mb-1">settings</span>
+<span class="text-[9px] font-label font-bold tracking-wider">Settings</span>
+</a>
+</div>
+</div>
+<div class="pb-4 flex flex-col items-center gap-3">
+<button class="bg-error-container text-on-error-container py-2 px-1 rounded-lg text-[9px] font-black tracking-tighter border border-error/30 active:scale-95 duration-100 w-16">
+                EMERGENCY
+            </button>
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary/20">
+<img alt="Vehicle Profile" data-alt="front view of a modern matte black performance SUV with glowing cyan LED headlights in a dark studio setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDo5BGVHKdEPJ2gwkZwTWlNozdqSjt7nC2Bb7VgU1vRERmZ1fQsrmQZ5t_LG6-iieGaC2TQ7XuonHPm4QkqHCRHTFcQCD5hpPjI9oANP-LpUlza6Oy--XuZHREAIrKfMNJKGum66k0rembm-q-gwUPdQVGMUlq2f_beQm0_Er4G-l4GlxMUmdubSjegL8ir0GcEx5arYIwCnCXbv4LOXO_6fe9c02NKo6ZfPfhCyz0xfQKDuuVJjManKN5q9yNu3EpunzIOVvKEqQ6_"/>
+</div>
+</div>
+</nav>
+<!-- TopAppBar (Adjusted Height) -->
+<header class="fixed top-0 right-0 w-[calc(1024px-6rem)] h-10 flex justify-end items-center px-6 gap-4 z-40 bg-transparent backdrop-blur-sm">
+<div class="flex items-center gap-3">
+<span class="text-[#81ecff] font-label text-xs tracking-widest font-bold drop-shadow-[0_0_8px_rgba(129,236,255,0.6)]">CarNiNe</span>
+<div class="h-3 w-px bg-outline-variant/30"></div>
+<div class="flex items-center gap-3 text-[#81ecff]">
+<span class="material-symbols-outlined text-xs">signal_cellular_4_bar</span>
+<span class="material-symbols-outlined text-xs">battery_full</span>
+<span class="material-symbols-outlined text-xs">light_mode</span>
+</div>
+<div class="h-3 w-px bg-outline-variant/30"></div>
+<span class="text-[#81ecff] font-label font-bold text-xs">22°C</span>
+<span class="text-[#81ecff] font-label font-bold text-xs">12:45 PM</span>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="ml-24 mt-10 p-4 w-[calc(1024px-6rem)] h-[calc(600px-2.5rem)] overflow-hidden">
+<div class="grid grid-cols-12 grid-rows-6 h-full gap-4">
+<!-- Navigation Widget (Primary focus, slightly larger for 600px height) -->
+<section class="col-span-8 row-span-4 rounded-xl overflow-hidden relative group bg-surface-container border border-primary/10 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+<div class="absolute inset-0 opacity-40 mix-blend-overlay pointer-events-none bg-gradient-to-t from-surface to-transparent z-10"></div>
+<div class="absolute top-4 left-4 z-20 flex flex-col gap-0.5">
+<span class="bg-primary/20 backdrop-blur-md text-primary px-2 py-0.5 rounded-full text-[8px] font-bold tracking-widest uppercase border border-primary/30 w-fit">Active Route</span>
+<h2 class="text-2xl font-headline font-bold text-on-surface tracking-tight mt-1">Pacific Coast Hwy</h2>
+<span class="text-primary-dim font-medium text-xs flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">near_me</span>
+                        2.4 miles to next exit
+                    </span>
+</div>
+<div class="absolute bottom-4 right-4 z-20 flex gap-2">
+<button class="w-10 h-10 rounded-full bg-surface-bright/40 backdrop-blur-md flex items-center justify-center border border-primary/20 tactile-inset text-primary hover:bg-primary hover:text-surface transition-all">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="w-10 h-10 rounded-full bg-surface-bright/40 backdrop-blur-md flex items-center justify-center border border-primary/20 tactile-inset text-primary hover:bg-primary hover:text-surface transition-all">
+<span class="material-symbols-outlined text-lg">remove</span>
+</button>
+</div>
+<div class="w-full h-full bg-[#111] grayscale invert brightness-[0.2] contrast-150">
+<div class="w-full h-full flex items-center justify-center bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent">
+<img class="w-full h-full object-cover opacity-30" data-alt="stylized dark topological map with glowing neon blue grid lines and main arterial roads highlighted in cyan" data-location="San Francisco" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPTrX3SlKC755lQN7tgLxErmReADdTmREF4F1DBWhz5zJ6cvFIWAuafyPkk7P7BvKq1CeGSgB10FvoOIA0Wyu2o2fZMcLC2IQm-EYf38xPwm62Lsb-EStLJ7HiqagZqbpo1rV7lFISCUqJcUut82ZT6XSS8YX9YMb7a13efhZoEphGB11tM8TBAjj0qU4D5A6bNHDLJ4U_wZurVaXa7HCPPNPHQNvuNkbwKVKMl2gKdndmSM5N6gDqBxZj94VuGGD8fQDiF0wuqYRc"/>
+</div>
+</div>
+</section>
+<!-- Media Widget (Side Top) -->
+<section class="col-span-4 row-span-3 rounded-xl bg-surface-container-high border border-secondary/10 flex flex-col p-4 relative overflow-hidden shadow-2xl">
+<div class="absolute -top-16 -right-16 w-32 h-32 bg-secondary/10 blur-[60px] rounded-full"></div>
+<div class="flex-1 flex flex-col items-center justify-center">
+<div class="relative w-28 h-28 mb-3 group">
+<div class="absolute inset-0 bg-secondary/30 blur-2xl opacity-0 group-hover:opacity-40 transition-opacity"></div>
+<img class="w-full h-full object-cover rounded-xl shadow-2xl border border-white/5 relative z-10" data-alt="abstract electronic music album art with vibrant purple and cyan geometric patterns on a dark background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYDaSSK0LsL5_BAxRs1JymonoQFRfeU3XDBe2I4dcm-OillzKBc8rBRAcSob34KwiTFEGFJ0mdorT0wQxjhNtwqABiyeP6O6ZSsQwZYEKZwgiYmW5KbWfjxzAsaG-t_KSdTouEWZlUyOpmX6f_OL0zjRvJf29uxB4uD6_lbj85c8lvzMquUZTxoTcS7SdNzoQM9eKm7ibJX3XV65GPKTfqpCUBid7fMgcJ0xqjBxwcGDzR31MO6uyXkx6QDEOvACmEfr3rXYzuhlr0"/>
+</div>
+<div class="text-center">
+<h3 class="text-lg font-headline font-bold text-on-surface mb-0.5 leading-tight">Neon Drift</h3>
+<p class="text-on-surface-variant font-medium text-[10px]">SYNTHWAVE_COLLECTIVE</p>
+</div>
+</div>
+<div class="w-full mt-2">
+<div class="h-1 w-full bg-surface-container-lowest rounded-full overflow-hidden mb-4">
+<div class="h-full w-[65%] bg-gradient-to-r from-secondary to-secondary-dim shadow-[0_0_8px_rgba(255,81,250,0.6)]"></div>
+</div>
+<div class="flex items-center justify-between px-2">
+<button class="text-[#ababab] hover:text-secondary"><span class="material-symbols-outlined text-lg">skip_previous</span></button>
+<button class="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary shadow-[0_0_20px_rgba(169,0,169,0.4)] hover:scale-105 transition-transform active:scale-95">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">pause</span>
+</button>
+<button class="text-[#ababab] hover:text-secondary"><span class="material-symbols-outlined text-lg">skip_next</span></button>
+</div>
+</div>
+</section>
+<!-- Vehicle Status Widget (Side Bottom) -->
+<section class="col-span-4 row-span-3 rounded-xl bg-surface-container border border-primary/5 p-4 flex flex-col justify-between">
+<div class="flex items-center justify-between mb-2">
+<span class="text-[9px] font-label font-bold tracking-[0.2em] text-primary/60 uppercase">System Telemetry</span>
+<span class="material-symbols-outlined text-primary text-xs">analytics</span>
+</div>
+<div class="flex-1 flex flex-col justify-around">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-[10px] text-on-surface-variant font-medium">Range</span>
+<div class="flex items-baseline gap-1">
+<span class="text-4xl font-headline font-bold text-primary">342</span>
+<span class="text-primary-dim font-bold text-[10px] tracking-widest">MI</span>
+</div>
+</div>
+<div class="w-16 h-16 relative flex items-center justify-center">
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 96 96">
+<circle class="text-surface-container-highest" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-primary drop-shadow-[0_0_5px_rgba(129,236,255,0.6)]" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" stroke-dasharray="251.2" stroke-dashoffset="62.8" stroke-width="8"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-xs font-headline font-bold text-on-surface">75%</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div class="bg-surface-container-low p-2 rounded-lg border border-outline-variant/10">
+<span class="text-[8px] font-label text-on-surface-variant mb-1 block">TIRE_P</span>
+<div class="flex items-center justify-between">
+<span class="text-base font-headline font-bold text-on-surface">36.2</span>
+<span class="material-symbols-outlined text-[10px] text-primary">tire_repair</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-2 rounded-lg border border-outline-variant/10">
+<span class="text-[8px] font-label text-on-surface-variant mb-1 block">EXT_T</span>
+<div class="flex items-center justify-between">
+<span class="text-base font-headline font-bold text-on-surface">18°C</span>
+<span class="material-symbols-outlined text-[10px] text-primary">ac_unit</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Bottom Left Secondary Stats (Wide) -->
+<section class="col-span-8 row-span-2 rounded-xl bg-surface-container border border-primary/5 p-4 flex items-center gap-8 relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-transparent"></div>
+<div class="flex flex-col relative z-10">
+<span class="text-[9px] font-label text-primary-dim tracking-[0.2em] mb-1.5 uppercase">Drive Mode</span>
+<div class="flex gap-1.5">
+<button class="px-3 py-1.5 rounded bg-primary text-surface font-bold text-[10px] tracking-widest tactile-inset">SPORT</button>
+<button class="px-3 py-1.5 rounded bg-surface-container-highest text-on-surface-variant font-bold text-[10px] tracking-widest border border-outline-variant/20">COMFORT</button>
+<button class="px-3 py-1.5 rounded bg-surface-container-highest text-on-surface-variant font-bold text-[10px] tracking-widest border border-outline-variant/20">ECO</button>
+</div>
+</div>
+<div class="h-10 w-px bg-outline-variant/30"></div>
+<div class="flex items-center gap-6 relative z-10">
+<div class="flex flex-col">
+<span class="text-[9px] font-label text-on-surface-variant mb-0.5">WH/MI</span>
+<span class="text-xl font-headline font-bold text-on-surface">284</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[9px] font-label text-on-surface-variant mb-0.5">TRIP</span>
+<span class="text-xl font-headline font-bold text-on-surface">1:22:04</span>
+</div>
+</div>
+<div class="ml-auto relative z-10">
+<button class="flex items-center gap-2 bg-surface-container-highest/60 border border-primary/20 backdrop-blur-md px-4 py-2.5 rounded-xl group hover:bg-primary transition-all duration-300">
+<span class="material-symbols-outlined text-primary group-hover:text-surface text-lg">mic</span>
+<span class="text-xs font-headline font-bold text-on-surface group-hover:text-surface">Voice Control</span>
+</button>
+</div>
+</section>
+</div>
+</main>
+<!-- Contextual "Orbital" Quick Action -->
+<div class="fixed bottom-6 right-6 z-[60]">
+<button class="w-16 h-16 rounded-full bg-surface-bright/40 backdrop-blur-2xl border border-primary/30 flex items-center justify-center text-primary glow-primary shadow-2xl hover:scale-110 active:scale-90 transition-all duration-200">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">grid_view</span>
+</button>
+</div>
+</body></html>

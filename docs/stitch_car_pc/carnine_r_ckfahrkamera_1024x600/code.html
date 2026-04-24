@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-low": "#131313",
+                    "on-secondary-container": "#fff5f9",
+                    "secondary-dim": "#ff51fa",
+                    "background": "#0e0e0e",
+                    "error-dim": "#d7383b",
+                    "on-primary-fixed": "#003840",
+                    "secondary-fixed": "#ffbdf3",
+                    "primary-fixed": "#00e3fd",
+                    "tertiary-container": "#0266ff",
+                    "inverse-on-surface": "#555555",
+                    "secondary-container": "#a900a9",
+                    "primary-fixed-dim": "#00d4ec",
+                    "outline": "#757575",
+                    "inverse-primary": "#006976",
+                    "tertiary-fixed": "#92aeff",
+                    "on-background": "#ffffff",
+                    "on-primary-container": "#004d57",
+                    "surface-container-lowest": "#000000",
+                    "on-surface": "#ffffff",
+                    "surface-dim": "#0e0e0e",
+                    "on-primary": "#005762",
+                    "surface-container-high": "#1f1f1f",
+                    "on-primary-fixed-variant": "#005762",
+                    "on-surface-variant": "#ababab",
+                    "surface-variant": "#262626",
+                    "secondary": "#ff51fa",
+                    "on-error-container": "#ffa8a3",
+                    "tertiary-dim": "#156aff",
+                    "surface-container-highest": "#262626",
+                    "surface-bright": "#2c2c2c",
+                    "surface": "#0e0e0e",
+                    "on-tertiary-fixed": "#001441",
+                    "on-tertiary-fixed-variant": "#003388",
+                    "on-secondary": "#400040",
+                    "on-tertiary": "#001c53",
+                    "outline-variant": "#484848",
+                    "primary-dim": "#00d4ec",
+                    "surface-container": "#191919",
+                    "on-tertiary-container": "#ffffff",
+                    "on-secondary-fixed": "#620061",
+                    "error-container": "#9f0519",
+                    "tertiary": "#759aff",
+                    "on-secondary-fixed-variant": "#920091",
+                    "inverse-surface": "#f9f9f9",
+                    "secondary-fixed-dim": "#ffa6f3",
+                    "tertiary-fixed-dim": "#7da0ff",
+                    "surface-tint": "#81ecff",
+                    "primary-container": "#00e3fd",
+                    "primary": "#81ecff",
+                    "error": "#ff716c",
+                    "on-error": "#490006"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Space Grotesk"],
+                    "body": ["Manrope"],
+                    "label": ["Space Grotesk"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .perspective-view {
+            perspective: 600px;
+        }
+        .parking-arch {
+            transform: rotateX(50deg);
+        }
+        /* Lock view to 1024x600 fixed aspect ratio */
+        body {
+            width: 1024px;
+            height: 600px;
+            margin: 0 auto;
+            position: relative;
+            background: #000;
+        }
+        @media (min-width: 1025px), (min-height: 601px) {
+            body {
+                transform: scale(min(calc(100vw / 1024), calc(100vh / 600)));
+                transform-origin: center top;
+            }
+        }
+    </style>
+</head>
+<body class="bg-surface-container-lowest text-on-surface font-body overflow-hidden select-none">
+<!-- TopNavBar -->
+<header class="fixed top-0 left-0 w-full z-50 bg-neutral-950/90 backdrop-blur-xl border-b border-white/5 flex justify-between items-center px-6 h-14">
+<div class="flex items-center gap-4">
+<h1 class="text-xl font-bold italic text-cyan-400 drop-shadow-[0_0_8px_rgba(129,236,255,0.5)] font-headline tracking-tight">CarNiNe</h1>
+<div class="flex items-center gap-3 text-on-surface-variant font-label text-[10px] uppercase tracking-widest">
+<div class="flex items-center gap-1.5 bg-surface-container px-2 py-0.5 rounded-full border border-outline-variant/20">
+<span class="material-symbols-outlined text-primary text-xs">thermostat</span>
+<span>22°C</span>
+</div>
+<div class="flex items-center gap-1.5 bg-surface-container px-2 py-0.5 rounded-full border border-outline-variant/20">
+<span class="material-symbols-outlined text-primary text-xs">wifi</span>
+<span>LTE+</span>
+</div>
+<div class="text-on-surface font-bold ml-1">22:45</div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 rounded-lg hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-neutral-500 text-xl">settings</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-neutral-500 text-xl">power_settings_new</span>
+</button>
+<img alt="Driver Profile" class="w-8 h-8 rounded-full border border-primary/20 shadow-[0_0_10px_rgba(129,236,255,0.2)] ml-2" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDyw8F2HK-6MJ9_Cn2KZ7UMG7kZ4L62xHvZ5yDpZ0e6Lk9JmWWvtBpMCWVkzJ6blMtxA6uWRe7Wdnc79PO-PUJ2Cfc3kblS1nss7xfj71vwAVElYSQK0almMa657czRC2uayamX59Hnixl2ZtPih2KheIvLeBwl2pSpB_EYtAX5I94Oz-mwcgSVUVT_umBsYHNFhaVTYMSqQPrFodUw4l6R25tZFmK3E53tlru_e10jvVDJPQKVcIxRT93ueYwinCUtgxPBRk-SAUOT"/>
+</div>
+</header>
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-full w-20 z-40 bg-neutral-900/95 shadow-[8px_0_20px_rgba(0,0,0,0.8)] flex flex-col items-center pt-16 pb-4 gap-4">
+<div class="flex flex-col items-center mb-2">
+<div class="w-10 h-10 bg-surface-container rounded-lg flex items-center justify-center border border-primary/20 mb-1">
+<span class="material-symbols-outlined text-cyan-400 text-xl">directions_car</span>
+</div>
+<span class="text-[8px] font-headline text-cyan-400 font-bold tracking-widest uppercase">EV-9</span>
+</div>
+<nav class="flex flex-col gap-1 w-full">
+<button class="flex flex-col items-center py-3 w-full text-neutral-600 hover:text-neutral-200 hover:bg-white/5 transition-all">
+<span class="material-symbols-outlined mb-0.5 text-xl">directions_car</span>
+<span class="font-headline uppercase tracking-widest text-[8px]">Drive</span>
+</button>
+<button class="flex flex-col items-center py-3 w-full text-neutral-600 hover:text-neutral-200 hover:bg-white/5 transition-all">
+<span class="material-symbols-outlined mb-0.5 text-xl">play_circle</span>
+<span class="font-headline uppercase tracking-widest text-[8px]">Media</span>
+</button>
+<button class="flex flex-col items-center py-3 w-full text-neutral-600 hover:text-neutral-200 hover:bg-white/5 transition-all">
+<span class="material-symbols-outlined mb-0.5 text-xl">map</span>
+<span class="font-headline uppercase tracking-widest text-[8px]">Maps</span>
+</button>
+<button class="flex flex-col items-center py-3 w-full bg-cyan-400/20 text-cyan-400 border-r-2 border-cyan-400 shadow-[inset_0_0_10px_rgba(129,236,255,0.3)] transition-all">
+<span class="material-symbols-outlined mb-0.5 text-xl">rear_camera</span>
+<span class="font-headline uppercase tracking-widest text-[8px]">Camera</span>
+</button>
+</nav>
+<div class="mt-auto">
+<button class="w-12 h-12 bg-secondary-container/20 border border-secondary text-secondary font-headline text-[7px] font-bold rounded-full flex items-center justify-center text-center leading-none p-1.5 shadow-[0_0_15px_rgba(255,81,250,0.3)] hover:bg-secondary-container/40 transition-colors">
+            SPORT MODE
+        </button>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="ml-20 mt-14 h-[calc(600px-56px)] w-[calc(1024px-80px)] bg-background overflow-hidden relative">
+<!-- Camera Feed -->
+<div class="relative w-full h-full">
+<img class="w-full h-full object-cover grayscale-[0.2] contrast-125" data-alt="wide angle low angle perspective of an empty asphalt parking lot at night with blue ambient street lighting and moody shadows" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBI4r02BDrUI3wAsTxJJa6jNy65s6Hgym2cetxoeYyek1JesETCpzuJ0HNEFMeg1RYpQuqttEHMm5r62iT1wEXmkukNa5llUPqeLa9fG5rRmgGbpEiBRVS3sR7-TcZwhK1ftIrRKjLqU5O5pmoysNX2z1QpQBk6_6vdO8vJ1lPRhzumNsftO3qPhodkqcjEoIzeCipP5pybRxyrxcnMFSNmSiX3RzUA1K3qgvnkf-OYzTKCK2FAo0gtRcNtx3rJb1dPDQLGNrfL2yNz"/>
+<!-- Overlay Grain -->
+<div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)]"></div>
+<!-- Parking Guidelines -->
+<div class="absolute inset-0 flex justify-center items-end pb-16 pointer-events-none perspective-view">
+<svg class="parking-arch" fill="none" height="300" viewbox="0 0 600 300" width="600" xmlns="http://www.w3.org/2000/svg">
+<path class="drop-shadow-[0_0_10px_rgba(129,236,255,0.8)] opacity-90" d="M150 300C150 180 220 80 300 40" stroke="#81ecff" stroke-dasharray="15 10" stroke-width="6"></path>
+<path class="drop-shadow-[0_0_10px_rgba(129,236,255,0.8)] opacity-90" d="M450 300C450 180 380 80 300 40" stroke="#81ecff" stroke-dasharray="15 10" stroke-width="6"></path>
+<rect class="drop-shadow-[0_0_8px_rgba(255,81,250,0.5)]" height="40" stroke="#ff51fa" stroke-opacity="0.6" stroke-width="3" width="200" x="200" y="240"></rect>
+<rect height="40" stroke="#ffbdf3" stroke-opacity="0.3" stroke-width="2" width="180" x="210" y="180"></rect>
+</svg>
+</div>
+<!-- Warning Label -->
+<div class="absolute top-4 left-1/2 -translate-x-1/2 bg-error-container/80 backdrop-blur-md px-4 py-1.5 rounded-full border border-error/50 flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface animate-pulse text-sm">warning</span>
+<span class="font-headline text-[9px] font-bold tracking-[0.2em] uppercase text-on-surface">Check surroundings for safety</span>
+</div>
+<!-- Sensor Visualization -->
+<div class="absolute bottom-6 right-6 w-40 h-52 bg-surface-container-low/90 backdrop-blur-xl rounded-xl border border-outline-variant/30 p-3 shadow-2xl">
+<div class="relative w-full h-full flex flex-col items-center">
+<span class="font-headline text-[9px] text-on-surface-variant font-bold tracking-widest uppercase mb-2">Proximity Sensors</span>
+<div class="w-12 h-24 bg-surface-container-high rounded-lg border border-primary/20 relative mt-2">
+<div class="absolute -top-1 left-2 right-2 h-0.5 bg-primary-dim/30 rounded-full"></div>
+<div class="absolute -bottom-1 left-2 right-2 h-0.5 bg-secondary-dim/30 rounded-full"></div>
+<!-- REAR Arcs -->
+<div class="absolute -bottom-8 left-1/2 -translate-x-1/2 w-16 flex flex-col gap-1 items-center">
+<div class="w-14 h-1.5 bg-error rounded-full shadow-[0_0_10px_rgba(255,113,108,0.8)]"></div>
+<div class="w-16 h-0.5 bg-error/50 rounded-full"></div>
+<div class="w-18 h-0.5 bg-error/20 rounded-full"></div>
+</div>
+</div>
+<div class="mt-auto w-full flex justify-between px-1 pt-3 border-t border-outline-variant/20">
+<div class="flex flex-col">
+<span class="text-[7px] text-on-surface-variant uppercase tracking-tighter">Obstacle</span>
+<span class="font-headline text-sm text-error font-bold leading-none">0.8M</span>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-[7px] text-on-surface-variant uppercase tracking-tighter">Status</span>
+<span class="font-headline text-[10px] text-primary font-bold leading-none">ACTIVE</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Action Controls -->
+<div class="absolute left-6 bottom-6 flex flex-col gap-3">
+<button class="w-16 h-16 bg-surface-container/70 backdrop-blur-xl border border-primary/30 rounded-xl flex flex-col items-center justify-center gap-1 group active:scale-95 transition-all">
+<div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-surface transition-colors">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">visibility</span>
+</div>
+<span class="font-headline text-[8px] font-bold text-on-surface uppercase tracking-tighter">NIGHT V.</span>
+</button>
+<button class="w-16 h-16 bg-primary/95 border border-primary rounded-xl flex flex-col items-center justify-center gap-1 active:scale-95 transition-all shadow-[0_0_15px_rgba(129,236,255,0.4)]">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-lg">straighten</span>
+</div>
+<span class="font-headline text-[8px] font-bold text-on-primary uppercase tracking-tighter">LINES ON</span>
+</button>
+<button class="w-16 h-16 bg-surface-container/70 backdrop-blur-xl border border-outline-variant/30 rounded-xl flex flex-col items-center justify-center gap-1 group active:scale-95 transition-all">
+<div class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-on-surface group-hover:bg-white/20 transition-colors">
+<span class="material-symbols-outlined text-lg">zoom_in</span>
+</div>
+<span class="font-headline text-[8px] font-bold text-on-surface-variant uppercase tracking-tighter">ZOOM 1X</span>
+</button>
+</div>
+<!-- Secondary Metrics -->
+<div class="absolute right-6 top-6 flex flex-col gap-2 items-end">
+<div class="bg-surface-container-highest/70 backdrop-blur-md border border-white/5 px-3 py-1.5 rounded-lg flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-xs">speed</span>
+<div class="flex items-baseline gap-1">
+<span class="font-headline text-lg font-bold text-on-surface">3</span>
+<span class="text-[8px] text-on-surface-variant font-bold uppercase">km/h</span>
+</div>
+</div>
+<div class="bg-surface-container-highest/70 backdrop-blur-md border border-white/5 px-3 py-1.5 rounded-lg flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xs">steering_wheel_heat</span>
+<div class="flex items-baseline gap-1">
+<span class="font-headline text-lg font-bold text-on-surface">12°</span>
+<span class="text-[8px] text-on-surface-variant font-bold uppercase">left</span>
+</div>
+</div>
+</div>
+<!-- Floating Home Anchor -->
+<div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-50">
+<button class="w-14 h-14 bg-surface-bright/40 backdrop-blur-2xl border border-primary/20 rounded-full shadow-[0_0_20px_rgba(0,0,0,0.5)] flex items-center justify-center text-primary active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-2xl">home</span>
+</button>
+</div>
+</div>
+</main>
+</body></html>

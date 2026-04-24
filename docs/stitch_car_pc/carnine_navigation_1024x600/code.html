@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NEON_OS | KINETIC Navigation (1024x600)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed-dim": "#7da0ff",
+                        "on-surface": "#ffffff",
+                        "outline-variant": "#484848",
+                        "on-primary-fixed-variant": "#005762",
+                        "on-error": "#490006",
+                        "on-secondary": "#400040",
+                        "tertiary-fixed": "#92aeff",
+                        "on-secondary-fixed": "#620061",
+                        "on-error-container": "#ffa8a3",
+                        "secondary": "#ff51fa",
+                        "on-primary-fixed": "#003840",
+                        "on-tertiary-fixed-variant": "#003388",
+                        "surface-container-lowest": "#000000",
+                        "surface": "#0e0e0e",
+                        "background": "#0e0e0e",
+                        "on-primary-container": "#004d57",
+                        "on-tertiary": "#001c53",
+                        "surface-bright": "#2c2c2c",
+                        "error-dim": "#d7383b",
+                        "on-primary": "#005762",
+                        "error": "#ff716c",
+                        "tertiary-container": "#0266ff",
+                        "secondary-fixed-dim": "#ffa6f3",
+                        "primary-fixed": "#00e3fd",
+                        "primary-dim": "#00d4ec",
+                        "surface-container": "#191919",
+                        "on-surface-variant": "#ababab",
+                        "surface-container-high": "#1f1f1f",
+                        "secondary-dim": "#ff51fa",
+                        "on-background": "#ffffff",
+                        "inverse-surface": "#f9f9f9",
+                        "on-tertiary-fixed": "#001441",
+                        "surface-tint": "#81ecff",
+                        "error-container": "#9f0519",
+                        "outline": "#757575",
+                        "on-tertiary-container": "#ffffff",
+                        "secondary-container": "#a900a9",
+                        "inverse-primary": "#006976",
+                        "inverse-on-surface": "#555555",
+                        "on-secondary-container": "#fff5f9",
+                        "tertiary-dim": "#156aff",
+                        "secondary-fixed": "#ffbdf3",
+                        "tertiary": "#759aff",
+                        "surface-variant": "#262626",
+                        "surface-dim": "#0e0e0e",
+                        "primary": "#81ecff",
+                        "surface-container-highest": "#262626",
+                        "primary-container": "#00e3fd",
+                        "primary-fixed-dim": "#00d4ec",
+                        "on-secondary-fixed-variant": "#920091",
+                        "surface-container-low": "#131313"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Manrope"],
+                        "label": ["Space Grotesk"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            width: 1024px;
+            height: 600px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .map-gradient-overlay {
+            background: radial-gradient(circle at 50% 50%, transparent 0%, #0e0e0e 90%);
+        }
+        .neon-glow-primary {
+            filter: drop-shadow(0 0 8px rgba(129, 236, 255, 0.8));
+        }
+        .glass-panel {
+            background: rgba(44, 44, 44, 0.4);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(129, 236, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body overflow-hidden">
+<!-- SIDE NAVIGATION SHELL -->
+<aside class="fixed left-0 top-0 h-[600px] w-20 flex flex-col justify-between z-50 bg-[#0e0e0e] border-r border-[#81ecff]/10 shadow-[10px_0_30px_-15px_rgba(129,236,255,0.3)]">
+<div class="flex flex-col items-center pt-4">
+<div class="text-xl font-bold tracking-tighter text-[#81ecff] drop-shadow-[0_0_8px_rgba(129,236,255,0.8)] font-headline mb-0.5">KINETIC</div>
+<div class="text-[8px] tracking-[0.3em] text-[#81ecff] opacity-70 font-label">V8-ACTIVE</div>
+</div>
+<nav class="flex flex-col flex-grow justify-center">
+<a class="flex flex-col items-center justify-center text-[#ababab] py-4 opacity-60 hover:bg-[#191919] hover:text-[#81ecff] transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-2xl">home</span>
+<span class="text-[9px] mt-0.5 font-label uppercase tracking-widest">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#262626] text-[#81ecff] border-l-4 border-[#81ecff] py-4 shadow-[0_0_15px_rgba(129,236,255,0.4)] active:scale-95 duration-100 ease-out" href="#">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">map</span>
+<span class="text-[9px] mt-0.5 font-label uppercase tracking-widest">Maps</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#ababab] py-4 opacity-60 hover:bg-[#191919] hover:text-[#81ecff] transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-2xl">play_circle</span>
+<span class="text-[9px] mt-0.5 font-label uppercase tracking-widest">Media</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#ababab] py-4 opacity-60 hover:bg-[#191919] hover:text-[#81ecff] transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-2xl">thermostat</span>
+<span class="text-[9px] mt-0.5 font-label uppercase tracking-widest">Climate</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#ababab] py-4 opacity-60 hover:bg-[#191919] hover:text-[#81ecff] transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-2xl">settings</span>
+<span class="text-[9px] mt-0.5 font-label uppercase tracking-widest">Settings</span>
+</a>
+</nav>
+<div class="pb-4 flex flex-col items-center gap-3">
+<button class="bg-error-container text-on-surface text-[8px] font-bold px-2 py-1 rounded-lg border border-error/30">EMERGENCY</button>
+<img alt="Vehicle Profile" class="w-10 h-10 rounded-full border-2 border-primary/20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLyyyqUFVcoHpC-ZL5bcs3NCYLFdMHOlFaURVy2RJIG6a1-IiSVHMJBUh6F0XbX7HA71faDmgl2_ekcs7N5pi5z03LnugEW8ZRplKF8RIgJY91H_9C5MLEGJ0e0FB0p9Preu9ebVvsS0TMJkcZBU6J46K3L9dXunTvKZ6hP6UTBy9LGOqp-mmRFYTMr9gP_ZvW93Nxu2ITX-OY10DZa4_zydfvbxFrmUEnrSXSm9rLgAConDOwxXYZ4HHbofDiYOkt1OA0MIcHrc7D"/>
+</div>
+</aside>
+<!-- TOP BAR SHELL -->
+<header class="fixed top-0 right-0 w-[calc(1024px-5rem)] h-10 flex justify-end items-center px-6 gap-4 z-40 bg-transparent backdrop-blur-xl">
+<div class="flex items-center gap-3 text-[#81ecff] font-label text-xs font-medium tracking-widest">
+<span class="material-symbols-outlined text-base">signal_cellular_4_bar</span>
+<span class="material-symbols-outlined text-base">battery_full</span>
+<span class="material-symbols-outlined text-base">light_mode</span>
+<div class="h-3 w-[1px] bg-[#81ecff]/20 mx-1"></div>
+<span class="text-[#81ecff]">22°C</span>
+<span class="text-[#ababab]">12:45 PM</span>
+<div class="h-3 w-[1px] bg-[#81ecff]/20 mx-1"></div>
+<span class="font-black tracking-widest text-[#81ecff]">CarNiNe</span>
+</div>
+</header>
+<!-- MAIN CANVAS: MAP -->
+<main class="ml-20 h-[600px] relative w-[calc(1024px-5rem)]">
+<!-- Map Background -->
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover grayscale opacity-40 brightness-50" data-alt="top-down digital map of city streets at night with glowing blue neon lines representing the primary route and subtle dark grey streets" data-location="Tokyo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBTxrjKyiScp_SVqNPkMTpYzSBMN7UHu_wcvQp4xWmAoj_Xb_-T2rJOhUAR31LRHIauuskXyegbn1HpQ9i5Sc4KOSMaTWhJziO8PTjF0Bm-ij4MW05MK1AuaLMFjGR6ol8MG2oX5SYabB3bh_LPnRLl_3zc10iAOtutMRZwibtOOedcxGr4hvvP0_ZSfTLTWfMqzuij9M4zx8O9FjZ6caneiOqnVo6lMqTUN3TaSVEWn71yjGuA_4f0yelUmf-aTRIVLz8myIW1-_-N"/>
+<div class="absolute inset-0 map-gradient-overlay"></div>
+</div>
+<!-- OVERLAYS -->
+<!-- Search Bar Overlay (Optimized position for 1024x600) -->
+<div class="absolute top-14 left-1/2 -translate-x-1/2 w-full max-w-lg z-10 px-4">
+<div class="glass-panel rounded-full px-5 py-3 flex items-center gap-3 shadow-2xl">
+<span class="material-symbols-outlined text-primary neon-glow-primary text-xl">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-on-surface w-full font-label text-sm tracking-wide placeholder:text-on-surface-variant/50" placeholder="Where to, Commander?" type="text"/>
+<span class="material-symbols-outlined text-on-surface-variant text-xl">mic</span>
+</div>
+</div>
+<!-- Turn-by-Turn Card (Tightened for smaller height) -->
+<div class="absolute top-14 left-6 z-20 w-64">
+<div class="glass-panel rounded-xl p-4 shadow-[0_15px_40px_rgba(0,0,0,0.5)] border-l-4 border-primary">
+<div class="flex items-start justify-between mb-2">
+<span class="material-symbols-outlined text-4xl text-primary neon-glow-primary">turn_slight_right</span>
+<div class="text-right">
+<div class="text-2xl font-headline font-bold text-on-surface">450 <span class="text-base font-light text-on-surface-variant">m</span></div>
+</div>
+</div>
+<div class="space-y-0.5">
+<div class="text-on-surface-variant text-[10px] font-label uppercase tracking-widest">Next Turn</div>
+<div class="text-xl font-headline font-bold text-on-surface leading-tight">Neon Boulevard</div>
+</div>
+</div>
+</div>
+<!-- Zoom Controls (Relocated and resized for better reach) -->
+<div class="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-20">
+<button class="glass-panel w-12 h-12 rounded-xl flex items-center justify-center text-primary hover:bg-surface-container-highest transition-colors active:scale-90">
+<span class="material-symbols-outlined text-2xl">add</span>
+</button>
+<button class="glass-panel w-12 h-12 rounded-xl flex items-center justify-center text-primary hover:bg-surface-container-highest transition-colors active:scale-90">
+<span class="material-symbols-outlined text-2xl">remove</span>
+</button>
+<button class="glass-panel w-12 h-12 rounded-xl flex items-center justify-center text-secondary hover:bg-surface-container-highest transition-colors active:scale-90 mt-4">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">explore</span>
+</button>
+</div>
+<!-- ETA / Trip Status Bar (Optimized for 1024 width) -->
+<div class="absolute bottom-8 left-1/2 -translate-x-1/2 w-[calc(100%-6rem)] max-w-3xl z-20">
+<div class="glass-panel rounded-full py-4 px-8 flex items-center justify-between shadow-[0_-10px_30px_rgba(0,0,0,0.4)]">
+<div class="flex items-center gap-6">
+<div>
+<div class="text-on-surface-variant text-[9px] font-label uppercase tracking-widest mb-0.5">Arrival</div>
+<div class="text-2xl font-headline font-bold text-on-surface">13:12</div>
+</div>
+<div class="w-px h-8 bg-on-surface/10"></div>
+<div>
+<div class="text-on-surface-variant text-[9px] font-label uppercase tracking-widest mb-0.5">Time</div>
+<div class="text-2xl font-headline font-bold text-primary neon-glow-primary">24 <span class="text-sm font-light text-on-surface-variant">min</span></div>
+</div>
+</div>
+<div class="flex-grow mx-8 relative">
+<div class="h-1 bg-surface-container-highest rounded-full w-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary to-secondary w-[65%] rounded-full shadow-[0_0_8px_rgba(129,236,255,0.5)]"></div>
+</div>
+<div class="absolute top-1/2 -translate-y-1/2 left-[65%] w-2.5 h-2.5 bg-white rounded-full shadow-[0_0_10px_white]"></div>
+</div>
+<div class="flex items-center gap-6">
+<div class="text-right">
+<div class="text-on-surface-variant text-[9px] font-label uppercase tracking-widest mb-0.5">Distance</div>
+<div class="text-2xl font-headline font-bold text-on-surface">18.4 <span class="text-sm font-light text-on-surface-variant">km</span></div>
+</div>
+<button class="bg-gradient-to-br from-error-container to-error/40 text-on-surface font-headline font-bold text-sm px-6 py-2 rounded-lg shadow-lg active:scale-95 transition-transform">
+                        CANCEL
+                    </button>
+</div>
+</div>
+</div>
+<!-- Quick Action Orbital (Resized for resolution) -->
+<button class="fixed bottom-6 right-6 w-14 h-14 glass-panel rounded-full flex items-center justify-center text-primary shadow-[0_0_15px_rgba(129,236,255,0.2)] z-50 hover:scale-105 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">keyboard_voice</span>
+</button>
+</main>
+</body></html>

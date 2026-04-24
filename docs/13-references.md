@@ -3,6 +3,7 @@
 List external resources, specifications, or documents referenced by the architecture.
 
 - Stitch project (UI/UX design template): https://stitch.withgoogle.com/projects/11236860998423822860
+- Lokale Exports der Stitch-Designs: docs/stitch_car_pc/
 - Arc42 documentation template: https://arc42.org
 - Flutter documentation: https://docs.flutter.dev
 - Rust documentation: https://doc.rust-lang.org
