@@ -13,6 +13,7 @@ class SideMenu extends StatelessWidget {
   });
 
   static const double width = 96;
+  static const Duration animationDuration = Duration(milliseconds: 180);
 
   final List<DashboardNavItem> items;
   final int selectedIndex;
@@ -22,9 +23,23 @@ class SideMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: width,
-      color: AppColors.surface,
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(
+          right: BorderSide(color: AppColors.primary20),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary20,
+            blurRadius: 30,
+            offset: Offset(10, 0),
+            spreadRadius: -15,
+          ),
+        ],
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _SideMenuNavigation(
             items: items,
@@ -49,19 +64,41 @@ class _SideMenuNavigation extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onItemSelected;
 
+  static const double _itemHeight = 76;
+  static const double _itemInset = 4;
+
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 12),
-        const _BrandHeader(),
         const SizedBox(height: 16),
-        for (final entry in items.indexed)
-          _SideMenuTile(
-            item: entry.$2,
-            isSelected: entry.$1 == selectedIndex,
-            onTap: () => onItemSelected(entry.$1),
+        const _BrandHeader(),
+        const SizedBox(height: 20),
+        SizedBox(
+          width: SideMenu.width,
+          height: items.length * _itemHeight,
+          child: Stack(
+            children: [
+              _SlidingSelection(
+                top: selectedIndex * _itemHeight + _itemInset,
+                height: _itemHeight - (_itemInset * 2),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final entry in items.indexed)
+                    _SideMenuTile(
+                      item: entry.$2,
+                      height: _itemHeight,
+                      isSelected: entry.$1 == selectedIndex,
+                      onTap: () => onItemSelected(entry.$1),
+                    ),
+                ],
+              ),
+            ],
           ),
+        ),
       ],
     );
   }
@@ -94,13 +131,18 @@ class _BrandHeader extends StatelessWidget {
 class _SideMenuTile extends StatelessWidget {
   const _SideMenuTile({
     required this.item,
+    required this.height,
     required this.isSelected,
     required this.onTap,
   });
 
   final DashboardNavItem item;
+  final double height;
   final bool isSelected;
   final VoidCallback onTap;
+
+  static const double _iconSize = 22;
+  static const double _labelGap = 5;
 
   @override
   Widget build(BuildContext context) {
@@ -110,17 +152,26 @@ class _SideMenuTile extends StatelessWidget {
       label: item.semanticLabel,
       child: InkWell(
         onTap: onTap,
-        child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 4),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration: _tileDecoration,
+        splashColor: AppColors.primary20,
+        highlightColor: AppColors.surfaceContainer,
+        child: SizedBox(
+          width: SideMenu.width,
+          height: height,
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(item.icon, color: _contentColor, size: 20),
-              const SizedBox(height: 4),
-              Text(
-                item.label,
+              AnimatedSlide(
+                offset: isSelected ? Offset.zero : const Offset(-0.05, 0),
+                duration: SideMenu.animationDuration,
+                curve: Curves.easeOutCubic,
+                child: Icon(item.icon, color: _contentColor, size: _iconSize),
+              ),
+              const SizedBox(height: _labelGap),
+              AnimatedDefaultTextStyle(
+                duration: SideMenu.animationDuration,
+                curve: Curves.easeOutCubic,
                 style: AppTextStyles.navItem.copyWith(color: _contentColor),
+                child: Text(item.label),
               ),
             ],
           ),
@@ -132,21 +183,37 @@ class _SideMenuTile extends StatelessWidget {
   Color get _contentColor {
     return isSelected ? AppColors.primary : AppColors.onSurfaceVariant;
   }
+}
 
-  BoxDecoration get _tileDecoration {
-    return BoxDecoration(
-      color: isSelected ? AppColors.surfaceContainer : Colors.transparent,
-      border: Border(
-        left: BorderSide(
-          color: isSelected ? AppColors.primary : Colors.transparent,
-          width: 4,
+class _SlidingSelection extends StatelessWidget {
+  const _SlidingSelection({
+    required this.top,
+    required this.height,
+  });
+
+  final double top;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedPositioned(
+      top: top,
+      left: 0,
+      right: 0,
+      height: height,
+      duration: SideMenu.animationDuration,
+      curve: Curves.easeOutCubic,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          color: AppColors.surfaceContainerHighest,
+          border: Border(
+            left: BorderSide(color: AppColors.primary, width: 4),
+          ),
+          boxShadow: [
+            BoxShadow(color: AppColors.primary40, blurRadius: 15),
+          ],
         ),
       ),
-      boxShadow: isSelected
-          ? const <BoxShadow>[
-              BoxShadow(color: AppColors.primary40, blurRadius: 15),
-            ]
-          : null,
     );
   }
 }
@@ -159,8 +226,6 @@ class _SideMenuFooter extends StatelessWidget {
     return const Column(
       children: [
         _EmergencyButton(),
-        SizedBox(height: 12),
-        _VehicleBadge(),
         SizedBox(height: 16),
       ],
     );
@@ -181,28 +246,6 @@ class _EmergencyButton extends StatelessWidget {
         textStyle: AppTextStyles.emergencyButton,
       ),
       child: const Text('EMERGENCY'),
-    );
-  }
-}
-
-class _VehicleBadge extends StatelessWidget {
-  const _VehicleBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: AppColors.primary20, width: 2),
-        color: AppColors.surfaceContainer,
-      ),
-      child: const Icon(
-        Icons.directions_car,
-        color: AppColors.primary,
-        size: 24,
-      ),
     );
   }
 }

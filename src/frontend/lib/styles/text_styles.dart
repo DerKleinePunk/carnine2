@@ -36,7 +36,7 @@ class AppTextStyles {
 
   static TextStyle navItem = const TextStyle(
     fontFamily: 'SpaceGrotesk',
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: FontWeight.bold,
   );
 
