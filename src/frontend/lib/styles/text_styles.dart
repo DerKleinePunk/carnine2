@@ -51,4 +51,9 @@ class AppTextStyles {
     fontSize: 9,
     fontWeight: FontWeight.w900,
   );
+
+  static TextStyle logLine = const TextStyle(
+    fontFamily: 'Manrope',
+    fontSize: 12,
+  );
 }
