@@ -26,3 +26,8 @@ This directory contains the Arc42 template for documenting the architecture of t
 
 18. [17 – Ideas & Roadmap](17-ideas-roadmap.md)
 19. [18 – Future Work](18-future-work.md)
+
+## Code
+
+20. [Backend](../src/backend/README.md)
+20. [Frontend](../src/frontend/README.md)
