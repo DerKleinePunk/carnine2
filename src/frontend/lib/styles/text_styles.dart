@@ -36,7 +36,7 @@ class AppTextStyles {
 
   static TextStyle navItem = const TextStyle(
     fontFamily: 'SpaceGrotesk',
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: FontWeight.bold,
   );
 
@@ -50,5 +50,10 @@ class AppTextStyles {
   static TextStyle emergencyButton = const TextStyle(
     fontSize: 9,
     fontWeight: FontWeight.w900,
+  );
+
+  static TextStyle logLine = const TextStyle(
+    fontFamily: 'Manrope',
+    fontSize: 12,
   );
 }

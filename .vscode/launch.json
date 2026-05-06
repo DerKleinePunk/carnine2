@@ -8,8 +8,8 @@
             "name": "Flutter: Run Frontend",
             "type": "dart",
             "request": "launch",
-            "program": "src/frontend/lib/main.dart",
-            "cwd": "${workspaceFolder}",
+            "program": "lib/main.dart",
+            "cwd": "${workspaceFolder}/src/frontend",
             "args": [
                 "-d",
                 "linux"
