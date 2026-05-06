@@ -13,7 +13,9 @@ void main() {
 
     await tester.pumpWidget(const CarnineApp());
 
-    expect(find.text('KINETIC'), findsOneWidget);
+    expect(find.text('CarNine'), findsOneWidget);
+    expect(find.text('Controls'), findsOneWidget);
+    expect(find.text('CarNiNe'), findsNothing);
     expect(find.text('Dashboard Content for Home'), findsOneWidget);
     expect(find.text('gRPC Status: Not connected'), findsOneWidget);
   });

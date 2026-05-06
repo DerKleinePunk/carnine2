@@ -64,7 +64,7 @@ class _SideMenuNavigation extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onItemSelected;
 
-  static const double _itemHeight = 76;
+  static const double _itemHeight = 72;
   static const double _itemInset = 4;
 
   @override
@@ -74,7 +74,7 @@ class _SideMenuNavigation extends StatelessWidget {
       children: [
         const SizedBox(height: 16),
         const _BrandHeader(),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         SizedBox(
           width: SideMenu.width,
           height: items.length * _itemHeight,
@@ -112,7 +112,7 @@ class _BrandHeader extends StatelessWidget {
     return Column(
       children: [
         Text(
-          'KINETIC',
+          'CarNine',
           style: AppTextStyles.kineticBrand.copyWith(
             color: AppColors.primary,
           ),

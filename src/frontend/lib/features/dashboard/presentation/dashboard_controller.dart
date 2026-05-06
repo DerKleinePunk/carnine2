@@ -37,6 +37,11 @@ class DashboardController extends ChangeNotifier {
       semanticLabel: 'Climate controls',
     ),
     DashboardNavItem(
+      label: 'Controls',
+      icon: Icons.lightbulb_outline,
+      semanticLabel: 'Auxiliary controls',
+    ),
+    DashboardNavItem(
       label: 'Settings',
       icon: Icons.settings,
       semanticLabel: 'Settings',
