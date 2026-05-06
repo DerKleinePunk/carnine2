@@ -22,9 +22,7 @@ src/backend/logs/
 src/frontend/logs/
 
 # Local generated Flutter platform scaffolding (kept out of repo)
-src/frontend/linux/flutter/
-src/frontend/linux/runner/
-src/frontend/linux/.gitignore
+src/frontend/linux/
 src/frontend/.metadata
 src/frontend/.gitignore
 .vscode/settings.json
