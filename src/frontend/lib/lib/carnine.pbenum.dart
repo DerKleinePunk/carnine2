@@ -1,6 +1,6 @@
 // This is a generated file - do not edit.
 //
-// Generated from lib/carnine.proto.
+// Generated from carnine.proto.
 
 // @dart = 3.3
 

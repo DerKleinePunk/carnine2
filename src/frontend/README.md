@@ -12,6 +12,14 @@ dart pub global activate protoc_plugin
 
 Ensure `protoc-gen-dart` is in your PATH.
 
+The protobuf schema is shared across frontend and backend at `../proto/carnine.proto`.
+
+Generate Dart gRPC client stubs from the shared schema:
+
+```bash
+protoc -I ../proto --dart_out=grpc:lib/lib ../proto/carnine.proto
+```
+
 ## Commands
 
 - `flutter pub get`

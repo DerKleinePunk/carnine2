@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$ROOT_DIR/src/backend"
 FRONTEND_DIR="$ROOT_DIR/src/frontend"
+PROTO_DIR="$ROOT_DIR/src/proto"
 LOG_DIR="$ROOT_DIR/build-logs"
 
 BUILD_MODE="debug"
@@ -29,6 +30,24 @@ echo "[linux] Preparing frontend dependencies..."
 (
   cd "$FRONTEND_DIR"
   flutter pub get
+)
+
+if ! command -v protoc >/dev/null 2>&1; then
+  echo "[linux] ERROR: protoc not found in PATH."
+  echo "[linux] Hint: install protobuf compiler (e.g. sudo apt install protobuf-compiler)."
+  exit 1
+fi
+
+if ! command -v protoc-gen-dart >/dev/null 2>&1; then
+  echo "[linux] ERROR: protoc-gen-dart not found in PATH."
+  echo "[linux] Hint: dart pub global activate protoc_plugin"
+  exit 1
+fi
+
+echo "[linux] Generating shared protobuf Dart stubs..."
+(
+  cd "$FRONTEND_DIR"
+  protoc -I "$PROTO_DIR" --dart_out=grpc:lib/lib "$PROTO_DIR/carnine.proto"
 )
 
 if [[ ! -d "$FRONTEND_DIR/linux" ]]; then

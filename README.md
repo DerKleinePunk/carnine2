@@ -8,6 +8,8 @@ Before building, ensure you have the required build dependencies installed. See 
 - [Backend Setup](src/backend/README.md#build-dependencies)
 - [Frontend Setup](src/frontend/README.md#build-dependencies)
 
+The root build scripts `build_linux.sh` and `build_pi.sh` generate Dart gRPC stubs from the shared schema at `src/proto/carnine.proto`.
+
 ## Architecture Documentation
 
 See the [Arc42 documentation](docs/README.md) for detailed architectural information about the project.

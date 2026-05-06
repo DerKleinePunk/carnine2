@@ -10,6 +10,8 @@ To build the gRPC code, you need to install Protocol Buffers compiler:
 sudo apt install protobuf-compiler
 ```
 
+The protobuf schema is shared across frontend and backend at `../proto/carnine.proto`.
+
 ## Commands
 
 - `cargo check`
