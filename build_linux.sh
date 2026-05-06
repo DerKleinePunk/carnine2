@@ -55,7 +55,7 @@ if [[ ! -d "$FRONTEND_DIR/linux" ]]; then
   (
     cd "$FRONTEND_DIR"
     flutter config --enable-linux-desktop
-    flutter create --platforms=linux .
+    flutter create --platforms=linux --org de.carnine .
   )
 fi
 
