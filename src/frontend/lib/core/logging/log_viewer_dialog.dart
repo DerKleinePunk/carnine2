@@ -1,3 +1,4 @@
+import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:carnine_frontend/styles/colors.dart';
 import 'package:carnine_frontend/styles/text_styles.dart';
 import 'package:flutter/foundation.dart';
@@ -14,8 +15,10 @@ class LogViewerDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return AlertDialog(
-      title: const Text('Frontend Logs'),
+      title: Text(l10n.text(AppTextKey.frontendLogs)),
       content: SizedBox(
         width: 700,
         height: 500,
@@ -27,7 +30,7 @@ class LogViewerDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
+          child: Text(l10n.text(AppTextKey.close)),
         ),
       ],
     );
@@ -41,10 +44,12 @@ class _LogList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     if (logs.isEmpty) {
       return Center(
         child: Text(
-          'No log entries yet',
+          l10n.text(AppTextKey.noLogEntriesYet),
           style: AppTextStyles.bodyLarge.copyWith(
             color: AppColors.onSurfaceVariant,
           ),

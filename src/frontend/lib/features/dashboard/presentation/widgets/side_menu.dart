@@ -1,4 +1,5 @@
 import 'package:carnine_frontend/features/dashboard/presentation/models/dashboard_nav_item.dart';
+import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:carnine_frontend/styles/colors.dart';
 import 'package:carnine_frontend/styles/text_styles.dart';
 import 'package:flutter/material.dart';
@@ -146,10 +147,12 @@ class _SideMenuTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Semantics(
       button: true,
       selected: isSelected,
-      label: item.semanticLabel,
+      label: l10n.text(item.semanticLabelKey),
       child: InkWell(
         onTap: onTap,
         splashColor: AppColors.primary20,
@@ -171,7 +174,7 @@ class _SideMenuTile extends StatelessWidget {
                 duration: SideMenu.animationDuration,
                 curve: Curves.easeOutCubic,
                 style: AppTextStyles.navItem.copyWith(color: _contentColor),
-                child: Text(item.label),
+                child: Text(l10n.text(item.labelKey)),
               ),
             ],
           ),
@@ -237,6 +240,8 @@ class _EmergencyButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return ElevatedButton(
       onPressed: () {},
       style: ElevatedButton.styleFrom(
@@ -245,7 +250,7 @@ class _EmergencyButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         textStyle: AppTextStyles.emergencyButton,
       ),
-      child: const Text('EMERGENCY'),
+      child: Text(l10n.text(AppTextKey.emergency)),
     );
   }
 }

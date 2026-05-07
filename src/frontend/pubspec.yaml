@@ -10,6 +10,8 @@ dependencies:
   fixnum: ^1.1.1
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   grpc: ^5.1.0
   protobuf: ^6.0.0
   logging: ^1.2.0
@@ -23,3 +25,10 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: NotoSansSC
+      fonts:
+        - asset: assets/fonts/NotoSansSC-VF.otf
+    - family: NotoSansJP
+      fonts:
+        - asset: assets/fonts/NotoSansJP-VF.otf

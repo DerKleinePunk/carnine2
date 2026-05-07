@@ -1,6 +1,7 @@
 import 'package:carnine_frontend/data/services/carnine_grpc_service.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/models/dashboard_nav_item.dart';
 import 'package:carnine_frontend/lib/carnine.pb.dart';
+import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
@@ -17,34 +18,40 @@ class DashboardController extends ChangeNotifier {
 
   static const List<DashboardNavItem> navItems = <DashboardNavItem>[
     DashboardNavItem(
-      label: 'Home',
+      destination: DashboardDestination.home,
       icon: Icons.home,
-      semanticLabel: 'Home dashboard',
+      labelKey: AppTextKey.navHome,
+      semanticLabelKey: AppTextKey.navHomeSemantic,
     ),
     DashboardNavItem(
-      label: 'Maps',
+      destination: DashboardDestination.maps,
       icon: Icons.map,
-      semanticLabel: 'Maps',
+      labelKey: AppTextKey.navMaps,
+      semanticLabelKey: AppTextKey.navMapsSemantic,
     ),
     DashboardNavItem(
-      label: 'Media',
+      destination: DashboardDestination.media,
       icon: Icons.play_circle,
-      semanticLabel: 'Media player',
+      labelKey: AppTextKey.navMedia,
+      semanticLabelKey: AppTextKey.navMediaSemantic,
     ),
     DashboardNavItem(
-      label: 'Climate',
+      destination: DashboardDestination.climate,
       icon: Icons.thermostat,
-      semanticLabel: 'Climate controls',
+      labelKey: AppTextKey.navClimate,
+      semanticLabelKey: AppTextKey.navClimateSemantic,
     ),
     DashboardNavItem(
-      label: 'Controls',
+      destination: DashboardDestination.controls,
       icon: Icons.lightbulb_outline,
-      semanticLabel: 'Auxiliary controls',
+      labelKey: AppTextKey.navControls,
+      semanticLabelKey: AppTextKey.navControlsSemantic,
     ),
     DashboardNavItem(
-      label: 'Settings',
+      destination: DashboardDestination.settings,
       icon: Icons.settings,
-      semanticLabel: 'Settings',
+      labelKey: AppTextKey.navSettings,
+      semanticLabelKey: AppTextKey.navSettingsSemantic,
     ),
   ];
 
@@ -52,12 +59,16 @@ class DashboardController extends ChangeNotifier {
   final Logger _logger;
 
   int _selectedIndex = 0;
-  String _grpcStatus = 'Not connected';
+  DashboardGrpcStatus _grpcStatus = DashboardGrpcStatus.notConnected;
+  int _receivedCanDataCount = 0;
+  String _grpcErrorMessage = '';
   List<CanData> _canData = const <CanData>[];
   bool _isGrpcLoading = false;
 
   int get selectedIndex => _selectedIndex;
-  String get grpcStatus => _grpcStatus;
+  DashboardGrpcStatus get grpcStatus => _grpcStatus;
+  int get receivedCanDataCount => _receivedCanDataCount;
+  String get grpcErrorMessage => _grpcErrorMessage;
   List<CanData> get canData => _canData;
   bool get isGrpcLoading => _isGrpcLoading;
   DashboardNavItem get selectedItem => navItems[_selectedIndex];
@@ -67,6 +78,13 @@ class DashboardController extends ChangeNotifier {
     if (index == _selectedIndex || index < 0 || index >= navItems.length) {
       return;
     }
+
+    final previousItem = selectedItem;
+    final nextItem = navItems[index];
+    _logger.info(
+      'Switching dashboard page from ${previousItem.destination.name} '
+      'to ${nextItem.destination.name}',
+    );
 
     _selectedIndex = index;
     notifyListeners();
@@ -83,10 +101,13 @@ class DashboardController extends ChangeNotifier {
     try {
       final data = await _grpcService.fetchEngineTemperature();
       _canData = data;
-      _grpcStatus = 'Connected - Received ${data.length} data points';
+      _receivedCanDataCount = data.length;
+      _grpcErrorMessage = '';
+      _grpcStatus = DashboardGrpcStatus.connected;
     } catch (error, stackTrace) {
       _logger.severe('Dashboard gRPC test failed', error, stackTrace);
-      _grpcStatus = 'Error: $error';
+      _grpcErrorMessage = error.toString();
+      _grpcStatus = DashboardGrpcStatus.error;
     } finally {
       _isGrpcLoading = false;
       notifyListeners();
@@ -96,7 +117,14 @@ class DashboardController extends ChangeNotifier {
   void _markGrpcLoading() {
     _logger.info('Triggering gRPC test request');
     _isGrpcLoading = true;
-    _grpcStatus = 'Connecting...';
+    _grpcStatus = DashboardGrpcStatus.connecting;
     notifyListeners();
   }
+}
+
+enum DashboardGrpcStatus {
+  notConnected,
+  connecting,
+  connected,
+  error,
 }

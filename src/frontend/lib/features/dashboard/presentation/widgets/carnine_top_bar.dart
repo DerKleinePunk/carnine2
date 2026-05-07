@@ -1,3 +1,4 @@
+import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:carnine_frontend/styles/colors.dart';
 import 'package:flutter/material.dart';
 
@@ -12,6 +13,8 @@ class CarnineTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return SizedBox(
       height: 40,
       child: Padding(
@@ -27,7 +30,7 @@ class CarnineTopBar extends StatelessWidget {
               onPressed: onShowLogs,
               icon: const Icon(Icons.article, size: 16),
               color: AppColors.primary,
-              tooltip: 'Show frontend logs',
+              tooltip: l10n.text(AppTextKey.showFrontendLogs),
             ),
           ],
         ),

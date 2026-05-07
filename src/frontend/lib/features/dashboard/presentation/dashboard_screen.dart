@@ -4,15 +4,18 @@ import 'package:carnine_frontend/features/dashboard/presentation/dashboard_contr
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/carnine_top_bar.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/dashboard_content.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/side_menu.dart';
+import 'package:carnine_frontend/l10n/app_language_controller.dart';
 import 'package:flutter/material.dart';
 
 /// Main dashboard shell for the fixed car display.
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({
+    required this.languageController,
     this.controller,
     super.key,
   });
 
+  final AppLanguageController languageController;
   final DashboardController? controller;
 
   @override
@@ -55,9 +58,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: DashboardContent(
                         selectedItem: _controller.selectedItem,
                         grpcStatus: _controller.grpcStatus,
+                        receivedCanDataCount: _controller.receivedCanDataCount,
+                        grpcErrorMessage: _controller.grpcErrorMessage,
                         canData: _controller.canData,
                         isGrpcLoading: _controller.isGrpcLoading,
                         onTestGrpc: _controller.testGrpc,
+                        languageController: widget.languageController,
                       ),
                     ),
                   ],
