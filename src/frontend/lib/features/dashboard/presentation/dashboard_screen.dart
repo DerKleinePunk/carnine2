@@ -1,5 +1,3 @@
-import 'package:carnine_frontend/core/logging/app_logging.dart';
-import 'package:carnine_frontend/core/logging/log_viewer_dialog.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/carnine_top_bar.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/dashboard_content.dart';
@@ -53,7 +51,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Expanded(
                 child: Column(
                   children: [
-                    CarnineTopBar(onShowLogs: _showLogViewer),
+                    const CarnineTopBar(),
                     Expanded(
                       child: DashboardContent(
                         selectedItem: _controller.selectedItem,
@@ -72,15 +70,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         );
-      },
-    );
-  }
-
-  void _showLogViewer() {
-    showDialog<void>(
-      context: context,
-      builder: (context) {
-        return LogViewerDialog(logLines: AppLogging.lines);
       },
     );
   }

@@ -1,20 +1,12 @@
-import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:carnine_frontend/styles/colors.dart';
 import 'package:flutter/material.dart';
 
-/// Compact top bar with system indicators and diagnostics access.
+/// Compact top bar with system indicators.
 class CarnineTopBar extends StatelessWidget {
-  const CarnineTopBar({
-    required this.onShowLogs,
-    super.key,
-  });
-
-  final VoidCallback onShowLogs;
+  const CarnineTopBar({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-
     return SizedBox(
       height: 40,
       child: Padding(
@@ -25,13 +17,6 @@ class CarnineTopBar extends StatelessWidget {
             const _StatusIcon(icon: Icons.signal_cellular_4_bar),
             const _StatusIcon(icon: Icons.battery_full),
             const _StatusIcon(icon: Icons.light_mode),
-            const SizedBox(width: 12),
-            IconButton(
-              onPressed: onShowLogs,
-              icon: const Icon(Icons.article, size: 16),
-              color: AppColors.primary,
-              tooltip: l10n.text(AppTextKey.showFrontendLogs),
-            ),
           ],
         ),
       ),

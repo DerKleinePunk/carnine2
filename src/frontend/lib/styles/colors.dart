@@ -62,5 +62,9 @@ class AppColors {
   // Opacity Variants
   static const Color primary40 = Color(0x6681ECFF); // 40% opacity
   static const Color primary20 = Color(0x3381ECFF); // 20% opacity
+  static const Color secondary40 = Color(0x66FF51FA); // 40% opacity
+  static const Color secondary20 = Color(0x33FF51FA); // 20% opacity
+  static const Color tertiary40 = Color(0x66759AFF); // 40% opacity
+  static const Color tertiary20 = Color(0x33759AFF); // 20% opacity
   static const Color outlineVariant20 = Color(0x33484848); // 20% opacity
 }

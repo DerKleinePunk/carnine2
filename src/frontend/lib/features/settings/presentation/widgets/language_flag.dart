@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:carnine_frontend/l10n/app_language_option.dart';
 import 'package:carnine_frontend/styles/colors.dart';
 import 'package:flutter/material.dart';
@@ -65,6 +67,44 @@ class _LanguageFlagPainter extends CustomPainter {
         _paintChina(canvas, size);
       case AppLanguageFlag.japan:
         _paintJapan(canvas, size);
+      case AppLanguageFlag.netherlands:
+        _paintHorizontalTricolor(
+          canvas,
+          size,
+          const [Color(0xFFAE1C28), Color(0xFFFFFFFF), Color(0xFF21468B)],
+        );
+      case AppLanguageFlag.poland:
+        _paintHorizontalTricolor(
+          canvas,
+          size,
+          const [Color(0xFFFFFFFF), Color(0xFFDC143C)],
+        );
+      case AppLanguageFlag.hungary:
+        _paintHorizontalTricolor(
+          canvas,
+          size,
+          const [Color(0xFFCE2939), Color(0xFFFFFFFF), Color(0xFF477050)],
+        );
+      case AppLanguageFlag.turkey:
+        _paintTurkey(canvas, size);
+      case AppLanguageFlag.portugal:
+        _paintPortugal(canvas, size);
+      case AppLanguageFlag.czechia:
+        _paintCzechia(canvas, size);
+      case AppLanguageFlag.sweden:
+        _paintNordicCross(
+          canvas,
+          size,
+          background: const Color(0xFF006AA7),
+          cross: const Color(0xFFFECC00),
+        );
+      case AppLanguageFlag.denmark:
+        _paintNordicCross(
+          canvas,
+          size,
+          background: const Color(0xFFC8102E),
+          cross: Colors.white,
+        );
     }
   }
 
@@ -135,6 +175,84 @@ class _LanguageFlagPainter extends CustomPainter {
         Offset(size.width * 0.39, size.height * 0.62), 1.4, paint);
   }
 
+  void _paintPortugal(Canvas canvas, Size size) {
+    _paintRect(
+      canvas,
+      Rect.fromLTWH(0, 0, size.width * 0.42, size.height),
+      const Color(0xFF006600),
+    );
+    _paintRect(
+      canvas,
+      Rect.fromLTWH(size.width * 0.42, 0, size.width * 0.58, size.height),
+      const Color(0xFFFF0000),
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.42, size.height * 0.5),
+      size.shortestSide * 0.16,
+      Paint()..color = const Color(0xFFFFD700),
+    );
+  }
+
+  void _paintTurkey(Canvas canvas, Size size) {
+    _paintRect(canvas, Offset.zero & size, const Color(0xFFE30A17));
+
+    final whitePaint = Paint()..color = Colors.white;
+    final redPaint = Paint()..color = const Color(0xFFE30A17);
+    canvas
+      ..drawCircle(
+        Offset(size.width * 0.39, size.height * 0.5),
+        size.shortestSide * 0.23,
+        whitePaint,
+      )
+      ..drawCircle(
+        Offset(size.width * 0.46, size.height * 0.5),
+        size.shortestSide * 0.18,
+        redPaint,
+      );
+
+    _paintStar(
+      canvas,
+      Offset(size.width * 0.64, size.height * 0.5),
+      size.shortestSide * 0.09,
+      Colors.white,
+    );
+  }
+
+  void _paintCzechia(Canvas canvas, Size size) {
+    _paintRect(canvas, Offset.zero & size, Colors.white);
+    _paintRect(
+      canvas,
+      Rect.fromLTWH(0, size.height * 0.5, size.width, size.height * 0.5),
+      const Color(0xFFD7141A),
+    );
+
+    final triangle = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width * 0.5, size.height * 0.5)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(triangle, Paint()..color = const Color(0xFF11457E));
+  }
+
+  void _paintNordicCross(
+    Canvas canvas,
+    Size size, {
+    required Color background,
+    required Color cross,
+  }) {
+    _paintRect(canvas, Offset.zero & size, background);
+    _paintRect(
+      canvas,
+      Rect.fromLTWH(size.width * 0.32, 0, size.width * 0.14, size.height),
+      cross,
+    );
+    _paintRect(
+      canvas,
+      Rect.fromLTWH(0, size.height * 0.39, size.width, size.height * 0.22),
+      cross,
+    );
+  }
+
   void _paintUnionJack(Canvas canvas, Size size) {
     _paintRect(canvas, Offset.zero & size, const Color(0xFF012169));
 
@@ -177,5 +295,29 @@ class _LanguageFlagPainter extends CustomPainter {
 
   void _paintRect(Canvas canvas, Rect rect, Color color) {
     canvas.drawRect(rect, Paint()..color = color);
+  }
+
+  void _paintStar(Canvas canvas, Offset center, double radius, Color color) {
+    final path = Path();
+    const points = 5;
+    const innerRadiusFactor = 0.42;
+
+    for (var index = 0; index < points * 2; index++) {
+      final angle = -1.5708 + index * 3.14159 / points;
+      final pointRadius = index.isEven ? radius : radius * innerRadiusFactor;
+      final point = Offset(
+        center.dx + pointRadius * math.cos(angle),
+        center.dy + pointRadius * math.sin(angle),
+      );
+
+      if (index == 0) {
+        path.moveTo(point.dx, point.dy);
+      } else {
+        path.lineTo(point.dx, point.dy);
+      }
+    }
+
+    path.close();
+    canvas.drawPath(path, Paint()..color = color);
   }
 }

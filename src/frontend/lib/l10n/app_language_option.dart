@@ -22,6 +22,14 @@ enum AppLanguageFlag {
   italy,
   china,
   japan,
+  netherlands,
+  poland,
+  hungary,
+  turkey,
+  portugal,
+  czechia,
+  sweden,
+  denmark,
 }
 
 /// All languages currently selectable by the frontend.
@@ -63,6 +71,46 @@ abstract final class AppLanguageOptions {
       locale: Locale('ja'),
       labelKey: AppTextKey.languageJapanese,
       flag: AppLanguageFlag.japan,
+    ),
+    AppLanguageOption(
+      locale: Locale('nl'),
+      labelKey: AppTextKey.languageDutch,
+      flag: AppLanguageFlag.netherlands,
+    ),
+    AppLanguageOption(
+      locale: Locale('pl'),
+      labelKey: AppTextKey.languagePolish,
+      flag: AppLanguageFlag.poland,
+    ),
+    AppLanguageOption(
+      locale: Locale('hu'),
+      labelKey: AppTextKey.languageHungarian,
+      flag: AppLanguageFlag.hungary,
+    ),
+    AppLanguageOption(
+      locale: Locale('tr'),
+      labelKey: AppTextKey.languageTurkish,
+      flag: AppLanguageFlag.turkey,
+    ),
+    AppLanguageOption(
+      locale: Locale('pt'),
+      labelKey: AppTextKey.languagePortuguese,
+      flag: AppLanguageFlag.portugal,
+    ),
+    AppLanguageOption(
+      locale: Locale('cs'),
+      labelKey: AppTextKey.languageCzech,
+      flag: AppLanguageFlag.czechia,
+    ),
+    AppLanguageOption(
+      locale: Locale('sv'),
+      labelKey: AppTextKey.languageSwedish,
+      flag: AppLanguageFlag.sweden,
+    ),
+    AppLanguageOption(
+      locale: Locale('da'),
+      labelKey: AppTextKey.languageDanish,
+      flag: AppLanguageFlag.denmark,
     ),
   ];
 
