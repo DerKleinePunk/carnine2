@@ -13,3 +13,7 @@ The root build scripts `build_linux.sh` and `build_pi.sh` generate Dart gRPC stu
 ## Architecture Documentation
 
 See the [Arc42 documentation](docs/README.md) for detailed architectural information about the project.
+
+## Resources
+
+- [Sound Resources](resources/sounds/README.md) - Audio files for notifications and UI feedback
