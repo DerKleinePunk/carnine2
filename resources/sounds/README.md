@@ -1,17 +1,17 @@
 # Sound Resources
 
-Dieses Verzeichnis enthält die Audiodateien für die Carnine-Anwendung.
+This directory contains audio files for the Carnine application.
 
-## Dateien
+## Files
 
-- **Click.wav** - Klick-Sound (UI-Interaktion)
-- **IncomingMessage.wav** - Benachrichtigungston für eingehende Nachrichten
-- **StateBeep.wav** - Beep-Sound für Zustandsänderungen
+- **Click.wav** - Click sound (UI interaction)
+- **IncomingMessage.wav** - Notification sound for incoming messages
+- **StateBeep.wav** - Beep sound for state changes
 
-## Speicherung
+## Storage
 
-Alle `.wav` Dateien werden mit **Git LFS (Large File Storage)** gespeichert, um große Dateien effizient zu verwalten. Das `.gitattributes` File enthält die entsprechende Konfiguration.
+All `.wav` files are stored using **Git LFS (Large File Storage)** to efficiently manage large files. The `.gitattributes` file contains the corresponding configuration.
 
-## Verwendung
+## Usage
 
-Diese Audiodateien werden von der Frontend- und Backend-Anwendung zur Benutzerbenachrichtigung und Rückmeldung verwendet.
+These audio files are used by the frontend and backend applications for user notifications and feedback.
