@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Vulnerability
+    url: https://github.com/carnine/carnine2/blob/main/SECURITY.md
+    about: Please report security vulnerabilities via the process described in SECURITY.md — do NOT open a public issue.
