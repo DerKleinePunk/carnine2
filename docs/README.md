@@ -26,6 +26,7 @@ This directory contains the Arc42 template for documenting the architecture of t
 
 18. [17 – Ideas & Roadmap](17-ideas-roadmap.md)
 19. [18 – Future Work](18-future-work.md)
+20. [19 – ivi-homescreen Evaluation](19-ivi-homescreen-evaluation.md)
 
 ## Code
 
