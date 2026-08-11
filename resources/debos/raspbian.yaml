@@ -72,6 +72,7 @@ actions:
       - systemd-timesyncd
       - vim
       - nano
+      - dialog
 
   - action: run
     description: Install RPi bootloader files
