@@ -249,43 +249,15 @@ class _SettingsOptionTile extends StatelessWidget {
           highlightColor: AppColors.surfaceContainerHigh,
           child: DecoratedBox(
             decoration: _tileDecoration(item.section),
-            child: Stack(
-              children: [
-                Positioned.fill(child: _TileAccent(accentColor)),
-                Padding(
-                  padding: const EdgeInsets.all(22),
-                  child: _SettingsOptionTileContent(
-                    item: item,
-                    accentColor: accentColor,
-                    l10n: l10n,
-                  ),
-                ),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.all(22),
+              child: _SettingsOptionTileContent(
+                item: item,
+                accentColor: accentColor,
+                l10n: l10n,
+              ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TileAccent extends StatelessWidget {
-  const _TileAccent(this.color);
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        width: 4,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: const BorderRadius.horizontal(
-            left: Radius.circular(8),
-          ),
-          boxShadow: [BoxShadow(color: color, blurRadius: 18)],
         ),
       ),
     );

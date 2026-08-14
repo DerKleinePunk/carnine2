@@ -22,6 +22,37 @@
                 "cwd": "${workspaceFolder}/src/backend"
             },
             "problemMatcher": "$rustc"
+        },
+        {
+            "label": "cargo run",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "run"
+            ],
+            "group": "none",
+            "isBackground": true,
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "dedicated"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/src/backend"
+            },
+            "problemMatcher": {
+                "owner": "rust",
+                "pattern": {
+                    "regexp": "^error(\\[\\w+\\])?: (.*)$",
+                    "message": 2
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^\\s*Compiling ",
+                    "endsPattern": "Starting gRPC server on"
+                }
+            }
         }
     ]
 }

@@ -1,5 +1,6 @@
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/models/dashboard_nav_item.dart';
+import 'package:carnine_frontend/features/media/presentation/media_content.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_content.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
@@ -14,7 +15,6 @@ class DashboardContent extends StatelessWidget {
     required this.selectedItem,
     required this.grpcStatus,
     required this.receivedCanDataCount,
-    required this.grpcErrorMessage,
     required this.canData,
     required this.isGrpcLoading,
     required this.onTestGrpc,
@@ -25,7 +25,6 @@ class DashboardContent extends StatelessWidget {
   final DashboardNavItem selectedItem;
   final DashboardGrpcStatus grpcStatus;
   final int receivedCanDataCount;
-  final String grpcErrorMessage;
   final List<CanData> canData;
   final bool isGrpcLoading;
   final Future<void> Function() onTestGrpc;
@@ -35,6 +34,10 @@ class DashboardContent extends StatelessWidget {
   Widget build(BuildContext context) {
     if (selectedItem.destination == DashboardDestination.settings) {
       return SettingsContent(languageController: languageController);
+    }
+
+    if (selectedItem.destination == DashboardDestination.media) {
+      return const MediaContent();
     }
 
     final l10n = AppLocalizations.of(context);
@@ -84,7 +87,7 @@ class DashboardContent extends StatelessWidget {
       DashboardGrpcStatus.connecting => l10n.text(AppTextKey.statusConnecting),
       DashboardGrpcStatus.connected =>
         l10n.statusConnected(receivedCanDataCount),
-      DashboardGrpcStatus.error => l10n.statusError(grpcErrorMessage),
+      DashboardGrpcStatus.error => l10n.text(AppTextKey.statusError),
     };
   }
 }

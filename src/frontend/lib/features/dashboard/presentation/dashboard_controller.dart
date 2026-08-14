@@ -61,14 +61,12 @@ class DashboardController extends ChangeNotifier {
   int _selectedIndex = 0;
   DashboardGrpcStatus _grpcStatus = DashboardGrpcStatus.notConnected;
   int _receivedCanDataCount = 0;
-  String _grpcErrorMessage = '';
   List<CanData> _canData = const <CanData>[];
   bool _isGrpcLoading = false;
 
   int get selectedIndex => _selectedIndex;
   DashboardGrpcStatus get grpcStatus => _grpcStatus;
   int get receivedCanDataCount => _receivedCanDataCount;
-  String get grpcErrorMessage => _grpcErrorMessage;
   List<CanData> get canData => _canData;
   bool get isGrpcLoading => _isGrpcLoading;
   DashboardNavItem get selectedItem => navItems[_selectedIndex];
@@ -102,11 +100,9 @@ class DashboardController extends ChangeNotifier {
       final data = await _grpcService.fetchEngineTemperature();
       _canData = data;
       _receivedCanDataCount = data.length;
-      _grpcErrorMessage = '';
       _grpcStatus = DashboardGrpcStatus.connected;
     } catch (error, stackTrace) {
       _logger.severe('Dashboard gRPC test failed', error, stackTrace);
-      _grpcErrorMessage = error.toString();
       _grpcStatus = DashboardGrpcStatus.error;
     } finally {
       _isGrpcLoading = false;
