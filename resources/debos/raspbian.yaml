@@ -1,0 +1,165 @@
+{{- $image := or .image "raspbian.img" -}}
+{{- $rootpassword := or .rootpassword "raspberry" -}}
+
+architecture: arm64
+
+actions:
+  - action: download
+    description: Download RPi key ring
+    url: https://archive.raspberrypi.org/debian/pool/main/r/raspberrypi-archive-keyring/raspberrypi-archive-keyring_2025.1+rpt1_all.deb
+    name: raspberrypi-archive-keyring
+    sha256sum: 2e727149d7acb8cc7f604e66d0049161039c8aa1eaf1175e54f9e69d963d60e4
+
+  - action: download
+    description: Download RPi config.txt
+    url: https://raw.githubusercontent.com/RPi-Distro/pi-gen/ca5eb625d8892212838c4b3b972d9e7e03bfcb29/stage1/00-boot-files/files/config.txt
+    name: raspberrypi-config.txt
+    sha256sum: ea82a637facdcde1dc82ad343de14da4684673cb07deca9f5e0c15abfb6b2eb7
+
+  - action: debootstrap
+    description: Bootstrap Debian minbase
+    suite: trixie
+    components:
+      - main
+      - non-free
+      - non-free-firmware
+    mirror: http://deb.debian.org/debian
+    variant: minbase
+
+  - action: install-deb
+    description: Install RPi key ring
+    origin: raspberrypi-archive-keyring
+    recommends: false
+    unauthenticated: false
+    update: false
+
+  - action: run
+    description: Add RPi apt repo
+    chroot: true
+    command: echo deb [signed-by=/usr/share/keyrings/raspberrypi-archive-keyring.gpg] http://archive.raspberrypi.com/debian/ trixie main >> /etc/apt/sources.list
+
+  - action: run
+    description: Add security apt repo
+    chroot: true
+    command: echo deb http://deb.debian.org/debian-security/ trixie-security main contrib non-free non-free-firmware >> /etc/apt/sources.list
+
+  - action: run
+    description: Add updates apt repo
+    chroot: true
+    command: echo deb http://deb.debian.org/debian trixie-updates main contrib non-free non-free-firmware >> /etc/apt/sources.list
+
+  - action: run
+    description: Update packages due to security and updates repo adds
+    chroot: true
+    command: apt-get update && apt-get -y dist-upgrade
+
+  - action: apt
+    description: Install packages
+    packages:
+      - adduser
+      - dbus-user-session
+      - dracut
+      - firmware-brcm80211
+      - iproute2
+      - linux-image-rpi-2712
+      - linux-image-rpi-v8
+      - netbase
+      - openssh-server
+      - raspi-firmware
+      - rpi.gpio-common
+      - sudo
+      - systemd-resolved
+      - systemd-timesyncd
+      - vim
+      - nano
+      - dialog
+
+  - action: run
+    description: Install RPi bootloader files
+    chroot: false
+    command: sh -c "cp ${ROOTDIR}/usr/lib/raspi-firmware/* ${ROOTDIR}/boot/firmware/"
+
+  - action: overlay
+    description: Copy config.txt
+    origin: raspberrypi-config.txt
+    destination: /boot/firmware/config.txt
+
+  - action: run
+    description: Set up cmdline.txt
+    chroot: true
+    command: echo "console=serial0,115200 console=tty1 root=LABEL=ROOTFS" > /boot/firmware/cmdline.txt
+
+  - action: run
+    description: Set up user/password
+    chroot: true
+    command: |
+      adduser --gecos "Raspberry Pi User" --disabled-password --shell /bin/bash pi
+      adduser pi sudo
+      echo pi:{{ $rootpassword }} | chpasswd
+
+  - action: run
+    description: Set up hostname
+    chroot: true
+    command: echo raspberry > /etc/hostname
+
+  - action: run
+    description: Setup network config
+    chroot: true
+    command: |
+      mkdir -p /etc/systemd/network/
+      cat > /etc/systemd/network/wired.network << __EOF__
+      [Match]
+      Name=e*
+
+      [Network]
+      DHCP=yes
+      __EOF__
+
+      systemctl enable systemd-networkd
+      systemctl enable systemd-resolved
+      systemctl enable systemd-timesyncd
+
+  - action: run
+    description: Drop SSH host keys
+    chroot: true
+    command: rm -f /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub
+
+  - action: run
+    description: Force systemd first boot menchanism
+    chroot: true
+    command: echo uninitialized > /etc/machine-id
+
+  - action: image-partition
+    imagename: {{ $image }}
+    imagesize: 4GiB
+    partitiontype: msdos
+    mountpoints:
+      - mountpoint: /
+        partition: ROOTFS
+      - mountpoint: /boot/firmware
+        partition: FIRMWARE
+        options: [ auto ]
+    partitions:
+      - name: FIRMWARE
+        fs: fat32
+        start: 1MiB
+        end: 256MiB
+      - name: ROOTFS
+        fs: ext4
+        start: 256MiB
+        end: 100%
+
+  - action: filesystem-deploy
+    description: Deploying filesystem onto image
+    setup-fstab: true
+    setup-kernel-cmdline: false
+
+  - action: run
+    description: Create block map file
+    postprocess: true
+    command: bmaptool create {{ $image }} > {{ $image }}.bmap
+
+  - action: run
+    description: Compressing final image
+    postprocess: true
+    command: gzip -f {{ $image }}
