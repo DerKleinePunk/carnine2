@@ -25,6 +25,7 @@
 - [ ] Standardize error-state widgets and recovery CTAs
 - [ ] Add performance instrumentation for frame pacing on Raspberry Pi 4
 - [ ] Define responsive layout constraints for 1024x600 and fallback sizes
+- [ ] Create a Debian package for the Flutter frontend, matching the backend package
 
 ### Backend (Rust)
 - [ ] Finalize UDS-based gRPC transport behavior and reconnect policy
