@@ -2,6 +2,20 @@
 name = "carnine-backend"
 version = "0.1.0"
 edition = "2021"
+description = "Backend service for Carnine"
+authors = ["Carnine Project"]
+license = "GPL-3.0-only"
+
+[package.metadata.deb]
+section = "utils"
+priority = "optional"
+maintainer = "Carnine Project"
+copyright = "Copyright 2026 Carnine Project"
+depends = "$auto"
+extended-description = "Carnine backend service providing the gRPC interface for vehicle data and commands."
+assets = [
+	["target/release/carnine-backend", "usr/bin/carnine-backend", "755"],
+]
 
 [dependencies]
 anyhow = "1.0"

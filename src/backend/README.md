@@ -17,6 +17,14 @@ The protobuf schema is shared across frontend and backend at `../proto/carnine.p
 - `cargo check`
 - `cargo run`
 - `cargo test`
+- `cargo deb`
+
+`cargo deb` erzeugt ein optimiertes Debian-Paket unter `target/debian/`.
+Installieren lässt es sich beispielsweise mit:
+
+```bash
+sudo apt install target/debian/carnine-backend_0.1.0-1_amd64.deb
+```
 
 ## Current State
 
