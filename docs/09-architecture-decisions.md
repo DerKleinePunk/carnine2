@@ -437,6 +437,113 @@ Use gRPC (protobuf) as the single communication contract for both local frontend
 
 ## Decision Rationale Summary
 
+---
+
+## ADR-016: Media Architecture Baseline
+
+**Status:** Accepted
+
+**Context:**
+The first media feature is an audio-only player for local files. The Flutter
+media screen currently contains presentation state and mock data, while the
+backend must own playback, media indexing, persistence, and recovery state.
+The contract must support future USB media, navigation audio, and additional
+media features without using untyped command strings.
+
+**Decision:**
+Keep the protobuf contract in the single shared `src/proto/carnine.proto`
+file, but define separate fachliche gRPC services for `CarnineService`,
+`MediaService`, and `AudioService`. `MediaService` owns the media library,
+search, playlists, queue, playback commands, player state, and player events.
+`AudioService` represents the central backend audio manager and its audio
+events; it does not transport audio data.
+
+The first implementation targets multiple configured local folders, including
+the internal disk and later USB-mounted media. A complete library rescan is an
+explicit backend operation. It updates SQLite and reports progress and errors
+on a dedicated library stream. Rescans do not run during playback.
+
+Audio files are inspected for metadata when they are imported. Title, artist,
+and source URI/path are required. Unreadable files are not inserted into the
+media database; the error is reported on the library stream. A missing file on
+an available source is represented as `MISSING`. A detached source is
+represented as `OFFLINE` so playlists can be restored and shown.
+
+Playlists have a persistent name and ordered entries. The same media item may
+occur more than once. Loading a playlist stops playback, clears the current
+queue, replaces it with the playlist, selects the saved entry and position,
+and leaves playback paused. Starting one media item creates a temporary queue.
+The temporary queue is empty after restart. The active playlist, current
+entry, and resume position are persisted in SQLite.
+
+The initial playback commands are play, pause, stop, next, and previous.
+Stop ends audio output and resets the current track to its beginning without
+changing the queue. Repeat supports off, queue, and track. Concurrent control
+requests are not solved in the first version; there is one controlling client
+and the effective behavior is last-wins without crashing the backend.
+
+The player operates independently of Flutter. A player event stream sends an
+initial complete state followed by updates. A separate library event stream
+reports scan activity, and a separate audio event stream reports central
+audio-manager events such as interruption and ducking. These are control and
+state streams, not audio streams. Each service exposes a three-part interface
+version (`major`, `minor`, `patch`). Supported capabilities remain documented,
+not queried programmatically.
+
+The initial decoder/output decision is deferred until a local WSL FFmpeg
+spike. The spike must validate the Debian package path, MP3/FLAC/OGG support,
+process or library integration options, and system audio output before any
+Raspberry Pi implementation. Equalizer/SoundCurve, gapless playback,
+cross-fading, party mode, video, and M3U remain future work.
+
+The first WSL2 check on Ubuntu 24.04 succeeded with the WSLg-provided
+PulseAudio server: FFmpeg decoded MP3, FLAC, and OGG test files, and a WAV
+test file was accepted by the `RDPSink`. WSLg exposes the server through
+`PULSE_SERVER=unix:/mnt/wslg/PulseServer`. The WSL instance did not expose a
+physical ALSA device, so audible output, Raspberry Pi packaging, and target
+audio hardware remain unverified. A separate Windows PulseAudio server is
+therefore not required for the current WSLg setup and should only be treated
+as a fallback for environments without WSLg.
+
+The repository contains `resources/musik/1-Here We Go Now (Single Edit).mp3`
+as a test medium. Its embedded metadata identifies the title as `Here We Go
+Now (Single Edit)`, the artist as `Kensington Road`, and the album as `Here We
+Go Now`; the file is an MP3 at 128 kbit/s and 44.1 kHz with a duration of about
+175 seconds. The user confirmed that the band has granted permission for this
+file to be distributed with the repository. The file was successfully
+decoded with FFmpeg and played for five seconds through the WSLg PulseAudio
+output. `paplay` should receive decoded PCM from FFmpeg for MP3 playback; a
+direct MP3 handoff to `paplay` is not the supported test path.
+
+**Rationale:**
+- Typed media operations are safer and easier to evolve than generic command
+	strings.
+- Separate services preserve fachliche boundaries while one proto file keeps
+	code generation manageable.
+- SQLite provides durable playlist and resume state on an embedded system.
+- Explicit source and media statuses distinguish an unavailable device from a
+	file removed from an available device.
+- A local FFmpeg spike reduces the risk of choosing an audio stack before
+	validating Debian and Raspberry Pi packaging constraints.
+
+**Consequences:**
+- The proto contract must define three independent event streams and stable
+	identifiers for media, playlist entries, and scans.
+- The backend needs a media library, playback manager, central audio manager,
+	SQLite persistence, and a decoder/output adapter.
+- USB discovery, settings UI, and advanced queue editing are separate follow-up
+	work and must not be smuggled into the first playback contract.
+
+**Related decisions:**
+- ADR-001 (Flutter frontend and Rust backend)
+- ADR-002 (gRPC over Unix domain socket)
+- ADR-004 (SQLite persistence)
+- ADR-005 (gRPC streaming)
+- ADR-009 (module organization)
+- ADR-015 (single protobuf communication contract)
+
+---
+
 These decisions collectively create a system that is:
 - **Safe**: Type-safe languages (Rust, Dart) prevent entire classes of bugs
 - **Performant**: Async concurrency and optimized serialization minimize latency

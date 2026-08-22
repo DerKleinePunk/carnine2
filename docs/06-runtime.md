@@ -33,6 +33,36 @@ User starts playing audio:
 3. Audio decoding begins, output sent to system audio.
 4. UI shows playback controls and progress.
 
+### Scenario 3a: Media Library Rescan
+
+The user explicitly starts a complete rescan:
+
+1. The frontend requests a rescan for one or more configured media sources.
+2. The Media Service rejects or defers the operation while playback is active.
+3. The Media Library scans supported local audio files and reads their metadata.
+4. Valid files are inserted or updated in SQLite.
+5. Unreadable files are skipped and reported as errors on the library stream.
+6. Files missing from an available source become `MISSING`.
+7. Entries belonging to a detached source remain available as `OFFLINE`.
+8. The library stream reports progress and completion to the frontend.
+
+### Scenario 3b: Playlist Restore
+
+The backend restores the persistent playback context during startup:
+
+1. The backend loads the active playlist and saved resume state from SQLite.
+2. The playlist is restored even when its source is currently offline.
+3. The saved queue context selects the stored playlist entry and position.
+4. The configured resume mode decides whether playback remains paused, starts,
+   or starts at the beginning of the stored track.
+5. The player stream sends an initial complete state to the frontend.
+
+Playback progress is persisted only while playing. A periodic write occurs
+every ten seconds and stores the last known position from before the current
+interval. An explicit seek, when added to the control API, is stored
+immediately. A stop resets the current position to the beginning but does not
+modify the queue.
+
 ### Scenario 4: Vehicle Data Display
 
 CAN-Bus data updates:
