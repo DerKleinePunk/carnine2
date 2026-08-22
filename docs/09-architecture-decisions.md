@@ -525,6 +525,21 @@ and occasional audio dropouts still need to be isolated between WSLg/
 PulseAudio, process signalling, and the PCM pipe. Long-running resource
 behavior and the direct FFmpeg-library alternative remain unverified.
 
+The follow-up isolation tests decoded the same MP3 to a five-second PCM-WAV
+without errors, played that WAV through `paplay`, and played the MP3 through
+FFmpeg directly to the WSLg PulseAudio sink. These paths completed
+successfully. The current audio-dropout investigation is therefore narrowed
+to the Rust PCM pipe and process-level signal handling, especially the joint
+pause/resume control; this is not yet proof that WSLg is uninvolved.
+
+An additional 60-second test sent the MP3 directly from FFmpeg to the WSLg
+PulseAudio sink without any Rust code. The user heard clear dropouts there as
+well, while Windows audio output itself is otherwise good. WSLg/PulseAudio is
+therefore a confirmed limitation of subjective playback tests in this WSL
+environment. Further Rust comparisons should use decoder-only checks, PCM
+byte-count and timing checks, or a captured file/null sink. Final audible
+quality must be verified later on the Debian/Raspberry Pi audio stack.
+
 **Rationale:**
 - Typed media operations are safer and easier to evolve than generic command
 	strings.

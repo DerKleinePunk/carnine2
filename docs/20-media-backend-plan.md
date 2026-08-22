@@ -330,11 +330,20 @@ Erledigt:
 - WSLg-PulseAudio-Endpunkt bestaetigt
 - MP3-, FLAC- und OGG-Dekodierung bestaetigt
 - Repository-MP3 erfolgreich ueber FFmpeg abgespielt
+- FFmpeg-Dekodierung ohne Audioausgabe isoliert bestaetigt
+- dekodierte PCM-WAV ueber `paplay` isoliert bestaetigt
+- FFmpeg direkt zum WSLg-PulseAudio-Sink isoliert bestaetigt
+- ein 60-Sekunden-Test ohne Rust ueber FFmpeg direkt zu WSLg/PulseAudio zeigte
+  ebenfalls deutlich hoerbare Aussetzer
 
 Noch offen:
 
 - direkter Vergleich externer Prozess gegen FFmpeg-Library; der externe
   FFmpeg-Prozess wurde bereits als isolierter Rust-Spike validiert
+- Rust-PCM-Pipe und Prozess-Signalsteuerung auf Audioaussetzer und
+  Pause-Latenz untersuchen; Decoder und PulseAudio-Einzeltests sind unauffaellig
+- WSLg/PulseAudio-Ausgabe fuer subjektive Audioqualitaet als bekannte
+  Testeinschraenkung behandeln
 - konkrete Audioausgabe und Paketierung fuer Debian/Debos
 - Proto-Entwurf und Abnahme
 - SQLite-Schema und Migrationen

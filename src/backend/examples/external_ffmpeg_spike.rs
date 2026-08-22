@@ -1,6 +1,5 @@
 use std::env;
-use std::io::copy;
-use std::io::{self, BufRead, Write};
+use std::io::{self, BufRead, Read, Write};
 use std::process::{Command, Stdio};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -14,6 +13,7 @@ use anyhow::{bail, Context, Result};
 const SAMPLE_RATE: &str = "44100";
 const CHANNELS: &str = "2";
 const SAMPLE_FORMAT: &str = "s16le";
+const BYTES_PER_SAMPLE: u64 = 2;
 
 fn main() -> Result<()> {
     let input = env::args()
@@ -69,17 +69,29 @@ fn main() -> Result<()> {
 
     let stop_requested = Arc::new(AtomicBool::new(false));
     let stop_requested_for_copy = Arc::clone(&stop_requested);
-    let copy_thread = thread::spawn(move || -> Result<()> {
-        let copy_result = copy(&mut decoded_pcm, &mut playback_input);
+    let copy_thread = thread::spawn(move || -> Result<u64> {
+        let mut buffer = [0_u8; 64 * 1024];
+        let mut pcm_bytes = 0_u64;
+        let copy_result = (|| -> io::Result<()> {
+            loop {
+                let bytes_read = decoded_pcm.read(&mut buffer)?;
+                if bytes_read == 0 {
+                    break;
+                }
+                playback_input.write_all(&buffer[..bytes_read])?;
+                pcm_bytes += bytes_read as u64;
+            }
+            Ok(())
+        })();
         drop(playback_input);
 
         match copy_result {
-            Ok(_) => Ok(()),
+            Ok(()) => Ok(pcm_bytes),
             Err(error)
                 if error.kind() == io::ErrorKind::BrokenPipe
                     && stop_requested_for_copy.load(Ordering::Acquire) =>
             {
-                Ok(())
+                Ok(pcm_bytes)
             }
             Err(error) => Err(error).context("failed to pipe PCM to paplay"),
         }
@@ -122,7 +134,7 @@ fn main() -> Result<()> {
             .context("failed to flush command prompt")?;
     }
 
-    copy_thread
+    let pcm_bytes = copy_thread
         .join()
         .map_err(|_| anyhow::anyhow!("PCM pipe thread panicked"))??;
 
@@ -136,9 +148,14 @@ fn main() -> Result<()> {
         bail!("paplay exited with {audio_status}");
     }
 
+    let bytes_per_second =
+        SAMPLE_RATE.parse::<u64>()? * CHANNELS.parse::<u64>()? * BYTES_PER_SAMPLE;
+    let decoded_duration = pcm_bytes as f64 / bytes_per_second as f64;
     println!(
-        "external FFmpeg playback completed in {:.2}s",
-        started_at.elapsed().as_secs_f64()
+        "external FFmpeg playback completed in {:.2}s; PCM: {} bytes ({:.2}s)",
+        started_at.elapsed().as_secs_f64(),
+        pcm_bytes,
+        decoded_duration,
     );
     Ok(())
 }
