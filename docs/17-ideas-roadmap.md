@@ -14,6 +14,9 @@
 	- [x] Confirm WSLg PulseAudio endpoint and FFmpeg availability
 	- [x] Confirm MP3, FLAC, and OGG decoding in WSL
 	- [x] Play the repository MP3 through FFmpeg and WSLg PulseAudio
+	- [x] Validate external FFmpeg process from an isolated Rust example
+	- [x] Exercise process-level play, pause, and stop commands
+	- [ ] Investigate pause latency and intermittent audio dropouts
 	- [ ] Verify Debian package availability and planned backend packaging
 	- [ ] Compare external FFmpeg process with direct library integration
 	- [ ] Verify audible output and target audio device on Raspberry Pi

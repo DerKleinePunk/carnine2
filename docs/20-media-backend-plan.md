@@ -269,6 +269,13 @@ Decoder-Adapter pruefen. Der `PlaybackManager` soll die konkrete Decoder-
 Technik nicht kennen. Eine direkte FFmpeg-Library-Integration bleibt als
 zweite Variante moeglich.
 
+Der isolierte Rust-Spike unterstuetzt inzwischen die Prozessbefehle `play`,
+`pause` und `stop`. `pause` und `play` halten FFmpeg und `paplay` gemeinsam an
+beziehungsweise setzen sie fort. `stop` beendet beide Prozesse kontrolliert.
+Diese Signale sind nur ein Spike-Mechanismus; die produktive Media-API muss
+spaeter einen eigenen Player-Zustand und eine belastbare Audio-Engine-
+Abstraktion verwenden.
+
 Verglichen werden:
 
 - Startzeit bis zum ersten Ton
@@ -326,7 +333,8 @@ Erledigt:
 
 Noch offen:
 
-- direkter Vergleich externer Prozess gegen FFmpeg-Library
+- direkter Vergleich externer Prozess gegen FFmpeg-Library; der externe
+  FFmpeg-Prozess wurde bereits als isolierter Rust-Spike validiert
 - konkrete Audioausgabe und Paketierung fuer Debian/Debos
 - Proto-Entwurf und Abnahme
 - SQLite-Schema und Migrationen

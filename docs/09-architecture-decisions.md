@@ -515,6 +515,16 @@ decoded with FFmpeg and played for five seconds through the WSLg PulseAudio
 output. `paplay` should receive decoded PCM from FFmpeg for MP3 playback; a
 direct MP3 handoff to `paplay` is not the supported test path.
 
+The isolated Rust external-process spike was subsequently validated with this
+track. It streamed FFmpeg PCM output into `paplay`, played the complete track,
+and exited successfully after about 176 seconds. A missing input file produced
+a controlled error and exit status 1; PulseAudio registered and removed the
+playback stream normally. This validates the basic process-and-pipe approach,
+including process-level pause/resume and stop control. Pause responsiveness
+and occasional audio dropouts still need to be isolated between WSLg/
+PulseAudio, process signalling, and the PCM pipe. Long-running resource
+behavior and the direct FFmpeg-library alternative remain unverified.
+
 **Rationale:**
 - Typed media operations are safer and easier to evolve than generic command
 	strings.
