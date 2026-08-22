@@ -335,11 +335,14 @@ Erledigt:
 - FFmpeg direkt zum WSLg-PulseAudio-Sink isoliert bestaetigt
 - ein 60-Sekunden-Test ohne Rust ueber FFmpeg direkt zu WSLg/PulseAudio zeigte
   ebenfalls deutlich hoerbare Aussetzer
+- direkte `ffmpeg-next`-Library-Dekodierung als isoliertes Rust-Example
+- direkte Library-PCM-Ausgabe unabhaengig mit FFmpeg validiert
 
 Noch offen:
 
-- direkter Vergleich externer Prozess gegen FFmpeg-Library; der externe
-  FFmpeg-Prozess wurde bereits als isolierter Rust-Spike validiert
+- vollstaendiger Vergleich externer Prozess gegen FFmpeg-Library fuer Live-
+  Ausgabe, Pause/Resume und Langzeitverhalten; der reine Decoder-Vergleich ist
+  abgeschlossen
 - Rust-PCM-Pipe und Prozess-Signalsteuerung auf Audioaussetzer und
   Pause-Latenz untersuchen; Decoder und PulseAudio-Einzeltests sind unauffaellig
 - WSLg/PulseAudio-Ausgabe fuer subjektive Audioqualitaet als bekannte

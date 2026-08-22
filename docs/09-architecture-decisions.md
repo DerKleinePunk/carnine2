@@ -540,6 +540,16 @@ environment. Further Rust comparisons should use decoder-only checks, PCM
 byte-count and timing checks, or a captured file/null sink. Final audible
 quality must be verified later on the Debian/Raspberry Pi audio stack.
 
+The first direct-library comparison is complete at decoder level. An isolated
+`ffmpeg-next` example decoded the repository MP3 directly in Rust to the same
+packed `s16le`, stereo, 44.1 kHz PCM format. It processed about 174.85 seconds
+of audio in about 0.22 seconds and produced 30,844,288 bytes. FFmpeg validated
+the resulting raw PCM without errors. The normal backend build does not enable
+this dependency; the experiment is behind the optional Cargo feature
+`direct-ffmpeg-library-spike`. Live PulseAudio output, pause/resume, stop
+semantics, and long-running behavior still need a like-for-like comparison
+before selecting the production adapter.
+
 **Rationale:**
 - Typed media operations are safer and easier to evolve than generic command
 	strings.

@@ -17,6 +17,13 @@ assets = [
 	["target/release/carnine-backend", "usr/bin/carnine-backend", "755"],
 ]
 
+[features]
+direct-ffmpeg-library-spike = ["dep:ffmpeg-next"]
+
+[[example]]
+name = "direct_ffmpeg_library_spike"
+required-features = ["direct-ffmpeg-library-spike"]
+
 [dependencies]
 anyhow = "1.0"
 chrono = "0.4"
@@ -27,6 +34,7 @@ tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 tonic = "0.12"
 prost = "0.13"
+ffmpeg-next = { version = "8", optional = true }
 
 [build-dependencies]
 tonic-build = "0.12"
