@@ -453,10 +453,15 @@ async fn shutdown_signal() {
 
 #[cfg(test)]
 mod tests {
+    use super::MediaServiceImpl;
     use super::{configuration_from_proto, configuration_to_proto, ConfigServiceImpl};
-    use crate::carnine::config_service_server::ConfigService;
+    use crate::carnine::{
+        config_service_server::ConfigService, media_service_server::MediaService,
+        RescanMediaRequest,
+    };
     use crate::config;
     use std::path::PathBuf;
+    use tokio_stream::StreamExt;
     use tonic::Request;
 
     fn test_configuration() -> config::Config {
@@ -546,5 +551,51 @@ mod tests {
             serde_yaml::from_str(&saved).expect("saved configuration should be valid YAML");
         assert_eq!(saved_configuration.audio.device, "plughw:1,0");
         let _ = std::fs::remove_file(path);
+    }
+
+    #[tokio::test]
+    async fn rescan_service_emits_progress_events() {
+        let folder = std::env::temp_dir().join(format!(
+            "carnine-service-rescan-test-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&folder);
+        std::fs::create_dir_all(&folder).expect("media folder should be created");
+        let media_path = folder.join("service-song.mp3");
+        std::fs::write(&media_path, b"test").expect("media file should be created");
+        let database_path = folder.join("media.sqlite3");
+        let service = MediaServiceImpl::new(
+            &config::AudioConfig {
+                backend: "alsa".to_string(),
+                device: "default".to_string(),
+                sample_rate: 44_100,
+                channels: 2,
+                navigation_interrupt: "pause_music".to_string(),
+            },
+            database_path,
+            vec![folder.clone()],
+            vec!["mp3".to_string()],
+        );
+        let response = service
+            .rescan_media(Request::new(RescanMediaRequest {}))
+            .await
+            .expect("rescan should succeed");
+        let events = response.into_inner().collect::<Vec<_>>().await;
+
+        assert_eq!(events.len(), 3);
+        assert_eq!(
+            events[0].as_ref().expect("start event").event,
+            "scan_started"
+        );
+        assert_eq!(
+            events[1].as_ref().expect("progress event").event,
+            "progress"
+        );
+        assert_eq!(events[1].as_ref().expect("progress event").imported, 1);
+        assert_eq!(
+            events[2].as_ref().expect("complete event").event,
+            "scan_completed"
+        );
+        let _ = std::fs::remove_dir_all(folder);
     }
 }
