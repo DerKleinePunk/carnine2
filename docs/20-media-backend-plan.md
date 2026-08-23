@@ -385,6 +385,7 @@ Erledigt:
 - Laufzeitkonfiguration beim Lesen und Schreiben validiert
 - atomare YAML-Aktualisierung mit Neustart-Hinweis implementiert
 - versioniertes SQLite-Schema fuer Quellen, Medien, Playlists und Resume-Zustand
+- Rescan liest Titel, Interpret und Dauer ueber `ffprobe` und speichert sie in SQLite
 - typisierte Medienmodell-IDs im Proto-Vertrag definiert
 - MediaService mit Play, Pause, Stop, Resume und Player-Status implementiert
 - Stop-Fade und graceful `SIGTERM`-Beendigung auf dem Raspberry Pi validiert

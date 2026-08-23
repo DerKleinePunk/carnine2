@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use anyhow::{Context, Result};
 use rusqlite::{params, Connection};
@@ -18,6 +19,24 @@ pub struct MediaRecord {
     pub artist: String,
     pub duration_ms: i64,
     pub status: String,
+}
+
+#[derive(Debug, Default, serde::Deserialize)]
+struct ProbeFormat {
+    duration: Option<String>,
+    tags: Option<std::collections::HashMap<String, String>>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct ProbeOutput {
+    format: ProbeFormat,
+}
+
+#[derive(Debug, Default)]
+struct AudioMetadata {
+    title: Option<String>,
+    artist: Option<String>,
+    duration_ms: i64,
 }
 
 impl Database {
@@ -159,18 +178,19 @@ impl Database {
             [source_id],
         )?;
         for path in &discovered {
-            let title = path
+            let fallback_title = path
                 .file_stem()
                 .and_then(|value| value.to_str())
                 .unwrap_or_default()
                 .to_string();
+            let metadata = read_audio_metadata(path).unwrap_or_default();
             self.upsert_media(&MediaRecord {
                 id: 0,
                 source_id,
                 path: path.to_string_lossy().into_owned(),
-                title,
-                artist: String::new(),
-                duration_ms: 0,
+                title: metadata.title.unwrap_or(fallback_title),
+                artist: metadata.artist.unwrap_or_default(),
+                duration_ms: metadata.duration_ms,
                 status: "AVAILABLE".to_string(),
             })?;
         }
@@ -185,6 +205,45 @@ impl Database {
                 row.get(0)
             })?)
     }
+}
+
+fn read_audio_metadata(path: &Path) -> Result<AudioMetadata> {
+    let output = Command::new("ffprobe")
+        .args([
+            "-v",
+            "error",
+            "-show_entries",
+            "format=duration:format_tags=title,artist",
+            "-of",
+            "json",
+            &path.to_string_lossy(),
+        ])
+        .output()
+        .with_context(|| format!("failed to start ffprobe for {}", path.display()))?;
+    if !output.status.success() {
+        anyhow::bail!("ffprobe failed for {}", path.display());
+    }
+    let parsed: ProbeOutput = serde_json::from_slice(&output.stdout)
+        .with_context(|| format!("failed to parse ffprobe output for {}", path.display()))?;
+    let tags = parsed.format.tags.unwrap_or_default();
+    let tag = |name: &str| {
+        tags.iter()
+            .find(|(key, _)| key.eq_ignore_ascii_case(name))
+            .map(|(_, value)| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+    };
+    let duration_ms = parsed
+        .format
+        .duration
+        .and_then(|duration| duration.parse::<f64>().ok())
+        .filter(|duration| duration.is_finite() && *duration >= 0.0)
+        .map(|duration| (duration * 1_000.0).round() as i64)
+        .unwrap_or_default();
+    Ok(AudioMetadata {
+        title: tag("title"),
+        artist: tag("artist"),
+        duration_ms,
+    })
 }
 
 fn collect_audio_files(
@@ -221,7 +280,7 @@ fn collect_audio_files(
 
 #[cfg(test)]
 mod tests {
-    use super::{Database, MediaRecord, CURRENT_SCHEMA_VERSION};
+    use super::{read_audio_metadata, Database, MediaRecord, CURRENT_SCHEMA_VERSION};
 
     #[test]
     fn creates_current_schema_and_is_idempotent() {
@@ -316,5 +375,19 @@ mod tests {
             .expect("missing media should remain searchable");
         assert_eq!(results[0].status, "MISSING");
         let _ = std::fs::remove_dir_all(folder);
+    }
+
+    #[test]
+    fn reads_repository_audio_metadata() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../resources/musik/1-Here We Go Now (Single Edit).mp3");
+        let metadata = read_audio_metadata(&path).expect("repository MP3 metadata should read");
+
+        assert_eq!(
+            metadata.title.as_deref(),
+            Some("Here We Go Now (Single Edit)")
+        );
+        assert_eq!(metadata.artist.as_deref(), Some("Kensington Road"));
+        assert!(metadata.duration_ms > 170_000);
     }
 }
