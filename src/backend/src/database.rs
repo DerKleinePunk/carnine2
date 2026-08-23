@@ -21,6 +21,14 @@ pub struct MediaRecord {
     pub status: String,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct PlaylistEntry {
+    pub id: i64,
+    pub playlist_id: i64,
+    pub media_id: i64,
+    pub position: i64,
+}
+
 #[derive(Debug, Default, serde::Deserialize)]
 struct ProbeFormat {
     duration: Option<String>,
@@ -163,6 +171,43 @@ impl Database {
                 artist: row.get(4)?,
                 duration_ms: row.get(5)?,
                 status: row.get(6)?,
+            })
+        })?;
+        Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+    }
+
+    pub fn create_playlist(&self, name: &str) -> Result<i64> {
+        self.connection
+            .execute("INSERT INTO playlists (name) VALUES (?1)", [name.trim()])?;
+        Ok(self.connection.last_insert_rowid())
+    }
+
+    pub fn add_playlist_entry(&self, playlist_id: i64, media_id: i64) -> Result<i64> {
+        let position: i64 = self.connection.query_row(
+            "SELECT COALESCE(MAX(position), -1) + 1
+             FROM playlist_entries WHERE playlist_id = ?1",
+            [playlist_id],
+            |row| row.get(0),
+        )?;
+        self.connection.execute(
+            "INSERT INTO playlist_entries (playlist_id, media_id, position)
+             VALUES (?1, ?2, ?3)",
+            params![playlist_id, media_id, position],
+        )?;
+        Ok(self.connection.last_insert_rowid())
+    }
+
+    pub fn playlist_entries(&self, playlist_id: i64) -> Result<Vec<PlaylistEntry>> {
+        let mut statement = self.connection.prepare(
+            "SELECT id, playlist_id, media_id, position
+             FROM playlist_entries WHERE playlist_id = ?1 ORDER BY position",
+        )?;
+        let rows = statement.query_map([playlist_id], |row| {
+            Ok(PlaylistEntry {
+                id: row.get(0)?,
+                playlist_id: row.get(1)?,
+                media_id: row.get(2)?,
+                position: row.get(3)?,
             })
         })?;
         Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
@@ -375,6 +420,45 @@ mod tests {
             .expect("missing media should remain searchable");
         assert_eq!(results[0].status, "MISSING");
         let _ = std::fs::remove_dir_all(folder);
+    }
+
+    #[test]
+    fn stores_ordered_playlist_entries_and_allows_duplicates() {
+        let database = Database::open(":memory:").expect("database should open");
+        let source_id = database
+            .upsert_source("/music", "AVAILABLE")
+            .expect("source should be stored");
+        let media_id = database
+            .upsert_media(&MediaRecord {
+                id: 0,
+                source_id,
+                path: "/music/song.mp3".to_string(),
+                title: "Song".to_string(),
+                artist: "Artist".to_string(),
+                duration_ms: 1000,
+                status: "AVAILABLE".to_string(),
+            })
+            .expect("media should be stored");
+        let playlist_id = database
+            .create_playlist("Favorites")
+            .expect("playlist should be created");
+
+        let first_entry = database
+            .add_playlist_entry(playlist_id, media_id)
+            .expect("first entry should be added");
+        let second_entry = database
+            .add_playlist_entry(playlist_id, media_id)
+            .expect("duplicate entry should be added");
+        let entries = database
+            .playlist_entries(playlist_id)
+            .expect("entries should be loaded");
+
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].id, first_entry);
+        assert_eq!(entries[1].id, second_entry);
+        assert_eq!(entries[0].media_id, entries[1].media_id);
+        assert_eq!(entries[0].position, 0);
+        assert_eq!(entries[1].position, 1);
     }
 
     #[test]
