@@ -4,7 +4,20 @@ package carnine;
 
 service CarnineService {
   rpc GetCanData (CanDataRequest) returns (CanDataResponse);
-  rpc SendCommand (CommandRequest) returns (CommandResponse);
+}
+
+service MediaService {
+  rpc GetServiceVersion (Empty) returns (ServiceVersion);
+  rpc Play (PlayRequest) returns (CommandResponse);
+  rpc Pause (Empty) returns (CommandResponse);
+  rpc Stop (Empty) returns (CommandResponse);
+  rpc GetPlayerState (Empty) returns (PlayerState);
+  rpc StreamPlayerEvents (Empty) returns (stream PlayerEvent);
+}
+
+service AudioService {
+  rpc GetServiceVersion (Empty) returns (ServiceVersion);
+  rpc StreamAudioEvents (Empty) returns (stream AudioEvent);
 }
 
 message CanDataRequest {
@@ -21,12 +34,37 @@ message CanData {
   int64 timestamp = 3;
 }
 
-message CommandRequest {
-  string command = 1;
-  string parameters = 2;
-}
-
 message CommandResponse {
   bool success = 1;
+  string message = 2;
+}
+
+message Empty {}
+
+message ServiceVersion {
+  uint32 major = 1;
+  uint32 minor = 2;
+  uint32 patch = 3;
+}
+
+message PlayRequest {
+  string media_path = 1;
+}
+
+message PlayerState {
+  string status = 1;
+  string media_path = 2;
+  int64 position_ms = 3;
+  int64 duration_ms = 4;
+}
+
+message PlayerEvent {
+  string event = 1;
+  PlayerState state = 2;
+  string message = 3;
+}
+
+message AudioEvent {
+  string event = 1;
   string message = 2;
 }

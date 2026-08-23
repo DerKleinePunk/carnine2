@@ -59,9 +59,10 @@ Alle Services bleiben in der einen Datei `src/proto/carnine.proto`:
 
 ### CarnineService
 
-Bestehende allgemeine Schnittstelle fuer CAN-Daten und zentrale
-Basisfunktionen. Die bestehende generische Command-Schnittstelle wird nicht als
-Media-Vertrag verwendet.
+Bestehende Schnittstelle fuer CAN-Daten waehrend der aktuellen Aufbauphase.
+Generische Command-RPCs gehoeren nicht zum Vertrag. Eine spaetere fachliche
+Schnittstelle fuer Fahrzeugdaten und eine getrennte Schnittstelle fuer die
+Fahrzeug-Ansteuerung werden separat definiert.
 
 ### MediaService
 
@@ -87,6 +88,27 @@ Systemklaenge und Navigationsansagen koordinieren.
 Jeder Service bekommt eine dreiteilige Version mit `major`, `minor` und
 `patch`. Faehigkeiten und unterstuetzte Formate werden dokumentiert, aber in
 der ersten Version nicht programmatisch abgefragt.
+
+## Konfiguration
+
+Die versionierte Laufzeit-Konfigurationsvorlage liegt in
+`resources/config/carnine.yaml`. Im installierten System wird sie als
+`/etc/carnine/config.yaml` verwendet. Das Debos-Rezept
+`resources/debos/raspbian.yaml` bleibt ausschliesslich fuer Image-Aufbau und
+Pakete zustaendig.
+
+Die Konfiguration enthaelt mindestens:
+
+- gRPC-Adresse
+- Medienordner und SQLite-Datenbankpfad
+- unterstuetzte Audioformate und Rescan-Verhalten
+- Audio-Backend, ALSA-Geraet, Sample-Rate und Kanalzahl
+- Verhalten bei Navigationsansagen
+- Log-Verzeichnis und Log-Level
+
+Hardware- und deployment-spezifische Werte wie das ALSA-Geraet duerfen fuer
+den Zielrechner angepasst werden. Fuer den aktuell getesteten Pi ist HDMI 0
+als `plughw:1,0` eingetragen. Geheimnisse gehoeren nicht in diese Datei.
 
 ## Medienquellen und Rescan
 

@@ -14,6 +14,13 @@ wget https://github.com/podman-container-tools/podman/releases/download/v6.0.2/p
 
 podman run --rm -it --device /dev/kvm --mount "type=bind,source=$(pwd),destination=/work" --workdir /work --security-opt label=disable godebos/debos raspbian.yaml
 
+Hinweis zur YAML-Pruefung:
+
+`raspbian.yaml` ist ein Debos-Template und enthaelt deshalb zusaetzlich
+Template-Ausdruecke wie `{{ ... }}`. Diese Datei wird nicht mit `yamllint`
+geprueft. Normale YAML-Dateien, zum Beispiel
+`resources/config/carnine.yaml`, werden weiterhin mit `yamllint` validiert.
+
 WSL Share teilen
 
 wichtig der mount point muss unter /mnt/wsl liegen da das geteilt wird zwischen alle wsl instancen und machinen

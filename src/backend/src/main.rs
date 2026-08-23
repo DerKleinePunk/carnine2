@@ -10,7 +10,7 @@ pub mod carnine {
 
 use carnine::{
     carnine_service_server::{CarnineService, CarnineServiceServer},
-    CanDataRequest, CanDataResponse, CanData, CommandRequest, CommandResponse,
+    CanDataRequest, CanDataResponse, CanData,
 };
 
 #[derive(Debug, Default)]
@@ -25,31 +25,13 @@ impl CarnineService for CarnineServiceImpl {
         let req = request.into_inner();
         info!("Received CAN data request for sensor: {}", req.sensor_id);
 
-        // Mock data for testing
-        let data = vec![
-            CanData {
-                sensor_id: req.sensor_id.clone(),
-                value: 42.0,
-                timestamp: chrono::Utc::now().timestamp(),
-            },
-        ];
+        let data = vec![CanData {
+            sensor_id: req.sensor_id.clone(),
+            value: 42.0,
+            timestamp: chrono::Utc::now().timestamp(),
+        }];
 
         let response = CanDataResponse { data };
-        Ok(Response::new(response))
-    }
-
-    async fn send_command(
-        &self,
-        request: Request<CommandRequest>,
-    ) -> Result<Response<CommandResponse>, Status> {
-        let req = request.into_inner();
-        info!("Received command: {} with params: {}", req.command, req.parameters);
-
-        // Mock response
-        let response = CommandResponse {
-            success: true,
-            message: format!("Command '{}' executed successfully", req.command),
-        };
         Ok(Response::new(response))
     }
 }

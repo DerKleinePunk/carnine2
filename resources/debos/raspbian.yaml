@@ -73,6 +73,9 @@ actions:
       - vim
       - nano
       - dialog
+      - ffmpeg
+      - pulseaudio-utils
+      - alsa-utils
 
   - action: run
     description: Install RPi bootloader files

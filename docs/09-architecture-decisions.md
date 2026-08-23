@@ -458,6 +458,10 @@ search, playlists, queue, playback commands, player state, and player events.
 `AudioService` represents the central backend audio manager and its audio
 events; it does not transport audio data.
 
+The generic `SendCommand` RPC is not part of the contract. Future vehicle
+data and vehicle-control APIs will use separate fachliche services instead of
+an untyped command endpoint.
+
 The first implementation targets multiple configured local folders, including
 the internal disk and later USB-mounted media. A complete library rescan is an
 explicit backend operation. It updates SQLite and reports progress and errors
