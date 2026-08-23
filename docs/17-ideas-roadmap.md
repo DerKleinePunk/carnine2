@@ -18,6 +18,7 @@
 	- [x] Exercise process-level play, pause, and stop commands
 	- [x] Validate direct ffmpeg-next library decoding and PCM output
 	- [ ] Investigate pause latency and intermittent audio dropouts
+	- [ ] Investigate residual click/pop at the end of `stop` and compare with a fully buffered audio implementation
 	- [x] Verify Debian package availability and planned backend packaging
 	- [ ] Compare external FFmpeg process with direct library integration
 	- [ ] Verify audible output and target audio device on Raspberry Pi

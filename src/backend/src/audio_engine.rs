@@ -10,7 +10,7 @@ use anyhow::{bail, Context, Result};
 use crate::config::AudioConfig;
 
 const SAMPLE_FORMAT: &str = "s16le";
-const FADE_MILLISECONDS: u32 = 500;
+const FADE_MILLISECONDS: u32 = 250;
 
 pub trait AudioEngine: Send + Sync {
     fn start(&self, input_path: &str) -> Result<Box<dyn Playback>>;
@@ -108,6 +108,8 @@ impl ProcessPlayback {
         let channels = engine.channels.parse::<u16>()?;
         let copy_thread = thread::spawn(move || -> Result<u64> {
             let mut buffer = [0_u8; 64 * 1024];
+            let bytes_per_frame = channels as usize * 2;
+            let mut pending_pcm = Vec::with_capacity(bytes_per_frame);
             let mut pcm_bytes = 0_u64;
             let mut current_gain = 1_000_000_u32;
             let fade_frames = (sample_rate * FADE_MILLISECONDS / 1_000).max(1);
@@ -125,17 +127,23 @@ impl ProcessPlayback {
                 if bytes_read == 0 {
                     break;
                 }
-                let frames = bytes_read / (channels as usize * 2);
+                pending_pcm.extend_from_slice(&buffer[..bytes_read]);
+                let complete_bytes = pending_pcm.len() / bytes_per_frame * bytes_per_frame;
+                if complete_bytes == 0 {
+                    continue;
+                }
+                let mut pcm = pending_pcm.drain(..complete_bytes).collect::<Vec<_>>();
+                let frames = complete_bytes / bytes_per_frame;
                 apply_gain_fade(
-                    &mut buffer[..bytes_read],
+                    &mut pcm,
                     &mut current_gain,
                     target_gain,
                     frames,
                     fade_frames,
                     channels,
                 );
-                playback_input.write_all(&buffer[..bytes_read])?;
-                pcm_bytes += bytes_read as u64;
+                playback_input.write_all(&pcm)?;
+                pcm_bytes += complete_bytes as u64;
             }
             Ok(pcm_bytes)
         });
@@ -277,21 +285,21 @@ mod tests {
 
     #[test]
     fn fade_to_zero_reaches_silence_within_fade_duration() {
-        let mut pcm = vec![0xFF_u8; 44_100 * 2];
+        let mut pcm = vec![0xFF_u8; 22_050 * 2];
         let mut current_gain = 1_000_000;
 
-        apply_gain_fade(&mut pcm, &mut current_gain, 0, 22_050, 22_050, 1);
+        apply_gain_fade(&mut pcm, &mut current_gain, 0, 11_025, 11_025, 1);
 
         assert_eq!(current_gain, 0);
-        assert_eq!(pcm[44_100 - 2..44_100], [0, 0]);
+        assert_eq!(pcm[22_050 - 2..22_050], [0, 0]);
     }
 
     #[test]
     fn fade_to_full_gain_reaches_target_within_fade_duration() {
-        let mut pcm = vec![0_u8; 44_100 * 2];
+        let mut pcm = vec![0_u8; 22_050 * 2];
         let mut current_gain = 0;
 
-        apply_gain_fade(&mut pcm, &mut current_gain, 1_000_000, 22_050, 22_050, 1);
+        apply_gain_fade(&mut pcm, &mut current_gain, 1_000_000, 11_025, 11_025, 1);
 
         assert_eq!(current_gain, 1_000_000);
     }
