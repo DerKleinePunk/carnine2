@@ -381,6 +381,15 @@ Erledigt:
   ebenfalls deutlich hoerbare Aussetzer
 - direkte `ffmpeg-next`-Library-Dekodierung als isoliertes Rust-Example
 - direkte Library-PCM-Ausgabe unabhaengig mit FFmpeg validiert
+- typisierten ConfigService-Vertrag und Backend-RPCs implementiert
+- Laufzeitkonfiguration beim Lesen und Schreiben validiert
+- atomare YAML-Aktualisierung mit Neustart-Hinweis implementiert
+- versioniertes SQLite-Schema fuer Quellen, Medien, Playlists und Resume-Zustand
+- typisierte Medienmodell-IDs im Proto-Vertrag definiert
+- MediaService mit Play, Pause, Stop, Resume und Player-Status implementiert
+- Stop-Fade und graceful `SIGTERM`-Beendigung auf dem Raspberry Pi validiert
+- Debian-/Debos-Audioabhaengigkeiten und ARM64-Paketierung validiert
+- vollstaendigen Linux-Build fuer Backend, Paket und Flutter-Bundle validiert
 
 Noch offen:
 
@@ -391,8 +400,9 @@ Noch offen:
   Pause-Latenz untersuchen; Decoder und PulseAudio-Einzeltests sind unauffaellig
 - WSLg/PulseAudio-Ausgabe fuer subjektive Audioqualitaet als bekannte
   Testeinschraenkung behandeln
-- konkrete Audioausgabe und Paketierung fuer Debian/Debos
-- Proto-Entwurf und Abnahme
-- SQLite-Schema und Migrationen
-- Backend-Implementierung
-- Raspberry-Pi-Hardwaretest
+- verbleibendes Knacken am Ende von `stop`; vollstaendig gepufferte Audioausgabe
+  als spaetere Referenzimplementierung pruefen
+- konkrete Laufzeituebernahme aenderbarer Audio- und Medienkonfiguration ohne
+  Neustart
+- Media-Rescan, Suche, Playlist, Queue, Next/Previous und Resume integrieren
+- Player-, Bibliotheks- und Audio-Ereignisstreams implementieren
