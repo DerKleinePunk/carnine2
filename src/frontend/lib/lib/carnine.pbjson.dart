@@ -253,6 +253,85 @@ final $typed_data.Uint8List mediaItemDescriptor = $convert.base64Decode(
     'ASgJUgZhcnRpc3QSHwoLZHVyYXRpb25fbXMYBiABKANSCmR1cmF0aW9uTXMSFgoGc3RhdHVzGA'
     'cgASgJUgZzdGF0dXM=');
 
+@$core.Deprecated('Use playlistDescriptor instead')
+const Playlist$json = {
+  '1': 'Playlist',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 4, '10': 'id'},
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+    {
+      '1': 'entries',
+      '3': 3,
+      '4': 3,
+      '5': 11,
+      '6': '.carnine.PlaylistEntry',
+      '10': 'entries'
+    },
+  ],
+};
+
+/// Descriptor for `Playlist`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List playlistDescriptor = $convert.base64Decode(
+    'CghQbGF5bGlzdBIOCgJpZBgBIAEoBFICaWQSEgoEbmFtZRgCIAEoCVIEbmFtZRIwCgdlbnRyaW'
+    'VzGAMgAygLMhYuY2FybmluZS5QbGF5bGlzdEVudHJ5UgdlbnRyaWVz');
+
+@$core.Deprecated('Use playlistEntryDescriptor instead')
+const PlaylistEntry$json = {
+  '1': 'PlaylistEntry',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 4, '10': 'id'},
+    {'1': 'playlist_id', '3': 2, '4': 1, '5': 4, '10': 'playlistId'},
+    {'1': 'media_id', '3': 3, '4': 1, '5': 4, '10': 'mediaId'},
+    {'1': 'position', '3': 4, '4': 1, '5': 4, '10': 'position'},
+  ],
+};
+
+/// Descriptor for `PlaylistEntry`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List playlistEntryDescriptor = $convert.base64Decode(
+    'Cg1QbGF5bGlzdEVudHJ5Eg4KAmlkGAEgASgEUgJpZBIfCgtwbGF5bGlzdF9pZBgCIAEoBFIKcG'
+    'xheWxpc3RJZBIZCghtZWRpYV9pZBgDIAEoBFIHbWVkaWFJZBIaCghwb3NpdGlvbhgEIAEoBFII'
+    'cG9zaXRpb24=');
+
+@$core.Deprecated('Use createPlaylistRequestDescriptor instead')
+const CreatePlaylistRequest$json = {
+  '1': 'CreatePlaylistRequest',
+  '2': [
+    {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
+  ],
+};
+
+/// Descriptor for `CreatePlaylistRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createPlaylistRequestDescriptor =
+    $convert.base64Decode(
+        'ChVDcmVhdGVQbGF5bGlzdFJlcXVlc3QSEgoEbmFtZRgBIAEoCVIEbmFtZQ==');
+
+@$core.Deprecated('Use addPlaylistEntryRequestDescriptor instead')
+const AddPlaylistEntryRequest$json = {
+  '1': 'AddPlaylistEntryRequest',
+  '2': [
+    {'1': 'playlist_id', '3': 1, '4': 1, '5': 4, '10': 'playlistId'},
+    {'1': 'media_id', '3': 2, '4': 1, '5': 4, '10': 'mediaId'},
+  ],
+};
+
+/// Descriptor for `AddPlaylistEntryRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List addPlaylistEntryRequestDescriptor =
+    $convert.base64Decode(
+        'ChdBZGRQbGF5bGlzdEVudHJ5UmVxdWVzdBIfCgtwbGF5bGlzdF9pZBgBIAEoBFIKcGxheWxpc3'
+        'RJZBIZCghtZWRpYV9pZBgCIAEoBFIHbWVkaWFJZA==');
+
+@$core.Deprecated('Use getPlaylistRequestDescriptor instead')
+const GetPlaylistRequest$json = {
+  '1': 'GetPlaylistRequest',
+  '2': [
+    {'1': 'playlist_id', '3': 1, '4': 1, '5': 4, '10': 'playlistId'},
+  ],
+};
+
+/// Descriptor for `GetPlaylistRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getPlaylistRequestDescriptor = $convert.base64Decode(
+    'ChJHZXRQbGF5bGlzdFJlcXVlc3QSHwoLcGxheWxpc3RfaWQYASABKARSCnBsYXlsaXN0SWQ=');
+
 @$core.Deprecated('Use playerStateDescriptor instead')
 const PlayerState$json = {
   '1': 'PlayerState',

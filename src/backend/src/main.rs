@@ -21,8 +21,9 @@ use carnine::{
     carnine_service_server::{CarnineService, CarnineServiceServer},
     config_service_server::{ConfigService, ConfigServiceServer},
     media_service_server::{MediaService, MediaServiceServer},
-    AudioEvent, CanData, CanDataRequest, CanDataResponse, CommandResponse, Configuration,
-    ConfigurationResponse, Empty, LibraryEvent, PlayRequest, PlayerEvent, PlayerState,
+    AddPlaylistEntryRequest, AudioEvent, CanData, CanDataRequest, CanDataResponse, CommandResponse,
+    Configuration, ConfigurationResponse, CreatePlaylistRequest, Empty, GetPlaylistRequest,
+    LibraryEvent, PlayRequest, PlayerEvent, PlayerState, Playlist, PlaylistEntry,
     RescanMediaRequest, SearchMediaRequest, SearchMediaResponse, ServiceVersion,
     UpdateConfigurationRequest,
 };
@@ -252,6 +253,79 @@ impl MediaService for MediaServiceImpl {
         });
         let events = events.into_iter().map(Ok).collect::<Vec<_>>();
         Ok(Response::new(tokio_stream::iter(events)))
+    }
+
+    async fn create_playlist(
+        &self,
+        request: Request<CreatePlaylistRequest>,
+    ) -> Result<Response<Playlist>, Status> {
+        let name = request.into_inner().name;
+        if name.trim().is_empty() {
+            return Err(Status::invalid_argument("playlist name must not be empty"));
+        }
+        let database = database::Database::open(&self.database_path)
+            .map_err(|error| Status::internal(error.to_string()))?;
+        let id = database
+            .create_playlist(&name)
+            .map_err(|error| Status::already_exists(error.to_string()))?;
+        Ok(Response::new(Playlist {
+            id: id as u64,
+            name,
+            entries: Vec::new(),
+        }))
+    }
+
+    async fn add_playlist_entry(
+        &self,
+        request: Request<AddPlaylistEntryRequest>,
+    ) -> Result<Response<PlaylistEntry>, Status> {
+        let request = request.into_inner();
+        let database = database::Database::open(&self.database_path)
+            .map_err(|error| Status::internal(error.to_string()))?;
+        let id = database
+            .add_playlist_entry(request.playlist_id as i64, request.media_id as i64)
+            .map_err(|error| Status::invalid_argument(error.to_string()))?;
+        let entries = database
+            .playlist_entries(request.playlist_id as i64)
+            .map_err(|error| Status::internal(error.to_string()))?;
+        let entry = entries
+            .into_iter()
+            .find(|entry| entry.id == id)
+            .ok_or_else(|| Status::internal("created playlist entry was not found"))?;
+        Ok(Response::new(PlaylistEntry {
+            id: entry.id as u64,
+            playlist_id: entry.playlist_id as u64,
+            media_id: entry.media_id as u64,
+            position: entry.position as u64,
+        }))
+    }
+
+    async fn get_playlist(
+        &self,
+        request: Request<GetPlaylistRequest>,
+    ) -> Result<Response<Playlist>, Status> {
+        let playlist_id = request.into_inner().playlist_id as i64;
+        let database = database::Database::open(&self.database_path)
+            .map_err(|error| Status::internal(error.to_string()))?;
+        let name = database
+            .playlist_name(playlist_id)
+            .map_err(|error| Status::not_found(error.to_string()))?;
+        let entries = database
+            .playlist_entries(playlist_id)
+            .map_err(|error| Status::internal(error.to_string()))?
+            .into_iter()
+            .map(|entry| PlaylistEntry {
+                id: entry.id as u64,
+                playlist_id: entry.playlist_id as u64,
+                media_id: entry.media_id as u64,
+                position: entry.position as u64,
+            })
+            .collect();
+        Ok(Response::new(Playlist {
+            id: playlist_id as u64,
+            name,
+            entries,
+        }))
     }
 
     async fn stream_player_events(

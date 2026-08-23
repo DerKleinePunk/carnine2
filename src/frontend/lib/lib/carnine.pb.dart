@@ -1091,6 +1091,356 @@ class MediaItem extends $pb.GeneratedMessage {
   void clearStatus() => $_clearField(7);
 }
 
+class Playlist extends $pb.GeneratedMessage {
+  factory Playlist({
+    $fixnum.Int64? id,
+    $core.String? name,
+    $core.Iterable<PlaylistEntry>? entries,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (name != null) result.name = name;
+    if (entries != null) result.entries.addAll(entries);
+    return result;
+  }
+
+  Playlist._();
+
+  factory Playlist.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory Playlist.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'Playlist',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..a<$fixnum.Int64>(1, _omitFieldNames ? '' : 'id', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..pPM<PlaylistEntry>(3, _omitFieldNames ? '' : 'entries',
+        subBuilder: PlaylistEntry.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Playlist clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Playlist copyWith(void Function(Playlist) updates) =>
+      super.copyWith((message) => updates(message as Playlist)) as Playlist;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static Playlist create() => Playlist._();
+  @$core.override
+  Playlist createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static Playlist getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Playlist>(create);
+  static Playlist? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get id => $_getI64(0);
+  @$pb.TagNumber(1)
+  set id($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get name => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set name($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearName() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $pb.PbList<PlaylistEntry> get entries => $_getList(2);
+}
+
+class PlaylistEntry extends $pb.GeneratedMessage {
+  factory PlaylistEntry({
+    $fixnum.Int64? id,
+    $fixnum.Int64? playlistId,
+    $fixnum.Int64? mediaId,
+    $fixnum.Int64? position,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (playlistId != null) result.playlistId = playlistId;
+    if (mediaId != null) result.mediaId = mediaId;
+    if (position != null) result.position = position;
+    return result;
+  }
+
+  PlaylistEntry._();
+
+  factory PlaylistEntry.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory PlaylistEntry.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'PlaylistEntry',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..a<$fixnum.Int64>(1, _omitFieldNames ? '' : 'id', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(
+        2, _omitFieldNames ? '' : 'playlistId', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'mediaId', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(
+        4, _omitFieldNames ? '' : 'position', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PlaylistEntry clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PlaylistEntry copyWith(void Function(PlaylistEntry) updates) =>
+      super.copyWith((message) => updates(message as PlaylistEntry))
+          as PlaylistEntry;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PlaylistEntry create() => PlaylistEntry._();
+  @$core.override
+  PlaylistEntry createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static PlaylistEntry getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<PlaylistEntry>(create);
+  static PlaylistEntry? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get id => $_getI64(0);
+  @$pb.TagNumber(1)
+  set id($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get playlistId => $_getI64(1);
+  @$pb.TagNumber(2)
+  set playlistId($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasPlaylistId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPlaylistId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get mediaId => $_getI64(2);
+  @$pb.TagNumber(3)
+  set mediaId($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasMediaId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearMediaId() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get position => $_getI64(3);
+  @$pb.TagNumber(4)
+  set position($fixnum.Int64 value) => $_setInt64(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasPosition() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearPosition() => $_clearField(4);
+}
+
+class CreatePlaylistRequest extends $pb.GeneratedMessage {
+  factory CreatePlaylistRequest({
+    $core.String? name,
+  }) {
+    final result = create();
+    if (name != null) result.name = name;
+    return result;
+  }
+
+  CreatePlaylistRequest._();
+
+  factory CreatePlaylistRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory CreatePlaylistRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CreatePlaylistRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CreatePlaylistRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CreatePlaylistRequest copyWith(
+          void Function(CreatePlaylistRequest) updates) =>
+      super.copyWith((message) => updates(message as CreatePlaylistRequest))
+          as CreatePlaylistRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreatePlaylistRequest create() => CreatePlaylistRequest._();
+  @$core.override
+  CreatePlaylistRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static CreatePlaylistRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CreatePlaylistRequest>(create);
+  static CreatePlaylistRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => $_clearField(1);
+}
+
+class AddPlaylistEntryRequest extends $pb.GeneratedMessage {
+  factory AddPlaylistEntryRequest({
+    $fixnum.Int64? playlistId,
+    $fixnum.Int64? mediaId,
+  }) {
+    final result = create();
+    if (playlistId != null) result.playlistId = playlistId;
+    if (mediaId != null) result.mediaId = mediaId;
+    return result;
+  }
+
+  AddPlaylistEntryRequest._();
+
+  factory AddPlaylistEntryRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AddPlaylistEntryRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AddPlaylistEntryRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..a<$fixnum.Int64>(
+        1, _omitFieldNames ? '' : 'playlistId', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'mediaId', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AddPlaylistEntryRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AddPlaylistEntryRequest copyWith(
+          void Function(AddPlaylistEntryRequest) updates) =>
+      super.copyWith((message) => updates(message as AddPlaylistEntryRequest))
+          as AddPlaylistEntryRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AddPlaylistEntryRequest create() => AddPlaylistEntryRequest._();
+  @$core.override
+  AddPlaylistEntryRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AddPlaylistEntryRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AddPlaylistEntryRequest>(create);
+  static AddPlaylistEntryRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get playlistId => $_getI64(0);
+  @$pb.TagNumber(1)
+  set playlistId($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPlaylistId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPlaylistId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get mediaId => $_getI64(1);
+  @$pb.TagNumber(2)
+  set mediaId($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasMediaId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMediaId() => $_clearField(2);
+}
+
+class GetPlaylistRequest extends $pb.GeneratedMessage {
+  factory GetPlaylistRequest({
+    $fixnum.Int64? playlistId,
+  }) {
+    final result = create();
+    if (playlistId != null) result.playlistId = playlistId;
+    return result;
+  }
+
+  GetPlaylistRequest._();
+
+  factory GetPlaylistRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetPlaylistRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetPlaylistRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..a<$fixnum.Int64>(
+        1, _omitFieldNames ? '' : 'playlistId', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetPlaylistRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetPlaylistRequest copyWith(void Function(GetPlaylistRequest) updates) =>
+      super.copyWith((message) => updates(message as GetPlaylistRequest))
+          as GetPlaylistRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetPlaylistRequest create() => GetPlaylistRequest._();
+  @$core.override
+  GetPlaylistRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetPlaylistRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetPlaylistRequest>(create);
+  static GetPlaylistRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get playlistId => $_getI64(0);
+  @$pb.TagNumber(1)
+  set playlistId($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPlaylistId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPlaylistId() => $_clearField(1);
+}
+
 class PlayerState extends $pb.GeneratedMessage {
   factory PlayerState({
     $core.String? status,

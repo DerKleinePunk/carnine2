@@ -387,6 +387,7 @@ Erledigt:
 - versioniertes SQLite-Schema fuer Quellen, Medien, Playlists und Resume-Zustand
 - Rescan liest Titel, Interpret und Dauer ueber `ffprobe` und speichert sie in SQLite
 - persistente Playlist-Eintraege und Resume-Zustand koennen gespeichert und geladen werden
+- Playlist-Erstellung, Eintraege und geordnetes Laden sind ueber MediaService-RPCs erreichbar
 - typisierte Medienmodell-IDs im Proto-Vertrag definiert
 - MediaService mit Play, Pause, Stop, Resume und Player-Status implementiert
 - Stop-Fade und graceful `SIGTERM`-Beendigung auf dem Raspberry Pi validiert

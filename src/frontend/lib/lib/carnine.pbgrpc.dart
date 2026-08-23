@@ -134,6 +134,27 @@ class MediaServiceClient extends $grpc.Client {
         options: options);
   }
 
+  $grpc.ResponseFuture<$0.Playlist> createPlaylist(
+    $0.CreatePlaylistRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$createPlaylist, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.PlaylistEntry> addPlaylistEntry(
+    $0.AddPlaylistEntryRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$addPlaylistEntry, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.Playlist> getPlaylist(
+    $0.GetPlaylistRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getPlaylist, request, options: options);
+  }
+
   $grpc.ResponseStream<$0.PlayerEvent> streamPlayerEvents(
     $0.Empty request, {
     $grpc.CallOptions? options,
@@ -176,6 +197,21 @@ class MediaServiceClient extends $grpc.Client {
           '/carnine.MediaService/RescanMedia',
           ($0.RescanMediaRequest value) => value.writeToBuffer(),
           $0.LibraryEvent.fromBuffer);
+  static final _$createPlaylist =
+      $grpc.ClientMethod<$0.CreatePlaylistRequest, $0.Playlist>(
+          '/carnine.MediaService/CreatePlaylist',
+          ($0.CreatePlaylistRequest value) => value.writeToBuffer(),
+          $0.Playlist.fromBuffer);
+  static final _$addPlaylistEntry =
+      $grpc.ClientMethod<$0.AddPlaylistEntryRequest, $0.PlaylistEntry>(
+          '/carnine.MediaService/AddPlaylistEntry',
+          ($0.AddPlaylistEntryRequest value) => value.writeToBuffer(),
+          $0.PlaylistEntry.fromBuffer);
+  static final _$getPlaylist =
+      $grpc.ClientMethod<$0.GetPlaylistRequest, $0.Playlist>(
+          '/carnine.MediaService/GetPlaylist',
+          ($0.GetPlaylistRequest value) => value.writeToBuffer(),
+          $0.Playlist.fromBuffer);
   static final _$streamPlayerEvents =
       $grpc.ClientMethod<$0.Empty, $0.PlayerEvent>(
           '/carnine.MediaService/StreamPlayerEvents',
@@ -240,6 +276,31 @@ abstract class MediaServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.RescanMediaRequest.fromBuffer(value),
         ($0.LibraryEvent value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.CreatePlaylistRequest, $0.Playlist>(
+        'CreatePlaylist',
+        createPlaylist_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.CreatePlaylistRequest.fromBuffer(value),
+        ($0.Playlist value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.AddPlaylistEntryRequest, $0.PlaylistEntry>(
+            'AddPlaylistEntry',
+            addPlaylistEntry_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.AddPlaylistEntryRequest.fromBuffer(value),
+            ($0.PlaylistEntry value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.GetPlaylistRequest, $0.Playlist>(
+        'GetPlaylist',
+        getPlaylist_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.GetPlaylistRequest.fromBuffer(value),
+        ($0.Playlist value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.Empty, $0.PlayerEvent>(
         'StreamPlayerEvents',
         streamPlayerEvents_Pre,
@@ -304,6 +365,30 @@ abstract class MediaServiceBase extends $grpc.Service {
 
   $async.Stream<$0.LibraryEvent> rescanMedia(
       $grpc.ServiceCall call, $0.RescanMediaRequest request);
+
+  $async.Future<$0.Playlist> createPlaylist_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.CreatePlaylistRequest> $request) async {
+    return createPlaylist($call, await $request);
+  }
+
+  $async.Future<$0.Playlist> createPlaylist(
+      $grpc.ServiceCall call, $0.CreatePlaylistRequest request);
+
+  $async.Future<$0.PlaylistEntry> addPlaylistEntry_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.AddPlaylistEntryRequest> $request) async {
+    return addPlaylistEntry($call, await $request);
+  }
+
+  $async.Future<$0.PlaylistEntry> addPlaylistEntry(
+      $grpc.ServiceCall call, $0.AddPlaylistEntryRequest request);
+
+  $async.Future<$0.Playlist> getPlaylist_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.GetPlaylistRequest> $request) async {
+    return getPlaylist($call, await $request);
+  }
+
+  $async.Future<$0.Playlist> getPlaylist(
+      $grpc.ServiceCall call, $0.GetPlaylistRequest request);
 
   $async.Stream<$0.PlayerEvent> streamPlayerEvents_Pre(
       $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async* {

@@ -190,6 +190,14 @@ impl Database {
         Ok(self.connection.last_insert_rowid())
     }
 
+    pub fn playlist_name(&self, playlist_id: i64) -> Result<String> {
+        Ok(self.connection.query_row(
+            "SELECT name FROM playlists WHERE id = ?1",
+            [playlist_id],
+            |row| row.get(0),
+        )?)
+    }
+
     pub fn add_playlist_entry(&self, playlist_id: i64, media_id: i64) -> Result<i64> {
         let position: i64 = self.connection.query_row(
             "SELECT COALESCE(MAX(position), -1) + 1
