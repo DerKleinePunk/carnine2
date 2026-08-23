@@ -43,6 +43,42 @@ pub struct LoggingConfig {
 }
 
 impl Config {
+    pub fn validate(&self) -> Result<()> {
+        self.server
+            .address
+            .parse::<std::net::SocketAddr>()
+            .with_context(|| format!("invalid server address {}", self.server.address))?;
+        if self.media.database_path.as_os_str().is_empty()
+            || self
+                .media
+                .folders
+                .iter()
+                .any(|path| path.as_os_str().is_empty())
+            || self.logging.directory.as_os_str().is_empty()
+        {
+            anyhow::bail!("configuration contains an empty path");
+        }
+        if !matches!(self.audio.backend.as_str(), "alsa" | "pulse") {
+            anyhow::bail!("unsupported audio backend: {}", self.audio.backend);
+        }
+        if self.audio.device.trim().is_empty() {
+            anyhow::bail!("audio device must not be empty");
+        }
+        if !(8_000..=192_000).contains(&self.audio.sample_rate) {
+            anyhow::bail!("audio sample rate must be between 8000 and 192000 Hz");
+        }
+        if !(1..=8).contains(&self.audio.channels) {
+            anyhow::bail!("audio channels must be between 1 and 8");
+        }
+        if !matches!(
+            self.logging.level.trim().to_ascii_lowercase().as_str(),
+            "trace" | "debug" | "info" | "warn" | "error"
+        ) {
+            anyhow::bail!("invalid log level: {}", self.logging.level);
+        }
+        Ok(())
+    }
+
     pub fn load() -> Result<(Self, PathBuf)> {
         let path = env::var_os("CARNINE_CONFIG")
             .map(PathBuf::from)
@@ -58,6 +94,7 @@ impl Config {
         if let Some(log_directory) = env::var_os("CARNINE_LOG_DIRECTORY") {
             config.logging.directory = PathBuf::from(log_directory);
         }
+        config.validate()?;
         Ok((config, path))
     }
 }
@@ -72,5 +109,29 @@ mod tests {
         assert!(path.ends_with("resources/config/carnine.yaml"));
         assert_eq!(config.server.address, "[::1]:50051");
         assert_eq!(config.audio.device, "plughw:1,0");
+    }
+
+    #[test]
+    fn rejects_invalid_runtime_values() {
+        let (mut config, _) = Config::load().expect("repository config should load");
+
+        config.server.address = "not-an-address".to_string();
+        assert!(config.validate().is_err());
+
+        let (mut config, _) = Config::load().expect("repository config should load");
+        config.audio.backend = "jack".to_string();
+        assert!(config.validate().is_err());
+
+        let (mut config, _) = Config::load().expect("repository config should load");
+        config.audio.sample_rate = 7_999;
+        assert!(config.validate().is_err());
+
+        let (mut config, _) = Config::load().expect("repository config should load");
+        config.audio.channels = 0;
+        assert!(config.validate().is_err());
+
+        let (mut config, _) = Config::load().expect("repository config should load");
+        config.logging.level = "not a filter".to_string();
+        assert!(config.validate().is_err());
     }
 }

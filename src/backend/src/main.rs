@@ -255,7 +255,7 @@ fn configuration_from_proto(configuration: &Configuration) -> Result<config::Con
 
     let channels = u16::try_from(configuration.channels)
         .context("audio channels exceed the supported range")?;
-    Ok(config::Config {
+    let configuration = config::Config {
         server: config::ServerConfig {
             address: configuration.server_address.clone(),
         },
@@ -281,7 +281,9 @@ fn configuration_from_proto(configuration: &Configuration) -> Result<config::Con
             directory: PathBuf::from(&configuration.log_directory),
             level: configuration.log_level.clone(),
         },
-    })
+    };
+    configuration.validate()?;
+    Ok(configuration)
 }
 
 #[tokio::main]
