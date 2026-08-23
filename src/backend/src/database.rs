@@ -29,6 +29,14 @@ pub struct PlaylistEntry {
     pub position: i64,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct ResumeState {
+    pub playlist_id: Option<i64>,
+    pub playlist_entry_id: Option<i64>,
+    pub position_ms: i64,
+    pub resume_mode: String,
+}
+
 #[derive(Debug, Default, serde::Deserialize)]
 struct ProbeFormat {
     duration: Option<String>,
@@ -213,6 +221,43 @@ impl Database {
         Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
     }
 
+    pub fn save_resume_state(&self, state: &ResumeState) -> Result<()> {
+        self.connection.execute(
+            "INSERT INTO resume_state
+                (id, playlist_id, playlist_entry_id, position_ms, resume_mode)
+             VALUES (1, ?1, ?2, ?3, ?4)
+             ON CONFLICT(id) DO UPDATE SET
+                playlist_id = excluded.playlist_id,
+                playlist_entry_id = excluded.playlist_entry_id,
+                position_ms = excluded.position_ms,
+                resume_mode = excluded.resume_mode",
+            params![
+                state.playlist_id,
+                state.playlist_entry_id,
+                state.position_ms,
+                state.resume_mode
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_resume_state(&self) -> Result<Option<ResumeState>> {
+        let mut statement = self.connection.prepare(
+            "SELECT playlist_id, playlist_entry_id, position_ms, resume_mode
+             FROM resume_state WHERE id = 1",
+        )?;
+        let mut rows = statement.query([])?;
+        let Some(row) = rows.next()? else {
+            return Ok(None);
+        };
+        Ok(Some(ResumeState {
+            playlist_id: row.get(0)?,
+            playlist_entry_id: row.get(1)?,
+            position_ms: row.get(2)?,
+            resume_mode: row.get(3)?,
+        }))
+    }
+
     pub fn rescan_folder(&self, folder: &Path, supported_formats: &[String]) -> Result<usize> {
         let source_uri = folder.to_string_lossy().into_owned();
         let source_id = self.upsert_source(&source_uri, "AVAILABLE")?;
@@ -325,7 +370,7 @@ fn collect_audio_files(
 
 #[cfg(test)]
 mod tests {
-    use super::{read_audio_metadata, Database, MediaRecord, CURRENT_SCHEMA_VERSION};
+    use super::{read_audio_metadata, Database, MediaRecord, ResumeState, CURRENT_SCHEMA_VERSION};
 
     #[test]
     fn creates_current_schema_and_is_idempotent() {
@@ -459,6 +504,50 @@ mod tests {
         assert_eq!(entries[0].media_id, entries[1].media_id);
         assert_eq!(entries[0].position, 0);
         assert_eq!(entries[1].position, 1);
+    }
+
+    #[test]
+    fn saves_and_loads_resume_state() {
+        let database = Database::open(":memory:").expect("database should open");
+        assert!(database
+            .load_resume_state()
+            .expect("resume state should load")
+            .is_none());
+        let source_id = database
+            .upsert_source("/music", "AVAILABLE")
+            .expect("source should be stored");
+        let media_id = database
+            .upsert_media(&MediaRecord {
+                id: 0,
+                source_id,
+                path: "/music/song.mp3".to_string(),
+                title: "Song".to_string(),
+                artist: "Artist".to_string(),
+                duration_ms: 1000,
+                status: "AVAILABLE".to_string(),
+            })
+            .expect("media should be stored");
+        let playlist_id = database
+            .create_playlist("Resume")
+            .expect("playlist should be created");
+        let playlist_entry_id = database
+            .add_playlist_entry(playlist_id, media_id)
+            .expect("playlist entry should be added");
+        let state = ResumeState {
+            playlist_id: Some(playlist_id),
+            playlist_entry_id: Some(playlist_entry_id),
+            position_ms: 12_345,
+            resume_mode: "restore_paused".to_string(),
+        };
+        database
+            .save_resume_state(&state)
+            .expect("resume state should save");
+        assert_eq!(
+            database
+                .load_resume_state()
+                .expect("resume state should load"),
+            Some(state)
+        );
     }
 
     #[test]
