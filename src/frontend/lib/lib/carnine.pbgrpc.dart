@@ -118,6 +118,13 @@ class MediaServiceClient extends $grpc.Client {
     return $createUnaryCall(_$getPlayerState, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.SearchMediaResponse> searchMedia(
+    $0.SearchMediaRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$searchMedia, request, options: options);
+  }
+
   $grpc.ResponseStream<$0.PlayerEvent> streamPlayerEvents(
     $0.Empty request, {
     $grpc.CallOptions? options,
@@ -150,6 +157,11 @@ class MediaServiceClient extends $grpc.Client {
       '/carnine.MediaService/GetPlayerState',
       ($0.Empty value) => value.writeToBuffer(),
       $0.PlayerState.fromBuffer);
+  static final _$searchMedia =
+      $grpc.ClientMethod<$0.SearchMediaRequest, $0.SearchMediaResponse>(
+          '/carnine.MediaService/SearchMedia',
+          ($0.SearchMediaRequest value) => value.writeToBuffer(),
+          $0.SearchMediaResponse.fromBuffer);
   static final _$streamPlayerEvents =
       $grpc.ClientMethod<$0.Empty, $0.PlayerEvent>(
           '/carnine.MediaService/StreamPlayerEvents',
@@ -197,6 +209,15 @@ abstract class MediaServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($0.PlayerState value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.SearchMediaRequest, $0.SearchMediaResponse>(
+            'SearchMedia',
+            searchMedia_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.SearchMediaRequest.fromBuffer(value),
+            ($0.SearchMediaResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.Empty, $0.PlayerEvent>(
         'StreamPlayerEvents',
         streamPlayerEvents_Pre,
@@ -245,6 +266,14 @@ abstract class MediaServiceBase extends $grpc.Service {
 
   $async.Future<$0.PlayerState> getPlayerState(
       $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.SearchMediaResponse> searchMedia_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.SearchMediaRequest> $request) async {
+    return searchMedia($call, await $request);
+  }
+
+  $async.Future<$0.SearchMediaResponse> searchMedia(
+      $grpc.ServiceCall call, $0.SearchMediaRequest request);
 
   $async.Stream<$0.PlayerEvent> streamPlayerEvents_Pre(
       $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async* {

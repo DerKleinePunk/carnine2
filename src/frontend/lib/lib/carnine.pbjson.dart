@@ -172,6 +172,59 @@ const PlayRequest$json = {
 final $typed_data.Uint8List playRequestDescriptor = $convert.base64Decode(
     'CgtQbGF5UmVxdWVzdBIdCgptZWRpYV9wYXRoGAEgASgJUgltZWRpYVBhdGg=');
 
+@$core.Deprecated('Use searchMediaRequestDescriptor instead')
+const SearchMediaRequest$json = {
+  '1': 'SearchMediaRequest',
+  '2': [
+    {'1': 'query', '3': 1, '4': 1, '5': 9, '10': 'query'},
+  ],
+};
+
+/// Descriptor for `SearchMediaRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List searchMediaRequestDescriptor = $convert
+    .base64Decode('ChJTZWFyY2hNZWRpYVJlcXVlc3QSFAoFcXVlcnkYASABKAlSBXF1ZXJ5');
+
+@$core.Deprecated('Use searchMediaResponseDescriptor instead')
+const SearchMediaResponse$json = {
+  '1': 'SearchMediaResponse',
+  '2': [
+    {
+      '1': 'items',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.carnine.MediaItem',
+      '10': 'items'
+    },
+  ],
+};
+
+/// Descriptor for `SearchMediaResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List searchMediaResponseDescriptor = $convert.base64Decode(
+    'ChNTZWFyY2hNZWRpYVJlc3BvbnNlEigKBWl0ZW1zGAEgAygLMhIuY2FybmluZS5NZWRpYUl0ZW'
+    '1SBWl0ZW1z');
+
+@$core.Deprecated('Use mediaItemDescriptor instead')
+const MediaItem$json = {
+  '1': 'MediaItem',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 4, '10': 'id'},
+    {'1': 'source_id', '3': 2, '4': 1, '5': 4, '10': 'sourceId'},
+    {'1': 'path', '3': 3, '4': 1, '5': 9, '10': 'path'},
+    {'1': 'title', '3': 4, '4': 1, '5': 9, '10': 'title'},
+    {'1': 'artist', '3': 5, '4': 1, '5': 9, '10': 'artist'},
+    {'1': 'duration_ms', '3': 6, '4': 1, '5': 3, '10': 'durationMs'},
+    {'1': 'status', '3': 7, '4': 1, '5': 9, '10': 'status'},
+  ],
+};
+
+/// Descriptor for `MediaItem`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List mediaItemDescriptor = $convert.base64Decode(
+    'CglNZWRpYUl0ZW0SDgoCaWQYASABKARSAmlkEhsKCXNvdXJjZV9pZBgCIAEoBFIIc291cmNlSW'
+    'QSEgoEcGF0aBgDIAEoCVIEcGF0aBIUCgV0aXRsZRgEIAEoCVIFdGl0bGUSFgoGYXJ0aXN0GAUg'
+    'ASgJUgZhcnRpc3QSHwoLZHVyYXRpb25fbXMYBiABKANSCmR1cmF0aW9uTXMSFgoGc3RhdHVzGA'
+    'cgASgJUgZzdGF0dXM=');
+
 @$core.Deprecated('Use playerStateDescriptor instead')
 const PlayerState$json = {
   '1': 'PlayerState',

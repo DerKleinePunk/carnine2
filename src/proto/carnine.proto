@@ -12,6 +12,7 @@ service MediaService {
   rpc Pause (Empty) returns (CommandResponse);
   rpc Stop (Empty) returns (CommandResponse);
   rpc GetPlayerState (Empty) returns (PlayerState);
+  rpc SearchMedia (SearchMediaRequest) returns (SearchMediaResponse);
   rpc StreamPlayerEvents (Empty) returns (stream PlayerEvent);
 }
 
@@ -74,6 +75,24 @@ message ScanId {
 
 message PlayRequest {
   string media_path = 1;
+}
+
+message SearchMediaRequest {
+  string query = 1;
+}
+
+message SearchMediaResponse {
+  repeated MediaItem items = 1;
+}
+
+message MediaItem {
+  uint64 id = 1;
+  uint64 source_id = 2;
+  string path = 3;
+  string title = 4;
+  string artist = 5;
+  int64 duration_ms = 6;
+  string status = 7;
 }
 
 message PlayerState {

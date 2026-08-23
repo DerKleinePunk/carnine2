@@ -22,8 +22,8 @@ use carnine::{
     config_service_server::{ConfigService, ConfigServiceServer},
     media_service_server::{MediaService, MediaServiceServer},
     AudioEvent, CanData, CanDataRequest, CanDataResponse, CommandResponse, Configuration,
-    ConfigurationResponse, Empty, PlayRequest, PlayerEvent, PlayerState, ServiceVersion,
-    UpdateConfigurationRequest,
+    ConfigurationResponse, Empty, PlayRequest, PlayerEvent, PlayerState, SearchMediaRequest,
+    SearchMediaResponse, ServiceVersion, UpdateConfigurationRequest,
 };
 
 use media_player::MediaPlayer;
@@ -33,6 +33,7 @@ pub struct CarnineServiceImpl;
 
 pub struct MediaServiceImpl {
     player: Arc<MediaPlayer>,
+    database_path: PathBuf,
 }
 
 pub struct ConfigServiceImpl {
@@ -58,9 +59,10 @@ impl ConfigServiceImpl {
 }
 
 impl MediaServiceImpl {
-    fn new(audio_config: &config::AudioConfig) -> Self {
+    fn new(audio_config: &config::AudioConfig, database_path: PathBuf) -> Self {
         Self {
             player: Arc::new(MediaPlayer::from_audio_config(audio_config)),
+            database_path,
         }
     }
 }
@@ -169,6 +171,29 @@ impl MediaService for MediaServiceImpl {
             position_ms: 0,
             duration_ms: 0,
         }))
+    }
+
+    async fn search_media(
+        &self,
+        request: Request<SearchMediaRequest>,
+    ) -> Result<Response<SearchMediaResponse>, Status> {
+        let database = database::Database::open(&self.database_path)
+            .map_err(|error| Status::internal(error.to_string()))?;
+        let items = database
+            .search_media(&request.into_inner().query)
+            .map_err(|error| Status::internal(error.to_string()))?
+            .into_iter()
+            .map(|media| carnine::MediaItem {
+                id: media.id as u64,
+                source_id: media.source_id as u64,
+                path: media.path,
+                title: media.title,
+                artist: media.artist,
+                duration_ms: media.duration_ms,
+                status: media.status,
+            })
+            .collect();
+        Ok(Response::new(SearchMediaResponse { items }))
     }
 
     async fn stream_player_events(
@@ -325,7 +350,10 @@ async fn main() -> Result<()> {
     let _database = database::Database::open(&configuration.media.database_path)?;
     let addr = configuration.server.address.parse()?;
     let carnine_service = CarnineServiceImpl::default();
-    let media_service = MediaServiceImpl::new(&configuration.audio);
+    let media_service = MediaServiceImpl::new(
+        &configuration.audio,
+        configuration.media.database_path.clone(),
+    );
     let media_player = Arc::clone(&media_service.player);
     let config_service = ConfigServiceImpl::new(configuration.clone(), configuration_path);
 

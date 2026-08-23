@@ -703,6 +703,237 @@ class PlayRequest extends $pb.GeneratedMessage {
   void clearMediaPath() => $_clearField(1);
 }
 
+class SearchMediaRequest extends $pb.GeneratedMessage {
+  factory SearchMediaRequest({
+    $core.String? query,
+  }) {
+    final result = create();
+    if (query != null) result.query = query;
+    return result;
+  }
+
+  SearchMediaRequest._();
+
+  factory SearchMediaRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SearchMediaRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SearchMediaRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'query')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SearchMediaRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SearchMediaRequest copyWith(void Function(SearchMediaRequest) updates) =>
+      super.copyWith((message) => updates(message as SearchMediaRequest))
+          as SearchMediaRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SearchMediaRequest create() => SearchMediaRequest._();
+  @$core.override
+  SearchMediaRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SearchMediaRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SearchMediaRequest>(create);
+  static SearchMediaRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get query => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set query($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasQuery() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearQuery() => $_clearField(1);
+}
+
+class SearchMediaResponse extends $pb.GeneratedMessage {
+  factory SearchMediaResponse({
+    $core.Iterable<MediaItem>? items,
+  }) {
+    final result = create();
+    if (items != null) result.items.addAll(items);
+    return result;
+  }
+
+  SearchMediaResponse._();
+
+  factory SearchMediaResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SearchMediaResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SearchMediaResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..pPM<MediaItem>(1, _omitFieldNames ? '' : 'items',
+        subBuilder: MediaItem.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SearchMediaResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SearchMediaResponse copyWith(void Function(SearchMediaResponse) updates) =>
+      super.copyWith((message) => updates(message as SearchMediaResponse))
+          as SearchMediaResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SearchMediaResponse create() => SearchMediaResponse._();
+  @$core.override
+  SearchMediaResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SearchMediaResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SearchMediaResponse>(create);
+  static SearchMediaResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<MediaItem> get items => $_getList(0);
+}
+
+class MediaItem extends $pb.GeneratedMessage {
+  factory MediaItem({
+    $fixnum.Int64? id,
+    $fixnum.Int64? sourceId,
+    $core.String? path,
+    $core.String? title,
+    $core.String? artist,
+    $fixnum.Int64? durationMs,
+    $core.String? status,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (sourceId != null) result.sourceId = sourceId;
+    if (path != null) result.path = path;
+    if (title != null) result.title = title;
+    if (artist != null) result.artist = artist;
+    if (durationMs != null) result.durationMs = durationMs;
+    if (status != null) result.status = status;
+    return result;
+  }
+
+  MediaItem._();
+
+  factory MediaItem.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory MediaItem.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'MediaItem',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..a<$fixnum.Int64>(1, _omitFieldNames ? '' : 'id', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(
+        2, _omitFieldNames ? '' : 'sourceId', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOS(3, _omitFieldNames ? '' : 'path')
+    ..aOS(4, _omitFieldNames ? '' : 'title')
+    ..aOS(5, _omitFieldNames ? '' : 'artist')
+    ..aInt64(6, _omitFieldNames ? '' : 'durationMs')
+    ..aOS(7, _omitFieldNames ? '' : 'status')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  MediaItem clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  MediaItem copyWith(void Function(MediaItem) updates) =>
+      super.copyWith((message) => updates(message as MediaItem)) as MediaItem;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static MediaItem create() => MediaItem._();
+  @$core.override
+  MediaItem createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static MediaItem getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MediaItem>(create);
+  static MediaItem? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get id => $_getI64(0);
+  @$pb.TagNumber(1)
+  set id($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get sourceId => $_getI64(1);
+  @$pb.TagNumber(2)
+  set sourceId($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasSourceId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSourceId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get path => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set path($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasPath() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearPath() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get title => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set title($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasTitle() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearTitle() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get artist => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set artist($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasArtist() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearArtist() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get durationMs => $_getI64(5);
+  @$pb.TagNumber(6)
+  set durationMs($fixnum.Int64 value) => $_setInt64(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasDurationMs() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearDurationMs() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get status => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set status($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasStatus() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearStatus() => $_clearField(7);
+}
+
 class PlayerState extends $pb.GeneratedMessage {
   factory PlayerState({
     $core.String? status,
