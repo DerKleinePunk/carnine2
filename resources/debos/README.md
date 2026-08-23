@@ -13,3 +13,10 @@ wget https://github.com/podman-container-tools/podman/releases/download/v6.0.2/p
 
 
 podman run --rm -it --device /dev/kvm --mount "type=bind,source=$(pwd),destination=/work" --workdir /work --security-opt label=disable godebos/debos raspbian.yaml
+
+WSL Share teilen
+
+wichtig der mount point muss unter /mnt/wsl liegen da das geteilt wird zwischen alle wsl instancen und machinen
+
+https://wsl-ui.octasoft.co.uk/blog/podman-desktop-with-remote-client-in-wsl
+https://gist.github.com/omarmciver/0c85f5a68448aa6c94fee381e5fdbe9b

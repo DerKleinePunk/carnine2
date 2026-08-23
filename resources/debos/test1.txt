@@ -1,0 +1,38 @@
+cd /mnt/d/Projects/Privat/carnine2
+
+ffmpeg -hide_banner -loglevel warning \
+  -re \
+  -i 'resources/musik/1-Here We Go Now (Single Edit).mp3' \
+  -t 60 \
+  -vn \
+  -f pulse \
+  default
+  
+  cd /mnt/d/Projects/Privat/carnine2/src/backend
+
+cargo run --example external_ffmpeg_spike -- \
+  '../../resources/musik/1-Here We Go Now (Single Edit).mp3'
+  
+  cd /mnt/d/Projects/Privat/carnine2/src/backend
+cargo check
+
+sudo systemctl stop systemd-timesyncd
+
+lsblk
+sudo blkid
+
+Write-Output "\\.\PhysicalDrive$((Mount-VHD -Path D:\Hyper-V\share\code-ext4.vhdx -PassThru | Get-Disk).Number)"
+wsl --mount \\.\PhysicalDrive2 --name code
+wsl --mount --vhd "D:\Hyper-V\share\code-ext4.vhdx" --name code --type ext4
+wsl --mount --vhd "D:\Hyper-V\share\code-ext4.vhdx" --bare
+
+sudo mkdir /mnt/wsl/code
+sudo mount UUID="9fc53dee-b2df-4d93-8cb6-1c9ce509cdcd" /mnt/wsl/code
+sudo umount UUID="9fc53dee-b2df-4d93-8cb6-1c9ce509cdcd"
+alias podman='podman-remote-static-linux_amd64'
+
+echo 'UUID=9fc53dee-b2df-4d93-8cb6-1c9ce509cdcd /mnt/wsl/code ext4 nofail,x-systemd.automount 0 2' | sudo tee -a /etc/fstab
+
+
+echo "alias podman='podman-remote-static-linux_amd64'" >> ~/.bashrc
+source ~/.bashrc
