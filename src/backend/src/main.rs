@@ -9,6 +9,7 @@ pub mod carnine {
 }
 
 mod audio_engine;
+mod config;
 mod media_player;
 
 use carnine::{
@@ -24,9 +25,16 @@ use media_player::MediaPlayer;
 #[derive(Debug, Default)]
 pub struct CarnineServiceImpl;
 
-#[derive(Default)]
 pub struct MediaServiceImpl {
     player: MediaPlayer,
+}
+
+impl MediaServiceImpl {
+    fn new(audio_config: &config::AudioConfig) -> Self {
+        Self {
+            player: MediaPlayer::from_audio_config(audio_config),
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -146,8 +154,9 @@ impl AudioService for AudioServiceImpl {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    std::fs::create_dir_all("logs")?;
-    let file_appender = rolling::never("logs", "backend.log");
+    let (configuration, configuration_path) = config::Config::load()?;
+    std::fs::create_dir_all(&configuration.logging.directory)?;
+    let file_appender = rolling::never(&configuration.logging.directory, "backend.log");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
 
     let console_layer = tracing_subscriber::fmt::layer()
@@ -163,20 +172,27 @@ async fn main() -> Result<()> {
         .compact();
 
     tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::new("info"))
+        .with(tracing_subscriber::EnvFilter::new(
+            &configuration.logging.level,
+        ))
         .with(console_layer)
         .with(file_layer)
         .init();
 
-    info!("carnine backend bootstrap started");
+    info!(
+        "carnine backend bootstrap started; config={}",
+        configuration_path.display()
+    );
 
-    let addr = "[::1]:50051".parse()?; // Use TCP for testing with Flutter
+    let addr = configuration.server.address.parse()?;
     let carnine_service = CarnineServiceImpl::default();
 
     info!("Starting gRPC server on {}", addr);
     Server::builder()
         .add_service(CarnineServiceServer::new(carnine_service))
-        .add_service(MediaServiceServer::new(MediaServiceImpl::default()))
+        .add_service(MediaServiceServer::new(MediaServiceImpl::new(
+            &configuration.audio,
+        )))
         .add_service(AudioServiceServer::new(AudioServiceImpl::default()))
         .serve(addr)
         .await?;

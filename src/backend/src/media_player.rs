@@ -4,6 +4,7 @@ use std::sync::Mutex;
 use anyhow::{bail, Context, Result};
 
 use crate::audio_engine::{self, AudioEngine, Playback};
+use crate::config::AudioConfig;
 
 #[derive(Debug, Clone, Copy, Default)]
 enum PlaybackState {
@@ -21,6 +22,13 @@ pub struct MediaPlayer {
 }
 
 impl MediaPlayer {
+    pub fn from_audio_config(config: &AudioConfig) -> Self {
+        Self {
+            engine: audio_engine::ExternalProcessAudioEngine::from_config(config),
+            ..Self::default()
+        }
+    }
+
     pub fn execute(&self, command: &str, parameters: &str) -> Result<String> {
         match command.trim().to_ascii_lowercase().as_str() {
             "play" | "resume" => self.play(parameters),

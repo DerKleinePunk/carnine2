@@ -1,12 +1,11 @@
-use std::env;
 use std::io::{Read, Write};
 use std::process::{Child, Command, Stdio};
 use std::thread::{self, JoinHandle};
 
 use anyhow::{bail, Context, Result};
 
-const SAMPLE_RATE: &str = "44100";
-const CHANNELS: &str = "2";
+use crate::config::AudioConfig;
+
 const SAMPLE_FORMAT: &str = "s16le";
 
 pub trait AudioEngine: Send + Sync {
@@ -19,12 +18,39 @@ pub trait Playback: Send {
     fn stop(self: Box<Self>) -> Result<()>;
 }
 
-#[derive(Debug, Default)]
-pub struct ExternalProcessAudioEngine;
+#[derive(Debug, Clone)]
+pub struct ExternalProcessAudioEngine {
+    backend: String,
+    device: String,
+    sample_rate: String,
+    channels: String,
+}
+
+impl Default for ExternalProcessAudioEngine {
+    fn default() -> Self {
+        Self {
+            backend: "pulse".to_string(),
+            device: "default".to_string(),
+            sample_rate: "44100".to_string(),
+            channels: "2".to_string(),
+        }
+    }
+}
+
+impl ExternalProcessAudioEngine {
+    pub fn from_config(config: &AudioConfig) -> Self {
+        Self {
+            backend: config.backend.clone(),
+            device: config.device.clone(),
+            sample_rate: config.sample_rate.to_string(),
+            channels: config.channels.to_string(),
+        }
+    }
+}
 
 impl AudioEngine for ExternalProcessAudioEngine {
     fn start(&self, input_path: &str) -> Result<Box<dyn Playback>> {
-        Ok(Box::new(ProcessPlayback::start(input_path)?))
+        Ok(Box::new(ProcessPlayback::start(input_path, self)?))
     }
 }
 
@@ -36,8 +62,8 @@ struct ProcessPlayback {
 }
 
 impl ProcessPlayback {
-    fn start(input_path: &str) -> Result<Self> {
-        let mut audio_output = start_audio_output()?;
+    fn start(input_path: &str, engine: &ExternalProcessAudioEngine) -> Result<Self> {
+        let mut audio_output = start_audio_output(engine)?;
         let mut decoder = Command::new("ffmpeg")
             .args([
                 "-hide_banner",
@@ -50,9 +76,9 @@ impl ProcessPlayback {
                 "-f",
                 SAMPLE_FORMAT,
                 "-ar",
-                SAMPLE_RATE,
+                &engine.sample_rate,
                 "-ac",
-                CHANNELS,
+                &engine.channels,
                 "pipe:1",
             ])
             .stdout(Stdio::piped())
@@ -131,10 +157,10 @@ impl Drop for ProcessPlayback {
     }
 }
 
-fn start_audio_output() -> Result<Child> {
-    let backend = env::var("CARNINE_AUDIO_BACKEND").unwrap_or_else(|_| "pulse".to_string());
+fn start_audio_output(engine: &ExternalProcessAudioEngine) -> Result<Child> {
+    let backend = &engine.backend;
     let mut command = if backend == "alsa" {
-        let device = env::var("CARNINE_ALSA_DEVICE").unwrap_or_else(|_| "default".to_string());
+        let device = &engine.device;
         let mut command = Command::new("aplay");
         command.args([
             "-q",
@@ -143,9 +169,9 @@ fn start_audio_output() -> Result<Child> {
             "-f",
             "S16_LE",
             "-r",
-            SAMPLE_RATE,
+            &engine.sample_rate,
             "-c",
-            CHANNELS,
+            &engine.channels,
         ]);
         command
     } else {
@@ -154,8 +180,8 @@ fn start_audio_output() -> Result<Child> {
             "--client-name=carnine-backend",
             "--stream-name=carnine-media",
             "--raw",
-            &format!("--rate={SAMPLE_RATE}"),
-            &format!("--channels={CHANNELS}"),
+            &format!("--rate={}", engine.sample_rate),
+            &format!("--channels={}", engine.channels),
             &format!("--format={SAMPLE_FORMAT}"),
         ]);
         command
