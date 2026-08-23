@@ -343,11 +343,25 @@ Bekannte Metadaten:
 5. Decoder-Entscheidung und Debian-Paketierung dokumentieren.
 6. Proto-Vertrag in `src/proto/carnine.proto` entwerfen und bestaetigen.
 7. Rust- und Dart-Stubs neu generieren.
-8. MediaService und AudioService mit Mock-Audio-Engine implementieren.
-9. SQLite-Schema und Migrationen implementieren.
-10. Media-Rescan, Suche, Playlist, Queue und Resume integrieren.
-11. Echten Decoder- und Audioausgabe-Adapter anschliessen.
-12. Debian-/Debos-Integration und anschliessend Raspberry-Pi-Test durchfuehren.
+8. AudioEngine-Abstraktion und austauschbaren Audioausgabe-Adapter implementieren.
+9. MediaService mit Player-Steuerung und Player-Zustand implementieren.
+10. AudioService mit Mock-Audio-Manager und Ereignisstream implementieren.
+11. SQLite-Schema und Migrationen implementieren.
+12. Media-Rescan, Suche, Playlist, Queue und Resume integrieren.
+13. Debian-/Debos-Integration und anschliessend Raspberry-Pi-Test durchfuehren.
+
+### Aktueller Arbeitsabschnitt
+
+Der Backend-Fokus fuer den aktuellen Arbeitsabschnitt ist die MediaService-
+Vertikalscheibe ohne Flutter:
+
+- `AudioEngine` bleibt die technische Austauschgrenze.
+- `MediaPlayer` kapselt Player-Befehle und Zustand.
+- `MediaService` stellt Version, Play, Pause, Stop und Player-Zustand ueber
+  typisierte gRPC-RPCs bereit.
+- Tests verwenden zunaechst den Rust-Service und den Pi als Zielsystem.
+- Flutter-Stubs und Flutter-UI werden erst nach Abschluss des Backend-Vertrags
+  und der Backend-Tests angepasst.
 
 ## Aktueller Stand
 

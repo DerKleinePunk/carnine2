@@ -40,16 +40,34 @@ impl ProcessPlayback {
         let mut audio_output = start_audio_output()?;
         let mut decoder = Command::new("ffmpeg")
             .args([
-                "-hide_banner", "-loglevel", "error", "-nostdin", "-i", input_path,
-                "-vn", "-f", SAMPLE_FORMAT, "-ar", SAMPLE_RATE, "-ac", CHANNELS, "pipe:1",
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-nostdin",
+                "-i",
+                input_path,
+                "-vn",
+                "-f",
+                SAMPLE_FORMAT,
+                "-ar",
+                SAMPLE_RATE,
+                "-ac",
+                CHANNELS,
+                "pipe:1",
             ])
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
             .spawn()
             .with_context(|| format!("failed to start ffmpeg for {input_path}"))?;
 
-        let mut decoded_pcm = decoder.stdout.take().context("ffmpeg stdout was not piped")?;
-        let mut playback_input = audio_output.stdin.take().context("audio input was not piped")?;
+        let mut decoded_pcm = decoder
+            .stdout
+            .take()
+            .context("ffmpeg stdout was not piped")?;
+        let mut playback_input = audio_output
+            .stdin
+            .take()
+            .context("audio input was not piped")?;
         let copy_thread = thread::spawn(move || -> Result<u64> {
             let mut buffer = [0_u8; 64 * 1024];
             let mut pcm_bytes = 0_u64;
@@ -64,11 +82,18 @@ impl ProcessPlayback {
             Ok(pcm_bytes)
         });
 
-        Ok(Self { decoder, audio_output, copy_thread: Some(copy_thread) })
+        Ok(Self {
+            decoder,
+            audio_output,
+            copy_thread: Some(copy_thread),
+        })
     }
 
     fn signal(&self, signal: &str) -> Result<()> {
-        for (name, process_id) in [("decoder", self.decoder.id()), ("audio output", self.audio_output.id())] {
+        for (name, process_id) in [
+            ("decoder", self.decoder.id()),
+            ("audio output", self.audio_output.id()),
+        ] {
             let status = Command::new("kill")
                 .args([format!("-{signal}"), process_id.to_string()])
                 .status()
@@ -82,8 +107,12 @@ impl ProcessPlayback {
 }
 
 impl Playback for ProcessPlayback {
-    fn pause(&self) -> Result<()> { self.signal("STOP") }
-    fn resume(&self) -> Result<()> { self.signal("CONT") }
+    fn pause(&self) -> Result<()> {
+        self.signal("STOP")
+    }
+    fn resume(&self) -> Result<()> {
+        self.signal("CONT")
+    }
 
     fn stop(mut self: Box<Self>) -> Result<()> {
         let _ = self.signal("TERM");
@@ -97,7 +126,9 @@ impl Playback for ProcessPlayback {
 }
 
 impl Drop for ProcessPlayback {
-    fn drop(&mut self) { let _ = self.signal("TERM"); }
+    fn drop(&mut self) {
+        let _ = self.signal("TERM");
+    }
 }
 
 fn start_audio_output() -> Result<Child> {
@@ -105,16 +136,32 @@ fn start_audio_output() -> Result<Child> {
     let mut command = if backend == "alsa" {
         let device = env::var("CARNINE_ALSA_DEVICE").unwrap_or_else(|_| "default".to_string());
         let mut command = Command::new("aplay");
-        command.args(["-q", "-D", &device, "-f", "S16_LE", "-r", SAMPLE_RATE, "-c", CHANNELS]);
+        command.args([
+            "-q",
+            "-D",
+            &device,
+            "-f",
+            "S16_LE",
+            "-r",
+            SAMPLE_RATE,
+            "-c",
+            CHANNELS,
+        ]);
         command
     } else {
         let mut command = Command::new("paplay");
         command.args([
-            "--client-name=carnine-backend", "--stream-name=carnine-media", "--raw",
-            &format!("--rate={SAMPLE_RATE}"), &format!("--channels={CHANNELS}"),
+            "--client-name=carnine-backend",
+            "--stream-name=carnine-media",
+            "--raw",
+            &format!("--rate={SAMPLE_RATE}"),
+            &format!("--channels={CHANNELS}"),
             &format!("--format={SAMPLE_FORMAT}"),
         ]);
         command
     };
-    command.stdin(Stdio::piped()).spawn().with_context(|| format!("failed to start audio backend: {backend}"))
+    command
+        .stdin(Stdio::piped())
+        .spawn()
+        .with_context(|| format!("failed to start audio backend: {backend}"))
 }

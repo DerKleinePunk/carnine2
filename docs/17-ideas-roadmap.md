@@ -22,7 +22,7 @@
 	- [ ] Compare external FFmpeg process with direct library integration
 	- [ ] Verify audible output and target audio device on Raspberry Pi
 	- [ ] Document the selected audio stack for the Debian image
-- [ ] Document and approve the first `MediaService` and `AudioService` protobuf contract
+- [x] Document and approve the first `MediaService` and `AudioService` protobuf contract
 - [ ] Define typed `ConfigService` RPCs for reading and updating runtime configuration
 - [ ] Define media, playlist-entry, queue-entry, source, scan, and service-version identifiers
 - [ ] Define SQLite schema and migration strategy for media, playlists, and resume state
