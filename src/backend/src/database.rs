@@ -1,12 +1,23 @@
 use std::path::Path;
 
 use anyhow::{Context, Result};
-use rusqlite::Connection;
+use rusqlite::{params, Connection};
 
 const CURRENT_SCHEMA_VERSION: i64 = 1;
 
 pub struct Database {
     connection: Connection,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct MediaRecord {
+    pub id: i64,
+    pub source_id: i64,
+    pub path: String,
+    pub title: String,
+    pub artist: String,
+    pub duration_ms: i64,
+    pub status: String,
 }
 
 impl Database {
@@ -77,6 +88,67 @@ impl Database {
         Ok(())
     }
 
+    pub fn upsert_source(&self, uri: &str, status: &str) -> Result<i64> {
+        self.connection.execute(
+            "INSERT INTO sources (uri, status) VALUES (?1, ?2)
+             ON CONFLICT(uri) DO UPDATE SET status = excluded.status",
+            params![uri, status],
+        )?;
+        Ok(self
+            .connection
+            .query_row("SELECT id FROM sources WHERE uri = ?1", [uri], |row| {
+                row.get(0)
+            })?)
+    }
+
+    pub fn upsert_media(&self, media: &MediaRecord) -> Result<i64> {
+        self.connection.execute(
+            "INSERT INTO media
+                (source_id, path, title, artist, duration_ms, status)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+             ON CONFLICT(source_id, path) DO UPDATE SET
+                title = excluded.title,
+                artist = excluded.artist,
+                duration_ms = excluded.duration_ms,
+                status = excluded.status",
+            params![
+                media.source_id,
+                media.path,
+                media.title,
+                media.artist,
+                media.duration_ms,
+                media.status
+            ],
+        )?;
+        Ok(self.connection.query_row(
+            "SELECT id FROM media WHERE source_id = ?1 AND path = ?2",
+            params![media.source_id, media.path],
+            |row| row.get(0),
+        )?)
+    }
+
+    pub fn search_media(&self, query: &str) -> Result<Vec<MediaRecord>> {
+        let pattern = format!("%{}%", query.trim());
+        let mut statement = self.connection.prepare(
+            "SELECT id, source_id, path, title, artist, duration_ms, status
+             FROM media
+             WHERE title LIKE ?1 COLLATE NOCASE OR artist LIKE ?1 COLLATE NOCASE
+             ORDER BY artist COLLATE NOCASE, title COLLATE NOCASE, id",
+        )?;
+        let rows = statement.query_map([pattern], |row| {
+            Ok(MediaRecord {
+                id: row.get(0)?,
+                source_id: row.get(1)?,
+                path: row.get(2)?,
+                title: row.get(3)?,
+                artist: row.get(4)?,
+                duration_ms: row.get(5)?,
+                status: row.get(6)?,
+            })
+        })?;
+        Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+    }
+
     #[cfg(test)]
     fn schema_version(&self) -> Result<i64> {
         Ok(self
@@ -89,7 +161,7 @@ impl Database {
 
 #[cfg(test)]
 mod tests {
-    use super::{Database, CURRENT_SCHEMA_VERSION};
+    use super::{Database, MediaRecord, CURRENT_SCHEMA_VERSION};
 
     #[test]
     fn creates_current_schema_and_is_idempotent() {
@@ -115,5 +187,40 @@ mod tests {
             CURRENT_SCHEMA_VERSION
         );
         let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn upserts_and_searches_media_records() {
+        let database = Database::open(":memory:").expect("database should open");
+        let source_id = database
+            .upsert_source("/music", "AVAILABLE")
+            .expect("source should be stored");
+        let media = MediaRecord {
+            id: 0,
+            source_id,
+            path: "/music/song.mp3".to_string(),
+            title: "Road Home".to_string(),
+            artist: "Kensington Road".to_string(),
+            duration_ms: 175_000,
+            status: "AVAILABLE".to_string(),
+        };
+
+        let first_id = database
+            .upsert_media(&media)
+            .expect("media should be stored");
+        let second_id = database
+            .upsert_media(&MediaRecord {
+                title: "Road Home (Edit)".to_string(),
+                ..media
+            })
+            .expect("media should be updated");
+        assert_eq!(first_id, second_id);
+
+        let results = database
+            .search_media("kensington")
+            .expect("media search should work");
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Road Home (Edit)");
+        assert_eq!(results[0].id, first_id);
     }
 }
