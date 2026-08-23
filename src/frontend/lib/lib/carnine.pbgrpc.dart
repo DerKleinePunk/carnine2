@@ -111,6 +111,20 @@ class MediaServiceClient extends $grpc.Client {
     return $createUnaryCall(_$stop, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.CommandResponse> next(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$next, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.CommandResponse> previous(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$previous, request, options: options);
+  }
+
   $grpc.ResponseFuture<$0.PlayerState> getPlayerState(
     $0.Empty request, {
     $grpc.CallOptions? options,
@@ -190,6 +204,14 @@ class MediaServiceClient extends $grpc.Client {
       '/carnine.MediaService/Stop',
       ($0.Empty value) => value.writeToBuffer(),
       $0.CommandResponse.fromBuffer);
+  static final _$next = $grpc.ClientMethod<$0.Empty, $0.CommandResponse>(
+      '/carnine.MediaService/Next',
+      ($0.Empty value) => value.writeToBuffer(),
+      $0.CommandResponse.fromBuffer);
+  static final _$previous = $grpc.ClientMethod<$0.Empty, $0.CommandResponse>(
+      '/carnine.MediaService/Previous',
+      ($0.Empty value) => value.writeToBuffer(),
+      $0.CommandResponse.fromBuffer);
   static final _$getPlayerState = $grpc.ClientMethod<$0.Empty, $0.PlayerState>(
       '/carnine.MediaService/GetPlayerState',
       ($0.Empty value) => value.writeToBuffer(),
@@ -260,6 +282,20 @@ abstract class MediaServiceBase extends $grpc.Service {
     $addMethod($grpc.ServiceMethod<$0.Empty, $0.CommandResponse>(
         'Stop',
         stop_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.CommandResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.CommandResponse>(
+        'Next',
+        next_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.CommandResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.CommandResponse>(
+        'Previous',
+        previous_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
@@ -359,6 +395,22 @@ abstract class MediaServiceBase extends $grpc.Service {
   }
 
   $async.Future<$0.CommandResponse> stop(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.CommandResponse> next_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return next($call, await $request);
+  }
+
+  $async.Future<$0.CommandResponse> next(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.CommandResponse> previous_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return previous($call, await $request);
+  }
+
+  $async.Future<$0.CommandResponse> previous(
       $grpc.ServiceCall call, $0.Empty request);
 
   $async.Future<$0.PlayerState> getPlayerState_Pre(

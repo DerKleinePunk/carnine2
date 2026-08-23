@@ -11,6 +11,8 @@ service MediaService {
   rpc Play (PlayRequest) returns (CommandResponse);
   rpc Pause (Empty) returns (CommandResponse);
   rpc Stop (Empty) returns (CommandResponse);
+  rpc Next (Empty) returns (CommandResponse);
+  rpc Previous (Empty) returns (CommandResponse);
   rpc GetPlayerState (Empty) returns (PlayerState);
   rpc SearchMedia (SearchMediaRequest) returns (SearchMediaResponse);
   rpc RescanMedia (RescanMediaRequest) returns (stream LibraryEvent);

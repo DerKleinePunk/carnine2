@@ -173,6 +173,17 @@ impl MediaService for MediaServiceImpl {
         self.command("stop", String::new())
     }
 
+    async fn next(&self, _request: Request<Empty>) -> Result<Response<CommandResponse>, Status> {
+        self.command("next", String::new())
+    }
+
+    async fn previous(
+        &self,
+        _request: Request<Empty>,
+    ) -> Result<Response<CommandResponse>, Status> {
+        self.command("previous", String::new())
+    }
+
     async fn get_player_state(
         &self,
         _request: Request<Empty>,
