@@ -69,7 +69,7 @@ This section describes architectural principles, patterns, and technologies that
 - **Static Config**: Compiled-in defaults for hardware-specific settings
 - **Runtime Config**: YAML file at `/etc/carnine/config.yaml` for deployment and user preferences
 - **Repository Template**: `resources/config/carnine.yaml` is the versioned example and image-install source
-- **Environment Variables**: Only for deployment-specific overrides (e.g., CAN bitrate)
+- **Environment Variables**: Only for deployment-specific overrides (e.g., CAN bitrate or `CARNINE_LOG_DIRECTORY` during development)
 
 ### Hot Reloading
 - **Settings**: Changes applied without restart via gRPC config endpoint

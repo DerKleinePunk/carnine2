@@ -53,8 +53,11 @@ impl Config {
             .unwrap_or_else(|| PathBuf::from("../../resources/config/carnine.yaml"));
         let content = fs::read_to_string(&path)
             .with_context(|| format!("failed to read configuration {}", path.display()))?;
-        let config = serde_yaml::from_str(&content)
+        let mut config: Config = serde_yaml::from_str(&content)
             .with_context(|| format!("failed to parse configuration {}", path.display()))?;
+        if let Some(log_directory) = env::var_os("CARNINE_LOG_DIRECTORY") {
+            config.logging.directory = PathBuf::from(log_directory);
+        }
         Ok((config, path))
     }
 }
