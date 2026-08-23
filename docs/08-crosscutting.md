@@ -75,6 +75,15 @@ This section describes architectural principles, patterns, and technologies that
 - **Settings**: Changes applied without restart via gRPC config endpoint
 - **Feature Flags**: Runtime toggles for experimental features
 
+### UI Configuration Changes
+- The Flutter UI never writes `/etc/carnine/config.yaml` directly.
+- A dedicated, typed `ConfigService` exposes read and update RPCs.
+- The backend validates every update, rejects unsupported or unsafe values, and
+	persists accepted changes atomically.
+- Runtime changes are applied immediately when the affected subsystem supports
+	reconfiguration; startup-only settings are reported as requiring a restart.
+- Secrets are not stored in the repository configuration template.
+
 ## 8.7 Testing and Quality Assurance
 
 ### Unit Testing

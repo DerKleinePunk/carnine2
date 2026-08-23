@@ -110,6 +110,14 @@ Hardware- und deployment-spezifische Werte wie das ALSA-Geraet duerfen fuer
 den Zielrechner angepasst werden. Fuer den aktuell getesteten Pi ist HDMI 0
 als `plughw:1,0` eingetragen. Geheimnisse gehoeren nicht in diese Datei.
 
+Die UI aendert diese Datei nicht direkt. Ein spaeterer typisierter
+`ConfigService` liest und schreibt die Konfiguration ueber das Backend. Das
+Backend validiert die Werte, speichert sie atomar und meldet zurueck, ob eine
+Aenderung sofort uebernommen wurde oder einen Neustart benoetigt. Audio-
+Ausgang, Medienordner, Resume-Modus und Log-Level sind als Laufzeit-
+Konfiguration vorgesehen; die gRPC-Bind-Adresse bleibt eine
+Startkonfiguration.
+
 ## Medienquellen und Rescan
 
 - Es gibt mehrere Medienquellen beziehungsweise Ordner.

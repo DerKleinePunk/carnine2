@@ -23,6 +23,7 @@
 	- [ ] Verify audible output and target audio device on Raspberry Pi
 	- [ ] Document the selected audio stack for the Debian image
 - [ ] Document and approve the first `MediaService` and `AudioService` protobuf contract
+- [ ] Define typed `ConfigService` RPCs for reading and updating runtime configuration
 - [ ] Define media, playlist-entry, queue-entry, source, scan, and service-version identifiers
 - [ ] Define SQLite schema and migration strategy for media, playlists, and resume state
 - [ ] Implement explicit complete media-library rescan with progress and error stream
@@ -68,6 +69,7 @@
 - [ ] Finalize UDS-based gRPC transport behavior and reconnect policy
 - [ ] Add structured error taxonomy and context propagation
 - [ ] Add configuration layering (defaults, file, env overrides)
+- [ ] Implement validated, atomic YAML configuration updates through `ConfigService`
 
 ### Infrastructure / DevOps
 - [ ] Establish GitHub Actions pipeline (lint, test, cross-build checks)
