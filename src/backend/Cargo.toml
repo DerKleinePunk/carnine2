@@ -11,7 +11,7 @@ section = "utils"
 priority = "optional"
 maintainer = "Carnine Project"
 copyright = "Copyright 2026 Carnine Project"
-depends = "$auto"
+depends = "$auto, ffmpeg, alsa-utils, pulseaudio-utils"
 extended-description = "Carnine backend service providing the gRPC interface for vehicle data and commands."
 assets = [
 	["target/release/carnine-backend", "usr/bin/carnine-backend", "755"],

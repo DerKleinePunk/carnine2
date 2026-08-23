@@ -50,6 +50,10 @@ impl MediaPlayer {
         }
     }
 
+    pub fn shutdown(&self) -> Result<()> {
+        self.stop().map(|_| ())
+    }
+
     fn play(&self, input_path: &str) -> Result<String> {
         let mut playback = self
             .playback

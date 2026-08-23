@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 use tonic::{transport::Server, Request, Response, Status};
 use tracing::{info, warn};
@@ -26,13 +28,13 @@ use media_player::MediaPlayer;
 pub struct CarnineServiceImpl;
 
 pub struct MediaServiceImpl {
-    player: MediaPlayer,
+    player: Arc<MediaPlayer>,
 }
 
 impl MediaServiceImpl {
     fn new(audio_config: &config::AudioConfig) -> Self {
         Self {
-            player: MediaPlayer::from_audio_config(audio_config),
+            player: Arc::new(MediaPlayer::from_audio_config(audio_config)),
         }
     }
 }
@@ -186,17 +188,38 @@ async fn main() -> Result<()> {
 
     let addr = configuration.server.address.parse()?;
     let carnine_service = CarnineServiceImpl::default();
+    let media_service = MediaServiceImpl::new(&configuration.audio);
+    let media_player = Arc::clone(&media_service.player);
 
     info!("Starting gRPC server on {}", addr);
     Server::builder()
         .add_service(CarnineServiceServer::new(carnine_service))
-        .add_service(MediaServiceServer::new(MediaServiceImpl::new(
-            &configuration.audio,
-        )))
+        .add_service(MediaServiceServer::new(media_service))
         .add_service(AudioServiceServer::new(AudioServiceImpl::default()))
-        .serve(addr)
+        .serve_with_shutdown(addr, shutdown_signal())
         .await?;
 
+    media_player.shutdown()?;
     warn!("gRPC server stopped");
     Ok(())
+}
+
+async fn shutdown_signal() {
+    #[cfg(unix)]
+    {
+        use tokio::signal::unix::{signal, SignalKind};
+
+        let mut terminate = signal(SignalKind::terminate()).expect("install SIGTERM handler");
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {}
+            _ = terminate.recv() => {}
+        }
+    }
+
+    #[cfg(not(unix))]
+    {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("install Ctrl+C handler");
+    }
 }

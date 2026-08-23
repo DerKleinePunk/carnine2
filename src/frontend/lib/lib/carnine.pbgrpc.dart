@@ -39,13 +39,6 @@ class CarnineServiceClient extends $grpc.Client {
     return $createUnaryCall(_$getCanData, request, options: options);
   }
 
-  $grpc.ResponseFuture<$0.CommandResponse> sendCommand(
-    $0.CommandRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$sendCommand, request, options: options);
-  }
-
   // method descriptors
 
   static final _$getCanData =
@@ -53,11 +46,6 @@ class CarnineServiceClient extends $grpc.Client {
           '/carnine.CarnineService/GetCanData',
           ($0.CanDataRequest value) => value.writeToBuffer(),
           $0.CanDataResponse.fromBuffer);
-  static final _$sendCommand =
-      $grpc.ClientMethod<$0.CommandRequest, $0.CommandResponse>(
-          '/carnine.CarnineService/SendCommand',
-          ($0.CommandRequest value) => value.writeToBuffer(),
-          $0.CommandResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('carnine.CarnineService')
@@ -72,13 +60,6 @@ abstract class CarnineServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.CanDataRequest.fromBuffer(value),
         ($0.CanDataResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.CommandRequest, $0.CommandResponse>(
-        'SendCommand',
-        sendCommand_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) => $0.CommandRequest.fromBuffer(value),
-        ($0.CommandResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.CanDataResponse> getCanData_Pre($grpc.ServiceCall $call,
@@ -88,12 +69,268 @@ abstract class CarnineServiceBase extends $grpc.Service {
 
   $async.Future<$0.CanDataResponse> getCanData(
       $grpc.ServiceCall call, $0.CanDataRequest request);
+}
 
-  $async.Future<$0.CommandResponse> sendCommand_Pre($grpc.ServiceCall $call,
-      $async.Future<$0.CommandRequest> $request) async {
-    return sendCommand($call, await $request);
+@$pb.GrpcServiceName('carnine.MediaService')
+class MediaServiceClient extends $grpc.Client {
+  /// The hostname for this service.
+  static const $core.String defaultHost = '';
+
+  /// OAuth scopes needed for the client.
+  static const $core.List<$core.String> oauthScopes = [
+    '',
+  ];
+
+  MediaServiceClient(super.channel, {super.options, super.interceptors});
+
+  $grpc.ResponseFuture<$0.ServiceVersion> getServiceVersion(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getServiceVersion, request, options: options);
   }
 
-  $async.Future<$0.CommandResponse> sendCommand(
-      $grpc.ServiceCall call, $0.CommandRequest request);
+  $grpc.ResponseFuture<$0.CommandResponse> play(
+    $0.PlayRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$play, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.CommandResponse> pause(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$pause, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.CommandResponse> stop(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$stop, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.PlayerState> getPlayerState(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getPlayerState, request, options: options);
+  }
+
+  $grpc.ResponseStream<$0.PlayerEvent> streamPlayerEvents(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$streamPlayerEvents, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
+  // method descriptors
+
+  static final _$getServiceVersion =
+      $grpc.ClientMethod<$0.Empty, $0.ServiceVersion>(
+          '/carnine.MediaService/GetServiceVersion',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.ServiceVersion.fromBuffer);
+  static final _$play = $grpc.ClientMethod<$0.PlayRequest, $0.CommandResponse>(
+      '/carnine.MediaService/Play',
+      ($0.PlayRequest value) => value.writeToBuffer(),
+      $0.CommandResponse.fromBuffer);
+  static final _$pause = $grpc.ClientMethod<$0.Empty, $0.CommandResponse>(
+      '/carnine.MediaService/Pause',
+      ($0.Empty value) => value.writeToBuffer(),
+      $0.CommandResponse.fromBuffer);
+  static final _$stop = $grpc.ClientMethod<$0.Empty, $0.CommandResponse>(
+      '/carnine.MediaService/Stop',
+      ($0.Empty value) => value.writeToBuffer(),
+      $0.CommandResponse.fromBuffer);
+  static final _$getPlayerState = $grpc.ClientMethod<$0.Empty, $0.PlayerState>(
+      '/carnine.MediaService/GetPlayerState',
+      ($0.Empty value) => value.writeToBuffer(),
+      $0.PlayerState.fromBuffer);
+  static final _$streamPlayerEvents =
+      $grpc.ClientMethod<$0.Empty, $0.PlayerEvent>(
+          '/carnine.MediaService/StreamPlayerEvents',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.PlayerEvent.fromBuffer);
+}
+
+@$pb.GrpcServiceName('carnine.MediaService')
+abstract class MediaServiceBase extends $grpc.Service {
+  $core.String get $name => 'carnine.MediaService';
+
+  MediaServiceBase() {
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.ServiceVersion>(
+        'GetServiceVersion',
+        getServiceVersion_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.ServiceVersion value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.PlayRequest, $0.CommandResponse>(
+        'Play',
+        play_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.PlayRequest.fromBuffer(value),
+        ($0.CommandResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.CommandResponse>(
+        'Pause',
+        pause_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.CommandResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.CommandResponse>(
+        'Stop',
+        stop_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.CommandResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.PlayerState>(
+        'GetPlayerState',
+        getPlayerState_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.PlayerState value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.PlayerEvent>(
+        'StreamPlayerEvents',
+        streamPlayerEvents_Pre,
+        false,
+        true,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.PlayerEvent value) => value.writeToBuffer()));
+  }
+
+  $async.Future<$0.ServiceVersion> getServiceVersion_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return getServiceVersion($call, await $request);
+  }
+
+  $async.Future<$0.ServiceVersion> getServiceVersion(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.CommandResponse> play_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.PlayRequest> $request) async {
+    return play($call, await $request);
+  }
+
+  $async.Future<$0.CommandResponse> play(
+      $grpc.ServiceCall call, $0.PlayRequest request);
+
+  $async.Future<$0.CommandResponse> pause_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return pause($call, await $request);
+  }
+
+  $async.Future<$0.CommandResponse> pause(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.CommandResponse> stop_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return stop($call, await $request);
+  }
+
+  $async.Future<$0.CommandResponse> stop(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.PlayerState> getPlayerState_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return getPlayerState($call, await $request);
+  }
+
+  $async.Future<$0.PlayerState> getPlayerState(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Stream<$0.PlayerEvent> streamPlayerEvents_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async* {
+    yield* streamPlayerEvents($call, await $request);
+  }
+
+  $async.Stream<$0.PlayerEvent> streamPlayerEvents(
+      $grpc.ServiceCall call, $0.Empty request);
+}
+
+@$pb.GrpcServiceName('carnine.AudioService')
+class AudioServiceClient extends $grpc.Client {
+  /// The hostname for this service.
+  static const $core.String defaultHost = '';
+
+  /// OAuth scopes needed for the client.
+  static const $core.List<$core.String> oauthScopes = [
+    '',
+  ];
+
+  AudioServiceClient(super.channel, {super.options, super.interceptors});
+
+  $grpc.ResponseFuture<$0.ServiceVersion> getServiceVersion(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getServiceVersion, request, options: options);
+  }
+
+  $grpc.ResponseStream<$0.AudioEvent> streamAudioEvents(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$streamAudioEvents, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
+  // method descriptors
+
+  static final _$getServiceVersion =
+      $grpc.ClientMethod<$0.Empty, $0.ServiceVersion>(
+          '/carnine.AudioService/GetServiceVersion',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.ServiceVersion.fromBuffer);
+  static final _$streamAudioEvents =
+      $grpc.ClientMethod<$0.Empty, $0.AudioEvent>(
+          '/carnine.AudioService/StreamAudioEvents',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.AudioEvent.fromBuffer);
+}
+
+@$pb.GrpcServiceName('carnine.AudioService')
+abstract class AudioServiceBase extends $grpc.Service {
+  $core.String get $name => 'carnine.AudioService';
+
+  AudioServiceBase() {
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.ServiceVersion>(
+        'GetServiceVersion',
+        getServiceVersion_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.ServiceVersion value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.AudioEvent>(
+        'StreamAudioEvents',
+        streamAudioEvents_Pre,
+        false,
+        true,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.AudioEvent value) => value.writeToBuffer()));
+  }
+
+  $async.Future<$0.ServiceVersion> getServiceVersion_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return getServiceVersion($call, await $request);
+  }
+
+  $async.Future<$0.ServiceVersion> getServiceVersion(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Stream<$0.AudioEvent> streamAudioEvents_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async* {
+    yield* streamAudioEvents($call, await $request);
+  }
+
+  $async.Stream<$0.AudioEvent> streamAudioEvents(
+      $grpc.ServiceCall call, $0.Empty request);
 }

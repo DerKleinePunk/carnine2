@@ -25,7 +25,7 @@ echo "[pi] Building backend (aarch64-unknown-linux-gnu, release)..."
 (
   cd "$BACKEND_DIR"
   cargo build --release --target aarch64-unknown-linux-gnu
-  cargo deb --target aarch64-unknown-linux-gnu --release
+  cargo deb --target aarch64-unknown-linux-gnu
 )
 
 echo "[pi] Preparing frontend dependencies..."

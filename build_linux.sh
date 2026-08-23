@@ -24,7 +24,7 @@ echo "[linux] Building backend (native x86_64, release)..."
 (
   cd "$BACKEND_DIR"
   cargo build --release
-  cargo deb --release
+  cargo deb
 )
 
 echo "[linux] Preparing frontend dependencies..."

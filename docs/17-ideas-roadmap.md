@@ -18,7 +18,7 @@
 	- [x] Exercise process-level play, pause, and stop commands
 	- [x] Validate direct ffmpeg-next library decoding and PCM output
 	- [ ] Investigate pause latency and intermittent audio dropouts
-	- [ ] Verify Debian package availability and planned backend packaging
+	- [x] Verify Debian package availability and planned backend packaging
 	- [ ] Compare external FFmpeg process with direct library integration
 	- [ ] Verify audible output and target audio device on Raspberry Pi
 	- [ ] Document the selected audio stack for the Debian image
@@ -31,7 +31,7 @@
 - [ ] Implement persistent playlists and temporary queue semantics
 - [ ] Implement backend-owned playback state and play/pause/stop/next/previous
 - [ ] Implement initial player, library, and audio event streams
-- [ ] Package the selected audio dependencies in the Debos image and backend Debian package
+- [x] Package the selected audio dependencies in the Debos image and backend Debian package
 
 ### Media: Deferred
 - [ ] USB medium plugin/service and automatic mount or insertion detection
@@ -50,7 +50,7 @@
 - [ ] Integrate CAN telemetry ingestion with bounded update rates and UI throttling
 - [ ] Add offline cache synchronization strategy for navigation/media metadata
 - [ ] Introduce authenticated LAN remote control endpoint (no WAN exposure)
-- [ ] Add systemd unit files and service recovery behavior on power cycles
+- [ ] Add systemd unit files, service recovery on power cycles, and graceful `SIGTERM` shutdown of audio playback
 
 ### Long-term Vision
 - [ ] Companion app operating only inside trusted LAN/VPN boundary

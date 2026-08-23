@@ -1,12 +1,16 @@
 use std::io::{Read, Write};
 use std::process::{Child, Command, Stdio};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::Arc;
 use std::thread::{self, JoinHandle};
+use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 
 use crate::config::AudioConfig;
 
 const SAMPLE_FORMAT: &str = "s16le";
+const FADE_MILLISECONDS: u32 = 500;
 
 pub trait AudioEngine: Send + Sync {
     fn start(&self, input_path: &str) -> Result<Box<dyn Playback>>;
@@ -59,6 +63,8 @@ struct ProcessPlayback {
     decoder: Child,
     audio_output: Child,
     copy_thread: Option<JoinHandle<Result<u64>>>,
+    target_gain: Arc<AtomicU32>,
+    stop_requested: Arc<AtomicBool>,
 }
 
 impl ProcessPlayback {
@@ -94,14 +100,40 @@ impl ProcessPlayback {
             .stdin
             .take()
             .context("audio input was not piped")?;
+        let target_gain = Arc::new(AtomicU32::new(1_000_000));
+        let stop_requested = Arc::new(AtomicBool::new(false));
+        let target_gain_for_copy = Arc::clone(&target_gain);
+        let stop_requested_for_copy = Arc::clone(&stop_requested);
+        let sample_rate = engine.sample_rate.parse::<u32>()?;
+        let channels = engine.channels.parse::<u16>()?;
         let copy_thread = thread::spawn(move || -> Result<u64> {
             let mut buffer = [0_u8; 64 * 1024];
             let mut pcm_bytes = 0_u64;
+            let mut current_gain = 1_000_000_u32;
+            let fade_frames = (sample_rate * FADE_MILLISECONDS / 1_000).max(1);
+            let zero_buffer = vec![0_u8; channels as usize * 2 * 1024];
             loop {
+                if stop_requested_for_copy.load(Ordering::Acquire) {
+                    break;
+                }
+                let target_gain = target_gain_for_copy.load(Ordering::Acquire);
+                if target_gain == 0 && current_gain == 0 {
+                    playback_input.write_all(&zero_buffer)?;
+                    continue;
+                }
                 let bytes_read = decoded_pcm.read(&mut buffer)?;
                 if bytes_read == 0 {
                     break;
                 }
+                let frames = bytes_read / (channels as usize * 2);
+                apply_gain_fade(
+                    &mut buffer[..bytes_read],
+                    &mut current_gain,
+                    target_gain,
+                    frames,
+                    fade_frames,
+                    channels,
+                );
                 playback_input.write_all(&buffer[..bytes_read])?;
                 pcm_bytes += bytes_read as u64;
             }
@@ -112,6 +144,8 @@ impl ProcessPlayback {
             decoder,
             audio_output,
             copy_thread: Some(copy_thread),
+            target_gain,
+            stop_requested,
         })
     }
 
@@ -120,13 +154,18 @@ impl ProcessPlayback {
             ("decoder", self.decoder.id()),
             ("audio output", self.audio_output.id()),
         ] {
-            let status = Command::new("kill")
-                .args([format!("-{signal}"), process_id.to_string()])
-                .status()
-                .with_context(|| format!("failed to send SIG{signal} to {name}"))?;
-            if !status.success() {
-                bail!("kill -{signal} {name} exited with {status}");
-            }
+            self.signal_process(signal, name, process_id)?;
+        }
+        Ok(())
+    }
+
+    fn signal_process(&self, signal: &str, name: &str, process_id: u32) -> Result<()> {
+        let status = Command::new("kill")
+            .args([format!("-{signal}"), process_id.to_string()])
+            .status()
+            .with_context(|| format!("failed to send SIG{signal} to {name}"))?;
+        if !status.success() {
+            bail!("kill -{signal} {name} exited with {status}");
         }
         Ok(())
     }
@@ -134,19 +173,24 @@ impl ProcessPlayback {
 
 impl Playback for ProcessPlayback {
     fn pause(&self) -> Result<()> {
-        self.signal("STOP")
+        self.target_gain.store(0, Ordering::Release);
+        Ok(())
     }
     fn resume(&self) -> Result<()> {
-        self.signal("CONT")
+        self.target_gain.store(1_000_000, Ordering::Release);
+        Ok(())
     }
 
     fn stop(mut self: Box<Self>) -> Result<()> {
-        let _ = self.signal("TERM");
+        self.target_gain.store(0, Ordering::Release);
+        thread::sleep(Duration::from_millis(FADE_MILLISECONDS as u64));
+        self.stop_requested.store(true, Ordering::Release);
+        let _ = self.signal_process("TERM", "decoder", self.decoder.id());
         let _ = self.decoder.wait();
-        let _ = self.audio_output.wait();
         if let Some(copy_thread) = self.copy_thread.take() {
             let _ = copy_thread.join();
         }
+        let _ = self.audio_output.wait();
         Ok(())
     }
 }
@@ -190,4 +234,65 @@ fn start_audio_output(engine: &ExternalProcessAudioEngine) -> Result<Child> {
         .stdin(Stdio::piped())
         .spawn()
         .with_context(|| format!("failed to start audio backend: {backend}"))
+}
+
+fn apply_gain_fade(
+    pcm: &mut [u8],
+    current_gain: &mut u32,
+    target_gain: u32,
+    frames: usize,
+    fade_frames: u32,
+    channels: u16,
+) {
+    if frames == 0 {
+        return;
+    }
+    let gain_delta = target_gain.abs_diff(*current_gain);
+    let fade_frames = fade_frames.max(1);
+    let gain_step = gain_delta
+        .saturating_add(fade_frames - 1)
+        .checked_div(fade_frames)
+        .unwrap_or(0)
+        .max(1);
+    for frame in 0..frames {
+        if *current_gain < target_gain {
+            *current_gain = (*current_gain + gain_step).min(target_gain);
+        } else if *current_gain > target_gain {
+            *current_gain = current_gain.saturating_sub(gain_step).max(target_gain);
+        }
+        let gain = *current_gain as i64;
+        let offset = frame * channels as usize * 2;
+        for channel in 0..channels as usize {
+            let channel_offset = offset + channel * 2;
+            let sample = i16::from_le_bytes([pcm[channel_offset], pcm[channel_offset + 1]]) as i64;
+            let scaled = (sample * gain / 1_000_000) as i16;
+            pcm[channel_offset..channel_offset + 2].copy_from_slice(&scaled.to_le_bytes());
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::apply_gain_fade;
+
+    #[test]
+    fn fade_to_zero_reaches_silence_within_fade_duration() {
+        let mut pcm = vec![0xFF_u8; 44_100 * 2];
+        let mut current_gain = 1_000_000;
+
+        apply_gain_fade(&mut pcm, &mut current_gain, 0, 22_050, 22_050, 1);
+
+        assert_eq!(current_gain, 0);
+        assert_eq!(pcm[44_100 - 2..44_100], [0, 0]);
+    }
+
+    #[test]
+    fn fade_to_full_gain_reaches_target_within_fade_duration() {
+        let mut pcm = vec![0_u8; 44_100 * 2];
+        let mut current_gain = 0;
+
+        apply_gain_fade(&mut pcm, &mut current_gain, 1_000_000, 22_050, 22_050, 1);
+
+        assert_eq!(current_gain, 1_000_000);
+    }
 }
