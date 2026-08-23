@@ -510,7 +510,12 @@ fn configuration_from_proto(configuration: &Configuration) -> Result<config::Con
 #[tokio::main]
 async fn main() -> Result<()> {
     let (configuration, configuration_path) = config::Config::load()?;
-    std::fs::create_dir_all(&configuration.logging.directory)?;
+    std::fs::create_dir_all(&configuration.logging.directory).with_context(|| {
+        format!(
+            "cannot create log directory {}; for development set CARNINE_LOG_DIRECTORY to a writable path such as /tmp/carnine-log",
+            configuration.logging.directory.display()
+        )
+    })?;
     let file_appender = rolling::never(&configuration.logging.directory, "backend.log");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
 
@@ -540,9 +545,19 @@ async fn main() -> Result<()> {
     );
 
     if let Some(parent) = configuration.media.database_path.parent() {
-        std::fs::create_dir_all(parent)?;
+        std::fs::create_dir_all(parent).with_context(|| {
+            format!(
+                "cannot create database directory {}; for development use a writable database path",
+                parent.display()
+            )
+        })?;
     }
-    let _database = database::Database::open(&configuration.media.database_path)?;
+    let _database = database::Database::open(&configuration.media.database_path).with_context(|| {
+        format!(
+            "cannot open database {}; check its permissions or use a writable development path",
+            configuration.media.database_path.display()
+        )
+    })?;
     let addr = configuration.server.address.parse()?;
     let carnine_service = CarnineServiceImpl::default();
     let media_service = MediaServiceImpl::new(

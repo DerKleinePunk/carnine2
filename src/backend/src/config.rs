@@ -94,6 +94,9 @@ impl Config {
         if let Some(log_directory) = env::var_os("CARNINE_LOG_DIRECTORY") {
             config.logging.directory = PathBuf::from(log_directory);
         }
+        if let Some(database_path) = env::var_os("CARNINE_DATABASE_PATH") {
+            config.media.database_path = PathBuf::from(database_path);
+        }
         config.validate()?;
         Ok((config, path))
     }

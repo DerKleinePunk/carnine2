@@ -19,6 +19,24 @@ The protobuf schema is shared across frontend and backend at `../proto/carnine.p
 - `cargo test`
 - `cargo deb`
 
+### Developer start
+
+The repository configuration contains the installed-system paths
+`/var/lib/carnine` and `/var/log/carnine`. These directories are normally not
+writable by an unprivileged developer account. Start the backend locally with
+writable temporary paths:
+
+```bash
+CARNINE_LOG_DIRECTORY=/tmp/carnine-log \\
+CARNINE_DATABASE_PATH=/tmp/carnine-media.sqlite3 \\
+cargo run
+```
+
+If startup still fails, the error names the exact path and explains whether a
+log directory or the database path needs to be changed. Do not solve local
+development errors by running the backend with `sudo`; the installed service
+uses `/etc/carnine/config.yaml`, `/var/lib/carnine`, and `/var/log/carnine`.
+
 The generated-stub gRPC smoke client can be used without Flutter:
 
 ```bash
