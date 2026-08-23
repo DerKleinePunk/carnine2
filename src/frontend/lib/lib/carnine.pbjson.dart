@@ -204,6 +204,34 @@ final $typed_data.Uint8List searchMediaResponseDescriptor = $convert.base64Decod
     'ChNTZWFyY2hNZWRpYVJlc3BvbnNlEigKBWl0ZW1zGAEgAygLMhIuY2FybmluZS5NZWRpYUl0ZW'
     '1SBWl0ZW1z');
 
+@$core.Deprecated('Use rescanMediaRequestDescriptor instead')
+const RescanMediaRequest$json = {
+  '1': 'RescanMediaRequest',
+};
+
+/// Descriptor for `RescanMediaRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List rescanMediaRequestDescriptor =
+    $convert.base64Decode('ChJSZXNjYW5NZWRpYVJlcXVlc3Q=');
+
+@$core.Deprecated('Use libraryEventDescriptor instead')
+const LibraryEvent$json = {
+  '1': 'LibraryEvent',
+  '2': [
+    {'1': 'event', '3': 1, '4': 1, '5': 9, '10': 'event'},
+    {'1': 'scan_id', '3': 2, '4': 1, '5': 4, '10': 'scanId'},
+    {'1': 'processed', '3': 3, '4': 1, '5': 4, '10': 'processed'},
+    {'1': 'imported', '3': 4, '4': 1, '5': 4, '10': 'imported'},
+    {'1': 'path', '3': 5, '4': 1, '5': 9, '10': 'path'},
+    {'1': 'message', '3': 6, '4': 1, '5': 9, '10': 'message'},
+  ],
+};
+
+/// Descriptor for `LibraryEvent`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List libraryEventDescriptor = $convert.base64Decode(
+    'CgxMaWJyYXJ5RXZlbnQSFAoFZXZlbnQYASABKAlSBWV2ZW50EhcKB3NjYW5faWQYAiABKARSBn'
+    'NjYW5JZBIcCglwcm9jZXNzZWQYAyABKARSCXByb2Nlc3NlZBIaCghpbXBvcnRlZBgEIAEoBFII'
+    'aW1wb3J0ZWQSEgoEcGF0aBgFIAEoCVIEcGF0aBIYCgdtZXNzYWdlGAYgASgJUgdtZXNzYWdl');
+
 @$core.Deprecated('Use mediaItemDescriptor instead')
 const MediaItem$json = {
   '1': 'MediaItem',

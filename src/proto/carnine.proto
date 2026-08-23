@@ -13,6 +13,7 @@ service MediaService {
   rpc Stop (Empty) returns (CommandResponse);
   rpc GetPlayerState (Empty) returns (PlayerState);
   rpc SearchMedia (SearchMediaRequest) returns (SearchMediaResponse);
+  rpc RescanMedia (RescanMediaRequest) returns (stream LibraryEvent);
   rpc StreamPlayerEvents (Empty) returns (stream PlayerEvent);
 }
 
@@ -83,6 +84,17 @@ message SearchMediaRequest {
 
 message SearchMediaResponse {
   repeated MediaItem items = 1;
+}
+
+message RescanMediaRequest {}
+
+message LibraryEvent {
+  string event = 1;
+  uint64 scan_id = 2;
+  uint64 processed = 3;
+  uint64 imported = 4;
+  string path = 5;
+  string message = 6;
 }
 
 message MediaItem {

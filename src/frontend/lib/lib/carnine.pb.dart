@@ -806,6 +806,163 @@ class SearchMediaResponse extends $pb.GeneratedMessage {
   $pb.PbList<MediaItem> get items => $_getList(0);
 }
 
+class RescanMediaRequest extends $pb.GeneratedMessage {
+  factory RescanMediaRequest() => create();
+
+  RescanMediaRequest._();
+
+  factory RescanMediaRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RescanMediaRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RescanMediaRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RescanMediaRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RescanMediaRequest copyWith(void Function(RescanMediaRequest) updates) =>
+      super.copyWith((message) => updates(message as RescanMediaRequest))
+          as RescanMediaRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RescanMediaRequest create() => RescanMediaRequest._();
+  @$core.override
+  RescanMediaRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RescanMediaRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RescanMediaRequest>(create);
+  static RescanMediaRequest? _defaultInstance;
+}
+
+class LibraryEvent extends $pb.GeneratedMessage {
+  factory LibraryEvent({
+    $core.String? event,
+    $fixnum.Int64? scanId,
+    $fixnum.Int64? processed,
+    $fixnum.Int64? imported,
+    $core.String? path,
+    $core.String? message,
+  }) {
+    final result = create();
+    if (event != null) result.event = event;
+    if (scanId != null) result.scanId = scanId;
+    if (processed != null) result.processed = processed;
+    if (imported != null) result.imported = imported;
+    if (path != null) result.path = path;
+    if (message != null) result.message = message;
+    return result;
+  }
+
+  LibraryEvent._();
+
+  factory LibraryEvent.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory LibraryEvent.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'LibraryEvent',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'event')
+    ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'scanId', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(
+        3, _omitFieldNames ? '' : 'processed', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(
+        4, _omitFieldNames ? '' : 'imported', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOS(5, _omitFieldNames ? '' : 'path')
+    ..aOS(6, _omitFieldNames ? '' : 'message')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LibraryEvent clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LibraryEvent copyWith(void Function(LibraryEvent) updates) =>
+      super.copyWith((message) => updates(message as LibraryEvent))
+          as LibraryEvent;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static LibraryEvent create() => LibraryEvent._();
+  @$core.override
+  LibraryEvent createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static LibraryEvent getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<LibraryEvent>(create);
+  static LibraryEvent? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get event => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set event($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasEvent() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEvent() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get scanId => $_getI64(1);
+  @$pb.TagNumber(2)
+  set scanId($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasScanId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearScanId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get processed => $_getI64(2);
+  @$pb.TagNumber(3)
+  set processed($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasProcessed() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearProcessed() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get imported => $_getI64(3);
+  @$pb.TagNumber(4)
+  set imported($fixnum.Int64 value) => $_setInt64(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasImported() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearImported() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get path => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set path($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasPath() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearPath() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get message => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set message($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasMessage() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearMessage() => $_clearField(6);
+}
+
 class MediaItem extends $pb.GeneratedMessage {
   factory MediaItem({
     $fixnum.Int64? id,

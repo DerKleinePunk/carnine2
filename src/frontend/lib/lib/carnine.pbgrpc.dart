@@ -125,6 +125,15 @@ class MediaServiceClient extends $grpc.Client {
     return $createUnaryCall(_$searchMedia, request, options: options);
   }
 
+  $grpc.ResponseStream<$0.LibraryEvent> rescanMedia(
+    $0.RescanMediaRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$rescanMedia, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
   $grpc.ResponseStream<$0.PlayerEvent> streamPlayerEvents(
     $0.Empty request, {
     $grpc.CallOptions? options,
@@ -162,6 +171,11 @@ class MediaServiceClient extends $grpc.Client {
           '/carnine.MediaService/SearchMedia',
           ($0.SearchMediaRequest value) => value.writeToBuffer(),
           $0.SearchMediaResponse.fromBuffer);
+  static final _$rescanMedia =
+      $grpc.ClientMethod<$0.RescanMediaRequest, $0.LibraryEvent>(
+          '/carnine.MediaService/RescanMedia',
+          ($0.RescanMediaRequest value) => value.writeToBuffer(),
+          $0.LibraryEvent.fromBuffer);
   static final _$streamPlayerEvents =
       $grpc.ClientMethod<$0.Empty, $0.PlayerEvent>(
           '/carnine.MediaService/StreamPlayerEvents',
@@ -218,6 +232,14 @@ abstract class MediaServiceBase extends $grpc.Service {
             ($core.List<$core.int> value) =>
                 $0.SearchMediaRequest.fromBuffer(value),
             ($0.SearchMediaResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.RescanMediaRequest, $0.LibraryEvent>(
+        'RescanMedia',
+        rescanMedia_Pre,
+        false,
+        true,
+        ($core.List<$core.int> value) =>
+            $0.RescanMediaRequest.fromBuffer(value),
+        ($0.LibraryEvent value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.Empty, $0.PlayerEvent>(
         'StreamPlayerEvents',
         streamPlayerEvents_Pre,
@@ -274,6 +296,14 @@ abstract class MediaServiceBase extends $grpc.Service {
 
   $async.Future<$0.SearchMediaResponse> searchMedia(
       $grpc.ServiceCall call, $0.SearchMediaRequest request);
+
+  $async.Stream<$0.LibraryEvent> rescanMedia_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.RescanMediaRequest> $request) async* {
+    yield* rescanMedia($call, await $request);
+  }
+
+  $async.Stream<$0.LibraryEvent> rescanMedia(
+      $grpc.ServiceCall call, $0.RescanMediaRequest request);
 
   $async.Stream<$0.PlayerEvent> streamPlayerEvents_Pre(
       $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async* {

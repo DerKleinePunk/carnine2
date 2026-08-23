@@ -22,8 +22,9 @@ use carnine::{
     config_service_server::{ConfigService, ConfigServiceServer},
     media_service_server::{MediaService, MediaServiceServer},
     AudioEvent, CanData, CanDataRequest, CanDataResponse, CommandResponse, Configuration,
-    ConfigurationResponse, Empty, PlayRequest, PlayerEvent, PlayerState, SearchMediaRequest,
-    SearchMediaResponse, ServiceVersion, UpdateConfigurationRequest,
+    ConfigurationResponse, Empty, LibraryEvent, PlayRequest, PlayerEvent, PlayerState,
+    RescanMediaRequest, SearchMediaRequest, SearchMediaResponse, ServiceVersion,
+    UpdateConfigurationRequest,
 };
 
 use media_player::MediaPlayer;
@@ -34,6 +35,8 @@ pub struct CarnineServiceImpl;
 pub struct MediaServiceImpl {
     player: Arc<MediaPlayer>,
     database_path: PathBuf,
+    media_folders: Vec<PathBuf>,
+    supported_formats: Vec<String>,
 }
 
 pub struct ConfigServiceImpl {
@@ -59,10 +62,17 @@ impl ConfigServiceImpl {
 }
 
 impl MediaServiceImpl {
-    fn new(audio_config: &config::AudioConfig, database_path: PathBuf) -> Self {
+    fn new(
+        audio_config: &config::AudioConfig,
+        database_path: PathBuf,
+        media_folders: Vec<PathBuf>,
+        supported_formats: Vec<String>,
+    ) -> Self {
         Self {
             player: Arc::new(MediaPlayer::from_audio_config(audio_config)),
             database_path,
+            media_folders,
+            supported_formats,
         }
     }
 }
@@ -134,6 +144,7 @@ impl CarnineService for CarnineServiceImpl {
 impl MediaService for MediaServiceImpl {
     type StreamPlayerEventsStream =
         tokio_stream::Iter<std::vec::IntoIter<Result<PlayerEvent, Status>>>;
+    type RescanMediaStream = tokio_stream::Iter<std::vec::IntoIter<Result<LibraryEvent, Status>>>;
 
     async fn get_service_version(
         &self,
@@ -194,6 +205,53 @@ impl MediaService for MediaServiceImpl {
             })
             .collect();
         Ok(Response::new(SearchMediaResponse { items }))
+    }
+
+    async fn rescan_media(
+        &self,
+        _request: Request<RescanMediaRequest>,
+    ) -> Result<Response<Self::RescanMediaStream>, Status> {
+        let database = database::Database::open(&self.database_path)
+            .map_err(|error| Status::internal(error.to_string()))?;
+        let mut events = vec![LibraryEvent {
+            event: "scan_started".to_string(),
+            scan_id: 1,
+            ..Default::default()
+        }];
+        let mut processed = 0_u64;
+        let mut imported = 0_u64;
+        for folder in &self.media_folders {
+            match database.rescan_folder(folder, &self.supported_formats) {
+                Ok(count) => {
+                    imported += count as u64;
+                    processed += count as u64;
+                    events.push(LibraryEvent {
+                        event: "progress".to_string(),
+                        scan_id: 1,
+                        processed,
+                        imported,
+                        path: folder.display().to_string(),
+                        ..Default::default()
+                    });
+                }
+                Err(error) => events.push(LibraryEvent {
+                    event: "error".to_string(),
+                    scan_id: 1,
+                    path: folder.display().to_string(),
+                    message: error.to_string(),
+                    ..Default::default()
+                }),
+            }
+        }
+        events.push(LibraryEvent {
+            event: "scan_completed".to_string(),
+            scan_id: 1,
+            processed,
+            imported,
+            ..Default::default()
+        });
+        let events = events.into_iter().map(Ok).collect::<Vec<_>>();
+        Ok(Response::new(tokio_stream::iter(events)))
     }
 
     async fn stream_player_events(
@@ -353,6 +411,8 @@ async fn main() -> Result<()> {
     let media_service = MediaServiceImpl::new(
         &configuration.audio,
         configuration.media.database_path.clone(),
+        configuration.media.folders.clone(),
+        configuration.media.supported_formats.clone(),
     );
     let media_player = Arc::clone(&media_service.player);
     let config_service = ConfigServiceImpl::new(configuration.clone(), configuration_path);
