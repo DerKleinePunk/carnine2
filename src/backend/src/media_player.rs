@@ -11,62 +11,60 @@ const CHANNELS: &str = "2";
 const SAMPLE_FORMAT: &str = "s16le";
 
 #[derive(Debug, Default)]
+use std::path::Path;
+use std::sync::Mutex;
+
+use anyhow::{bail, Context, Result};
+
+use crate::audio_engine::{AudioEngine, Playback};
+
+#[derive(Debug, Default)]
 pub struct MediaPlayer {
-    session: Mutex<Option<PlaybackSession>>,
+    engine: audio_engine::ExternalProcessAudioEngine,
+    playback: Mutex<Option<Box<dyn Playback>>>,
 }
 
 impl MediaPlayer {
     pub fn execute(&self, command: &str, parameters: &str) -> Result<String> {
         match command.trim().to_ascii_lowercase().as_str() {
             "play" | "resume" => self.play(parameters),
-            "pause" => self.signal("STOP", "paused"),
+            "pause" => self.pause(),
             "stop" => self.stop(),
             unknown => bail!("unknown media command: {unknown}"),
         }
     }
 
     fn play(&self, input_path: &str) -> Result<String> {
-        let mut session = self.session.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-        if let Some(active_session) = session.as_ref() {
-            send_signal(active_session.decoder.id(), "CONT")?;
-            send_signal(active_session.audio_output.id(), "CONT")?;
+        let mut playback = self.playback.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(active_playback) = playback.as_ref() {
+            active_playback.resume()?;
             return Ok("playback resumed".to_string());
         }
-
         if input_path.is_empty() {
             bail!("play requires an audio file path in parameters");
         }
         if !Path::new(input_path).is_file() {
             bail!("audio file does not exist: {input_path}");
         }
-
-        *session = Some(PlaybackSession::start(input_path)?);
+        *playback = Some(self.engine.start(input_path)?);
         Ok("playback started".to_string())
     }
 
-    fn signal(&self, signal: &str, result: &str) -> Result<String> {
-        let session = self.session.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-        let active_session = session.as_ref().context("no active playback")?;
-        send_signal(active_session.decoder.id(), signal)?;
-        send_signal(active_session.audio_output.id(), signal)?;
-        Ok(format!("playback {result}"))
+    fn pause(&self) -> Result<String> {
+        let playback = self.playback.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        playback.as_ref().context("no active playback")?.pause()?;
+        Ok("playback paused".to_string())
     }
 
     fn stop(&self) -> Result<String> {
-        let mut session = self.session.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-        let Some(mut active_session) = session.take() else {
+        let mut playback = self.playback.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let Some(active_playback) = playback.take() else {
             return Ok("playback already stopped".to_string());
         };
-
-        let _ = send_signal(active_session.decoder.id(), "TERM");
-        let _ = send_signal(active_session.audio_output.id(), "TERM");
-        let _ = active_session.decoder.wait();
-        let _ = active_session.audio_output.wait();
-        if let Some(copy_thread) = active_session.copy_thread.take() {
-            let _ = copy_thread.join();
-        }
+        active_playback.stop()?;
         Ok("playback stopped".to_string())
     }
+}
 }
 
 #[derive(Debug)]

@@ -21,18 +21,7 @@ fn main() -> Result<()> {
         .context("usage: cargo run --example external_ffmpeg_spike -- <audio-file>")?;
     let started_at = Instant::now();
 
-    let mut audio_output = Command::new("paplay")
-        .args([
-            "--client-name=carnine-spike",
-            "--stream-name=carnine-external-ffmpeg",
-            "--raw",
-            &format!("--rate={SAMPLE_RATE}"),
-            &format!("--channels={CHANNELS}"),
-            &format!("--format={SAMPLE_FORMAT}"),
-        ])
-        .stdin(Stdio::piped())
-        .spawn()
-        .context("failed to start paplay")?;
+    let mut audio_output = start_audio_output()?;
     let audio_pid = audio_output.id();
 
     let mut decoder = Command::new("ffmpeg")
@@ -158,6 +147,42 @@ fn main() -> Result<()> {
         decoded_duration,
     );
     Ok(())
+}
+
+fn start_audio_output() -> Result<std::process::Child> {
+    let backend = env::var("CARNINE_AUDIO_BACKEND").unwrap_or_else(|_| "pulse".to_string());
+    let mut command = if backend == "alsa" {
+        let device = env::var("CARNINE_ALSA_DEVICE").unwrap_or_else(|_| "default".to_string());
+        let mut command = Command::new("aplay");
+        command.args([
+            "-q",
+            "-D",
+            &device,
+            "-f",
+            "S16_LE",
+            "-r",
+            SAMPLE_RATE,
+            "-c",
+            CHANNELS,
+        ]);
+        command
+    } else {
+        let mut command = Command::new("paplay");
+        command.args([
+            "--client-name=carnine-spike",
+            "--stream-name=carnine-external-ffmpeg",
+            "--raw",
+            &format!("--rate={SAMPLE_RATE}"),
+            &format!("--channels={CHANNELS}"),
+            &format!("--format={SAMPLE_FORMAT}"),
+        ]);
+        command
+    };
+
+    command
+        .stdin(Stdio::piped())
+        .spawn()
+        .with_context(|| format!("failed to start audio backend: {backend}"))
 }
 
 fn send_signal(process_id: u32, signal: &str) -> Result<()> {
