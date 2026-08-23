@@ -21,17 +21,18 @@
 	- [ ] Investigate residual click/pop at the end of `stop` and compare with a fully buffered audio implementation
 	- [x] Verify Debian package availability and planned backend packaging
 	- [ ] Compare external FFmpeg process with direct library integration
-	- [ ] Verify audible output and target audio device on Raspberry Pi
-	- [ ] Document the selected audio stack for the Debian image
+	- [x] Verify audible output and target audio device on Raspberry Pi
+	- [x] Document the selected audio stack for the Debian image
 - [x] Document and approve the first `MediaService` and `AudioService` protobuf contract
 - [x] Define typed `ConfigService` RPCs for reading and updating runtime configuration
 - [x] Define media, playlist-entry, queue-entry, source, scan, and service-version identifiers
 - [x] Define SQLite schema and migration strategy for media, playlists, and resume state
 - [x] Implement explicit complete media-library rescan with progress and error stream
 - [x] Implement backend media search for title and artist
-- [ ] Implement persistent playlists and temporary queue semantics
-- [ ] Implement backend-owned playback state and play/pause/stop/next/previous
-- [ ] Implement initial player, library, and audio event streams
+- [x] Implement persistent playlists and temporary queue semantics
+- [x] Implement backend-owned playback state and play/pause/stop/next/previous
+- [x] Implement initial player snapshot and library rescan event stream
+- [ ] Implement live player and audio event streams
 - [x] Package the selected audio dependencies in the Debos image and backend Debian package
 
 ### Media: Deferred
@@ -69,7 +70,7 @@
 ### Backend (Rust)
 - [ ] Finalize UDS-based gRPC transport behavior and reconnect policy
 - [ ] Add structured error taxonomy and context propagation
-- [ ] Add configuration layering (defaults, file, env overrides)
+- [x] Add configuration layering (defaults, file, env overrides)
 - [x] Implement validated, atomic YAML configuration updates through `ConfigService`
 
 ### Infrastructure / DevOps

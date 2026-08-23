@@ -352,16 +352,15 @@ Bekannte Metadaten:
 
 ### Aktueller Arbeitsabschnitt
 
-Der Backend-Fokus fuer den aktuellen Arbeitsabschnitt ist die MediaService-
-Vertikalscheibe ohne Flutter:
+Die erste MediaService-Vertikalscheibe ohne Flutter ist umgesetzt. Der aktuelle
+Backend-Fokus liegt auf Resume-Persistenz und echten Ereignisstreams:
 
 - `AudioEngine` bleibt die technische Austauschgrenze.
 - `MediaPlayer` kapselt Player-Befehle und Zustand.
-- `MediaService` stellt Version, Play, Pause, Stop und Player-Zustand ueber
-  typisierte gRPC-RPCs bereit.
-- Tests verwenden zunaechst den Rust-Service und den Pi als Zielsystem.
-- Flutter-Stubs und Flutter-UI werden erst nach Abschluss des Backend-Vertrags
-  und der Backend-Tests angepasst.
+- `MediaService` stellt Version, Play, Pause, Stop, Next, Previous, PlayPlaylist,
+  Suche, Rescan und Playlist-RPCs ueber den typisierten gRPC-Vertrag bereit.
+- Der Rust-Service ist mit dem Testclient und auf dem Raspberry Pi validiert.
+- Der Flutter-Auftrag fuer die UI ist in GitHub Issue #6 beschrieben.
 
 ## Aktueller Stand
 
@@ -394,6 +393,7 @@ Erledigt:
 - Stop-Fade und graceful `SIGTERM`-Beendigung auf dem Raspberry Pi validiert
 - Debian-/Debos-Audioabhaengigkeiten und ARM64-Paketierung validiert
 - vollstaendigen Linux-Build fuer Backend, Paket und Flutter-Bundle validiert
+- lokale Entwicklerstarts mit schreibbaren Pfaden und WSLg-PulseAudio dokumentiert
 
 Noch offen:
 
@@ -402,11 +402,13 @@ Noch offen:
   abgeschlossen
 - Rust-PCM-Pipe und Prozess-Signalsteuerung auf Audioaussetzer und
   Pause-Latenz untersuchen; Decoder und PulseAudio-Einzeltests sind unauffaellig
-- WSLg/PulseAudio-Ausgabe fuer subjektive Audioqualitaet als bekannte
-  Testeinschraenkung behandeln
+- WSLg/PulseAudio-Ausgabe bleibt fuer subjektive Audioqualitaet eine bekannte
+  Testeinschraenkung; lokale Starts verwenden `CARNINE_AUDIO_BACKEND=pulse` und
+  `CARNINE_AUDIO_DEVICE=default`, der Raspberry Pi weiterhin ALSA
 - verbleibendes Knacken am Ende von `stop`; vollstaendig gepufferte Audioausgabe
   als spaetere Referenzimplementierung pruefen
 - konkrete Laufzeituebernahme aenderbarer Audio- und Medienkonfiguration ohne
   Neustart
-- Media-Rescan, Suche, Playlist, Queue, Next/Previous und Resume integrieren
-- Player-, Bibliotheks- und Audio-Ereignisstreams implementieren
+- Resume-Zustand mit Playlist, Queue und Wiedergabeposition integrieren
+- echte Player-Live-Events ueber einen Broadcast-Kanal implementieren
+- Bibliotheks- und Audio-Ereignisstreams vervollstaendigen

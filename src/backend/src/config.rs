@@ -97,6 +97,12 @@ impl Config {
         if let Some(database_path) = env::var_os("CARNINE_DATABASE_PATH") {
             config.media.database_path = PathBuf::from(database_path);
         }
+        if let Some(audio_backend) = env::var_os("CARNINE_AUDIO_BACKEND") {
+            config.audio.backend = audio_backend.to_string_lossy().into_owned();
+        }
+        if let Some(audio_device) = env::var_os("CARNINE_AUDIO_DEVICE") {
+            config.audio.device = audio_device.to_string_lossy().into_owned();
+        }
         config.validate()?;
         Ok((config, path))
     }

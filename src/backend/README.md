@@ -29,8 +29,15 @@ writable temporary paths:
 ```bash
 CARNINE_LOG_DIRECTORY=/tmp/carnine-log \\
 CARNINE_DATABASE_PATH=/tmp/carnine-media.sqlite3 \\
+CARNINE_AUDIO_BACKEND=pulse \\
+CARNINE_AUDIO_DEVICE=default \\
 cargo run
 ```
+
+On WSL, the repository configuration's ALSA device `plughw:1,0` is not
+available. PulseAudio is provided by WSLg, so use the overrides above for
+local playback. The installed Raspberry Pi service keeps its ALSA
+configuration.
 
 If startup still fails, the error names the exact path and explains whether a
 log directory or the database path needs to be changed. Do not solve local
