@@ -13,6 +13,7 @@ pub mod carnine {
 
 mod audio_engine;
 mod config;
+mod database;
 mod media_player;
 
 use carnine::{
@@ -318,6 +319,10 @@ async fn main() -> Result<()> {
         configuration_path.display()
     );
 
+    if let Some(parent) = configuration.media.database_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let _database = database::Database::open(&configuration.media.database_path)?;
     let addr = configuration.server.address.parse()?;
     let carnine_service = CarnineServiceImpl::default();
     let media_service = MediaServiceImpl::new(&configuration.audio);
