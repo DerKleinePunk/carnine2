@@ -1315,6 +1315,56 @@ class CreatePlaylistRequest extends $pb.GeneratedMessage {
   void clearName() => $_clearField(1);
 }
 
+class ListPlaylistsResponse extends $pb.GeneratedMessage {
+  factory ListPlaylistsResponse({
+    $core.Iterable<Playlist>? playlists,
+  }) {
+    final result = create();
+    if (playlists != null) result.playlists.addAll(playlists);
+    return result;
+  }
+
+  ListPlaylistsResponse._();
+
+  factory ListPlaylistsResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ListPlaylistsResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ListPlaylistsResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..pPM<Playlist>(1, _omitFieldNames ? '' : 'playlists',
+        subBuilder: Playlist.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListPlaylistsResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListPlaylistsResponse copyWith(
+          void Function(ListPlaylistsResponse) updates) =>
+      super.copyWith((message) => updates(message as ListPlaylistsResponse))
+          as ListPlaylistsResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListPlaylistsResponse create() => ListPlaylistsResponse._();
+  @$core.override
+  ListPlaylistsResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ListPlaylistsResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListPlaylistsResponse>(create);
+  static ListPlaylistsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<Playlist> get playlists => $_getList(0);
+}
+
 class AddPlaylistEntryRequest extends $pb.GeneratedMessage {
   factory AddPlaylistEntryRequest({
     $fixnum.Int64? playlistId,

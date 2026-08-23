@@ -141,6 +141,13 @@ class MediaServiceClient extends $grpc.Client {
     return $createUnaryCall(_$createPlaylist, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.ListPlaylistsResponse> listPlaylists(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$listPlaylists, request, options: options);
+  }
+
   $grpc.ResponseFuture<$0.PlaylistEntry> addPlaylistEntry(
     $0.AddPlaylistEntryRequest request, {
     $grpc.CallOptions? options,
@@ -202,6 +209,11 @@ class MediaServiceClient extends $grpc.Client {
           '/carnine.MediaService/CreatePlaylist',
           ($0.CreatePlaylistRequest value) => value.writeToBuffer(),
           $0.Playlist.fromBuffer);
+  static final _$listPlaylists =
+      $grpc.ClientMethod<$0.Empty, $0.ListPlaylistsResponse>(
+          '/carnine.MediaService/ListPlaylists',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.ListPlaylistsResponse.fromBuffer);
   static final _$addPlaylistEntry =
       $grpc.ClientMethod<$0.AddPlaylistEntryRequest, $0.PlaylistEntry>(
           '/carnine.MediaService/AddPlaylistEntry',
@@ -284,6 +296,13 @@ abstract class MediaServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.CreatePlaylistRequest.fromBuffer(value),
         ($0.Playlist value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.ListPlaylistsResponse>(
+        'ListPlaylists',
+        listPlaylists_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.ListPlaylistsResponse value) => value.writeToBuffer()));
     $addMethod(
         $grpc.ServiceMethod<$0.AddPlaylistEntryRequest, $0.PlaylistEntry>(
             'AddPlaylistEntry',
@@ -373,6 +392,14 @@ abstract class MediaServiceBase extends $grpc.Service {
 
   $async.Future<$0.Playlist> createPlaylist(
       $grpc.ServiceCall call, $0.CreatePlaylistRequest request);
+
+  $async.Future<$0.ListPlaylistsResponse> listPlaylists_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return listPlaylists($call, await $request);
+  }
+
+  $async.Future<$0.ListPlaylistsResponse> listPlaylists(
+      $grpc.ServiceCall call, $0.Empty request);
 
   $async.Future<$0.PlaylistEntry> addPlaylistEntry_Pre($grpc.ServiceCall $call,
       $async.Future<$0.AddPlaylistEntryRequest> $request) async {

@@ -15,6 +15,7 @@ service MediaService {
   rpc SearchMedia (SearchMediaRequest) returns (SearchMediaResponse);
   rpc RescanMedia (RescanMediaRequest) returns (stream LibraryEvent);
   rpc CreatePlaylist (CreatePlaylistRequest) returns (Playlist);
+  rpc ListPlaylists (Empty) returns (ListPlaylistsResponse);
   rpc AddPlaylistEntry (AddPlaylistEntryRequest) returns (PlaylistEntry);
   rpc GetPlaylist (GetPlaylistRequest) returns (Playlist);
   rpc StreamPlayerEvents (Empty) returns (stream PlayerEvent);
@@ -125,6 +126,10 @@ message PlaylistEntry {
 
 message CreatePlaylistRequest {
   string name = 1;
+}
+
+message ListPlaylistsResponse {
+  repeated Playlist playlists = 1;
 }
 
 message AddPlaylistEntryRequest {

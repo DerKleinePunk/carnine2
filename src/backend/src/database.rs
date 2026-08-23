@@ -37,6 +37,12 @@ pub struct ResumeState {
     pub resume_mode: String,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct PlaylistRecord {
+    pub id: i64,
+    pub name: String,
+}
+
 #[derive(Debug, Default, serde::Deserialize)]
 struct ProbeFormat {
     duration: Option<String>,
@@ -196,6 +202,19 @@ impl Database {
             [playlist_id],
             |row| row.get(0),
         )?)
+    }
+
+    pub fn playlists(&self) -> Result<Vec<PlaylistRecord>> {
+        let mut statement = self
+            .connection
+            .prepare("SELECT id, name FROM playlists ORDER BY name COLLATE NOCASE, id")?;
+        let rows = statement.query_map([], |row| {
+            Ok(PlaylistRecord {
+                id: row.get(0)?,
+                name: row.get(1)?,
+            })
+        })?;
+        Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
     }
 
     pub fn add_playlist_entry(&self, playlist_id: i64, media_id: i64) -> Result<i64> {
@@ -570,5 +589,25 @@ mod tests {
         );
         assert_eq!(metadata.artist.as_deref(), Some("Kensington Road"));
         assert!(metadata.duration_ms > 170_000);
+    }
+
+    #[test]
+    fn lists_playlists_in_stable_order() {
+        let database = Database::open(":memory:").expect("database should open");
+        database
+            .create_playlist("zeta")
+            .expect("first playlist should be created");
+        database
+            .create_playlist("Alpha")
+            .expect("second playlist should be created");
+
+        let playlists = database.playlists().expect("playlists should load");
+        assert_eq!(
+            playlists
+                .iter()
+                .map(|item| item.name.as_str())
+                .collect::<Vec<_>>(),
+            ["Alpha", "zeta"]
+        );
     }
 }

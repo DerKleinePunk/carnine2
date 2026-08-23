@@ -23,8 +23,8 @@ use carnine::{
     media_service_server::{MediaService, MediaServiceServer},
     AddPlaylistEntryRequest, AudioEvent, CanData, CanDataRequest, CanDataResponse, CommandResponse,
     Configuration, ConfigurationResponse, CreatePlaylistRequest, Empty, GetPlaylistRequest,
-    LibraryEvent, PlayRequest, PlayerEvent, PlayerState, Playlist, PlaylistEntry,
-    RescanMediaRequest, SearchMediaRequest, SearchMediaResponse, ServiceVersion,
+    LibraryEvent, ListPlaylistsResponse, PlayRequest, PlayerEvent, PlayerState, Playlist,
+    PlaylistEntry, RescanMediaRequest, SearchMediaRequest, SearchMediaResponse, ServiceVersion,
     UpdateConfigurationRequest,
 };
 
@@ -273,6 +273,25 @@ impl MediaService for MediaServiceImpl {
             name,
             entries: Vec::new(),
         }))
+    }
+
+    async fn list_playlists(
+        &self,
+        _request: Request<Empty>,
+    ) -> Result<Response<ListPlaylistsResponse>, Status> {
+        let database = database::Database::open(&self.database_path)
+            .map_err(|error| Status::internal(error.to_string()))?;
+        let playlists = database
+            .playlists()
+            .map_err(|error| Status::internal(error.to_string()))?
+            .into_iter()
+            .map(|playlist| Playlist {
+                id: playlist.id as u64,
+                name: playlist.name,
+                entries: Vec::new(),
+            })
+            .collect();
+        Ok(Response::new(ListPlaylistsResponse { playlists }))
     }
 
     async fn add_playlist_entry(
