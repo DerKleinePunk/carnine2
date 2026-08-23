@@ -19,6 +19,19 @@ The protobuf schema is shared across frontend and backend at `../proto/carnine.p
 - `cargo test`
 - `cargo deb`
 
+The generated-stub gRPC smoke client can be used without Flutter:
+
+```bash
+cargo run --example media_grpc_client -- http://[::1]:50051 version
+cargo run --example media_grpc_client -- http://[::1]:50051 state
+cargo run --example media_grpc_client -- http://[::1]:50051 smoke /path/to/audio.mp3
+```
+
+For manual, dynamic gRPC exploration, `granc` is a suitable external tool.
+It needs a protobuf `FileDescriptorSet` when server reflection is not enabled.
+The project client remains the regression-test tool because it uses generated
+Tonic stubs and therefore fails at compile time when the contract changes.
+
 `cargo deb` erzeugt ein optimiertes Debian-Paket unter `target/debian/`.
 Installieren lässt es sich beispielsweise mit:
 
