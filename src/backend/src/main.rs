@@ -165,7 +165,7 @@ impl MediaService for MediaServiceImpl {
     ) -> Result<Response<PlayerState>, Status> {
         Ok(Response::new(PlayerState {
             status: self.player.state().to_string(),
-            media_path: String::new(),
+            media_path: self.player.media_path(),
             position_ms: 0,
             duration_ms: 0,
         }))

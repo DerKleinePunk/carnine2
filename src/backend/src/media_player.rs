@@ -19,6 +19,7 @@ pub struct MediaPlayer {
     engine: audio_engine::ExternalProcessAudioEngine,
     playback: Mutex<Option<Box<dyn Playback>>>,
     state: Mutex<PlaybackState>,
+    media_path: Mutex<Option<String>>,
 }
 
 impl MediaPlayer {
@@ -50,6 +51,14 @@ impl MediaPlayer {
         }
     }
 
+    pub fn media_path(&self) -> String {
+        self.media_path
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone()
+            .unwrap_or_default()
+    }
+
     pub fn shutdown(&self) -> Result<()> {
         self.stop().map(|_| ())
     }
@@ -73,7 +82,12 @@ impl MediaPlayer {
         if !Path::new(input_path).is_file() {
             bail!("audio file does not exist: {input_path}");
         }
-        *playback = Some(self.engine.start(input_path)?);
+        let started_playback = self.engine.start(input_path)?;
+        *playback = Some(started_playback);
+        *self
+            .media_path
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(input_path.to_string());
         *self
             .state
             .lock()
@@ -103,6 +117,10 @@ impl MediaPlayer {
             return Ok("playback already stopped".to_string());
         };
         active_playback.stop()?;
+        *self
+            .media_path
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
         *self
             .state
             .lock()
