@@ -125,6 +125,13 @@ class MediaServiceClient extends $grpc.Client {
     return $createUnaryCall(_$previous, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.CommandResponse> playPlaylist(
+    $0.PlayPlaylistRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$playPlaylist, request, options: options);
+  }
+
   $grpc.ResponseFuture<$0.PlayerState> getPlayerState(
     $0.Empty request, {
     $grpc.CallOptions? options,
@@ -212,6 +219,11 @@ class MediaServiceClient extends $grpc.Client {
       '/carnine.MediaService/Previous',
       ($0.Empty value) => value.writeToBuffer(),
       $0.CommandResponse.fromBuffer);
+  static final _$playPlaylist =
+      $grpc.ClientMethod<$0.PlayPlaylistRequest, $0.CommandResponse>(
+          '/carnine.MediaService/PlayPlaylist',
+          ($0.PlayPlaylistRequest value) => value.writeToBuffer(),
+          $0.CommandResponse.fromBuffer);
   static final _$getPlayerState = $grpc.ClientMethod<$0.Empty, $0.PlayerState>(
       '/carnine.MediaService/GetPlayerState',
       ($0.Empty value) => value.writeToBuffer(),
@@ -299,6 +311,14 @@ abstract class MediaServiceBase extends $grpc.Service {
         false,
         false,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.CommandResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.PlayPlaylistRequest, $0.CommandResponse>(
+        'PlayPlaylist',
+        playPlaylist_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.PlayPlaylistRequest.fromBuffer(value),
         ($0.CommandResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.Empty, $0.PlayerState>(
         'GetPlayerState',
@@ -412,6 +432,14 @@ abstract class MediaServiceBase extends $grpc.Service {
 
   $async.Future<$0.CommandResponse> previous(
       $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.CommandResponse> playPlaylist_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.PlayPlaylistRequest> $request) async {
+    return playPlaylist($call, await $request);
+  }
+
+  $async.Future<$0.CommandResponse> playPlaylist(
+      $grpc.ServiceCall call, $0.PlayPlaylistRequest request);
 
   $async.Future<$0.PlayerState> getPlayerState_Pre(
       $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {

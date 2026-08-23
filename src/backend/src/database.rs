@@ -248,6 +248,18 @@ impl Database {
         Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
     }
 
+    pub fn playlist_media_paths(&self, playlist_id: i64) -> Result<Vec<(i64, String)>> {
+        let mut statement = self.connection.prepare(
+            "SELECT playlist_entries.id, media.path
+             FROM playlist_entries
+             JOIN media ON media.id = playlist_entries.media_id
+             WHERE playlist_entries.playlist_id = ?1
+             ORDER BY playlist_entries.position",
+        )?;
+        let rows = statement.query_map([playlist_id], |row| Ok((row.get(0)?, row.get(1)?)))?;
+        Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+    }
+
     pub fn save_resume_state(&self, state: &ResumeState) -> Result<()> {
         self.connection.execute(
             "INSERT INTO resume_state

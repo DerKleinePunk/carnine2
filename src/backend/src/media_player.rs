@@ -67,6 +67,37 @@ impl MediaPlayer {
         self.stop().map(|_| ())
     }
 
+    pub fn play_queue(&self, paths: Vec<String>) -> Result<String> {
+        if paths.is_empty() {
+            bail!("playlist has no playable entries");
+        }
+        if let Some(active_playback) = self
+            .playback
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take()
+        {
+            active_playback.stop()?;
+        }
+        if let Some(path) = paths.iter().find(|path| !Path::new(path).is_file()) {
+            bail!("audio file does not exist: {path}");
+        }
+        *self
+            .queue
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = paths;
+        *self
+            .queue_index
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(0);
+        let path = self
+            .queue
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())[0]
+            .clone();
+        self.start_path(&path)
+    }
+
     fn play(&self, input_path: &str) -> Result<String> {
         let playback = self
             .playback

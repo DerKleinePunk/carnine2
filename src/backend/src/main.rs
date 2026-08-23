@@ -23,9 +23,9 @@ use carnine::{
     media_service_server::{MediaService, MediaServiceServer},
     AddPlaylistEntryRequest, AudioEvent, CanData, CanDataRequest, CanDataResponse, CommandResponse,
     Configuration, ConfigurationResponse, CreatePlaylistRequest, Empty, GetPlaylistRequest,
-    LibraryEvent, ListPlaylistsResponse, PlayRequest, PlayerEvent, PlayerState, Playlist,
-    PlaylistEntry, RescanMediaRequest, SearchMediaRequest, SearchMediaResponse, ServiceVersion,
-    UpdateConfigurationRequest,
+    LibraryEvent, ListPlaylistsResponse, PlayPlaylistRequest, PlayRequest, PlayerEvent,
+    PlayerState, Playlist, PlaylistEntry, RescanMediaRequest, SearchMediaRequest,
+    SearchMediaResponse, ServiceVersion, UpdateConfigurationRequest,
 };
 
 use media_player::MediaPlayer;
@@ -182,6 +182,29 @@ impl MediaService for MediaServiceImpl {
         _request: Request<Empty>,
     ) -> Result<Response<CommandResponse>, Status> {
         self.command("previous", String::new())
+    }
+
+    async fn play_playlist(
+        &self,
+        request: Request<PlayPlaylistRequest>,
+    ) -> Result<Response<CommandResponse>, Status> {
+        let playlist_id = request.into_inner().playlist_id as i64;
+        let database = database::Database::open(&self.database_path)
+            .map_err(|error| Status::internal(error.to_string()))?;
+        let paths = database
+            .playlist_media_paths(playlist_id)
+            .map_err(|error| Status::not_found(error.to_string()))?
+            .into_iter()
+            .map(|(_, path)| path)
+            .collect();
+        let message = self
+            .player
+            .play_queue(paths)
+            .map_err(|error| Status::failed_precondition(error.to_string()))?;
+        Ok(Response::new(CommandResponse {
+            success: true,
+            message,
+        }))
     }
 
     async fn get_player_state(

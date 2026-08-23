@@ -1260,6 +1260,62 @@ class PlaylistEntry extends $pb.GeneratedMessage {
   void clearPosition() => $_clearField(4);
 }
 
+class PlayPlaylistRequest extends $pb.GeneratedMessage {
+  factory PlayPlaylistRequest({
+    $fixnum.Int64? playlistId,
+  }) {
+    final result = create();
+    if (playlistId != null) result.playlistId = playlistId;
+    return result;
+  }
+
+  PlayPlaylistRequest._();
+
+  factory PlayPlaylistRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory PlayPlaylistRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'PlayPlaylistRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..a<$fixnum.Int64>(
+        1, _omitFieldNames ? '' : 'playlistId', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PlayPlaylistRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PlayPlaylistRequest copyWith(void Function(PlayPlaylistRequest) updates) =>
+      super.copyWith((message) => updates(message as PlayPlaylistRequest))
+          as PlayPlaylistRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PlayPlaylistRequest create() => PlayPlaylistRequest._();
+  @$core.override
+  PlayPlaylistRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static PlayPlaylistRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<PlayPlaylistRequest>(create);
+  static PlayPlaylistRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get playlistId => $_getI64(0);
+  @$pb.TagNumber(1)
+  set playlistId($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPlaylistId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPlaylistId() => $_clearField(1);
+}
+
 class CreatePlaylistRequest extends $pb.GeneratedMessage {
   factory CreatePlaylistRequest({
     $core.String? name,

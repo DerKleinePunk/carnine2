@@ -13,6 +13,7 @@ service MediaService {
   rpc Stop (Empty) returns (CommandResponse);
   rpc Next (Empty) returns (CommandResponse);
   rpc Previous (Empty) returns (CommandResponse);
+  rpc PlayPlaylist (PlayPlaylistRequest) returns (CommandResponse);
   rpc GetPlayerState (Empty) returns (PlayerState);
   rpc SearchMedia (SearchMediaRequest) returns (SearchMediaResponse);
   rpc RescanMedia (RescanMediaRequest) returns (stream LibraryEvent);
@@ -124,6 +125,10 @@ message PlaylistEntry {
   uint64 playlist_id = 2;
   uint64 media_id = 3;
   uint64 position = 4;
+}
+
+message PlayPlaylistRequest {
+  uint64 playlist_id = 1;
 }
 
 message CreatePlaylistRequest {

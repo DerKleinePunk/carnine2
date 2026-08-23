@@ -292,6 +292,18 @@ final $typed_data.Uint8List playlistEntryDescriptor = $convert.base64Decode(
     'xheWxpc3RJZBIZCghtZWRpYV9pZBgDIAEoBFIHbWVkaWFJZBIaCghwb3NpdGlvbhgEIAEoBFII'
     'cG9zaXRpb24=');
 
+@$core.Deprecated('Use playPlaylistRequestDescriptor instead')
+const PlayPlaylistRequest$json = {
+  '1': 'PlayPlaylistRequest',
+  '2': [
+    {'1': 'playlist_id', '3': 1, '4': 1, '5': 4, '10': 'playlistId'},
+  ],
+};
+
+/// Descriptor for `PlayPlaylistRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List playPlaylistRequestDescriptor = $convert.base64Decode(
+    'ChNQbGF5UGxheWxpc3RSZXF1ZXN0Eh8KC3BsYXlsaXN0X2lkGAEgASgEUgpwbGF5bGlzdElk');
+
 @$core.Deprecated('Use createPlaylistRequestDescriptor instead')
 const CreatePlaylistRequest$json = {
   '1': 'CreatePlaylistRequest',
