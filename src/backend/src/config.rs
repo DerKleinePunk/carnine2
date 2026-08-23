@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize, serde::Serialize)]
 pub struct Config {
     pub server: ServerConfig,
     pub media: MediaConfig,
@@ -13,12 +13,12 @@ pub struct Config {
     pub logging: LoggingConfig,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize, serde::Serialize)]
 pub struct ServerConfig {
     pub address: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize, serde::Serialize)]
 pub struct MediaConfig {
     pub database_path: PathBuf,
     pub folders: Vec<PathBuf>,
@@ -27,7 +27,7 @@ pub struct MediaConfig {
     pub resume_mode: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize, serde::Serialize)]
 pub struct AudioConfig {
     pub backend: String,
     pub device: String,
@@ -36,7 +36,7 @@ pub struct AudioConfig {
     pub navigation_interrupt: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize, serde::Serialize)]
 pub struct LoggingConfig {
     pub directory: PathBuf,
     pub level: String,
