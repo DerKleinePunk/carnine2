@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use rusqlite::{params, Connection};
@@ -149,6 +149,34 @@ impl Database {
         Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
     }
 
+    pub fn rescan_folder(&self, folder: &Path, supported_formats: &[String]) -> Result<usize> {
+        let source_uri = folder.to_string_lossy().into_owned();
+        let source_id = self.upsert_source(&source_uri, "AVAILABLE")?;
+        let mut discovered = Vec::new();
+        collect_audio_files(folder, supported_formats, &mut discovered)?;
+        self.connection.execute(
+            "UPDATE media SET status = 'MISSING' WHERE source_id = ?1",
+            [source_id],
+        )?;
+        for path in &discovered {
+            let title = path
+                .file_stem()
+                .and_then(|value| value.to_str())
+                .unwrap_or_default()
+                .to_string();
+            self.upsert_media(&MediaRecord {
+                id: 0,
+                source_id,
+                path: path.to_string_lossy().into_owned(),
+                title,
+                artist: String::new(),
+                duration_ms: 0,
+                status: "AVAILABLE".to_string(),
+            })?;
+        }
+        Ok(discovered.len())
+    }
+
     #[cfg(test)]
     fn schema_version(&self) -> Result<i64> {
         Ok(self
@@ -157,6 +185,38 @@ impl Database {
                 row.get(0)
             })?)
     }
+}
+
+fn collect_audio_files(
+    folder: &Path,
+    supported_formats: &[String],
+    files: &mut Vec<PathBuf>,
+) -> Result<()> {
+    if !folder.is_dir() {
+        return Ok(());
+    }
+    for entry in std::fs::read_dir(folder)
+        .with_context(|| format!("failed to read media folder {}", folder.display()))?
+    {
+        let path = entry?.path();
+        if path.is_dir() {
+            collect_audio_files(&path, supported_formats, files)?;
+        } else if path.is_file()
+            && path
+                .extension()
+                .and_then(|extension| extension.to_str())
+                .map(|extension| {
+                    supported_formats
+                        .iter()
+                        .any(|format| format.eq_ignore_ascii_case(extension))
+                })
+                .unwrap_or(false)
+        {
+            files.push(path);
+        }
+    }
+    files.sort();
+    Ok(())
 }
 
 #[cfg(test)]
@@ -222,5 +282,39 @@ mod tests {
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].title, "Road Home (Edit)");
         assert_eq!(results[0].id, first_id);
+    }
+
+    #[test]
+    fn rescans_audio_files_and_marks_removed_files_missing() {
+        let folder =
+            std::env::temp_dir().join(format!("carnine-rescan-test-{}", std::process::id()));
+        let nested = folder.join("nested");
+        let _ = std::fs::remove_dir_all(&folder);
+        std::fs::create_dir_all(&nested).expect("media folder should be created");
+        let first_file = folder.join("first.mp3");
+        let second_file = nested.join("second.ogg");
+        std::fs::write(&first_file, b"test").expect("first file should be created");
+        std::fs::write(&second_file, b"test").expect("second file should be created");
+
+        let database = Database::open(":memory:").expect("database should open");
+        let formats = ["mp3".to_string(), "ogg".to_string()];
+        assert_eq!(
+            database
+                .rescan_folder(&folder, &formats)
+                .expect("rescan should succeed"),
+            2
+        );
+        std::fs::remove_file(&first_file).expect("first file should be removed");
+        assert_eq!(
+            database
+                .rescan_folder(&folder, &formats)
+                .expect("second rescan should succeed"),
+            1
+        );
+        let results = database
+            .search_media("first")
+            .expect("missing media should remain searchable");
+        assert_eq!(results[0].status, "MISSING");
+        let _ = std::fs::remove_dir_all(folder);
     }
 }
