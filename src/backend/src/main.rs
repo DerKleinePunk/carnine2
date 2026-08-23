@@ -362,7 +362,17 @@ impl MediaService for MediaServiceImpl {
         &self,
         _request: Request<Empty>,
     ) -> Result<Response<Self::StreamPlayerEventsStream>, Status> {
-        Ok(Response::new(tokio_stream::iter(Vec::new())))
+        let event = PlayerEvent {
+            event: "snapshot".to_string(),
+            state: Some(PlayerState {
+                status: self.player.state().to_string(),
+                media_path: self.player.media_path(),
+                position_ms: 0,
+                duration_ms: 0,
+            }),
+            message: "current player state".to_string(),
+        };
+        Ok(Response::new(tokio_stream::iter(vec![Ok(event)])))
     }
 }
 
@@ -701,5 +711,39 @@ mod tests {
             "scan_completed"
         );
         let _ = std::fs::remove_dir_all(folder);
+    }
+
+    #[tokio::test]
+    async fn player_event_stream_starts_with_snapshot() {
+        use tokio_stream::StreamExt;
+
+        let service = MediaServiceImpl::new(
+            &config::AudioConfig {
+                backend: "alsa".to_string(),
+                device: "default".to_string(),
+                sample_rate: 44_100,
+                channels: 2,
+                navigation_interrupt: "pause_music".to_string(),
+            },
+            std::env::temp_dir().join(format!(
+                "carnine-player-events-{}.sqlite3",
+                std::process::id()
+            )),
+            Vec::new(),
+            Vec::new(),
+        );
+        let mut events = service
+            .stream_player_events(Request::new(super::Empty {}))
+            .await
+            .expect("player events should open")
+            .into_inner();
+        let event = events
+            .next()
+            .await
+            .expect("snapshot should exist")
+            .expect("snapshot should be valid");
+
+        assert_eq!(event.event, "snapshot");
+        assert_eq!(event.state.expect("snapshot state").status, "stopped");
     }
 }
