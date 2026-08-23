@@ -355,3 +355,101 @@ async fn shutdown_signal() {
             .expect("install Ctrl+C handler");
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{configuration_from_proto, configuration_to_proto, ConfigServiceImpl};
+    use crate::carnine::config_service_server::ConfigService;
+    use crate::config;
+    use std::path::PathBuf;
+    use tonic::Request;
+
+    fn test_configuration() -> config::Config {
+        config::Config {
+            server: config::ServerConfig {
+                address: "[::1]:50051".to_string(),
+            },
+            media: config::MediaConfig {
+                database_path: PathBuf::from("/tmp/media.sqlite3"),
+                folders: vec![PathBuf::from("/tmp/media")],
+                supported_formats: vec!["mp3".to_string(), "flac".to_string()],
+                rescan_on_start: true,
+                resume_mode: "restore_paused".to_string(),
+            },
+            audio: config::AudioConfig {
+                backend: "alsa".to_string(),
+                device: "plughw:1,0".to_string(),
+                sample_rate: 44_100,
+                channels: 2,
+                navigation_interrupt: "pause_music".to_string(),
+            },
+            logging: config::LoggingConfig {
+                directory: PathBuf::from("/tmp/carnine-logs"),
+                level: "info".to_string(),
+            },
+        }
+    }
+
+    #[test]
+    fn configuration_proto_roundtrip_preserves_values() {
+        let original = test_configuration();
+        let proto = configuration_to_proto(&original);
+        let restored = configuration_from_proto(&proto).expect("configuration should be valid");
+
+        assert_eq!(restored.server.address, original.server.address);
+        assert_eq!(restored.media.database_path, original.media.database_path);
+        assert_eq!(restored.media.folders, original.media.folders);
+        assert_eq!(
+            restored.media.supported_formats,
+            original.media.supported_formats
+        );
+        assert_eq!(
+            restored.media.rescan_on_start,
+            original.media.rescan_on_start
+        );
+        assert_eq!(restored.media.resume_mode, original.media.resume_mode);
+        assert_eq!(restored.audio.backend, original.audio.backend);
+        assert_eq!(restored.audio.device, original.audio.device);
+        assert_eq!(restored.audio.sample_rate, original.audio.sample_rate);
+        assert_eq!(restored.audio.channels, original.audio.channels);
+        assert_eq!(
+            restored.audio.navigation_interrupt,
+            original.audio.navigation_interrupt
+        );
+        assert_eq!(restored.logging.directory, original.logging.directory);
+        assert_eq!(restored.logging.level, original.logging.level);
+    }
+
+    #[test]
+    fn configuration_from_proto_rejects_invalid_required_values() {
+        let mut configuration = configuration_to_proto(&test_configuration());
+        configuration.sample_rate = 0;
+
+        assert!(configuration_from_proto(&configuration).is_err());
+    }
+
+    #[tokio::test]
+    async fn update_configuration_writes_atomically_and_requires_restart() {
+        let path =
+            std::env::temp_dir().join(format!("carnine-config-test-{}.yaml", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+        let service = ConfigServiceImpl::new(test_configuration(), path.clone());
+        let response = service
+            .update_configuration(Request::new(super::UpdateConfigurationRequest {
+                configuration: Some(configuration_to_proto(&test_configuration())),
+            }))
+            .await
+            .expect("configuration update should succeed")
+            .into_inner();
+
+        assert!(response.success);
+        assert!(response.restart_required);
+        assert!(response.message.contains("restart required"));
+        assert!(path.is_file());
+        let saved = std::fs::read_to_string(&path).expect("configuration should be saved");
+        let saved_configuration: config::Config =
+            serde_yaml::from_str(&saved).expect("saved configuration should be valid YAML");
+        assert_eq!(saved_configuration.audio.device, "plughw:1,0");
+        let _ = std::fs::remove_file(path);
+    }
+}
