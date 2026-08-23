@@ -70,7 +70,7 @@
 - [ ] Finalize UDS-based gRPC transport behavior and reconnect policy
 - [ ] Add structured error taxonomy and context propagation
 - [ ] Add configuration layering (defaults, file, env overrides)
-- [ ] Implement validated, atomic YAML configuration updates through `ConfigService`
+- [x] Implement validated, atomic YAML configuration updates through `ConfigService`
 
 ### Infrastructure / DevOps
 - [ ] Establish GitHub Actions pipeline (lint, test, cross-build checks)
