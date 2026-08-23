@@ -164,3 +164,93 @@ const AudioEvent$json = {
 final $typed_data.Uint8List audioEventDescriptor = $convert.base64Decode(
     'CgpBdWRpb0V2ZW50EhQKBWV2ZW50GAEgASgJUgVldmVudBIYCgdtZXNzYWdlGAIgASgJUgdtZX'
     'NzYWdl');
+
+@$core.Deprecated('Use configurationDescriptor instead')
+const Configuration$json = {
+  '1': 'Configuration',
+  '2': [
+    {'1': 'server_address', '3': 1, '4': 1, '5': 9, '10': 'serverAddress'},
+    {'1': 'database_path', '3': 2, '4': 1, '5': 9, '10': 'databasePath'},
+    {'1': 'media_folders', '3': 3, '4': 3, '5': 9, '10': 'mediaFolders'},
+    {
+      '1': 'supported_formats',
+      '3': 4,
+      '4': 3,
+      '5': 9,
+      '10': 'supportedFormats'
+    },
+    {'1': 'rescan_on_start', '3': 5, '4': 1, '5': 8, '10': 'rescanOnStart'},
+    {'1': 'resume_mode', '3': 6, '4': 1, '5': 9, '10': 'resumeMode'},
+    {'1': 'audio_backend', '3': 7, '4': 1, '5': 9, '10': 'audioBackend'},
+    {'1': 'audio_device', '3': 8, '4': 1, '5': 9, '10': 'audioDevice'},
+    {'1': 'sample_rate', '3': 9, '4': 1, '5': 13, '10': 'sampleRate'},
+    {'1': 'channels', '3': 10, '4': 1, '5': 13, '10': 'channels'},
+    {
+      '1': 'navigation_interrupt',
+      '3': 11,
+      '4': 1,
+      '5': 9,
+      '10': 'navigationInterrupt'
+    },
+    {'1': 'log_directory', '3': 12, '4': 1, '5': 9, '10': 'logDirectory'},
+    {'1': 'log_level', '3': 13, '4': 1, '5': 9, '10': 'logLevel'},
+  ],
+};
+
+/// Descriptor for `Configuration`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List configurationDescriptor = $convert.base64Decode(
+    'Cg1Db25maWd1cmF0aW9uEiUKDnNlcnZlcl9hZGRyZXNzGAEgASgJUg1zZXJ2ZXJBZGRyZXNzEi'
+    'MKDWRhdGFiYXNlX3BhdGgYAiABKAlSDGRhdGFiYXNlUGF0aBIjCg1tZWRpYV9mb2xkZXJzGAMg'
+    'AygJUgxtZWRpYUZvbGRlcnMSKwoRc3VwcG9ydGVkX2Zvcm1hdHMYBCADKAlSEHN1cHBvcnRlZE'
+    'Zvcm1hdHMSJgoPcmVzY2FuX29uX3N0YXJ0GAUgASgIUg1yZXNjYW5PblN0YXJ0Eh8KC3Jlc3Vt'
+    'ZV9tb2RlGAYgASgJUgpyZXN1bWVNb2RlEiMKDWF1ZGlvX2JhY2tlbmQYByABKAlSDGF1ZGlvQm'
+    'Fja2VuZBIhCgxhdWRpb19kZXZpY2UYCCABKAlSC2F1ZGlvRGV2aWNlEh8KC3NhbXBsZV9yYXRl'
+    'GAkgASgNUgpzYW1wbGVSYXRlEhoKCGNoYW5uZWxzGAogASgNUghjaGFubmVscxIxChRuYXZpZ2'
+    'F0aW9uX2ludGVycnVwdBgLIAEoCVITbmF2aWdhdGlvbkludGVycnVwdBIjCg1sb2dfZGlyZWN0'
+    'b3J5GAwgASgJUgxsb2dEaXJlY3RvcnkSGwoJbG9nX2xldmVsGA0gASgJUghsb2dMZXZlbA==');
+
+@$core.Deprecated('Use updateConfigurationRequestDescriptor instead')
+const UpdateConfigurationRequest$json = {
+  '1': 'UpdateConfigurationRequest',
+  '2': [
+    {
+      '1': 'configuration',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.carnine.Configuration',
+      '10': 'configuration'
+    },
+  ],
+};
+
+/// Descriptor for `UpdateConfigurationRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List updateConfigurationRequestDescriptor =
+    $convert.base64Decode(
+        'ChpVcGRhdGVDb25maWd1cmF0aW9uUmVxdWVzdBI8Cg1jb25maWd1cmF0aW9uGAEgASgLMhYuY2'
+        'FybmluZS5Db25maWd1cmF0aW9uUg1jb25maWd1cmF0aW9u');
+
+@$core.Deprecated('Use configurationResponseDescriptor instead')
+const ConfigurationResponse$json = {
+  '1': 'ConfigurationResponse',
+  '2': [
+    {'1': 'success', '3': 1, '4': 1, '5': 8, '10': 'success'},
+    {'1': 'message', '3': 2, '4': 1, '5': 9, '10': 'message'},
+    {
+      '1': 'configuration',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.carnine.Configuration',
+      '10': 'configuration'
+    },
+    {'1': 'restart_required', '3': 4, '4': 1, '5': 8, '10': 'restartRequired'},
+  ],
+};
+
+/// Descriptor for `ConfigurationResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List configurationResponseDescriptor = $convert.base64Decode(
+    'ChVDb25maWd1cmF0aW9uUmVzcG9uc2USGAoHc3VjY2VzcxgBIAEoCFIHc3VjY2VzcxIYCgdtZX'
+    'NzYWdlGAIgASgJUgdtZXNzYWdlEjwKDWNvbmZpZ3VyYXRpb24YAyABKAsyFi5jYXJuaW5lLkNv'
+    'bmZpZ3VyYXRpb25SDWNvbmZpZ3VyYXRpb24SKQoQcmVzdGFydF9yZXF1aXJlZBgEIAEoCFIPcm'
+    'VzdGFydFJlcXVpcmVk');

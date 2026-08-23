@@ -20,6 +20,11 @@ service AudioService {
   rpc StreamAudioEvents (Empty) returns (stream AudioEvent);
 }
 
+service ConfigService {
+  rpc GetConfiguration (Empty) returns (Configuration);
+  rpc UpdateConfiguration (UpdateConfigurationRequest) returns (ConfigurationResponse);
+}
+
 message CanDataRequest {
   string sensor_id = 1;
 }
@@ -67,4 +72,31 @@ message PlayerEvent {
 message AudioEvent {
   string event = 1;
   string message = 2;
+}
+
+message Configuration {
+  string server_address = 1;
+  string database_path = 2;
+  repeated string media_folders = 3;
+  repeated string supported_formats = 4;
+  bool rescan_on_start = 5;
+  string resume_mode = 6;
+  string audio_backend = 7;
+  string audio_device = 8;
+  uint32 sample_rate = 9;
+  uint32 channels = 10;
+  string navigation_interrupt = 11;
+  string log_directory = 12;
+  string log_level = 13;
+}
+
+message UpdateConfigurationRequest {
+  Configuration configuration = 1;
+}
+
+message ConfigurationResponse {
+  bool success = 1;
+  string message = 2;
+  Configuration configuration = 3;
+  bool restart_required = 4;
 }

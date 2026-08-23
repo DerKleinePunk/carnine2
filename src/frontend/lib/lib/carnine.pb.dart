@@ -667,6 +667,347 @@ class AudioEvent extends $pb.GeneratedMessage {
   void clearMessage() => $_clearField(2);
 }
 
+class Configuration extends $pb.GeneratedMessage {
+  factory Configuration({
+    $core.String? serverAddress,
+    $core.String? databasePath,
+    $core.Iterable<$core.String>? mediaFolders,
+    $core.Iterable<$core.String>? supportedFormats,
+    $core.bool? rescanOnStart,
+    $core.String? resumeMode,
+    $core.String? audioBackend,
+    $core.String? audioDevice,
+    $core.int? sampleRate,
+    $core.int? channels,
+    $core.String? navigationInterrupt,
+    $core.String? logDirectory,
+    $core.String? logLevel,
+  }) {
+    final result = create();
+    if (serverAddress != null) result.serverAddress = serverAddress;
+    if (databasePath != null) result.databasePath = databasePath;
+    if (mediaFolders != null) result.mediaFolders.addAll(mediaFolders);
+    if (supportedFormats != null)
+      result.supportedFormats.addAll(supportedFormats);
+    if (rescanOnStart != null) result.rescanOnStart = rescanOnStart;
+    if (resumeMode != null) result.resumeMode = resumeMode;
+    if (audioBackend != null) result.audioBackend = audioBackend;
+    if (audioDevice != null) result.audioDevice = audioDevice;
+    if (sampleRate != null) result.sampleRate = sampleRate;
+    if (channels != null) result.channels = channels;
+    if (navigationInterrupt != null)
+      result.navigationInterrupt = navigationInterrupt;
+    if (logDirectory != null) result.logDirectory = logDirectory;
+    if (logLevel != null) result.logLevel = logLevel;
+    return result;
+  }
+
+  Configuration._();
+
+  factory Configuration.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory Configuration.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'Configuration',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'serverAddress')
+    ..aOS(2, _omitFieldNames ? '' : 'databasePath')
+    ..pPS(3, _omitFieldNames ? '' : 'mediaFolders')
+    ..pPS(4, _omitFieldNames ? '' : 'supportedFormats')
+    ..aOB(5, _omitFieldNames ? '' : 'rescanOnStart')
+    ..aOS(6, _omitFieldNames ? '' : 'resumeMode')
+    ..aOS(7, _omitFieldNames ? '' : 'audioBackend')
+    ..aOS(8, _omitFieldNames ? '' : 'audioDevice')
+    ..aI(9, _omitFieldNames ? '' : 'sampleRate', fieldType: $pb.PbFieldType.OU3)
+    ..aI(10, _omitFieldNames ? '' : 'channels', fieldType: $pb.PbFieldType.OU3)
+    ..aOS(11, _omitFieldNames ? '' : 'navigationInterrupt')
+    ..aOS(12, _omitFieldNames ? '' : 'logDirectory')
+    ..aOS(13, _omitFieldNames ? '' : 'logLevel')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Configuration clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Configuration copyWith(void Function(Configuration) updates) =>
+      super.copyWith((message) => updates(message as Configuration))
+          as Configuration;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static Configuration create() => Configuration._();
+  @$core.override
+  Configuration createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static Configuration getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<Configuration>(create);
+  static Configuration? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get serverAddress => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set serverAddress($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasServerAddress() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearServerAddress() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get databasePath => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set databasePath($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasDatabasePath() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDatabasePath() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $pb.PbList<$core.String> get mediaFolders => $_getList(2);
+
+  @$pb.TagNumber(4)
+  $pb.PbList<$core.String> get supportedFormats => $_getList(3);
+
+  @$pb.TagNumber(5)
+  $core.bool get rescanOnStart => $_getBF(4);
+  @$pb.TagNumber(5)
+  set rescanOnStart($core.bool value) => $_setBool(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasRescanOnStart() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearRescanOnStart() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get resumeMode => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set resumeMode($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasResumeMode() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearResumeMode() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get audioBackend => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set audioBackend($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasAudioBackend() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearAudioBackend() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get audioDevice => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set audioDevice($core.String value) => $_setString(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasAudioDevice() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearAudioDevice() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.int get sampleRate => $_getIZ(8);
+  @$pb.TagNumber(9)
+  set sampleRate($core.int value) => $_setUnsignedInt32(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasSampleRate() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearSampleRate() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.int get channels => $_getIZ(9);
+  @$pb.TagNumber(10)
+  set channels($core.int value) => $_setUnsignedInt32(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasChannels() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearChannels() => $_clearField(10);
+
+  @$pb.TagNumber(11)
+  $core.String get navigationInterrupt => $_getSZ(10);
+  @$pb.TagNumber(11)
+  set navigationInterrupt($core.String value) => $_setString(10, value);
+  @$pb.TagNumber(11)
+  $core.bool hasNavigationInterrupt() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearNavigationInterrupt() => $_clearField(11);
+
+  @$pb.TagNumber(12)
+  $core.String get logDirectory => $_getSZ(11);
+  @$pb.TagNumber(12)
+  set logDirectory($core.String value) => $_setString(11, value);
+  @$pb.TagNumber(12)
+  $core.bool hasLogDirectory() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearLogDirectory() => $_clearField(12);
+
+  @$pb.TagNumber(13)
+  $core.String get logLevel => $_getSZ(12);
+  @$pb.TagNumber(13)
+  set logLevel($core.String value) => $_setString(12, value);
+  @$pb.TagNumber(13)
+  $core.bool hasLogLevel() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearLogLevel() => $_clearField(13);
+}
+
+class UpdateConfigurationRequest extends $pb.GeneratedMessage {
+  factory UpdateConfigurationRequest({
+    Configuration? configuration,
+  }) {
+    final result = create();
+    if (configuration != null) result.configuration = configuration;
+    return result;
+  }
+
+  UpdateConfigurationRequest._();
+
+  factory UpdateConfigurationRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory UpdateConfigurationRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'UpdateConfigurationRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOM<Configuration>(1, _omitFieldNames ? '' : 'configuration',
+        subBuilder: Configuration.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UpdateConfigurationRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UpdateConfigurationRequest copyWith(
+          void Function(UpdateConfigurationRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as UpdateConfigurationRequest))
+          as UpdateConfigurationRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static UpdateConfigurationRequest create() => UpdateConfigurationRequest._();
+  @$core.override
+  UpdateConfigurationRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static UpdateConfigurationRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<UpdateConfigurationRequest>(create);
+  static UpdateConfigurationRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  Configuration get configuration => $_getN(0);
+  @$pb.TagNumber(1)
+  set configuration(Configuration value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasConfiguration() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearConfiguration() => $_clearField(1);
+  @$pb.TagNumber(1)
+  Configuration ensureConfiguration() => $_ensure(0);
+}
+
+class ConfigurationResponse extends $pb.GeneratedMessage {
+  factory ConfigurationResponse({
+    $core.bool? success,
+    $core.String? message,
+    Configuration? configuration,
+    $core.bool? restartRequired,
+  }) {
+    final result = create();
+    if (success != null) result.success = success;
+    if (message != null) result.message = message;
+    if (configuration != null) result.configuration = configuration;
+    if (restartRequired != null) result.restartRequired = restartRequired;
+    return result;
+  }
+
+  ConfigurationResponse._();
+
+  factory ConfigurationResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ConfigurationResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ConfigurationResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'success')
+    ..aOS(2, _omitFieldNames ? '' : 'message')
+    ..aOM<Configuration>(3, _omitFieldNames ? '' : 'configuration',
+        subBuilder: Configuration.create)
+    ..aOB(4, _omitFieldNames ? '' : 'restartRequired')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ConfigurationResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ConfigurationResponse copyWith(
+          void Function(ConfigurationResponse) updates) =>
+      super.copyWith((message) => updates(message as ConfigurationResponse))
+          as ConfigurationResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ConfigurationResponse create() => ConfigurationResponse._();
+  @$core.override
+  ConfigurationResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ConfigurationResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ConfigurationResponse>(create);
+  static ConfigurationResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get success => $_getBF(0);
+  @$pb.TagNumber(1)
+  set success($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasSuccess() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSuccess() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get message => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set message($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasMessage() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMessage() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  Configuration get configuration => $_getN(2);
+  @$pb.TagNumber(3)
+  set configuration(Configuration value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasConfiguration() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearConfiguration() => $_clearField(3);
+  @$pb.TagNumber(3)
+  Configuration ensureConfiguration() => $_ensure(2);
+
+  @$pb.TagNumber(4)
+  $core.bool get restartRequired => $_getBF(3);
+  @$pb.TagNumber(4)
+  set restartRequired($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasRestartRequired() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearRestartRequired() => $_clearField(4);
+}
+
 const $core.bool _omitFieldNames =
     $core.bool.fromEnvironment('protobuf.omit_field_names');
 const $core.bool _omitMessageNames =
