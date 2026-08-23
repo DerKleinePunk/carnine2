@@ -377,6 +377,278 @@ class ServiceVersion extends $pb.GeneratedMessage {
   void clearPatch() => $_clearField(3);
 }
 
+class MediaId extends $pb.GeneratedMessage {
+  factory MediaId({
+    $fixnum.Int64? value,
+  }) {
+    final result = create();
+    if (value != null) result.value = value;
+    return result;
+  }
+
+  MediaId._();
+
+  factory MediaId.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory MediaId.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'MediaId',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..a<$fixnum.Int64>(1, _omitFieldNames ? '' : 'value', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  MediaId clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  MediaId copyWith(void Function(MediaId) updates) =>
+      super.copyWith((message) => updates(message as MediaId)) as MediaId;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static MediaId create() => MediaId._();
+  @$core.override
+  MediaId createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static MediaId getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MediaId>(create);
+  static MediaId? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get value => $_getI64(0);
+  @$pb.TagNumber(1)
+  set value($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasValue() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearValue() => $_clearField(1);
+}
+
+class PlaylistEntryId extends $pb.GeneratedMessage {
+  factory PlaylistEntryId({
+    $fixnum.Int64? value,
+  }) {
+    final result = create();
+    if (value != null) result.value = value;
+    return result;
+  }
+
+  PlaylistEntryId._();
+
+  factory PlaylistEntryId.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory PlaylistEntryId.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'PlaylistEntryId',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..a<$fixnum.Int64>(1, _omitFieldNames ? '' : 'value', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PlaylistEntryId clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PlaylistEntryId copyWith(void Function(PlaylistEntryId) updates) =>
+      super.copyWith((message) => updates(message as PlaylistEntryId))
+          as PlaylistEntryId;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PlaylistEntryId create() => PlaylistEntryId._();
+  @$core.override
+  PlaylistEntryId createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static PlaylistEntryId getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<PlaylistEntryId>(create);
+  static PlaylistEntryId? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get value => $_getI64(0);
+  @$pb.TagNumber(1)
+  set value($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasValue() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearValue() => $_clearField(1);
+}
+
+class QueueEntryId extends $pb.GeneratedMessage {
+  factory QueueEntryId({
+    $fixnum.Int64? value,
+  }) {
+    final result = create();
+    if (value != null) result.value = value;
+    return result;
+  }
+
+  QueueEntryId._();
+
+  factory QueueEntryId.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory QueueEntryId.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'QueueEntryId',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..a<$fixnum.Int64>(1, _omitFieldNames ? '' : 'value', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  QueueEntryId clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  QueueEntryId copyWith(void Function(QueueEntryId) updates) =>
+      super.copyWith((message) => updates(message as QueueEntryId))
+          as QueueEntryId;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static QueueEntryId create() => QueueEntryId._();
+  @$core.override
+  QueueEntryId createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static QueueEntryId getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<QueueEntryId>(create);
+  static QueueEntryId? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get value => $_getI64(0);
+  @$pb.TagNumber(1)
+  set value($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasValue() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearValue() => $_clearField(1);
+}
+
+class SourceId extends $pb.GeneratedMessage {
+  factory SourceId({
+    $fixnum.Int64? value,
+  }) {
+    final result = create();
+    if (value != null) result.value = value;
+    return result;
+  }
+
+  SourceId._();
+
+  factory SourceId.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SourceId.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SourceId',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..a<$fixnum.Int64>(1, _omitFieldNames ? '' : 'value', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SourceId clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SourceId copyWith(void Function(SourceId) updates) =>
+      super.copyWith((message) => updates(message as SourceId)) as SourceId;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SourceId create() => SourceId._();
+  @$core.override
+  SourceId createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SourceId getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SourceId>(create);
+  static SourceId? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get value => $_getI64(0);
+  @$pb.TagNumber(1)
+  set value($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasValue() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearValue() => $_clearField(1);
+}
+
+class ScanId extends $pb.GeneratedMessage {
+  factory ScanId({
+    $fixnum.Int64? value,
+  }) {
+    final result = create();
+    if (value != null) result.value = value;
+    return result;
+  }
+
+  ScanId._();
+
+  factory ScanId.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ScanId.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ScanId',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..a<$fixnum.Int64>(1, _omitFieldNames ? '' : 'value', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ScanId clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ScanId copyWith(void Function(ScanId) updates) =>
+      super.copyWith((message) => updates(message as ScanId)) as ScanId;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ScanId create() => ScanId._();
+  @$core.override
+  ScanId createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ScanId getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ScanId>(create);
+  static ScanId? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get value => $_getI64(0);
+  @$pb.TagNumber(1)
+  set value($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasValue() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearValue() => $_clearField(1);
+}
+
 class PlayRequest extends $pb.GeneratedMessage {
   factory PlayRequest({
     $core.String? mediaPath,

@@ -52,6 +52,26 @@ message ServiceVersion {
   uint32 patch = 3;
 }
 
+message MediaId {
+  uint64 value = 1;
+}
+
+message PlaylistEntryId {
+  uint64 value = 1;
+}
+
+message QueueEntryId {
+  uint64 value = 1;
+}
+
+message SourceId {
+  uint64 value = 1;
+}
+
+message ScanId {
+  uint64 value = 1;
+}
+
 message PlayRequest {
   string media_path = 1;
 }

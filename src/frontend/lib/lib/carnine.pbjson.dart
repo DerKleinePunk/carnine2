@@ -100,6 +100,66 @@ final $typed_data.Uint8List serviceVersionDescriptor = $convert.base64Decode(
     'Cg5TZXJ2aWNlVmVyc2lvbhIUCgVtYWpvchgBIAEoDVIFbWFqb3ISFAoFbWlub3IYAiABKA1SBW'
     '1pbm9yEhQKBXBhdGNoGAMgASgNUgVwYXRjaA==');
 
+@$core.Deprecated('Use mediaIdDescriptor instead')
+const MediaId$json = {
+  '1': 'MediaId',
+  '2': [
+    {'1': 'value', '3': 1, '4': 1, '5': 4, '10': 'value'},
+  ],
+};
+
+/// Descriptor for `MediaId`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List mediaIdDescriptor =
+    $convert.base64Decode('CgdNZWRpYUlkEhQKBXZhbHVlGAEgASgEUgV2YWx1ZQ==');
+
+@$core.Deprecated('Use playlistEntryIdDescriptor instead')
+const PlaylistEntryId$json = {
+  '1': 'PlaylistEntryId',
+  '2': [
+    {'1': 'value', '3': 1, '4': 1, '5': 4, '10': 'value'},
+  ],
+};
+
+/// Descriptor for `PlaylistEntryId`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List playlistEntryIdDescriptor = $convert
+    .base64Decode('Cg9QbGF5bGlzdEVudHJ5SWQSFAoFdmFsdWUYASABKARSBXZhbHVl');
+
+@$core.Deprecated('Use queueEntryIdDescriptor instead')
+const QueueEntryId$json = {
+  '1': 'QueueEntryId',
+  '2': [
+    {'1': 'value', '3': 1, '4': 1, '5': 4, '10': 'value'},
+  ],
+};
+
+/// Descriptor for `QueueEntryId`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List queueEntryIdDescriptor =
+    $convert.base64Decode('CgxRdWV1ZUVudHJ5SWQSFAoFdmFsdWUYASABKARSBXZhbHVl');
+
+@$core.Deprecated('Use sourceIdDescriptor instead')
+const SourceId$json = {
+  '1': 'SourceId',
+  '2': [
+    {'1': 'value', '3': 1, '4': 1, '5': 4, '10': 'value'},
+  ],
+};
+
+/// Descriptor for `SourceId`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List sourceIdDescriptor =
+    $convert.base64Decode('CghTb3VyY2VJZBIUCgV2YWx1ZRgBIAEoBFIFdmFsdWU=');
+
+@$core.Deprecated('Use scanIdDescriptor instead')
+const ScanId$json = {
+  '1': 'ScanId',
+  '2': [
+    {'1': 'value', '3': 1, '4': 1, '5': 4, '10': 'value'},
+  ],
+};
+
+/// Descriptor for `ScanId`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List scanIdDescriptor =
+    $convert.base64Decode('CgZTY2FuSWQSFAoFdmFsdWUYASABKARSBXZhbHVl');
+
 @$core.Deprecated('Use playRequestDescriptor instead')
 const PlayRequest$json = {
   '1': 'PlayRequest',
