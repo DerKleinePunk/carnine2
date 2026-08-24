@@ -36,3 +36,5 @@ echo 'UUID=9fc53dee-b2df-4d93-8cb6-1c9ce509cdcd /mnt/wsl/code ext4 nofail,x-syst
 
 echo "alias podman='podman-remote-static-linux_amd64'" >> ~/.bashrc
 source ~/.bashrc
+
+https://joeferguson.me/adding-another-disk-to-wsl2/
