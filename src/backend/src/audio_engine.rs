@@ -14,6 +14,11 @@ const FADE_MILLISECONDS: u32 = 250;
 
 pub trait AudioEngine: Send + Sync {
     fn start(&self, input_path: &str) -> Result<Box<dyn Playback>>;
+
+    fn start_at(&self, input_path: &str, position_ms: i64) -> Result<Box<dyn Playback>> {
+        let _ = position_ms;
+        self.start(input_path)
+    }
 }
 
 pub trait Playback: Send {
@@ -54,7 +59,15 @@ impl ExternalProcessAudioEngine {
 
 impl AudioEngine for ExternalProcessAudioEngine {
     fn start(&self, input_path: &str) -> Result<Box<dyn Playback>> {
-        Ok(Box::new(ProcessPlayback::start(input_path, self)?))
+        self.start_at(input_path, 0)
+    }
+
+    fn start_at(&self, input_path: &str, position_ms: i64) -> Result<Box<dyn Playback>> {
+        Ok(Box::new(ProcessPlayback::start(
+            input_path,
+            self,
+            position_ms,
+        )?))
     }
 }
 
@@ -68,7 +81,11 @@ struct ProcessPlayback {
 }
 
 impl ProcessPlayback {
-    fn start(input_path: &str, engine: &ExternalProcessAudioEngine) -> Result<Self> {
+    fn start(
+        input_path: &str,
+        engine: &ExternalProcessAudioEngine,
+        position_ms: i64,
+    ) -> Result<Self> {
         let mut audio_output = start_audio_output(engine)?;
         let mut decoder = Command::new("ffmpeg")
             .args([
@@ -76,6 +93,8 @@ impl ProcessPlayback {
                 "-loglevel",
                 "error",
                 "-nostdin",
+                "-ss",
+                &format!("{:.3}", position_ms.max(0) as f64 / 1_000.0),
                 "-i",
                 input_path,
                 "-vn",

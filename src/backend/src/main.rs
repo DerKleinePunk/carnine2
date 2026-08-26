@@ -31,6 +31,7 @@ use carnine::{
     SearchMediaResponse, ServiceVersion, UpdateConfigurationRequest,
 };
 
+use database::ResumeState;
 use media_player::MediaPlayer;
 
 #[derive(Debug, Default)]
@@ -42,6 +43,7 @@ pub struct MediaServiceImpl {
     database_path: PathBuf,
     media_folders: Vec<PathBuf>,
     supported_formats: Vec<String>,
+    resume_mode: String,
 }
 
 pub struct ConfigServiceImpl {
@@ -72,13 +74,44 @@ impl MediaServiceImpl {
         database_path: PathBuf,
         media_folders: Vec<PathBuf>,
         supported_formats: Vec<String>,
+        resume_mode: String,
     ) -> Self {
         Self {
             player: Arc::new(MediaPlayer::from_audio_config(audio_config)),
             database_path,
             media_folders,
             supported_formats,
+            resume_mode,
         }
+    }
+
+    fn save_resume_state(&self) -> anyhow::Result<()> {
+        let database = database::Database::open(&self.database_path)?;
+        database.save_resume_state(&ResumeState {
+            playlist_id: self.player.playlist_id(),
+            playlist_entry_id: self.player.playlist_entry_id(),
+            position_ms: self.player.position_ms(),
+            resume_mode: self.resume_mode.clone(),
+        })
+    }
+
+    fn restore_resume_state(&self) -> anyhow::Result<()> {
+        let database = database::Database::open(&self.database_path)?;
+        let Some(state) = database.load_resume_state()? else {
+            return Ok(());
+        };
+        let Some(playlist_id) = state.playlist_id else {
+            return Ok(());
+        };
+        let entries = database.playlist_media_paths(playlist_id)?;
+        self.player.play_playlist(
+            playlist_id,
+            entries,
+            state.playlist_entry_id,
+            state.position_ms,
+            &self.resume_mode,
+        )?;
+        Ok(())
     }
 
     fn rescan_library(&self) -> anyhow::Result<()> {
@@ -201,18 +234,31 @@ impl MediaService for MediaServiceImpl {
         request: Request<PlayPlaylistRequest>,
     ) -> Result<Response<CommandResponse>, Status> {
         let playlist_id = request.into_inner().playlist_id as i64;
+        let resume_state = database::Database::open(&self.database_path)
+            .map_err(|error| Status::internal(error.to_string()))?
+            .load_resume_state()
+            .map_err(|error| Status::internal(error.to_string()))?;
         let database = database::Database::open(&self.database_path)
             .map_err(|error| Status::internal(error.to_string()))?;
-        let paths = database
+        let entries = database
             .playlist_media_paths(playlist_id)
-            .map_err(|error| Status::not_found(error.to_string()))?
-            .into_iter()
-            .map(|(_, path)| path)
-            .collect();
+            .map_err(|error| Status::not_found(error.to_string()))?;
+        let (resume_entry_id, resume_position_ms) = resume_state
+            .filter(|state| state.playlist_id == Some(playlist_id))
+            .map(|state| (state.playlist_entry_id, state.position_ms))
+            .unwrap_or((None, 0));
         let message = self
             .player
-            .play_queue(paths)
+            .play_playlist(
+                playlist_id,
+                entries,
+                resume_entry_id,
+                resume_position_ms,
+                &self.resume_mode,
+            )
             .map_err(|error| Status::failed_precondition(error.to_string()))?;
+        self.save_resume_state()
+            .map_err(|error| Status::internal(error.to_string()))?;
         Ok(Response::new(CommandResponse {
             success: true,
             message,
@@ -410,6 +456,10 @@ impl MediaServiceImpl {
         command: &str,
         parameters: String,
     ) -> Result<Response<CommandResponse>, Status> {
+        if command == "stop" {
+            self.save_resume_state()
+                .map_err(|error| Status::internal(error.to_string()))?;
+        }
         let message = self
             .player
             .execute(command, &parameters)
@@ -571,7 +621,9 @@ async fn main() -> Result<()> {
         configuration.media.database_path.clone(),
         configuration.media.folders.clone(),
         configuration.media.supported_formats.clone(),
+        configuration.media.resume_mode.clone(),
     );
+    media_service.restore_resume_state()?;
     storage_events::spawn(Arc::new(media_service.clone()));
     let media_player = Arc::clone(&media_service.player);
     let config_service = ConfigServiceImpl::new(configuration.clone(), configuration_path);
@@ -579,12 +631,13 @@ async fn main() -> Result<()> {
     info!("Starting gRPC server on {}", addr);
     Server::builder()
         .add_service(CarnineServiceServer::new(carnine_service))
-        .add_service(MediaServiceServer::new(media_service))
+        .add_service(MediaServiceServer::new(media_service.clone()))
         .add_service(AudioServiceServer::new(AudioServiceImpl::default()))
         .add_service(ConfigServiceServer::new(config_service))
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;
 
+    media_service.save_resume_state()?;
     media_player.shutdown()?;
     warn!("gRPC server stopped");
     Ok(())
@@ -619,6 +672,7 @@ mod tests {
         RescanMediaRequest,
     };
     use crate::config;
+    use crate::database;
     use std::path::PathBuf;
     use tokio_stream::StreamExt;
     use tonic::Request;
@@ -734,6 +788,7 @@ mod tests {
             database_path,
             vec![folder.clone()],
             vec!["mp3".to_string()],
+            "restore_paused".to_string(),
         );
         let response = service
             .rescan_media(Request::new(RescanMediaRequest {}))
@@ -776,6 +831,7 @@ mod tests {
             )),
             Vec::new(),
             Vec::new(),
+            "restore_paused".to_string(),
         );
         let mut events = service
             .stream_player_events(Request::new(super::Empty {}))
@@ -800,5 +856,83 @@ mod tests {
 
         assert_eq!(event.event, "error");
         assert!(event.message.contains("unknown media command"));
+    }
+
+    #[test]
+    fn service_persists_and_restores_playlist_resume_context() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-resume-service-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&database_path);
+        let database = database::Database::open(&database_path).expect("database should open");
+        let source_id = database
+            .upsert_source("/music", "AVAILABLE")
+            .expect("source should save");
+        let media_id = database
+            .upsert_media(&database::MediaRecord {
+                id: 0,
+                source_id,
+                path: "/music/last.mp3".to_string(),
+                title: "Last".to_string(),
+                artist: "Artist".to_string(),
+                duration_ms: 100_000,
+                status: "AVAILABLE".to_string(),
+            })
+            .expect("media should save");
+        let playlist_id = database
+            .create_playlist("Resume")
+            .expect("playlist should save");
+        let playlist_entry_id = database
+            .add_playlist_entry(playlist_id, media_id)
+            .expect("playlist entry should save");
+        drop(database);
+        let audio_config = config::AudioConfig {
+            backend: "alsa".to_string(),
+            device: "default".to_string(),
+            sample_rate: 44_100,
+            channels: 2,
+            navigation_interrupt: "pause_music".to_string(),
+        };
+        let service = MediaServiceImpl::new(
+            &audio_config,
+            database_path.clone(),
+            Vec::new(),
+            Vec::new(),
+            "restore_paused".to_string(),
+        );
+        service
+            .player
+            .play_playlist(
+                playlist_id,
+                vec![(playlist_entry_id, "/music/last.mp3".to_string())],
+                Some(playlist_entry_id),
+                12_345,
+                "restore_paused",
+            )
+            .expect("resume context should load");
+        service
+            .save_resume_state()
+            .expect("resume context should save");
+
+        let restored_service = MediaServiceImpl::new(
+            &audio_config,
+            database_path.clone(),
+            Vec::new(),
+            Vec::new(),
+            "restore_paused".to_string(),
+        );
+        restored_service
+            .restore_resume_state()
+            .expect("resume context should restore");
+
+        assert_eq!(restored_service.player.playlist_id(), Some(playlist_id));
+        assert_eq!(
+            restored_service.player.playlist_entry_id(),
+            Some(playlist_entry_id)
+        );
+        assert_eq!(restored_service.player.position_ms(), 12_345);
+        assert_eq!(restored_service.player.state(), "paused");
+        let _ = std::fs::remove_file(database_path);
     }
 }
