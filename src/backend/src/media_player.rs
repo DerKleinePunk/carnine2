@@ -4,8 +4,8 @@ use std::sync::Mutex;
 use anyhow::{anyhow, bail, Context, Result};
 use tokio::sync::broadcast;
 
-use crate::carnine::{PlayerEvent, PlayerState};
 use crate::audio_engine::{self, AudioEngine, Playback};
+use crate::carnine::{PlayerEvent, PlayerState};
 use crate::config::AudioConfig;
 
 #[derive(Debug, Clone, Copy, Default)]

@@ -110,8 +110,8 @@ impl ConfigService for ConfigServiceImpl {
             .map_err(|error| Status::invalid_argument(error.to_string()))?;
         let updated = configuration_from_proto(&configuration)
             .map_err(|error| Status::invalid_argument(error.to_string()))?;
-        let toml =
-            toml::to_string_pretty(&updated).map_err(|error| Status::internal(error.to_string()))?;
+        let toml = toml::to_string_pretty(&updated)
+            .map_err(|error| Status::internal(error.to_string()))?;
         let temporary_path = self.path.with_extension("toml.tmp");
         fs::write(&temporary_path, toml).map_err(|error| Status::internal(error.to_string()))?;
         fs::rename(&temporary_path, &self.path)
@@ -557,12 +557,13 @@ async fn main() -> Result<()> {
             )
         })?;
     }
-    let _database = database::Database::open(&configuration.media.database_path).with_context(|| {
-        format!(
-            "cannot open database {}; check its permissions or use a writable development path",
-            configuration.media.database_path.display()
-        )
-    })?;
+    let _database =
+        database::Database::open(&configuration.media.database_path).with_context(|| {
+            format!(
+                "cannot open database {}; check its permissions or use a writable development path",
+                configuration.media.database_path.display()
+            )
+        })?;
     let addr = configuration.server.address.parse()?;
     let carnine_service = CarnineServiceImpl::default();
     let media_service = MediaServiceImpl::new(
