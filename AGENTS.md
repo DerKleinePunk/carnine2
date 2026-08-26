@@ -41,6 +41,8 @@ carnine2/
 2. **Check arc42 documentation** for architectural context
 3. **Follow CONTRIBUTING.md** guidelines for pull requests
 4. **Respect the Code of Conduct** in all interactions
+5. **Format and validate changed code** before finishing: run the language-
+	specific formatter, its check mode where available, and the relevant tests
 
 ## Quick Links
 
