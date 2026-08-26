@@ -155,6 +155,15 @@ class MediaServiceClient extends $grpc.Client {
         options: options);
   }
 
+  $grpc.ResponseStream<$0.LibraryEvent> streamLibraryEvents(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$streamLibraryEvents, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
   $grpc.ResponseFuture<$0.Playlist> createPlaylist(
     $0.CreatePlaylistRequest request, {
     $grpc.CallOptions? options,
@@ -237,6 +246,11 @@ class MediaServiceClient extends $grpc.Client {
       $grpc.ClientMethod<$0.RescanMediaRequest, $0.LibraryEvent>(
           '/carnine.MediaService/RescanMedia',
           ($0.RescanMediaRequest value) => value.writeToBuffer(),
+          $0.LibraryEvent.fromBuffer);
+  static final _$streamLibraryEvents =
+      $grpc.ClientMethod<$0.Empty, $0.LibraryEvent>(
+          '/carnine.MediaService/StreamLibraryEvents',
+          ($0.Empty value) => value.writeToBuffer(),
           $0.LibraryEvent.fromBuffer);
   static final _$createPlaylist =
       $grpc.ClientMethod<$0.CreatePlaylistRequest, $0.Playlist>(
@@ -343,6 +357,13 @@ abstract class MediaServiceBase extends $grpc.Service {
         true,
         ($core.List<$core.int> value) =>
             $0.RescanMediaRequest.fromBuffer(value),
+        ($0.LibraryEvent value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.LibraryEvent>(
+        'StreamLibraryEvents',
+        streamLibraryEvents_Pre,
+        false,
+        true,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($0.LibraryEvent value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.CreatePlaylistRequest, $0.Playlist>(
         'CreatePlaylist',
@@ -464,6 +485,14 @@ abstract class MediaServiceBase extends $grpc.Service {
 
   $async.Stream<$0.LibraryEvent> rescanMedia(
       $grpc.ServiceCall call, $0.RescanMediaRequest request);
+
+  $async.Stream<$0.LibraryEvent> streamLibraryEvents_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async* {
+    yield* streamLibraryEvents($call, await $request);
+  }
+
+  $async.Stream<$0.LibraryEvent> streamLibraryEvents(
+      $grpc.ServiceCall call, $0.Empty request);
 
   $async.Future<$0.Playlist> createPlaylist_Pre($grpc.ServiceCall $call,
       $async.Future<$0.CreatePlaylistRequest> $request) async {

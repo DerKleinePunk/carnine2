@@ -17,6 +17,7 @@ service MediaService {
   rpc GetPlayerState (Empty) returns (PlayerState);
   rpc SearchMedia (SearchMediaRequest) returns (SearchMediaResponse);
   rpc RescanMedia (RescanMediaRequest) returns (stream LibraryEvent);
+  rpc StreamLibraryEvents (Empty) returns (stream LibraryEvent);
   rpc CreatePlaylist (CreatePlaylistRequest) returns (Playlist);
   rpc ListPlaylists (Empty) returns (ListPlaylistsResponse);
   rpc AddPlaylistEntry (AddPlaylistEntryRequest) returns (PlaylistEntry);

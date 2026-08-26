@@ -1,9 +1,11 @@
 use std::pin::Pin;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::{fs, path::PathBuf, sync::Mutex};
 
 use anyhow::{bail, Context, Result};
 use futures_util::StreamExt;
+use tokio::sync::broadcast;
 use tonic::{transport::Server, Request, Response, Status};
 use tracing::{info, warn};
 use tracing_appender::rolling;
@@ -44,6 +46,8 @@ pub struct MediaServiceImpl {
     media_folders: Vec<PathBuf>,
     supported_formats: Vec<String>,
     resume_mode: String,
+    library_events: broadcast::Sender<LibraryEvent>,
+    next_scan_id: Arc<AtomicU64>,
 }
 
 pub struct ConfigServiceImpl {
@@ -76,12 +80,15 @@ impl MediaServiceImpl {
         supported_formats: Vec<String>,
         resume_mode: String,
     ) -> Self {
+        let (library_events, _) = broadcast::channel(64);
         Self {
             player: Arc::new(MediaPlayer::from_audio_config(audio_config)),
             database_path,
             media_folders,
             supported_formats,
             resume_mode,
+            library_events,
+            next_scan_id: Arc::new(AtomicU64::new(1)),
         }
     }
 
@@ -114,10 +121,52 @@ impl MediaServiceImpl {
         Ok(())
     }
 
-    fn rescan_library(&self) -> anyhow::Result<()> {
+    fn scan_events(&self) -> anyhow::Result<Vec<LibraryEvent>> {
         let database = database::Database::open(&self.database_path)?;
+        let scan_id = self.next_scan_id.fetch_add(1, Ordering::Relaxed);
+        let mut events = vec![LibraryEvent {
+            event: "scan_started".to_string(),
+            scan_id,
+            ..Default::default()
+        }];
+        let mut processed = 0_u64;
+        let mut imported = 0_u64;
         for folder in &self.media_folders {
-            database.rescan_folder(folder, &self.supported_formats)?;
+            match database.rescan_folder(folder, &self.supported_formats) {
+                Ok(count) => {
+                    imported += count as u64;
+                    processed += count as u64;
+                    events.push(LibraryEvent {
+                        event: "progress".to_string(),
+                        scan_id,
+                        processed,
+                        imported,
+                        path: folder.display().to_string(),
+                        ..Default::default()
+                    });
+                }
+                Err(error) => events.push(LibraryEvent {
+                    event: "error".to_string(),
+                    scan_id,
+                    path: folder.display().to_string(),
+                    message: error.to_string(),
+                    ..Default::default()
+                }),
+            }
+        }
+        events.push(LibraryEvent {
+            event: "scan_completed".to_string(),
+            scan_id,
+            processed,
+            imported,
+            ..Default::default()
+        });
+        Ok(events)
+    }
+
+    fn rescan_library(&self) -> anyhow::Result<()> {
+        for event in self.scan_events()? {
+            let _ = self.library_events.send(event);
         }
         Ok(())
     }
@@ -163,8 +212,29 @@ impl ConfigService for ConfigServiceImpl {
     }
 }
 
-#[derive(Debug, Default)]
-pub struct AudioServiceImpl;
+pub struct AudioServiceImpl {
+    events: broadcast::Sender<AudioEvent>,
+    backend: String,
+    device: String,
+}
+
+impl AudioServiceImpl {
+    fn new(configuration: &config::AudioConfig) -> Self {
+        let (events, _) = broadcast::channel(32);
+        Self {
+            events,
+            backend: configuration.backend.clone(),
+            device: configuration.device.clone(),
+        }
+    }
+
+    pub fn publish(&self, event: &str, message: impl Into<String>) {
+        let _ = self.events.send(AudioEvent {
+            event: event.to_string(),
+            message: message.into(),
+        });
+    }
+}
 
 #[tonic::async_trait]
 impl CarnineService for CarnineServiceImpl {
@@ -191,6 +261,8 @@ impl MediaService for MediaServiceImpl {
     type StreamPlayerEventsStream =
         Pin<Box<dyn futures_util::Stream<Item = Result<PlayerEvent, Status>> + Send>>;
     type RescanMediaStream = tokio_stream::Iter<std::vec::IntoIter<Result<LibraryEvent, Status>>>;
+    type StreamLibraryEventsStream =
+        Pin<Box<dyn futures_util::Stream<Item = Result<LibraryEvent, Status>> + Send>>;
 
     async fn get_service_version(
         &self,
@@ -304,47 +376,23 @@ impl MediaService for MediaServiceImpl {
         &self,
         _request: Request<RescanMediaRequest>,
     ) -> Result<Response<Self::RescanMediaStream>, Status> {
-        let database = database::Database::open(&self.database_path)
+        let events = self
+            .scan_events()
             .map_err(|error| Status::internal(error.to_string()))?;
-        let mut events = vec![LibraryEvent {
-            event: "scan_started".to_string(),
-            scan_id: 1,
-            ..Default::default()
-        }];
-        let mut processed = 0_u64;
-        let mut imported = 0_u64;
-        for folder in &self.media_folders {
-            match database.rescan_folder(folder, &self.supported_formats) {
-                Ok(count) => {
-                    imported += count as u64;
-                    processed += count as u64;
-                    events.push(LibraryEvent {
-                        event: "progress".to_string(),
-                        scan_id: 1,
-                        processed,
-                        imported,
-                        path: folder.display().to_string(),
-                        ..Default::default()
-                    });
-                }
-                Err(error) => events.push(LibraryEvent {
-                    event: "error".to_string(),
-                    scan_id: 1,
-                    path: folder.display().to_string(),
-                    message: error.to_string(),
-                    ..Default::default()
-                }),
-            }
+        for event in &events {
+            let _ = self.library_events.send(event.clone());
         }
-        events.push(LibraryEvent {
-            event: "scan_completed".to_string(),
-            scan_id: 1,
-            processed,
-            imported,
-            ..Default::default()
-        });
         let events = events.into_iter().map(Ok).collect::<Vec<_>>();
         Ok(Response::new(tokio_stream::iter(events)))
+    }
+
+    async fn stream_library_events(
+        &self,
+        _request: Request<Empty>,
+    ) -> Result<Response<Self::StreamLibraryEventsStream>, Status> {
+        let updates = tokio_stream::wrappers::BroadcastStream::new(self.library_events.subscribe())
+            .filter_map(|event| async move { event.ok().map(Ok) });
+        Ok(Response::new(Box::pin(updates)))
     }
 
     async fn create_playlist(
@@ -474,7 +522,7 @@ impl MediaServiceImpl {
 #[tonic::async_trait]
 impl AudioService for AudioServiceImpl {
     type StreamAudioEventsStream =
-        tokio_stream::Iter<std::vec::IntoIter<Result<AudioEvent, Status>>>;
+        Pin<Box<dyn futures_util::Stream<Item = Result<AudioEvent, Status>> + Send>>;
 
     async fn get_service_version(
         &self,
@@ -491,7 +539,13 @@ impl AudioService for AudioServiceImpl {
         &self,
         _request: Request<Empty>,
     ) -> Result<Response<Self::StreamAudioEventsStream>, Status> {
-        Ok(Response::new(tokio_stream::iter(Vec::new())))
+        let snapshot = tokio_stream::once(Ok(AudioEvent {
+            event: "audio_ready".to_string(),
+            message: format!("audio backend {} on {}", self.backend, self.device),
+        }));
+        let updates = tokio_stream::wrappers::BroadcastStream::new(self.events.subscribe())
+            .filter_map(|event| async move { event.ok().map(Ok) });
+        Ok(Response::new(Box::pin(snapshot.chain(updates))))
     }
 }
 
@@ -632,7 +686,9 @@ async fn main() -> Result<()> {
     Server::builder()
         .add_service(CarnineServiceServer::new(carnine_service))
         .add_service(MediaServiceServer::new(media_service.clone()))
-        .add_service(AudioServiceServer::new(AudioServiceImpl::default()))
+        .add_service(AudioServiceServer::new(AudioServiceImpl::new(
+            &configuration.audio,
+        )))
         .add_service(ConfigServiceServer::new(config_service))
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;
@@ -665,11 +721,11 @@ async fn shutdown_signal() {
 
 #[cfg(test)]
 mod tests {
-    use super::MediaServiceImpl;
     use super::{configuration_from_proto, configuration_to_proto, ConfigServiceImpl};
+    use super::{AudioServiceImpl, MediaServiceImpl};
     use crate::carnine::{
-        config_service_server::ConfigService, media_service_server::MediaService,
-        RescanMediaRequest,
+        audio_service_server::AudioService, config_service_server::ConfigService,
+        media_service_server::MediaService, Empty, RescanMediaRequest,
     };
     use crate::config;
     use crate::database;
@@ -856,6 +912,65 @@ mod tests {
 
         assert_eq!(event.event, "error");
         assert!(event.message.contains("unknown media command"));
+    }
+
+    #[tokio::test]
+    async fn library_event_stream_receives_rescan_events() {
+        let folder =
+            std::env::temp_dir().join(format!("carnine-library-events-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&folder);
+        std::fs::create_dir_all(&folder).expect("media folder should be created");
+        let service = MediaServiceImpl::new(
+            &test_configuration().audio,
+            folder.join("media.sqlite3"),
+            vec![folder.clone()],
+            vec!["mp3".to_string()],
+            "restore_paused".to_string(),
+        );
+        let mut events = service
+            .stream_library_events(Request::new(Empty {}))
+            .await
+            .expect("library events should open")
+            .into_inner();
+
+        service
+            .rescan_media(Request::new(RescanMediaRequest {}))
+            .await
+            .expect("rescan should succeed");
+
+        let event = events
+            .next()
+            .await
+            .expect("scan event should arrive")
+            .expect("scan event should be valid");
+        assert_eq!(event.event, "scan_started");
+        let _ = std::fs::remove_dir_all(folder);
+    }
+
+    #[tokio::test]
+    async fn audio_event_stream_starts_with_status_and_receives_updates() {
+        let service = AudioServiceImpl::new(&test_configuration().audio);
+        let mut events = service
+            .stream_audio_events(Request::new(Empty {}))
+            .await
+            .expect("audio events should open")
+            .into_inner();
+
+        let snapshot = events
+            .next()
+            .await
+            .expect("audio snapshot should arrive")
+            .expect("audio snapshot should be valid");
+        assert_eq!(snapshot.event, "audio_ready");
+        assert!(snapshot.message.contains("plughw:1,0"));
+
+        service.publish("device_changed", "audio device changed");
+        let event = events
+            .next()
+            .await
+            .expect("audio update should arrive")
+            .expect("audio update should be valid");
+        assert_eq!(event.event, "device_changed");
     }
 
     #[test]

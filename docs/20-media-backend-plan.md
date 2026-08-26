@@ -258,12 +258,21 @@ Liefert:
 - nicht lesbare Dateien mit Fehler
 - Scan abgeschlossen oder fehlgeschlagen
 
+Der `MediaService.StreamLibraryEvents`-Stream bleibt fuer verbundene Clients
+offen. Ein vollstaendiger Rescan veroeffentlicht dieselben Ereignisse wie sein
+direkter `RescanMedia`-Rueckgabestream. `scan_id` unterscheidet parallele
+Rescans; ein Client darf bei einem ueberlaufenen Broadcast-Puffer veraltete
+Ereignisse verwerfen und auf den naechsten Scan warten.
+
 ### Audiostream
 
 Dies ist kein Audio-Datenstrom. Er liefert Status- und Steuerereignisse des
 zentralen Audio-Managers, spaeter zum Beispiel:
 
-- Audioquelle gestartet oder beendet
+- `audio_ready` mit Backend und Ausgabegeraet beim Verbinden
+- `device_changed` bei einer Aenderung des Ausgabegeraets
+- `source_started` und `source_stopped` beim Wechsel der Audioquelle
+- `audio_error` bei einem Fehler des Audio-Managers
 - Navigationsansage gestartet oder beendet
 - Ducking gestartet oder beendet
 - Musik pausiert oder fortgesetzt
