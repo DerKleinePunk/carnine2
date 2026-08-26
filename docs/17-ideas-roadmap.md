@@ -37,6 +37,9 @@
 
 ### Media: Deferred
 - [ ] USB medium plugin/service and automatic mount or insertion detection
+- [x] Define and document systemd/D-Bus storage-event integration (selected `udisks2` API) before implementation
+- [x] Implement the systemd-managed storage event listener for block-device add/remove and mount-state changes, then notify the media service
+- [ ] Validate UDisks2 add/remove and mount events with a real USB device on the Raspberry Pi
 - [ ] Settings UI for media folders and playlist resume mode
 - [ ] Queue editing, direct track selection, seek RPC, shuffle, and advanced queue operations
 - [ ] M3U import/export
@@ -52,7 +55,8 @@
 - [ ] Integrate CAN telemetry ingestion with bounded update rates and UI throttling
 - [ ] Add offline cache synchronization strategy for navigation/media metadata
 - [ ] Introduce authenticated LAN remote control endpoint (no WAN exposure)
-- [ ] Add systemd unit files, service recovery on power cycles, and graceful `SIGTERM` shutdown of audio playback
+- [ ] Add the systemd unit to the Debos image, service recovery on power cycles, and graceful `SIGTERM` shutdown of audio playback
+- [ ] Install the backend Debian package and its systemd unit as part of the Debos image build
 
 ### Long-term Vision
 - [ ] Companion app operating only inside trusted LAN/VPN boundary
@@ -71,7 +75,7 @@
 - [ ] Finalize UDS-based gRPC transport behavior and reconnect policy
 - [ ] Add structured error taxonomy and context propagation
 - [x] Add configuration layering (defaults, file, env overrides)
-- [x] Implement validated, atomic YAML configuration updates through `ConfigService`
+- [x] Implement validated, atomic TOML configuration updates through `ConfigService`
 
 ### Infrastructure / DevOps
 - [ ] Establish GitHub Actions pipeline (lint, test, cross-build checks)

@@ -47,6 +47,21 @@ The deployment architecture emphasizes reliability, minimal resource consumption
 
 ### Raspberry Pi (Runtime Only)
 
+#### Carnine Runtime User
+
+The backend runs as the dedicated system user `carnine`. The user has no
+interactive login and is a member of the `audio` group. Debos creates the
+following runtime directories:
+
+- `/etc/carnine`: owned by `root:carnine`, mode `0770`
+- `/var/lib/carnine`: owned by `carnine:carnine`, mode `0750`
+- `/var/log/carnine`: owned by `carnine:carnine`, mode `0750`
+
+The runtime configuration `/etc/carnine/config.toml` is owned by
+`root:carnine` with mode `0660`. The directory permission is required because
+the backend persists configuration updates atomically by replacing a temporary
+file with `rename`.
+
 #### Operating System
 - **OS**: Raspberry Pi OS (Debian‑based, 64‑bit preferred)
   • Kernel 5.10+ with `CONFIG_CAN=y`

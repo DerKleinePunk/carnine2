@@ -76,6 +76,7 @@ actions:
       - ffmpeg
       - pulseaudio-utils
       - alsa-utils
+      - udisks2
 
   - action: run
     description: Install RPi bootloader files
@@ -99,6 +100,27 @@ actions:
       adduser --gecos "Raspberry Pi User" --disabled-password --shell /bin/bash pi
       adduser pi sudo
       echo pi:{{ $rootpassword }} | chpasswd
+
+      addgroup --system carnine
+      adduser --system --ingroup carnine --no-create-home --home /nonexistent --shell /usr/sbin/nologin carnine
+      adduser carnine audio
+
+      install -d -o carnine -g carnine -m 0750 /var/lib/carnine
+      install -d -o carnine -g carnine -m 0750 /var/lib/carnine/media
+      install -d -o carnine -g carnine -m 0750 /var/log/carnine
+      install -d -o root -g carnine -m 0770 /etc/carnine
+
+  - action: overlay
+    description: Install Carnine runtime configuration
+    origin: ../config/carnine.toml
+    destination: /etc/carnine/config.toml
+
+  - action: run
+    description: Set Carnine configuration permissions
+    chroot: true
+    command: |
+      chown root:carnine /etc/carnine/config.toml
+      chmod 0660 /etc/carnine/config.toml
 
   - action: run
     description: Set up hostname

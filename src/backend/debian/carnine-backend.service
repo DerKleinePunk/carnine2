@@ -1,0 +1,17 @@
+[Unit]
+Description=Carnine Backend
+After=network.target udisks2.service sound.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=carnine
+Group=carnine
+SupplementaryGroups=audio
+ExecStart=/usr/bin/carnine-backend
+Environment=CARNINE_CONFIG=/etc/carnine/config.toml
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

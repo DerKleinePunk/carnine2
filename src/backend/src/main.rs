@@ -15,6 +15,7 @@ mod audio_engine;
 mod config;
 mod database;
 mod media_player;
+mod storage_events;
 
 use carnine::{
     audio_service_server::{AudioService, AudioServiceServer},
@@ -33,6 +34,7 @@ use media_player::MediaPlayer;
 #[derive(Debug, Default)]
 pub struct CarnineServiceImpl;
 
+#[derive(Clone)]
 pub struct MediaServiceImpl {
     player: Arc<MediaPlayer>,
     database_path: PathBuf,
@@ -76,6 +78,14 @@ impl MediaServiceImpl {
             supported_formats,
         }
     }
+
+    fn rescan_library(&self) -> anyhow::Result<()> {
+        let database = database::Database::open(&self.database_path)?;
+        for folder in &self.media_folders {
+            database.rescan_folder(folder, &self.supported_formats)?;
+        }
+        Ok(())
+    }
 }
 
 #[tonic::async_trait]
@@ -98,10 +108,10 @@ impl ConfigService for ConfigServiceImpl {
             .map_err(|error| Status::invalid_argument(error.to_string()))?;
         let updated = configuration_from_proto(&configuration)
             .map_err(|error| Status::invalid_argument(error.to_string()))?;
-        let yaml =
-            serde_yaml::to_string(&updated).map_err(|error| Status::internal(error.to_string()))?;
-        let temporary_path = self.path.with_extension("yaml.tmp");
-        fs::write(&temporary_path, yaml).map_err(|error| Status::internal(error.to_string()))?;
+        let toml =
+            toml::to_string_pretty(&updated).map_err(|error| Status::internal(error.to_string()))?;
+        let temporary_path = self.path.with_extension("toml.tmp");
+        fs::write(&temporary_path, toml).map_err(|error| Status::internal(error.to_string()))?;
         fs::rename(&temporary_path, &self.path)
             .map_err(|error| Status::internal(error.to_string()))?;
         *self
@@ -566,6 +576,7 @@ async fn main() -> Result<()> {
         configuration.media.folders.clone(),
         configuration.media.supported_formats.clone(),
     );
+    storage_events::spawn(Arc::new(media_service.clone()));
     let media_player = Arc::clone(&media_service.player);
     let config_service = ConfigServiceImpl::new(configuration.clone(), configuration_path);
 
@@ -683,7 +694,7 @@ mod tests {
     #[tokio::test]
     async fn update_configuration_writes_atomically_and_requires_restart() {
         let path =
-            std::env::temp_dir().join(format!("carnine-config-test-{}.yaml", std::process::id()));
+            std::env::temp_dir().join(format!("carnine-config-test-{}.toml", std::process::id()));
         let _ = std::fs::remove_file(&path);
         let service = ConfigServiceImpl::new(test_configuration(), path.clone());
         let response = service
@@ -700,7 +711,7 @@ mod tests {
         assert!(path.is_file());
         let saved = std::fs::read_to_string(&path).expect("configuration should be saved");
         let saved_configuration: config::Config =
-            serde_yaml::from_str(&saved).expect("saved configuration should be valid YAML");
+            toml::from_str(&saved).expect("saved configuration should be valid TOML");
         assert_eq!(saved_configuration.audio.device, "plughw:1,0");
         let _ = std::fs::remove_file(path);
     }

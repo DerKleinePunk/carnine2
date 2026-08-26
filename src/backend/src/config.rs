@@ -83,13 +83,13 @@ impl Config {
         let path = env::var_os("CARNINE_CONFIG")
             .map(PathBuf::from)
             .or_else(|| {
-                let system_path = Path::new("/etc/carnine/config.yaml");
+                let system_path = Path::new("/etc/carnine/config.toml");
                 system_path.is_file().then(|| system_path.to_path_buf())
             })
-            .unwrap_or_else(|| PathBuf::from("../../resources/config/carnine.yaml"));
+            .unwrap_or_else(|| PathBuf::from("../../resources/config/carnine.toml"));
         let content = fs::read_to_string(&path)
             .with_context(|| format!("failed to read configuration {}", path.display()))?;
-        let mut config: Config = serde_yaml::from_str(&content)
+        let mut config: Config = toml::from_str(&content)
             .with_context(|| format!("failed to parse configuration {}", path.display()))?;
         if let Some(log_directory) = env::var_os("CARNINE_LOG_DIRECTORY") {
             config.logging.directory = PathBuf::from(log_directory);
@@ -115,7 +115,7 @@ mod tests {
     #[test]
     fn loads_repository_configuration() {
         let (config, path) = Config::load().expect("repository config should load");
-        assert!(path.ends_with("resources/config/carnine.yaml"));
+        assert!(path.ends_with("resources/config/carnine.toml"));
         assert_eq!(config.server.address, "[::1]:50051");
         assert_eq!(config.audio.device, "plughw:1,0");
     }

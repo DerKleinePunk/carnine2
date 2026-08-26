@@ -170,31 +170,34 @@ Implement custom CAN-bus handler in Rust backend with direct RS232 communication
 
 ---
 
-## ADR-007: Configuration Management - Rust `LazyLock` Static with TOML Files
+## ADR-007: Configuration Management - TOML Files with Typed gRPC Service
 
 **Status:** Accepted
 
 **Context:**
-System needs configuration for various parameters (update URLs, API keys, default preferences, CAN interface settings). Configuration should be readable/maintainable and loaded once at startup.
+System needs configuration for hardware, media, audio, logging, and deployment-specific parameters. The configuration must be readable, validated, persistable, and changeable through the frontend without allowing the UI to write system files directly.
 
 **Decision:**
-Use TOML files for configuration storage with Rust `static` variables wrapped in `LazyLock` for thread-safe global access.
+Use TOML files for configuration storage. The versioned template is located at `resources/config/carnine.toml`; the installed system uses `/etc/carnine/config.toml`. The Rust backend loads the configuration at startup and exposes it through the typed gRPC `ConfigService`, which owns validated updates and atomic persistence.
 
 **Rationale:**
-- **Human-readable**: TOML is easier to understand than JSON or YAML for manual editing
-- **Lazy initialization**: `LazyLock` loads config only when first accessed; avoids startup overhead
-- **Thread-safe**: Multiple tasks can safely read shared config
-- **Type-safe**: Rust deserialization ensures config validity at startup
+- **Human-readable**: TOML is easy to inspect and edit for deployment and hardware settings
+- **Type-safe**: Rust deserialization and validation reject invalid configuration at startup or update time
+- **Controlled writes**: The backend owns persistence, preventing direct UI access to the system configuration file
+- **Atomic updates**: Accepted changes are written to a temporary file and renamed into place
+- **Thread-safe service state**: `ConfigServiceImpl` protects the active configuration with a mutex
 
 **Alternatives considered:**
 - Environment variables – fine for simple settings; difficult for nested configs
 - JSON – less readable; more verbose
-- Dynamic reload – adds complexity; state management challenges
+- Global `LazyLock` state – unsuitable for the mutable configuration exposed by the update service
+- Direct UI file access – unsafe and couples the frontend to filesystem permissions and paths
 
 **Consequences:**
-- Config must be valid TOML; errors halt startup (intentional for safety)
-- Configuration changes require process restart
-- Clear separation between code and configuration
+- Config must be valid TOML and pass backend validation; errors halt startup or reject an update
+- The current update service persists changes atomically and reports that a restart is required
+- The frontend remains independent of the file format and filesystem path
+- Secrets are not stored in the versioned configuration template
 
 ---
 
@@ -332,6 +335,72 @@ Use Tokio tasks for concurrent work; synchronize via `tokio::sync` channels and 
 - Must understand async/await patterns and Tokio APIs
 - Excellent runtime efficiency
 - No data races possible (enforced by compiler)
+
+---
+
+## ADR-013: Backend Runtime Identity - Dedicated System User
+
+**Status:** Accepted
+
+**Context:**
+The backend needs access to audio hardware, media data, logs, and its runtime
+configuration. Running it as `root` would provide unnecessary privileges, while
+using the interactive `pi` account would couple the service to a human login.
+
+**Decision:**
+Run the backend as the dedicated system user `carnine`, without an interactive
+login. The user is a member of the `audio` group and owns the backend's media
+and log directories. The configuration directory is owned by `root:carnine`
+and is group-writable so the backend can persist validated updates atomically.
+
+**Rationale:**
+- **Least privilege**: The backend does not need a root shell or unrestricted filesystem access
+- **Stable deployment**: Service permissions do not depend on the `pi` user's login
+- **Hardware access**: Audio access is explicit through the `audio` group
+- **Atomic configuration updates**: Group write access to `/etc/carnine` permits temporary-file replacement without making the file world-writable
+
+**Alternatives considered:**
+- `root` – unnecessary privileges and greater impact of a backend vulnerability
+- `pi` – interactive account and unclear service ownership
+- World-writable configuration – insecure and not acceptable for a service that accepts remote configuration requests
+
+**Consequences:**
+- The system image must create the `carnine` user and required directories
+- A future systemd unit must run with `User=carnine` and `Group=carnine`
+- Changes to the backend's required device or filesystem access must be reflected in the image recipe and this decision
+
+---
+
+## ADR-014: Removable Media Detection - UDisks2 over D-Bus
+
+**Status:** Accepted
+
+**Context:**
+The media library must react when removable storage is added, removed, or
+mounted. Polling the filesystem is inefficient and cannot reliably distinguish
+device and mount state changes on the Raspberry Pi.
+
+**Decision:**
+The Rust backend listens on the system D-Bus for signals from `udisks2`. The
+listener reacts to `InterfacesAdded`, `InterfacesRemoved`, and
+`PropertiesChanged` signals below `/org/freedesktop/UDisks2`, then starts a
+media-library rescan. The `udisks2` package is part of the Raspberry Pi image.
+
+**Rationale:**
+- **Standard Linux integration**: UDisks2 provides the platform service for block devices and mount state
+- **Event-driven behavior**: The backend does not need to poll for new media
+- **Single process**: The listener remains inside the backend and avoids another IPC protocol
+- **Graceful degradation**: A missing D-Bus or UDisks2 service disables automatic detection but does not stop the backend
+
+**Alternatives considered:**
+- Filesystem polling – wastes resources and has race conditions around mounts
+- Direct udev monitoring – exposes device events but not the complete user-space mount state
+- Separate storage-monitor process – adds process and IPC complexity for a feature owned by the media service
+
+**Consequences:**
+- The image must install and run `udisks2` with a system D-Bus
+- A storage signal can trigger more than one rescan; debouncing and source-specific filtering remain follow-up work
+- Automatic detection is limited to events visible through UDisks2
 
 ---
 

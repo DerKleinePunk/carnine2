@@ -18,8 +18,10 @@ Hinweis zur YAML-Pruefung:
 
 `raspbian.yaml` ist ein Debos-Template und enthaelt deshalb zusaetzlich
 Template-Ausdruecke wie `{{ ... }}`. Diese Datei wird nicht mit `yamllint`
-geprueft. Normale YAML-Dateien, zum Beispiel
-`resources/config/carnine.yaml`, werden weiterhin mit `yamllint` validiert.
+geprueft. Die Runtime-Konfiguration liegt als TOML-Datei unter
+`resources/config/carnine.toml` und wird durch das Rust-Backend validiert.
+Das Image-Rezept installiert sie nach `/etc/carnine/config.toml` und legt den
+dedizierten Systembenutzer `carnine` sowie die benoetigten Rechte an.
 
 WSL Share teilen
 

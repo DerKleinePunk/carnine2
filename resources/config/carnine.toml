@@ -1,0 +1,23 @@
+# Carnine backend runtime configuration
+# Installed target path: /etc/carnine/config.toml
+
+[server]
+address = "[::1]:50051"
+
+[media]
+database_path = "/var/lib/carnine/media.sqlite3"
+folders = ["/var/lib/carnine/media"]
+supported_formats = ["mp3", "flac", "ogg"]
+rescan_on_start = false
+resume_mode = "restore_paused"
+
+[audio]
+backend = "alsa"
+device = "plughw:1,0"
+sample_rate = 44100
+channels = 2
+navigation_interrupt = "pause_music"
+
+[logging]
+directory = "/var/log/carnine"
+level = "info"

@@ -7,7 +7,7 @@ Supplementary information and quick reference material.
 - Backend source: `src/backend`
 - Frontend source: `src/frontend`
 - Architecture docs: `docs`
-- Runtime config target (planned): `/etc/carnine/`
+- Runtime config target (planned): `/etc/carnine/config.toml`
 - Runtime logs target (planned): `/var/log/carnine/`
 - Deployment target root (planned): `/opt/carnine/`
 

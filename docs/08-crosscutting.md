@@ -67,8 +67,8 @@ This section describes architectural principles, patterns, and technologies that
 
 ### Configuration Sources
 - **Static Config**: Compiled-in defaults for hardware-specific settings
-- **Runtime Config**: YAML file at `/etc/carnine/config.yaml` for deployment and user preferences
-- **Repository Template**: `resources/config/carnine.yaml` is the versioned example and image-install source
+- **Runtime Config**: TOML file at `/etc/carnine/config.toml` for deployment and user preferences
+- **Repository Template**: `resources/config/carnine.toml` is the versioned example and image-install source
 - **Environment Variables**: Only for deployment-specific overrides (e.g., CAN bitrate or `CARNINE_LOG_DIRECTORY` during development)
 
 ### Hot Reloading
@@ -76,7 +76,7 @@ This section describes architectural principles, patterns, and technologies that
 - **Feature Flags**: Runtime toggles for experimental features
 
 ### UI Configuration Changes
-- The Flutter UI never writes `/etc/carnine/config.yaml` directly.
+- The Flutter UI never writes `/etc/carnine/config.toml` directly.
 - A dedicated, typed `ConfigService` exposes read and update RPCs.
 - The backend validates every update, rejects unsupported or unsafe values, and
 	persists accepted changes atomically.

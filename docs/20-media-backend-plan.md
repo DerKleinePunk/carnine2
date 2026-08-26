@@ -92,8 +92,8 @@ der ersten Version nicht programmatisch abgefragt.
 ## Konfiguration
 
 Die versionierte Laufzeit-Konfigurationsvorlage liegt in
-`resources/config/carnine.yaml`. Im installierten System wird sie als
-`/etc/carnine/config.yaml` verwendet. Das Debos-Rezept
+`resources/config/carnine.toml`. Im installierten System wird sie als
+`/etc/carnine/config.toml` verwendet. Das Debos-Rezept
 `resources/debos/raspbian.yaml` bleibt ausschliesslich fuer Image-Aufbau und
 Pakete zustaendig.
 

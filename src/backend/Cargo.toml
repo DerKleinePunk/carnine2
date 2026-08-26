@@ -11,11 +11,13 @@ section = "utils"
 priority = "optional"
 maintainer = "Carnine Project"
 copyright = "Copyright 2026 Carnine Project"
-depends = "$auto, ffmpeg, alsa-utils, pulseaudio-utils"
+depends = "$auto, ffmpeg, alsa-utils, pulseaudio-utils, udisks2"
 extended-description = "Carnine backend service providing the gRPC interface for vehicle data and commands."
 assets = [
 	["target/release/carnine-backend", "usr/bin/carnine-backend", "755"],
 ]
+maintainer-scripts = "debian/"
+systemd-units = { enable = true, start = true }
 
 [features]
 direct-ffmpeg-library-spike = ["dep:ffmpeg-next"]
@@ -27,8 +29,9 @@ required-features = ["direct-ffmpeg-library-spike"]
 [dependencies]
 anyhow = "1.0"
 chrono = "0.4"
+futures-util = "0.3"
 serde = { version = "1.0", features = ["derive"] }
-serde_yaml = "0.9"
+toml = "0.8"
 serde_json = "1.0"
 rusqlite = { version = "0.32", features = ["bundled"] }
 tokio = { version = "1.38", features = ["macros", "rt-multi-thread", "signal"] }
@@ -36,6 +39,7 @@ tokio-stream = "0.1"
 tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+zbus = "5"
 tonic = "0.12"
 prost = "0.13"
 ffmpeg-next = { version = "8", optional = true }
