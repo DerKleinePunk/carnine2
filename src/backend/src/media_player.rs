@@ -18,7 +18,7 @@ enum PlaybackState {
 }
 
 pub struct MediaPlayer {
-    engine: audio_engine::ExternalProcessAudioEngine,
+    engine: Box<dyn AudioEngine>,
     playback: Mutex<Option<Box<dyn Playback>>>,
     state: Mutex<PlaybackState>,
     queue: Mutex<Vec<String>>,
@@ -35,7 +35,7 @@ impl Default for MediaPlayer {
     fn default() -> Self {
         let (events, _) = broadcast::channel(32);
         Self {
-            engine: audio_engine::ExternalProcessAudioEngine::default(),
+            engine: Box::new(audio_engine::ExternalProcessAudioEngine::default()),
             playback: Mutex::new(None),
             state: Mutex::new(PlaybackState::default()),
             queue: Mutex::new(Vec::new()),
@@ -53,7 +53,16 @@ impl Default for MediaPlayer {
 impl MediaPlayer {
     pub fn from_audio_config(config: &AudioConfig) -> Self {
         Self {
-            engine: audio_engine::ExternalProcessAudioEngine::from_config(config),
+            engine: Box::new(audio_engine::ExternalProcessAudioEngine::from_config(
+                config,
+            )),
+            ..Self::default()
+        }
+    }
+
+    pub(crate) fn with_engine(engine: Box<dyn AudioEngine>) -> Self {
+        Self {
+            engine,
             ..Self::default()
         }
     }
@@ -82,6 +91,14 @@ impl MediaPlayer {
             event: "snapshot".to_string(),
             state: Some(self.player_state()),
             message: "current player state".to_string(),
+        }
+    }
+
+    pub fn position_event(&self) -> PlayerEvent {
+        PlayerEvent {
+            event: "position_changed".to_string(),
+            state: Some(self.player_state()),
+            message: "playback position updated".to_string(),
         }
     }
 
@@ -485,5 +502,19 @@ mod tests {
 
         assert_eq!(player.position_ms(), 0);
         assert_eq!(player.state(), "paused");
+    }
+
+    #[test]
+    fn position_event_uses_the_live_player_state() {
+        let player = player();
+
+        let event = player.position_event();
+
+        assert_eq!(event.event, "position_changed");
+        assert_eq!(
+            event.state.expect("position state should exist").status,
+            "stopped"
+        );
+        assert_eq!(event.message, "playback position updated");
     }
 }

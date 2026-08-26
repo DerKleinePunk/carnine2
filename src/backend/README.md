@@ -50,7 +50,24 @@ The generated-stub gRPC smoke client can be used without Flutter:
 cargo run --example media_grpc_client -- http://[::1]:50051 version
 cargo run --example media_grpc_client -- http://[::1]:50051 state
 cargo run --example media_grpc_client -- http://[::1]:50051 smoke /path/to/audio.mp3
+cargo run --example media_grpc_client -- http://[::1]:50051 playlist 1
+cargo run --example media_grpc_client -- http://[::1]:50051 player-events [count]
+cargo run --example media_grpc_client -- http://[::1]:50051 library-events [count]
+cargo run --example media_grpc_client -- http://[::1]:50051 library-smoke
+cargo run --example media_grpc_client -- http://[::1]:50051 audio-events [count]
+cargo run --example media_grpc_client -- http://[::1]:50051 rescan
+cargo run --example media_grpc_client -- http://[::1]:50051 event-smoke /path/to/audio.mp3
 ```
+
+`player-events`, `library-events` und `audio-events` lesen standardmaessig ein
+Ereignis. Mit `[count]` kann ein Entwickler mehrere Nachrichten beobachten.
+Waehren der Player laeuft, erzeugt `player-events` einmal pro Sekunde ein
+`position_changed`-Ereignis mit der aktuellen Wiedergabeposition. Der erste
+Ticker-Impuls erfolgt direkt nach dem Verbinden.
+`library-smoke` oeffnet zuerst den dauerhaften Library-Stream und startet dann
+mit einem zweiten Client einen Rescan. `event-smoke` prueft entsprechend den
+Player-Snapshot und das Live-Event nach dem Start eines Titels. `playlist <id>`
+verwendet den konfigurierten Resume-Modus des Backends.
 
 For manual, dynamic gRPC exploration, `granc` is a suitable external tool.
 It needs a protobuf `FileDescriptorSet` when server reflection is not enabled.

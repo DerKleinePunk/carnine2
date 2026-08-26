@@ -1,6 +1,7 @@
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 use std::{fs, path::PathBuf, sync::Mutex};
 
 use anyhow::{bail, Context, Result};
@@ -83,6 +84,26 @@ impl MediaServiceImpl {
         let (library_events, _) = broadcast::channel(64);
         Self {
             player: Arc::new(MediaPlayer::from_audio_config(audio_config)),
+            database_path,
+            media_folders,
+            supported_formats,
+            resume_mode,
+            library_events,
+            next_scan_id: Arc::new(AtomicU64::new(1)),
+        }
+    }
+
+    #[cfg(test)]
+    fn with_player(
+        player: MediaPlayer,
+        database_path: PathBuf,
+        media_folders: Vec<PathBuf>,
+        supported_formats: Vec<String>,
+        resume_mode: String,
+    ) -> Self {
+        let (library_events, _) = broadcast::channel(64);
+        Self {
+            player: Arc::new(player),
             database_path,
             media_folders,
             supported_formats,
@@ -344,7 +365,7 @@ impl MediaService for MediaServiceImpl {
         Ok(Response::new(PlayerState {
             status: self.player.state().to_string(),
             media_path: self.player.media_path(),
-            position_ms: 0,
+            position_ms: self.player.position_ms(),
             duration_ms: 0,
         }))
     }
@@ -492,8 +513,18 @@ impl MediaService for MediaServiceImpl {
         _request: Request<Empty>,
     ) -> Result<Response<Self::StreamPlayerEventsStream>, Status> {
         let snapshot = tokio_stream::once(Ok(self.player.snapshot_event()));
-        let updates = tokio_stream::wrappers::BroadcastStream::new(self.player.subscribe_events())
-            .filter_map(|event| async move { event.ok().map(Ok) });
+        let command_updates =
+            tokio_stream::wrappers::BroadcastStream::new(self.player.subscribe_events())
+                .filter_map(|event| async move { event.ok().map(Ok) });
+        let player = Arc::clone(&self.player);
+        let position_updates = tokio_stream::wrappers::IntervalStream::new(tokio::time::interval(
+            Duration::from_secs(1),
+        ))
+        .filter_map(move |_| {
+            let player = Arc::clone(&player);
+            async move { (player.state() == "playing").then(|| Ok(player.position_event())) }
+        });
+        let updates = tokio_stream::StreamExt::merge(command_updates, position_updates);
         Ok(Response::new(Box::pin(snapshot.chain(updates))))
     }
 }
@@ -723,15 +754,43 @@ async fn shutdown_signal() {
 mod tests {
     use super::{configuration_from_proto, configuration_to_proto, ConfigServiceImpl};
     use super::{AudioServiceImpl, MediaServiceImpl};
+    use crate::audio_engine::{AudioEngine, Playback};
     use crate::carnine::{
         audio_service_server::AudioService, config_service_server::ConfigService,
         media_service_server::MediaService, Empty, RescanMediaRequest,
     };
     use crate::config;
     use crate::database;
+    use crate::media_player::MediaPlayer;
+    use anyhow::Result;
     use std::path::PathBuf;
+    use std::time::Duration;
     use tokio_stream::StreamExt;
     use tonic::Request;
+
+    struct FakePlayback;
+
+    impl Playback for FakePlayback {
+        fn pause(&self) -> Result<()> {
+            Ok(())
+        }
+
+        fn resume(&self) -> Result<()> {
+            Ok(())
+        }
+
+        fn stop(self: Box<Self>) -> Result<()> {
+            Ok(())
+        }
+    }
+
+    struct FakeAudioEngine;
+
+    impl AudioEngine for FakeAudioEngine {
+        fn start(&self, _input_path: &str) -> Result<Box<dyn Playback>> {
+            Ok(Box::new(FakePlayback))
+        }
+    }
 
     fn test_configuration() -> config::Config {
         config::Config {
@@ -912,6 +971,68 @@ mod tests {
 
         assert_eq!(event.event, "error");
         assert!(event.message.contains("unknown media command"));
+    }
+
+    #[tokio::test]
+    async fn player_event_stream_emits_position_updates_while_playing() {
+        let player = MediaPlayer::with_engine(Box::new(FakeAudioEngine));
+        let service = MediaServiceImpl::with_player(
+            player,
+            std::env::temp_dir().join(format!(
+                "carnine-position-events-{}.sqlite3",
+                std::process::id()
+            )),
+            Vec::new(),
+            Vec::new(),
+            "restore_paused".to_string(),
+        );
+        let mut events = service
+            .stream_player_events(Request::new(Empty {}))
+            .await
+            .expect("player events should open")
+            .into_inner();
+        let snapshot = events
+            .next()
+            .await
+            .expect("snapshot should exist")
+            .expect("snapshot should be valid");
+        assert_eq!(snapshot.event, "snapshot");
+
+        service
+            .player
+            .play_playlist(
+                1,
+                vec![(1, "fake-audio.mp3".to_string())],
+                None,
+                0,
+                "auto-play",
+            )
+            .expect("fake playback should start");
+
+        let started = events
+            .next()
+            .await
+            .expect("start event should arrive")
+            .expect("start event should be valid");
+        assert_eq!(started.event, "playback_started");
+
+        let first = tokio::time::timeout(Duration::from_secs(2), events.next())
+            .await
+            .expect("first position event should arrive")
+            .expect("position stream should remain open")
+            .expect("first position event should be valid");
+        let second = tokio::time::timeout(Duration::from_secs(2), events.next())
+            .await
+            .expect("second position event should arrive")
+            .expect("position stream should remain open")
+            .expect("second position event should be valid");
+
+        assert_eq!(first.event, "position_changed");
+        assert_eq!(second.event, "position_changed");
+        assert!(
+            second.state.expect("second state should exist").position_ms
+                >= first.state.expect("first state should exist").position_ms
+        );
     }
 
     #[tokio::test]
