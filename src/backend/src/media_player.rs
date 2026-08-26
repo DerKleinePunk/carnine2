@@ -1,8 +1,10 @@
 use std::path::Path;
 use std::sync::Mutex;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
+use tokio::sync::broadcast;
 
+use crate::carnine::{PlayerEvent, PlayerState};
 use crate::audio_engine::{self, AudioEngine, Playback};
 use crate::config::AudioConfig;
 
@@ -14,7 +16,6 @@ enum PlaybackState {
     Paused,
 }
 
-#[derive(Default)]
 pub struct MediaPlayer {
     engine: audio_engine::ExternalProcessAudioEngine,
     playback: Mutex<Option<Box<dyn Playback>>>,
@@ -22,6 +23,22 @@ pub struct MediaPlayer {
     queue: Mutex<Vec<String>>,
     queue_index: Mutex<Option<usize>>,
     media_path: Mutex<Option<String>>,
+    events: broadcast::Sender<PlayerEvent>,
+}
+
+impl Default for MediaPlayer {
+    fn default() -> Self {
+        let (events, _) = broadcast::channel(32);
+        Self {
+            engine: audio_engine::ExternalProcessAudioEngine::default(),
+            playback: Mutex::new(None),
+            state: Mutex::new(PlaybackState::default()),
+            queue: Mutex::new(Vec::new()),
+            queue_index: Mutex::new(None),
+            media_path: Mutex::new(None),
+            events,
+        }
+    }
 }
 
 impl MediaPlayer {
@@ -33,13 +50,29 @@ impl MediaPlayer {
     }
 
     pub fn execute(&self, command: &str, parameters: &str) -> Result<String> {
-        match command.trim().to_ascii_lowercase().as_str() {
+        let result = match command.trim().to_ascii_lowercase().as_str() {
             "play" | "resume" => self.play(parameters),
             "pause" => self.pause(),
             "stop" => self.stop(),
             "next" => self.next(),
             "previous" => self.previous(),
-            unknown => bail!("unknown media command: {unknown}"),
+            unknown => Err(anyhow!("unknown media command: {unknown}")),
+        };
+        if let Err(error) = &result {
+            self.publish("error", error.to_string());
+        }
+        result
+    }
+
+    pub fn subscribe_events(&self) -> broadcast::Receiver<PlayerEvent> {
+        self.events.subscribe()
+    }
+
+    pub fn snapshot_event(&self) -> PlayerEvent {
+        PlayerEvent {
+            event: "snapshot".to_string(),
+            state: Some(self.player_state()),
+            message: "current player state".to_string(),
         }
     }
 
@@ -61,6 +94,23 @@ impl MediaPlayer {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .clone()
             .unwrap_or_default()
+    }
+
+    fn player_state(&self) -> PlayerState {
+        PlayerState {
+            status: self.state().to_string(),
+            media_path: self.media_path(),
+            position_ms: 0,
+            duration_ms: 0,
+        }
+    }
+
+    fn publish(&self, event: &str, message: impl Into<String>) {
+        let _ = self.events.send(PlayerEvent {
+            event: event.to_string(),
+            state: Some(self.player_state()),
+            message: message.into(),
+        });
     }
 
     pub fn shutdown(&self) -> Result<()> {
@@ -109,6 +159,7 @@ impl MediaPlayer {
                 .state
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner()) = PlaybackState::Playing;
+            self.publish("resumed", "playback resumed");
             return Ok("playback resumed".to_string());
         }
         if input_path.is_empty() {
@@ -143,6 +194,7 @@ impl MediaPlayer {
             .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = PlaybackState::Playing;
+        self.publish("playback_started", "playback started");
         Ok("playback started".to_string())
     }
 
@@ -189,6 +241,7 @@ impl MediaPlayer {
             .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = PlaybackState::Playing;
+        self.publish("track_changed", "playback switched");
         Ok("playback switched".to_string())
     }
 
@@ -202,6 +255,7 @@ impl MediaPlayer {
             .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = PlaybackState::Paused;
+        self.publish("paused", "playback paused");
         Ok("playback paused".to_string())
     }
 
@@ -226,6 +280,7 @@ impl MediaPlayer {
             .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = PlaybackState::Stopped;
+        self.publish("stopped", "playback stopped");
         Ok("playback stopped".to_string())
     }
 }

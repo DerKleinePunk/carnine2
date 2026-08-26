@@ -1,7 +1,9 @@
+use std::pin::Pin;
 use std::sync::Arc;
 use std::{fs, path::PathBuf, sync::Mutex};
 
 use anyhow::{bail, Context, Result};
+use futures_util::StreamExt;
 use tonic::{transport::Server, Request, Response, Status};
 use tracing::{info, warn};
 use tracing_appender::rolling;
@@ -154,7 +156,7 @@ impl CarnineService for CarnineServiceImpl {
 #[tonic::async_trait]
 impl MediaService for MediaServiceImpl {
     type StreamPlayerEventsStream =
-        tokio_stream::Iter<std::vec::IntoIter<Result<PlayerEvent, Status>>>;
+        Pin<Box<dyn futures_util::Stream<Item = Result<PlayerEvent, Status>> + Send>>;
     type RescanMediaStream = tokio_stream::Iter<std::vec::IntoIter<Result<LibraryEvent, Status>>>;
 
     async fn get_service_version(
@@ -395,17 +397,10 @@ impl MediaService for MediaServiceImpl {
         &self,
         _request: Request<Empty>,
     ) -> Result<Response<Self::StreamPlayerEventsStream>, Status> {
-        let event = PlayerEvent {
-            event: "snapshot".to_string(),
-            state: Some(PlayerState {
-                status: self.player.state().to_string(),
-                media_path: self.player.media_path(),
-                position_ms: 0,
-                duration_ms: 0,
-            }),
-            message: "current player state".to_string(),
-        };
-        Ok(Response::new(tokio_stream::iter(vec![Ok(event)])))
+        let snapshot = tokio_stream::once(Ok(self.player.snapshot_event()));
+        let updates = tokio_stream::wrappers::BroadcastStream::new(self.player.subscribe_events())
+            .filter_map(|event| async move { event.ok().map(Ok) });
+        Ok(Response::new(Box::pin(snapshot.chain(updates))))
     }
 }
 
@@ -794,5 +789,15 @@ mod tests {
 
         assert_eq!(event.event, "snapshot");
         assert_eq!(event.state.expect("snapshot state").status, "stopped");
+
+        let _ = service.player.execute("invalid", "");
+        let event = events
+            .next()
+            .await
+            .expect("error event should arrive")
+            .expect("error event should be valid");
+
+        assert_eq!(event.event, "error");
+        assert!(event.message.contains("unknown media command"));
     }
 }
