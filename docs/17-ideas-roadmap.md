@@ -32,7 +32,7 @@
 - [x] Implement persistent playlists and temporary queue semantics
 - [x] Implement backend-owned playback state and play/pause/stop/next/previous
 - [x] Implement initial player snapshot and library rescan event stream
-- [ ] Implement live player and audio event streams
+- [x] Implement live player and audio event streams
 - [x] Package the selected audio dependencies in the Debos image and backend Debian package
 
 ### Media: Deferred

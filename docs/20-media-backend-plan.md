@@ -399,6 +399,9 @@ Erledigt:
 - gespeicherte Playlists koennen ueber `PlayPlaylist` in die temporaere Player-Queue geladen werden
 - typisierte Medienmodell-IDs im Proto-Vertrag definiert
 - MediaService mit Play, Pause, Stop, Resume und Player-Status implementiert
+- Resume-Zustand mit Playlist, Queue und Wiedergabeposition integriert
+- echte Player-Live-Events ueber einen Broadcast-Kanal implementiert
+- Bibliotheks- und Audio-Ereignisstreams vervollstaendigt
 - Stop-Fade und graceful `SIGTERM`-Beendigung auf dem Raspberry Pi validiert
 - Debian-/Debos-Audioabhaengigkeiten und ARM64-Paketierung validiert
 - vollstaendigen Linux-Build fuer Backend, Paket und Flutter-Bundle validiert
@@ -418,6 +421,3 @@ Noch offen:
   als spaetere Referenzimplementierung pruefen
 - konkrete Laufzeituebernahme aenderbarer Audio- und Medienkonfiguration ohne
   Neustart
-- Resume-Zustand mit Playlist, Queue und Wiedergabeposition integrieren
-- echte Player-Live-Events ueber einen Broadcast-Kanal implementieren
-- Bibliotheks- und Audio-Ereignisstreams vervollstaendigen
