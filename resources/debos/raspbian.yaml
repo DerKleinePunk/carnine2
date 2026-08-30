@@ -1,5 +1,6 @@
 {{- $image := or .image "raspbian.img" -}}
 {{- $rootpassword := or .rootpassword "raspberry" -}}
+{{- $target_hostname := or .target_hostname "carnine-pc" -}}
 
 architecture: arm64
 
@@ -61,8 +62,7 @@ actions:
       - dracut
       - firmware-brcm80211
       - iproute2
-      - linux-image-rpi-2712
-      - linux-image-rpi-v8
+      - parted
       - netbase
       - openssh-server
       - raspi-firmware
@@ -79,6 +79,49 @@ actions:
       - udisks2
       - plymouth
       - plymouth-themes
+      - zstd
+
+  - action: run
+    description: Defer automatic Dracut kernel hook
+    chroot: true
+    command: mv /etc/kernel/postinst.d/dracut /etc/kernel/postinst.d/dracut.disabled
+
+  - action: apt
+    description: Install RPi kernel packages
+    packages:
+      - linux-image-rpi-2712
+      - linux-image-rpi-v8
+
+  - action: run
+    description: Reduce boot-time storage I/O
+    chroot: true
+    command: |
+      install -d /etc/systemd/journald.conf.d
+      printf '%s\n' '[Journal]' 'Storage=volatile' > /etc/systemd/journald.conf.d/volatile.conf
+
+      install -d /etc/systemd/system
+      for unit in dpkg-db-backup.service dpkg-db-backup.timer e2scrub_all.service e2scrub_all.timer e2scrub_reap.service; do
+        ln -sf /dev/null "/etc/systemd/system/$unit"
+      done
+
+  - action: overlay
+    description: Install first-boot root filesystem expansion service
+    origin: recipe
+    source: expand-rootfs.service
+    destination: /etc/systemd/system/expand-rootfs.service
+
+  - action: overlay
+    description: Install first-boot root filesystem expansion script
+    origin: recipe
+    source: expand-rootfs.sh
+    destination: /usr/local/sbin/expand-rootfs
+
+  - action: run
+    description: Enable first-boot root filesystem expansion
+    chroot: true
+    command: |
+      chmod 0755 /usr/local/sbin/expand-rootfs
+      systemctl enable expand-rootfs.service
 
   - action: run
     description: Install RPi bootloader files
@@ -93,7 +136,7 @@ actions:
   - action: run
     description: Set up cmdline.txt
     chroot: true
-    command: echo "root=LABEL=ROOTFS logo.nologo" > /boot/firmware/cmdline.txt
+    command: echo "root=LABEL=ROOTFS quiet splash logo.nologo" > /boot/firmware/cmdline.txt
 
   - action: run
     description: Set up user/password
@@ -112,9 +155,12 @@ actions:
       install -d -o carnine -g carnine -m 0750 /var/log/carnine
       install -d -o root -g carnine -m 0770 /etc/carnine
 
+      install -d -o root -g root -m 0755 /usr/share/plymouth/themes/pix
+
   - action: overlay
     description: Install Carnine runtime configuration
-    origin: ../config/carnine.toml
+    origin: recipe
+    source: ../config/carnine.toml
     destination: /etc/carnine/config.toml
 
   - action: run
@@ -123,22 +169,53 @@ actions:
     command: |
       chown root:carnine /etc/carnine/config.toml
       chmod 0660 /etc/carnine/config.toml
-  - 
+
   - action: overlay
     description: Install Bootimage
-    origin: ../images/rund.png
+    origin: recipe
+    source: ../images/rund.png
     destination: /usr/share/plymouth/themes/pix/splash.png
-    
+
+  - action: overlay
+    description: Install Bootimage Script
+    origin: recipe
+    source: theme-pix/pix.script
+    destination: /usr/share/plymouth/themes/pix/pix.script
+
+  - action: overlay
+    description: Install Bootimage plymouth
+    origin: recipe
+    source: theme-pix/pix.plymouth
+    destination: /usr/share/plymouth/themes/pix/pix.plymouth
+
   - action: run
     description: Config plymouth
     chroot: true
     command: |
-      plymouth-set-default-theme -R pix
-      
+      install -d /etc/dracut.conf.d
+      printf '%s\n' \
+        'add_dracutmodules+=" plymouth "' \
+        'install_items+=" /etc/plymouth/plymouthd.conf "' \
+        'install_items+=" /etc/alternatives/default.plymouth "' \
+        'install_items+=" /usr/share/plymouth/themes/pix/pix.plymouth "' \
+        'install_items+=" /usr/share/plymouth/themes/pix/pix.script "' \
+        'install_items+=" /usr/share/plymouth/themes/pix/splash.png "' \
+        > /etc/dracut.conf.d/plymouth.conf
+      printf '%s\n' '[Daemon]' 'ThemeDir=/usr/share/plymouth/themes' 'Theme=pix' > /etc/plymouth/plymouthd.conf
+      ln -sf /usr/share/plymouth/themes/pix/pix.plymouth /etc/alternatives/default.plymouth
+      ln -sf /etc/alternatives/default.plymouth /usr/share/plymouth/themes/default.plymouth
+      chmod 0755 /usr/share/plymouth/themes/pix
+      chmod 0644 /usr/share/plymouth/themes/pix/pix.plymouth
+      chmod 0644 /usr/share/plymouth/themes/pix/pix.script
+      chmod 0644 /usr/share/plymouth/themes/pix/splash.png
+      dracut --regenerate-all --force
+
   - action: run
     description: Set up hostname
     chroot: true
-    command: echo carnine-pc    > /etc/hostname
+    command: |
+      echo {{ $target_hostname }} > /etc/hostname
+      echo "127.0.1.1		{{ $target_hostname }}" >> "/etc/hosts"
 
   - action: run
     description: Setup network config
@@ -169,7 +246,7 @@ actions:
 
   - action: image-partition
     imagename: {{ $image }}
-    imagesize: 4GiB
+    imagesize: 3GiB
     partitiontype: msdos
     mountpoints:
       - mountpoint: /
@@ -180,6 +257,7 @@ actions:
     partitions:
       - name: FIRMWARE
         fs: fat32
+        flags: [ boot, lba ]
         start: 1MiB
         end: 256MiB
       - name: ROOTFS
