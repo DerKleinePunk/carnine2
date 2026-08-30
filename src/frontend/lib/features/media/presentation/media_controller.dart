@@ -1,74 +1,99 @@
 import 'dart:async';
 
-import 'package:carnine_frontend/features/media/presentation/models/media_track.dart';
+import 'package:carnine_frontend/features/media/data/grpc_media_repository.dart';
+import 'package:carnine_frontend/features/media/domain/media_repository.dart';
+import 'package:carnine_frontend/features/media/presentation/library_controller.dart';
+import 'package:carnine_frontend/features/media/presentation/player_controller.dart';
+import 'package:carnine_frontend/features/media/presentation/playlist_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
-/// Presentation controller for the media player's playback UI state.
-///
-/// The frontend has no media backend yet (`docs/05-building-block.md`), so
-/// this only tracks local playback/seek state for the mocked queue below.
+/// Connection status towards the backend media services.
+enum MediaConnectionStatus {
+  connecting,
+  online,
+  offline,
+}
+
+/// Composition root for the media feature: owns the repository and the
+/// player/library/playlist sub-controllers, plus navigation between the
+/// player and its library-action sub-pages, and the connection-loss
+/// reconnect loop shared by all three sub-controllers.
 class MediaController extends ChangeNotifier {
-  MediaController({Logger? logger})
-      : _logger = logger ?? Logger('MediaController') {
-    if (_isPlaying) {
-      _startTicker();
-    }
+  MediaController({
+    MediaRepository? repository,
+    PlayerController? player,
+    LibraryController? library,
+    PlaylistController? playlists,
+    Logger? logger,
+  })  : _repository = repository ?? GrpcMediaRepository(),
+        _logger = logger ?? Logger('MediaController') {
+    player = player ??
+        PlayerController(
+            repository: _repository, onStreamFailure: reportStreamFailure);
+    library = library ??
+        LibraryController(
+            repository: _repository, onStreamFailure: reportStreamFailure);
+    playlists = playlists ??
+        PlaylistController(
+            repository: _repository, onStreamFailure: reportStreamFailure);
+    this.player = player;
+    this.library = library;
+    this.playlists = playlists;
   }
 
-  static const List<MediaTrack> queue = <MediaTrack>[
-    MediaTrack(
-      title: 'Neon Dreams',
-      artist: 'Cyberpunk Orchestra',
-      album: 'The Void Within',
-      releaseYear: 2024,
-      duration: Duration(minutes: 4, seconds: 56),
-    ),
-    MediaTrack(
-      title: 'Synthetic Rain',
-      artist: 'Glitch Void',
-      album: 'Synthetic Rain',
-      releaseYear: 2024,
-      duration: Duration(minutes: 3, seconds: 22),
-    ),
-    MediaTrack(
-      title: 'Laser Focus',
-      artist: 'Pulse Architect',
-      album: 'Laser Focus',
-      releaseYear: 2024,
-      duration: Duration(minutes: 5, seconds: 10),
-    ),
-  ];
+  static const _initialReconnectDelay = Duration(milliseconds: 500);
+  static const _maxReconnectDelay = Duration(seconds: 5);
 
-  static const Duration seekStep = Duration(seconds: 30);
-
+  final MediaRepository _repository;
   final Logger _logger;
 
-  Timer? _ticker;
-  bool _isPlaying = true;
+  late final PlayerController player;
+  late final LibraryController library;
+  late final PlaylistController playlists;
+
   bool _isQueueExpanded = true;
-  bool _isShuffleEnabled = false;
-  bool _isRepeatEnabled = false;
   MediaLibraryAction? _openLibraryAction;
-  Duration _position = const Duration(minutes: 2, seconds: 14);
+  MediaConnectionStatus _connection = MediaConnectionStatus.connecting;
+  Timer? _reconnectTimer;
+  Duration _nextReconnectDelay = _initialReconnectDelay;
+  bool _started = false;
 
-  bool get isPlaying => _isPlaying;
   bool get isQueueExpanded => _isQueueExpanded;
-  bool get isShuffleEnabled => _isShuffleEnabled;
-  bool get isRepeatEnabled => _isRepeatEnabled;
   MediaLibraryAction? get openLibraryAction => _openLibraryAction;
-  Duration get position => _position;
-  MediaTrack get currentTrack => queue.first;
+  MediaConnectionStatus get connection => _connection;
 
-  /// Shows or hides the queue sidebar, giving the player core more room.
-  void toggleQueueExpanded() {
-    _isQueueExpanded = !_isQueueExpanded;
-    _logger.info(
-        _isQueueExpanded ? 'Queue panel expanded' : 'Queue panel collapsed');
+  Future<void> start() async {
+    if (_started) {
+      return;
+    }
+    _started = true;
+
+    await player.start();
+    await library.start();
+    unawaited(playlists.loadPlaylists());
+    _connection = MediaConnectionStatus.online;
     notifyListeners();
   }
 
-  /// Opens the mock-up page for a library quick action (Create/Collections).
+  @override
+  void dispose() {
+    _reconnectTimer?.cancel();
+    player.dispose();
+    library.dispose();
+    playlists.dispose();
+    unawaited(_repository.dispose());
+    super.dispose();
+  }
+
+  void toggleQueueExpanded() {
+    _isQueueExpanded = !_isQueueExpanded;
+    _logger.info(
+      _isQueueExpanded ? 'Queue panel expanded' : 'Queue panel collapsed',
+    );
+    notifyListeners();
+  }
+
   void showLibraryAction(MediaLibraryAction action) {
     if (action == _openLibraryAction) {
       return;
@@ -79,7 +104,6 @@ class MediaController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Returns from the library action mock-up page to the player.
   void closeLibraryAction() {
     final current = _openLibraryAction;
     if (current == null) {
@@ -91,80 +115,57 @@ class MediaController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Toggles shuffle (random) playback order.
-  void toggleShuffle() {
-    _isShuffleEnabled = !_isShuffleEnabled;
-    _logger.info(_isShuffleEnabled ? 'Shuffle enabled' : 'Shuffle disabled');
-    notifyListeners();
-  }
-
-  /// Toggles repeat playback.
-  void toggleRepeat() {
-    _isRepeatEnabled = !_isRepeatEnabled;
-    _logger.info(_isRepeatEnabled ? 'Repeat enabled' : 'Repeat disabled');
-    notifyListeners();
-  }
-
-  /// Toggles between playing and paused, driving the play/pause button icon
-  /// and starting/stopping the once-a-second playback ticker.
-  void togglePlayback() {
-    _isPlaying = !_isPlaying;
-    if (_isPlaying) {
-      _startTicker();
-    } else {
-      _stopTicker();
+  /// Called by any sub-controller when its stream reports a connection-loss
+  /// failure. Owns the single reconnect loop for the whole media feature.
+  void reportStreamFailure(Object error) {
+    if (_connection == MediaConnectionStatus.offline) {
+      return;
     }
 
-    _logger.info(_isPlaying ? 'Playback resumed' : 'Playback paused');
+    _logger.warning('Media backend connection lost: $error');
+    _connection = MediaConnectionStatus.offline;
+    _nextReconnectDelay = _initialReconnectDelay;
     notifyListeners();
+    _scheduleReconnect();
   }
 
-  /// Seeks the current track by [offset], clamped to the track's bounds.
-  void seekBy(Duration offset) {
-    _position = _clamped(_position + offset);
-    _logger.info('Seeked to ${_position.inSeconds}s');
-    notifyListeners();
+  /// Cancels any pending backoff and reconnects immediately - wired to the
+  /// retry action on the offline state view.
+  Future<void> retryNow() async {
+    _reconnectTimer?.cancel();
+    await _reconnect();
   }
 
-  @override
-  void dispose() {
-    _stopTicker();
-    super.dispose();
+  void _scheduleReconnect() {
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(_nextReconnectDelay, () {
+      unawaited(_reconnect());
+    });
+    _nextReconnectDelay = Duration(
+      milliseconds: (_nextReconnectDelay.inMilliseconds * 2)
+          .clamp(0, _maxReconnectDelay.inMilliseconds),
+    );
   }
 
-  void _startTicker() {
-    _ticker?.cancel();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
-  }
+  Future<void> _reconnect() async {
+    _logger.info('Attempting to reconnect to the media backend');
 
-  void _stopTicker() {
-    _ticker?.cancel();
-    _ticker = null;
-  }
-
-  void _tick() {
-    final next = _position + const Duration(seconds: 1);
-    if (next >= currentTrack.duration) {
-      _position = currentTrack.duration;
-      _isPlaying = false;
-      _stopTicker();
-    } else {
-      _position = next;
+    try {
+      await _repository.reconnect();
+      await player.reconnect();
+      await library.reconnect();
+      _connection = MediaConnectionStatus.online;
+      _nextReconnectDelay = _initialReconnectDelay;
+      notifyListeners();
+    } catch (error, stackTrace) {
+      _logger.warning('Reconnect attempt failed', error, stackTrace);
+      _scheduleReconnect();
     }
-
-    notifyListeners();
-  }
-
-  Duration _clamped(Duration target) {
-    final upperBound = currentTrack.duration;
-    return target < Duration.zero
-        ? Duration.zero
-        : (target > upperBound ? upperBound : target);
   }
 }
 
 /// Library quick actions surfaced below the queue, each opening its own
-/// mock-up page until the actual feature exists.
+/// sub-page: create a playlist, or browse the library and playlists.
 enum MediaLibraryAction {
   create,
   collections,
