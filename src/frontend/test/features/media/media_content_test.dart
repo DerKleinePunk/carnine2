@@ -1,3 +1,4 @@
+import 'package:carnine_frontend/core/keyboard/on_screen_text_field.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_availability.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_library_track.dart';
 import 'package:carnine_frontend/features/media/domain/models/player_event_update.dart';
@@ -171,17 +172,25 @@ void main() {
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField), 'Drive');
-    // Not 'PLAYLIST ERSTELLEN': that's the (uppercased) page title above the
-    // button, whose own label is sentence-case.
-    await tester.tap(find.text('Playlist erstellen'));
+    // OnScreenTextField is readOnly (bound to the on-screen keyboard, not
+    // the platform IME), so tester.enterText can't drive it - mutate the
+    // bound controller directly instead, the same way a key tap would.
+    tester
+        .widget<OnScreenTextField>(find.byType(OnScreenTextField))
+        .controller
+        .text = 'Drive';
+    await tester.pump();
+    // There's no separate "create" button anymore - submitting via the
+    // on-screen keyboard's Fertig key is the only way to create the
+    // playlist now.
+    await tester.tap(find.text('Fertig'));
     await tester.pumpAndSettle();
 
     expect(repository.playlists, hasLength(1));
     expect(repository.playlists.first.name, 'Drive');
     // Handed off straight to adding tracks - the library search field for
     // that flow should now be visible.
-    expect(find.byType(TextField), findsWidgets);
+    expect(find.byType(OnScreenTextField), findsWidgets);
   });
 
   testWidgets('a player stream failure shows the offline banner',

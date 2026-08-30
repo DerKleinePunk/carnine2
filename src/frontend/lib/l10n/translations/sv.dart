@@ -95,7 +95,6 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistExistsError:
       'Det finns redan en spellista med detta namn',
   AppTextKey.mediaPlaylistCreateAction: 'Skapa spellista',
-  AppTextKey.mediaPlaylistCreateSemantic: 'Skapa en ny spellista',
   AppTextKey.mediaPlaylistAddEntriesTitle: 'Lägg till spår',
   AppTextKey.mediaPlaylistAddEntryAction: 'Lägg till spår',
   AppTextKey.mediaPlaylistAddEntrySemantic: 'Lägg till {title} i {playlist}',
@@ -140,4 +139,13 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.languageCzech: 'tjeckiska',
   AppTextKey.languageSwedish: 'svenska',
   AppTextKey.languageDanish: 'danska',
+  AppTextKey.keyboardDoneAction: 'Klar',
+  AppTextKey.keyboardLettersLayerLabel: 'ABC',
+  AppTextKey.keyboardLettersLayerSemantic: 'Växla till bokstäver',
+  AppTextKey.keyboardNumbersLayerLabel: '123',
+  AppTextKey.keyboardNumbersLayerSemantic: 'Växla till siffror och symboler',
+  AppTextKey.keyboardShiftSemantic: 'Skift',
+  AppTextKey.keyboardBackspaceSemantic: 'Ta bort tecken',
+  AppTextKey.keyboardSpaceSemantic: 'Mellanslag',
+  AppTextKey.keyboardDiacriticOptionsSemantic: 'Fler alternativ för {letter}',
 };

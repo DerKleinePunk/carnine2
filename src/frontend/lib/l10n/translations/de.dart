@@ -96,7 +96,6 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistExistsError:
       'Eine Playlist mit diesem Namen existiert bereits',
   AppTextKey.mediaPlaylistCreateAction: 'Playlist erstellen',
-  AppTextKey.mediaPlaylistCreateSemantic: 'Neue Playlist erstellen',
   AppTextKey.mediaPlaylistAddEntriesTitle: 'Titel hinzufügen',
   AppTextKey.mediaPlaylistAddEntryAction: 'Titel hinzufügen',
   AppTextKey.mediaPlaylistAddEntrySemantic: '{title} zu {playlist} hinzufügen',
@@ -140,4 +139,13 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.languageCzech: 'Tschechisch',
   AppTextKey.languageSwedish: 'Schwedisch',
   AppTextKey.languageDanish: 'Dänisch',
+  AppTextKey.keyboardDoneAction: 'Fertig',
+  AppTextKey.keyboardLettersLayerLabel: 'ABC',
+  AppTextKey.keyboardLettersLayerSemantic: 'Zu Buchstaben wechseln',
+  AppTextKey.keyboardNumbersLayerLabel: '123',
+  AppTextKey.keyboardNumbersLayerSemantic: 'Zu Zahlen und Symbolen wechseln',
+  AppTextKey.keyboardShiftSemantic: 'Umschalttaste',
+  AppTextKey.keyboardBackspaceSemantic: 'Zeichen löschen',
+  AppTextKey.keyboardSpaceSemantic: 'Leerzeichen',
+  AppTextKey.keyboardDiacriticOptionsSemantic: 'Weitere Optionen für {letter}',
 };

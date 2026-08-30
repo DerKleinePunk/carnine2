@@ -17,6 +17,7 @@ dependencies:
   protobuf: ^6.0.0
   logging: ^1.2.0
   window_manager: ^0.5.1
+  characters: ^1.4.1
 
 dev_dependencies:
   flutter_test:

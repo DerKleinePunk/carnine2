@@ -1,4 +1,7 @@
 import 'package:carnine_frontend/app/app_theme.dart';
+import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_controller.dart';
+import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_overlay.dart';
+import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_scope.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
@@ -20,9 +23,16 @@ class _CarnineAppState extends State<CarnineApp> {
   late final AppLanguageController _languageController =
       AppLanguageController();
 
+  // Owned at the app root so the keyboard can be reached from - and render
+  // above - any screen (dashboard, media, settings, ...), not just the
+  // feature that first needed text entry.
+  late final OnScreenKeyboardController _keyboardController =
+      OnScreenKeyboardController();
+
   @override
   void dispose() {
     _languageController.dispose();
+    _keyboardController.dispose();
     super.dispose();
   }
 
@@ -45,6 +55,15 @@ class _CarnineAppState extends State<CarnineApp> {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
+          builder: (context, child) => OnScreenKeyboardScope(
+            controller: _keyboardController,
+            child: Stack(
+              children: [
+                child!,
+                OnScreenKeyboardOverlay(controller: _keyboardController),
+              ],
+            ),
+          ),
           home: DashboardScreen(languageController: _languageController),
         );
       },
