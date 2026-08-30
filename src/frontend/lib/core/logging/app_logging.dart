@@ -23,6 +23,14 @@ abstract final class AppLogging {
   static bool _initialized = false;
   static StreamSubscription<LogRecord>? _subscription;
 
+  /// Serializes every disk write. `IOSink.flush()` binds the sink until its
+  /// future completes (`dart:io`'s `_StreamSinkImpl._isBound`), so writing a
+  /// new line while a previous line's flush is still pending throws
+  /// `Bad state: StreamSink is bound to a stream`. Chaining through this
+  /// future guarantees line N's write+flush finishes before line N+1
+  /// starts, however fast records arrive.
+  static Future<void> _pendingWrite = Future<void>.value();
+
   /// Recent formatted log lines for widgets that render diagnostics.
   static ValueListenable<List<String>> get lines => _lines;
 
@@ -46,7 +54,10 @@ abstract final class AppLogging {
   /// Releases file handles, mainly useful for tests and controlled shutdowns.
   static Future<void> shutdown() async {
     await _subscription?.cancel();
-    await _sink?.flush();
+    // Wait for any in-flight write+flush before closing - closing while the
+    // sink is still bound to a flush throws the same "bound to a stream"
+    // state error as writing would.
+    await _pendingWrite;
     await _sink?.close();
 
     _subscription = null;
@@ -100,8 +111,13 @@ abstract final class AppLogging {
       return;
     }
 
-    sink.writeln(line);
-    unawaited(sink.flush());
+    _pendingWrite = _pendingWrite.then((_) async {
+      sink.writeln(line);
+      await sink.flush();
+    }).catchError((_) {
+      // A broken log write must never crash the app or wedge the chain for
+      // subsequent lines.
+    });
   }
 
   static void _sendToDeveloperLog(LogRecord record) {

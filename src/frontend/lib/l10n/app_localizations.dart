@@ -103,10 +103,53 @@ class AppLocalizations {
         .replaceFirst('{count}', count.toString());
   }
 
-  String mediaAlbumLine({required String album, required int year}) {
-    return text(AppTextKey.mediaAlbumLabel)
-        .replaceFirst('{album}', album)
-        .replaceFirst('{year}', year.toString());
+  String mediaQueuePositionLine({required int index, required int count}) {
+    return text(AppTextKey.mediaQueuePositionLine)
+        .replaceFirst('{index}', index.toString())
+        .replaceFirst('{count}', count.toString());
+  }
+
+  String mediaScanProgressLine(
+      {required int processed, required int imported}) {
+    return text(AppTextKey.mediaScanProgressLine)
+        .replaceFirst('{processed}', processed.toString())
+        .replaceFirst('{imported}', imported.toString());
+  }
+
+  String mediaUnavailableSemantic(String title) {
+    return text(AppTextKey.mediaUnavailableSemantic)
+        .replaceFirst('{title}', title);
+  }
+
+  String mediaPlayTrackSemantic(String title) {
+    return text(AppTextKey.mediaPlayTrackSemantic)
+        .replaceFirst('{title}', title);
+  }
+
+  String mediaPlaylistOpenSemantic(String name) {
+    return text(AppTextKey.mediaPlaylistOpenSemantic)
+        .replaceFirst('{name}', name);
+  }
+
+  String mediaPlaylistPlaySemantic(String name) {
+    return text(AppTextKey.mediaPlaylistPlaySemantic)
+        .replaceFirst('{name}', name);
+  }
+
+  String mediaPlaylistAddEntrySemantic({
+    required String title,
+    required String playlist,
+  }) {
+    return text(AppTextKey.mediaPlaylistAddEntrySemantic)
+        .replaceFirst('{title}', title)
+        .replaceFirst('{playlist}', playlist);
+  }
+
+  /// Appends [AppTextKey.mediaFeatureUnavailableHint] to an existing action
+  /// label, for controls that are visible but not yet wired to the backend
+  /// (shuffle, repeat, the +/-30s seek buttons).
+  String mediaUnavailableActionSemantic(AppTextKey actionLabelKey) {
+    return '${text(actionLabelKey)} — ${text(AppTextKey.mediaFeatureUnavailableHint)}';
   }
 
   String canDataLine({

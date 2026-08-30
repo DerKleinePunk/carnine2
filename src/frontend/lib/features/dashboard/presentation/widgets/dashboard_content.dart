@@ -1,6 +1,7 @@
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/models/dashboard_nav_item.dart';
 import 'package:carnine_frontend/features/media/presentation/media_content.dart';
+import 'package:carnine_frontend/features/media/presentation/media_controller.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_content.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
@@ -19,6 +20,7 @@ class DashboardContent extends StatelessWidget {
     required this.isGrpcLoading,
     required this.onTestGrpc,
     required this.languageController,
+    required this.mediaController,
     super.key,
   });
 
@@ -29,6 +31,7 @@ class DashboardContent extends StatelessWidget {
   final bool isGrpcLoading;
   final Future<void> Function() onTestGrpc;
   final AppLanguageController languageController;
+  final MediaController mediaController;
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +40,7 @@ class DashboardContent extends StatelessWidget {
     }
 
     if (selectedItem.destination == DashboardDestination.media) {
-      return const MediaContent();
+      return MediaContent(controller: mediaController);
     }
 
     final l10n = AppLocalizations.of(context);

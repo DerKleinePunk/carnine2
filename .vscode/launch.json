@@ -23,6 +23,22 @@
             "args": [],
             "cwd": "${workspaceFolder}/src/backend",
             "preLaunchTask": "cargo build",
+            // The repository config points at the installed-system paths
+            // /var/lib/carnine and /var/log/carnine, which an unprivileged
+            // dev account can't create. See src/backend/README.md
+            // ("Developer start") - do not fix this with sudo instead.
+            //
+            // Must be the "KEY=VALUE" array form: lldb-dap 19 silently drops
+            // "env" when given as a JSON object, even though its schema
+            // claims to accept one (verified by scripting the DAP protocol
+            // directly against /usr/bin/lldb-dap-19).
+            "env": [
+                "CARNINE_CONFIG=/tmp/carnine-config.toml",
+                "CARNINE_LOG_DIRECTORY=/tmp/carnine-log",
+                "CARNINE_DATABASE_PATH=/tmp/carnine-media.sqlite3",
+                "CARNINE_AUDIO_BACKEND=pulse",
+                "CARNINE_AUDIO_DEVICE=default"
+            ]
         }
     ]
 }
