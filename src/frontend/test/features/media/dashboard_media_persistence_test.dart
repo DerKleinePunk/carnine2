@@ -35,15 +35,15 @@ const _trackB = MediaLibraryTrack(
 );
 
 void main() {
-  testWidgets(
-      'the media queue survives navigating away from Medien and back',
+  testWidgets('the media queue survives navigating away from Medien and back',
       (tester) async {
     tester.view.physicalSize = const Size(1024, 600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final repository = FakeMediaRepository()..library = const [_trackA, _trackB];
+    final repository = FakeMediaRepository()
+      ..library = const [_trackA, _trackB];
     final mediaController = MediaController(repository: repository);
     final dashboardController = DashboardController();
     addTearDown(mediaController.dispose);

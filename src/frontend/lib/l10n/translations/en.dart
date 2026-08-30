@@ -94,7 +94,6 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistExistsError:
       'A playlist with this name already exists',
   AppTextKey.mediaPlaylistCreateAction: 'Create playlist',
-  AppTextKey.mediaPlaylistCreateSemantic: 'Create a new playlist',
   AppTextKey.mediaPlaylistAddEntriesTitle: 'Add tracks',
   AppTextKey.mediaPlaylistAddEntryAction: 'Add tracks',
   AppTextKey.mediaPlaylistAddEntrySemantic: 'Add {title} to {playlist}',
@@ -138,4 +137,13 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.languageCzech: 'Czech',
   AppTextKey.languageSwedish: 'Swedish',
   AppTextKey.languageDanish: 'Danish',
+  AppTextKey.keyboardDoneAction: 'Done',
+  AppTextKey.keyboardLettersLayerLabel: 'ABC',
+  AppTextKey.keyboardLettersLayerSemantic: 'Switch to letters',
+  AppTextKey.keyboardNumbersLayerLabel: '123',
+  AppTextKey.keyboardNumbersLayerSemantic: 'Switch to numbers and symbols',
+  AppTextKey.keyboardShiftSemantic: 'Shift',
+  AppTextKey.keyboardBackspaceSemantic: 'Delete character',
+  AppTextKey.keyboardSpaceSemantic: 'Space',
+  AppTextKey.keyboardDiacriticOptionsSemantic: 'More options for {letter}',
 };

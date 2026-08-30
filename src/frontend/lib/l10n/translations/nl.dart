@@ -95,7 +95,6 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistExistsError:
       'Er bestaat al een playlist met deze naam',
   AppTextKey.mediaPlaylistCreateAction: 'Playlist maken',
-  AppTextKey.mediaPlaylistCreateSemantic: 'Nieuwe playlist maken',
   AppTextKey.mediaPlaylistAddEntriesTitle: 'Nummers toevoegen',
   AppTextKey.mediaPlaylistAddEntryAction: 'Nummers toevoegen',
   AppTextKey.mediaPlaylistAddEntrySemantic: '{title} toevoegen aan {playlist}',
@@ -139,4 +138,13 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.languageCzech: 'Tsjechisch',
   AppTextKey.languageSwedish: 'Zweeds',
   AppTextKey.languageDanish: 'Deens',
+  AppTextKey.keyboardDoneAction: 'Klaar',
+  AppTextKey.keyboardLettersLayerLabel: 'ABC',
+  AppTextKey.keyboardLettersLayerSemantic: 'Naar letters wisselen',
+  AppTextKey.keyboardNumbersLayerLabel: '123',
+  AppTextKey.keyboardNumbersLayerSemantic: 'Naar cijfers en symbolen wisselen',
+  AppTextKey.keyboardShiftSemantic: 'Shift',
+  AppTextKey.keyboardBackspaceSemantic: 'Teken verwijderen',
+  AppTextKey.keyboardSpaceSemantic: 'Spatie',
+  AppTextKey.keyboardDiacriticOptionsSemantic: 'Meer opties voor {letter}',
 };

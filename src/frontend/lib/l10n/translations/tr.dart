@@ -95,7 +95,6 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistNameRequired: 'Lütfen bir ad girin',
   AppTextKey.mediaPlaylistExistsError: 'Bu adla bir çalma listesi zaten var',
   AppTextKey.mediaPlaylistCreateAction: 'Çalma listesi oluştur',
-  AppTextKey.mediaPlaylistCreateSemantic: 'Yeni çalma listesi oluştur',
   AppTextKey.mediaPlaylistAddEntriesTitle: 'Parça ekle',
   AppTextKey.mediaPlaylistAddEntryAction: 'Parça ekle',
   AppTextKey.mediaPlaylistAddEntrySemantic:
@@ -142,4 +141,13 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.languageCzech: 'Çekçe',
   AppTextKey.languageSwedish: 'İsveççe',
   AppTextKey.languageDanish: 'Danca',
+  AppTextKey.keyboardDoneAction: 'Tamam',
+  AppTextKey.keyboardLettersLayerLabel: 'ABC',
+  AppTextKey.keyboardLettersLayerSemantic: 'Harflere geç',
+  AppTextKey.keyboardNumbersLayerLabel: '123',
+  AppTextKey.keyboardNumbersLayerSemantic: 'Sayı ve sembollere geç',
+  AppTextKey.keyboardShiftSemantic: 'Üst karakter',
+  AppTextKey.keyboardBackspaceSemantic: 'Karakteri sil',
+  AppTextKey.keyboardSpaceSemantic: 'Boşluk',
+  AppTextKey.keyboardDiacriticOptionsSemantic: '{letter} için diğer seçenekler',
 };

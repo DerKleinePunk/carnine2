@@ -95,7 +95,6 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistNameRequired: 'Adj meg egy nevet',
   AppTextKey.mediaPlaylistExistsError: 'Már létezik playlist ezzel a névvel',
   AppTextKey.mediaPlaylistCreateAction: 'Playlist létrehozása',
-  AppTextKey.mediaPlaylistCreateSemantic: 'Új playlist létrehozása',
   AppTextKey.mediaPlaylistAddEntriesTitle: 'Számok hozzáadása',
   AppTextKey.mediaPlaylistAddEntryAction: 'Számok hozzáadása',
   AppTextKey.mediaPlaylistAddEntrySemantic:
@@ -141,4 +140,13 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.languageCzech: 'cseh',
   AppTextKey.languageSwedish: 'svéd',
   AppTextKey.languageDanish: 'dán',
+  AppTextKey.keyboardDoneAction: 'Kész',
+  AppTextKey.keyboardLettersLayerLabel: 'ABC',
+  AppTextKey.keyboardLettersLayerSemantic: 'Váltás betűkre',
+  AppTextKey.keyboardNumbersLayerLabel: '123',
+  AppTextKey.keyboardNumbersLayerSemantic: 'Váltás számokra és szimbólumokra',
+  AppTextKey.keyboardShiftSemantic: 'Shift',
+  AppTextKey.keyboardBackspaceSemantic: 'Karakter törlése',
+  AppTextKey.keyboardSpaceSemantic: 'Szóköz',
+  AppTextKey.keyboardDiacriticOptionsSemantic: 'További lehetőségek: {letter}',
 };

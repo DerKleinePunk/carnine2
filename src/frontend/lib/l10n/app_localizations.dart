@@ -152,6 +152,11 @@ class AppLocalizations {
     return '${text(actionLabelKey)} — ${text(AppTextKey.mediaFeatureUnavailableHint)}';
   }
 
+  String keyboardDiacriticOptionsSemantic(String letter) {
+    return text(AppTextKey.keyboardDiacriticOptionsSemantic)
+        .replaceFirst('{letter}', letter);
+  }
+
   String canDataLine({
     required String sensor,
     required double value,

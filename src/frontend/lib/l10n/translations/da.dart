@@ -95,7 +95,6 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistExistsError:
       'Der findes allerede en playliste med dette navn',
   AppTextKey.mediaPlaylistCreateAction: 'Opret playliste',
-  AppTextKey.mediaPlaylistCreateSemantic: 'Opret en ny playliste',
   AppTextKey.mediaPlaylistAddEntriesTitle: 'Tilføj numre',
   AppTextKey.mediaPlaylistAddEntryAction: 'Tilføj numre',
   AppTextKey.mediaPlaylistAddEntrySemantic: 'Tilføj {title} til {playlist}',
@@ -139,4 +138,14 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.languageCzech: 'tjekkisk',
   AppTextKey.languageSwedish: 'svensk',
   AppTextKey.languageDanish: 'dansk',
+  AppTextKey.keyboardDoneAction: 'Færdig',
+  AppTextKey.keyboardLettersLayerLabel: 'ABC',
+  AppTextKey.keyboardLettersLayerSemantic: 'Skift til bogstaver',
+  AppTextKey.keyboardNumbersLayerLabel: '123',
+  AppTextKey.keyboardNumbersLayerSemantic: 'Skift til tal og symboler',
+  AppTextKey.keyboardShiftSemantic: 'Skift',
+  AppTextKey.keyboardBackspaceSemantic: 'Slet tegn',
+  AppTextKey.keyboardSpaceSemantic: 'Mellemrum',
+  AppTextKey.keyboardDiacriticOptionsSemantic:
+      'Flere valgmuligheder for {letter}',
 };
