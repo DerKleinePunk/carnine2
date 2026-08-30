@@ -1,8 +1,15 @@
+```sh
 docker pull godebos/debos
 podman pull godebos/debos
 
-podman run --rm -it --device /dev/kvm --mount "type=bind,source=$(pwd),destination=/work" --workdir /work --security-opt label=disable debos raspbian.yaml
+cd /mnt/wsl/code/carnine2/resources
 
+set -o pipefail
+mkdir -p build-logs
+podman run --rm -it --device /dev/kvm --mount "type=bind,source=$(pwd),destination=/work" --workdir /work --security-opt label=disable debos ./debos/raspbian.yaml 2>&1 | tee "build-logs/debos-$(date +%Y%m%d-%H%M%S).log"
+```
+
+The image is created as `raspbian.img.gz`; the block map is `raspbian.img.bmap`. The complete build log is stored below `build-logs/`. Flash the image manually from Windows after verifying the selected SD card.
 
 podman-remote system connection add windows-user unix:///mnt/wsl/podman-sockets/podman-machine-default/podman-user.sock -d
 

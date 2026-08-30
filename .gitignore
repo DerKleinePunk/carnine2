@@ -28,3 +28,6 @@ src/frontend/.gitignore
 .vscode/settings.json
 resources/debos/raspbian.img.bmap
 resources/debos/not-sync/
+resources/raspbian.img
+resources/raspbian.img.gz
+resources/raspbian.img.bmap
