@@ -1,0 +1,12 @@
+[Unit]
+Description=Expand root partition and filesystem on first boot
+ConditionPathExists=!/var/lib/carnine/rootfs-expanded
+After=local-fs.target
+Before=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/expand-rootfs
+
+[Install]
+WantedBy=multi-user.target

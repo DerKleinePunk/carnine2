@@ -30,6 +30,8 @@ podman run --rm -it --device /dev/kvm \
 
 The recipe uses Dracut and includes the Plymouth `pix` theme. Kernel installation is separated from the final Dracut regeneration to avoid repeated initramfs builds in the ARM64 Fakemachine. A complete build produces `resources/raspbian.img.gz` and `resources/raspbian.img.bmap`. The full build log is kept in `resources/build-logs/`.
 
+On the first boot from an SD card larger than the 3 GiB image, the enabled `expand-rootfs.service` first expands the last root partition and reboots once. On the following boot it expands the ext4 filesystem with `resize2fs` and disables itself. This makes the remaining SD-card capacity available to the system.
+
 The generated image can be written to an SD card manually from Windows. Verify the target device carefully before flashing because writing the image replaces all data on the SD card.
 
 ## Architecture Documentation

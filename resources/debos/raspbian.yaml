@@ -62,6 +62,7 @@ actions:
       - dracut
       - firmware-brcm80211
       - iproute2
+      - parted
       - netbase
       - openssh-server
       - raspi-firmware
@@ -103,6 +104,25 @@ actions:
         ln -sf /dev/null "/etc/systemd/system/$unit"
       done
 
+  - action: overlay
+    description: Install first-boot root filesystem expansion service
+    origin: recipe
+    source: expand-rootfs.service
+    destination: /etc/systemd/system/expand-rootfs.service
+
+  - action: overlay
+    description: Install first-boot root filesystem expansion script
+    origin: recipe
+    source: expand-rootfs.sh
+    destination: /usr/local/sbin/expand-rootfs
+
+  - action: run
+    description: Enable first-boot root filesystem expansion
+    chroot: true
+    command: |
+      chmod 0755 /usr/local/sbin/expand-rootfs
+      systemctl enable expand-rootfs.service
+
   - action: run
     description: Install RPi bootloader files
     chroot: false
@@ -135,7 +155,7 @@ actions:
       install -d -o carnine -g carnine -m 0750 /var/log/carnine
       install -d -o root -g carnine -m 0770 /etc/carnine
 
-      install -d -o root -g root -m 0770 /usr/share/plymouth/themes/pix
+      install -d -o root -g root -m 0755 /usr/share/plymouth/themes/pix
 
   - action: overlay
     description: Install Carnine runtime configuration
@@ -173,13 +193,26 @@ actions:
     chroot: true
     command: |
       install -d /etc/dracut.conf.d
-      printf '%s\n' 'add_dracutmodules+=" plymouth "' > /etc/dracut.conf.d/plymouth.conf
+      printf '%s\n' \
+        'add_dracutmodules+=" plymouth "' \
+        'install_items+=" /etc/plymouth/plymouthd.conf "' \
+        'install_items+=" /etc/alternatives/default.plymouth "' \
+        'install_items+=" /usr/share/plymouth/themes/pix/pix.plymouth "' \
+        'install_items+=" /usr/share/plymouth/themes/pix/pix.script "' \
+        'install_items+=" /usr/share/plymouth/themes/pix/splash.png "' \
+        > /etc/dracut.conf.d/plymouth.conf
+      printf '%s\n' '[Daemon]' 'ThemeDir=/usr/share/plymouth/themes' 'Theme=pix' > /etc/plymouth/plymouthd.conf
       ln -sf /usr/share/plymouth/themes/pix/pix.plymouth /etc/alternatives/default.plymouth
       ln -sf /etc/alternatives/default.plymouth /usr/share/plymouth/themes/default.plymouth
+      chmod 0755 /usr/share/plymouth/themes/pix
+      chmod 0644 /usr/share/plymouth/themes/pix/pix.plymouth
+      chmod 0644 /usr/share/plymouth/themes/pix/pix.script
+      chmod 0644 /usr/share/plymouth/themes/pix/splash.png
       dracut --regenerate-all --force
 
   - action: run
     description: Set up hostname
+    chroot: true
     command: |
       echo {{ $target_hostname }} > /etc/hostname
       echo "127.0.1.1		{{ $target_hostname }}" >> "/etc/hosts"
@@ -213,7 +246,7 @@ actions:
 
   - action: image-partition
     imagename: {{ $image }}
-    imagesize: 4GiB
+    imagesize: 3GiB
     partitiontype: msdos
     mountpoints:
       - mountpoint: /
@@ -224,6 +257,7 @@ actions:
     partitions:
       - name: FIRMWARE
         fs: fat32
+        flags: [ boot, lba ]
         start: 1MiB
         end: 256MiB
       - name: ROOTFS
