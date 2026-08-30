@@ -652,9 +652,151 @@ before selecting the production adapter.
 
 ---
 
+## ADR-017: Speech Recognition and Voice Control - sherpa-onnx for Offline ASR
+
+**Status:** Accepted
+
+**Context:**
+Voice control is a natural interaction method for in-vehicle systems, allowing hands-free operation while driving. The system requires speech recognition that works offline (no cloud dependency), respects privacy (GDPR-compliant), runs efficiently on Raspberry Pi 4, and integrates with the existing audio architecture.
+
+**Decision:**
+Use [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) as the speech processing toolkit for offline Automatic Speech Recognition (ASR), Voice Activity Detection (VAD), and optional keyword spotting (wake-word detection). Integrate microphone input into the existing audio manager architecture.
+
+**Rationale:**
+- **Fully offline**: No cloud dependency; all processing on-device ensures privacy and eliminates network latency
+- **GDPR-compliant**: No voice data leaves the device
+- **ARM64/Raspberry Pi support**: Proven to run efficiently on embedded ARM processors
+- **Comprehensive feature set**: Provides ASR, VAD, keyword spotting, speaker diarization, and TTS in one toolkit
+- **ONNX Runtime**: Uses optimized neural models with low latency
+- **Rust bindings available**: Can be integrated directly into the Rust backend
+- **Active maintenance**: Regular updates and model releases via GitHub and Hugging Face
+- **Multi-language**: Supports German and English models
+
+**Alternatives considered:**
+- **CMU Sphinx / Pocketsphinx** – older technology; less accurate; limited model updates
+- **Vosk** – good offline option but heavier resource footprint; less modular than sherpa-onnx
+- **Mozilla DeepSpeech** – no longer actively maintained (archived project)
+- **Google Cloud Speech / AWS Transcribe** – requires network; privacy concerns; violates offline-first principle
+- **Whisper (OpenAI)** – excellent accuracy but too resource-intensive for Raspberry Pi 4 real-time use
+
+**Audio Architecture Integration:**
+The existing audio manager (see ADR-016 and `docs/20-media-backend-plan.md`) must be extended to coordinate multiple audio sources:
+
+**Audio sources with priorities:**
+- **Critical (highest)**: Navigation announcements, system sounds
+- **Interactive (medium)**: Speech recognition (microphone input + processing)
+- **Background (lowest)**: Media player (music/audio)
+
+**Ducking strategies** (configurable in `carnine.toml`):
+- **Pause**: Lower-priority source is paused during higher-priority activity
+- **Duck**: Lower-priority source volume reduced to configurable level (e.g., -20dB)
+- **Mix**: Both sources play simultaneously (only for compatible combinations)
+
+When speech recognition is active, the audio manager:
+1. Signals the media player to duck or pause (via audio manager events)
+2. Grants exclusive microphone access to the speech service
+3. Processes audio through sherpa-onnx ASR pipeline
+4. After speech ends (VAD-detected or manual stop), releases microphone
+5. Signals media player to resume normal volume/playback
+
+**Proto Contract:**
+Introduce a new `SpeechService` in `carnine.proto` alongside `MediaService` and `AudioService`:
+
+```protobuf
+service SpeechService {
+  rpc GetVersion(VersionRequest) returns (VersionResponse);
+  rpc StartListening(StartListeningRequest) returns (StartListeningResponse);
+  rpc StopListening(StopListeningRequest) returns (StopListeningResponse);
+  rpc StreamSpeechEvents(StreamSpeechEventsRequest) returns (stream SpeechEvent);
+  rpc SetLanguage(SetLanguageRequest) returns (SetLanguageResponse);
+  rpc ExecuteCommand(ExecuteCommandRequest) returns (ExecuteCommandResponse);
+}
+
+message SpeechEvent {
+  oneof event {
+    TranscriptionUpdate transcription = 1;    // Live transcription during speech
+    CommandRecognized command = 2;            // Recognized command with intent
+    CommandExecuted executed = 3;             // Confirmation of execution
+    SpeechError error = 4;                    // Error during recognition
+  }
+}
+
+message CommandRecognized {
+  string intent = 1;                          // e.g., "play_media", "navigate_to"
+  map<string, string> entities = 2;           // e.g., {"artist": "Kensington Road"}
+  float confidence = 3;                       // 0.0 - 1.0
+}
+```
+
+Extend `AudioService` events:
+```protobuf
+message AudioEvent {
+  oneof event {
+    // ... existing events ...
+    MicrophoneStarted microphone_started = 7;
+    MicrophoneStopped microphone_stopped = 8;
+    SpeechDetected speech_detected = 9;
+    SpeechEnded speech_ended = 10;
+  }
+}
+```
+
+**Command routing:**
+A `CommandRouter` component in the backend maps recognized intents to service actions:
+- `"play_media"` + `{"artist": "X"}` → `MediaService.SearchMedia` + `PlayMedia`
+- `"pause"` → `MediaService.Pause`
+- `"navigate_to"` + `{"location": "Y"}` → `NavigationService.StartRoute` (future)
+- `"volume_up"` → Audio system volume control (future)
+
+**Configuration in `carnine.toml`:**
+```toml
+[audio]
+backend = "alsa"         # or "pulse"
+output_device = "plughw:1,0"
+input_device = "plughw:2,0"  # Microphone ALSA device
+ducking_behavior = "duck"    # or "pause", "mix"
+ducking_level_db = -20       # Volume reduction during ducking
+
+[speech]
+enabled = true
+language = "de-DE"           # or "en-US"
+model_path = "/usr/share/carnine/speech-models"
+push_to_talk = false         # true = manual, false = continuous VAD
+vad_threshold = 0.5          # Voice Activity Detection sensitivity
+wake_word = ""               # Optional wake word (e.g., "Hey Carnine")
+```
+
+**Implementation phases:**
+1. **Phase 1 (MVP)**: Basic microphone integration, sherpa-onnx ASR, simple pattern-matching command parser
+2. **Phase 2**: VAD-based automatic activation, audio manager ducking coordination
+3. **Phase 3**: Wake-word detection, advanced NLU with ONNX intent models, TTS feedback
+
+**Consequences:**
+- Microphone hardware (USB or built-in) must be present and configured in ALSA/PulseAudio
+- ONNX models for German/English must be packaged in Debian image (`resources/speech-models/`)
+- Audio manager becomes more complex (coordinates output + input, multiple source priorities)
+- Speech recognition adds CPU/memory load; must be profiled on Raspberry Pi 4
+- Privacy-friendly: all voice data stays on-device; no cloud API keys needed
+- Commands are processed in real-time without network latency
+- Future TTS integration (sherpa-onnx also supports TTS) enables full voice assistant experience
+
+**Related decisions:**
+- ADR-016 (Media Architecture) – audio manager concept, event streams
+- ADR-004 (SQLite) – potential for voice command history/preferences storage
+- ADR-008 (Error handling) – speech errors propagate via `anyhow::Result`
+- ADR-010 (Logging) – speech processing logged via `tracing`
+
+**References:**
+- [sherpa-onnx GitHub](https://github.com/k2-fsa/sherpa-onnx)
+- [sherpa-onnx Rust bindings](https://github.com/k2-fsa/sherpa-onnx/tree/master/sherpa-onnx/rust)
+- Issues: #15 (Microphone/Speech Backend), #16 (Audio Manager), #17 (Command Parser), #18 (Speech UI)
+
+---
+
 These decisions collectively create a system that is:
 - **Safe**: Type-safe languages (Rust, Dart) prevent entire classes of bugs
 - **Performant**: Async concurrency and optimized serialization minimize latency
 - **Reliable**: Offline-first caching and error handling ensure robustness
 - **Maintainable**: Clear module boundaries and strong typing aid long-term development
 - **Testable**: Separated frontend/backend and gRPC allow component testing without UI
+- **Privacy-focused**: Voice recognition runs entirely on-device with no cloud dependency
