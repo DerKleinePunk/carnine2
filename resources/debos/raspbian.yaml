@@ -77,6 +77,8 @@ actions:
       - pulseaudio-utils
       - alsa-utils
       - udisks2
+      - plymouth
+      - plymouth-themes
 
   - action: run
     description: Install RPi bootloader files
@@ -91,7 +93,7 @@ actions:
   - action: run
     description: Set up cmdline.txt
     chroot: true
-    command: echo "console=serial0,115200 console=tty1 root=LABEL=ROOTFS" > /boot/firmware/cmdline.txt
+    command: echo "root=LABEL=ROOTFS logo.nologo" > /boot/firmware/cmdline.txt
 
   - action: run
     description: Set up user/password
@@ -121,11 +123,22 @@ actions:
     command: |
       chown root:carnine /etc/carnine/config.toml
       chmod 0660 /etc/carnine/config.toml
-
+  - 
+  - action: overlay
+    description: Install Bootimage
+    origin: ../images/rund.png
+    destination: /usr/share/plymouth/themes/pix/splash.png
+    
+  - action: run
+    description: Config plymouth
+    chroot: true
+    command: |
+      plymouth-set-default-theme -R pix
+      
   - action: run
     description: Set up hostname
     chroot: true
-    command: echo raspberry > /etc/hostname
+    command: echo carnine-pc    > /etc/hostname
 
   - action: run
     description: Setup network config
