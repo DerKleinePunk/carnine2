@@ -19,13 +19,4 @@ Der Raspberry Pi hat ohne angeschlossene RTC keine batteriegepufferte Echtzeituh
 - Brauchen wir für den Fahrzeugbetrieb eine externe Hardware-RTC?
 - Wie sollen Logs und zeitabhängige Funktionen während der Zeit vor der Synchronisation behandelt werden?
 
-Noch offen: Bluetooth-Firmware für Raspberry Pi 4
-
-Beim Booten meldet der Bluetooth-Treiber, dass die Patch-Firmware für `BCM4345C0` nicht gefunden wurde. Geprüfte Pfade sind unter anderem:
-
-- `brcm/BCM4345C0.raspberrypi,4-model-b.hcd`
-- `brcm/BCM4345C0.hcd`
-- `brcm/BCM.raspberrypi,4-model-b.hcd`
-- `brcm/BCM.hcd`
-
-Prüfen, ob die passende `.hcd`-Datei im Image fehlt, als separates Firmware-Paket installiert werden muss oder aus den Raspberry-Pi-Firmwarequellen übernommen werden sollte. Anschließend den Fehler `Opcode 0x1003 failed: -38` auf einem Raspberry Pi 4 verifizieren.
+Bluetooth-Firmware für Raspberry Pi 4 ist über das Paket `bluez-firmware` im Image enthalten. Das Paket installiert `BCM4345C0.hcd` und den Raspberry-Pi-4-Symlink `BCM4345C0.raspberrypi,4-model-b.hcd`.

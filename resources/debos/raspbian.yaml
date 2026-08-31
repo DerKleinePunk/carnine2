@@ -58,6 +58,8 @@ actions:
     description: Install packages
     packages:
       - adduser
+      - bluez
+      - bluez-firmware
       - dbus-user-session
       - dracut
       - firmware-brcm80211
@@ -66,6 +68,7 @@ actions:
       - netbase
       - openssh-server
       - raspi-firmware
+      - rfkill
       - rpi.gpio-common
       - sudo
       - systemd-resolved
