@@ -200,7 +200,9 @@ actions:
 
   - action: install-deb
     description: Install Carnine backend
-    origin: carnine-backend.deb
+    origin: recipe
+    packages:
+      - carnine-backend.deb
 
   - action: overlay
     description: Install Bootimage

@@ -28,3 +28,22 @@ Der Debos-Build soll optionale Profile für den Entwicklungs-Pi unterstützen:
 - Displaymodus für das Waveshare-Panel (`1024x600`) per Template-Parameter aktivieren, ohne die automatische HDMI-Erkennung des Standard-Images zu verändern.
 - Einen SSH-Public-Key ausschließlich beim Build übergeben und für den Benutzer `pi` installieren, damit der Entwicklungs-Pi ohne Passwort erreichbar ist.
 - Private Schlüssel und sonstige Zugangsdaten dürfen weder im Repository noch im Image-Rezept hinterlegt werden. Das Standardprofil bleibt ohne zusätzlichen SSH-Key.
+
+Noch offen: Zentrale Projektversion
+
+Die Projektversion wird derzeit an mehreren Stellen unabhängig gepflegt und kann dadurch auseinanderlaufen:
+
+- Rust: `src/backend/Cargo.toml` (`package.version`)
+- Flutter: `src/frontend/pubspec.yaml` (`version` inklusive Build-Nummer)
+- Plymouth: `resources/debos/theme-pix/pix.script` (hartkodierte Anzeige `V1.44`)
+
+Eine zentrale Versionsquelle soll eingeführt werden. Daraus müssen mindestens die Rust-Anwendung, die Flutter-Anwendung und die Plymouth-Startanzeige versorgt werden. Zusätzlich soll die Version weiterhin in Debian-Paketmetadaten sowie in den Flutter-Build-Artefakten korrekt erscheinen.
+
+Akzeptanzkriterien:
+
+- Die Versionsnummer wird an genau einer fachlichen Stelle geändert.
+- Rust liefert dieselbe Version über `GetServiceVersion`.
+- Flutter zeigt dieselbe Version an und verwendet eine konsistente Build-Nummer.
+- Plymouth zeigt dieselbe Version ohne manuell angepassten String.
+- Der Release-/Image-Build prüft oder erzeugt alle benötigten Versionswerte reproduzierbar.
+- Keine zyklische Abhängigkeit zwischen Rust-, Flutter- und Image-Build entsteht.
