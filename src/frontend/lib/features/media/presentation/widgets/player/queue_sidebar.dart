@@ -143,8 +143,6 @@ class _QueueHeader extends StatelessWidget {
   }
 }
 
-/// Display-only: there is no jump-to-index RPC, so tiles are not tappable -
-/// switching tracks happens through Next/Previous only.
 class _QueueList extends StatelessWidget {
   const _QueueList({required this.player});
 
@@ -173,6 +171,7 @@ class _QueueList extends StatelessWidget {
             leadingIcon: isActive ? Icons.equalizer : Icons.music_note,
             isActive: isActive,
             trailing: _Duration(track: track),
+            onTap: () => player.playQueueEntry(index),
           );
         },
       ),

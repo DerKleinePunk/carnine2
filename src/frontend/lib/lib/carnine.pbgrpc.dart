@@ -132,6 +132,13 @@ class MediaServiceClient extends $grpc.Client {
     return $createUnaryCall(_$restartCurrentTrack, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.CommandResponse> playQueueEntry(
+    $0.PlayQueueEntryRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$playQueueEntry, request, options: options);
+  }
+
   $grpc.ResponseFuture<$0.CommandResponse> playPlaylist(
     $0.PlayPlaylistRequest request, {
     $grpc.CallOptions? options,
@@ -240,6 +247,11 @@ class MediaServiceClient extends $grpc.Client {
           '/carnine.MediaService/RestartCurrentTrack',
           ($0.Empty value) => value.writeToBuffer(),
           $0.CommandResponse.fromBuffer);
+  static final _$playQueueEntry =
+      $grpc.ClientMethod<$0.PlayQueueEntryRequest, $0.CommandResponse>(
+          '/carnine.MediaService/PlayQueueEntry',
+          ($0.PlayQueueEntryRequest value) => value.writeToBuffer(),
+          $0.CommandResponse.fromBuffer);
   static final _$playPlaylist =
       $grpc.ClientMethod<$0.PlayPlaylistRequest, $0.CommandResponse>(
           '/carnine.MediaService/PlayPlaylist',
@@ -345,6 +357,15 @@ abstract class MediaServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($0.CommandResponse value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.PlayQueueEntryRequest, $0.CommandResponse>(
+            'PlayQueueEntry',
+            playQueueEntry_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.PlayQueueEntryRequest.fromBuffer(value),
+            ($0.CommandResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.PlayPlaylistRequest, $0.CommandResponse>(
         'PlayPlaylist',
         playPlaylist_Pre,
@@ -480,6 +501,14 @@ abstract class MediaServiceBase extends $grpc.Service {
 
   $async.Future<$0.CommandResponse> restartCurrentTrack(
       $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.CommandResponse> playQueueEntry_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.PlayQueueEntryRequest> $request) async {
+    return playQueueEntry($call, await $request);
+  }
+
+  $async.Future<$0.CommandResponse> playQueueEntry(
+      $grpc.ServiceCall call, $0.PlayQueueEntryRequest request);
 
   $async.Future<$0.CommandResponse> playPlaylist_Pre($grpc.ServiceCall $call,
       $async.Future<$0.PlayPlaylistRequest> $request) async {

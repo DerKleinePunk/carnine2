@@ -14,6 +14,7 @@ service MediaService {
   rpc Next (Empty) returns (CommandResponse);
   rpc Previous (Empty) returns (CommandResponse);
   rpc RestartCurrentTrack (Empty) returns (CommandResponse);
+  rpc PlayQueueEntry (PlayQueueEntryRequest) returns (CommandResponse);
   rpc PlayPlaylist (PlayPlaylistRequest) returns (CommandResponse);
   rpc GetPlayerState (Empty) returns (PlayerState);
   rpc SearchMedia (SearchMediaRequest) returns (SearchMediaResponse);
@@ -131,6 +132,10 @@ message PlaylistEntry {
 
 message PlayPlaylistRequest {
   uint64 playlist_id = 1;
+}
+
+message PlayQueueEntryRequest {
+  uint32 index = 1;
 }
 
 message CreatePlaylistRequest {

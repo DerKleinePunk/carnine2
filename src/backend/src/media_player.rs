@@ -75,6 +75,7 @@ impl MediaPlayer {
             "next" => self.next(),
             "previous" => self.previous(),
             "restart" => self.switch_track(0),
+            "queue-entry" => self.play_queue_entry(parameters),
             unknown => Err(anyhow!("unknown media command: {unknown}")),
         };
         if let Err(error) = &result {
@@ -354,7 +355,32 @@ impl MediaPlayer {
         self.switch_track(-1)
     }
 
+    fn play_queue_entry(&self, index: &str) -> Result<String> {
+        let index = index
+            .parse::<usize>()
+            .with_context(|| format!("invalid queue index: {index}"))?;
+        self.switch_to_index(index)
+    }
+
     fn switch_track(&self, direction: isize) -> Result<String> {
+        let index = self
+            .queue_index
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .context("no active queue")?;
+        let queue = self
+            .queue
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let next_index = index as isize + direction;
+        if next_index < 0 || next_index >= queue.len() as isize {
+            bail!("no adjacent track in queue");
+        }
+        drop(queue);
+        self.switch_to_index(next_index as usize)
+    }
+
+    fn switch_to_index(&self, target_index: usize) -> Result<String> {
         let mut index = self
             .queue_index
             .lock()
@@ -363,12 +389,10 @@ impl MediaPlayer {
             .queue
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let current_index = index.context("no active queue")?;
-        let next_index = current_index as isize + direction;
-        if next_index < 0 || next_index >= queue.len() as isize {
-            bail!("no adjacent track in queue");
+        if target_index >= queue.len() {
+            bail!("queue index out of range: {target_index}");
         }
-        let next_path = queue[next_index as usize].clone();
+        let next_path = queue[target_index].clone();
         drop(queue);
         let mut playback = self
             .playback
@@ -380,7 +404,7 @@ impl MediaPlayer {
         active_playback.stop()?;
         let started_playback = self.engine.start(&next_path)?;
         *playback = Some(started_playback);
-        *index = Some(next_index as usize);
+        *index = Some(target_index);
         *self
             .media_path
             .lock()

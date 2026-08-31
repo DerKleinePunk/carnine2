@@ -29,8 +29,8 @@ use carnine::{
     media_service_server::{MediaService, MediaServiceServer},
     AddPlaylistEntryRequest, AudioEvent, CanData, CanDataRequest, CanDataResponse, CommandResponse,
     Configuration, ConfigurationResponse, CreatePlaylistRequest, Empty, GetPlaylistRequest,
-    LibraryEvent, ListPlaylistsResponse, PlayPlaylistRequest, PlayRequest, PlayerEvent,
-    PlayerState, Playlist, PlaylistEntry, RescanMediaRequest, SearchMediaRequest,
+    LibraryEvent, ListPlaylistsResponse, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest,
+    PlayerEvent, PlayerState, Playlist, PlaylistEntry, RescanMediaRequest, SearchMediaRequest,
     SearchMediaResponse, ServiceVersion, UpdateConfigurationRequest,
 };
 
@@ -327,6 +327,13 @@ impl MediaService for MediaServiceImpl {
         _request: Request<Empty>,
     ) -> Result<Response<CommandResponse>, Status> {
         self.command("restart", String::new())
+    }
+
+    async fn play_queue_entry(
+        &self,
+        request: Request<PlayQueueEntryRequest>,
+    ) -> Result<Response<CommandResponse>, Status> {
+        self.command("queue-entry", request.into_inner().index.to_string())
     }
 
     async fn play_playlist(
@@ -1091,6 +1098,34 @@ mod tests {
 
         assert_eq!(player.playlist_id(), None);
         let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn queue_entry_playback_switches_track_without_changing_queue() {
+        let player = MediaPlayer::with_engine(Box::new(FakeAudioEngine));
+        player
+            .play_playlist(
+                1,
+                vec![
+                    (10, "first.wav".to_string()),
+                    (11, "second.wav".to_string()),
+                    (12, "third.wav".to_string()),
+                ],
+                Some(10),
+                0,
+                "auto-play",
+            )
+            .expect("fake playback should start");
+
+        player
+            .execute("queue-entry", "2")
+            .expect("queue entry should start");
+
+        assert_eq!(player.playlist_id(), Some(1));
+        assert_eq!(player.playlist_entry_id(), Some(12));
+        assert_eq!(player.media_path(), "third.wav");
+        assert_eq!(player.position_ms(), 0);
+        assert_eq!(player.state(), "playing");
     }
 
     #[tokio::test]

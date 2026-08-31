@@ -159,6 +159,13 @@ class PlayerController extends ChangeNotifier {
     await _runCommand(_repository.next);
   }
 
+  Future<void> playQueueEntry(int index) async {
+    if (isBusy || index < 0 || index >= _queue.tracks.length) {
+      return;
+    }
+    await _runCommand(() => _repository.playQueueEntry(index));
+  }
+
   Future<void> previous() async {
     if (!hasTrack || isBusy) {
       return;

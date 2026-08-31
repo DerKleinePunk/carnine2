@@ -147,6 +147,12 @@ class FakeMediaRepository implements MediaRepository {
   }
 
   @override
+  Future<void> playQueueEntry(int index) async {
+    commands.add('playQueueEntry:$index');
+    await _maybeThrow();
+  }
+
+  @override
   Future<void> startPlaylist(int playlistId) async {
     commands.add('playPlaylist:$playlistId');
     await _maybeThrow();

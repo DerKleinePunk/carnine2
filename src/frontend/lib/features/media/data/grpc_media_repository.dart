@@ -185,6 +185,16 @@ class GrpcMediaRepository implements MediaRepository {
   }
 
   @override
+  Future<void> playQueueEntry(int index) {
+    return _command(
+        'PlayQueueEntry',
+        () => _channel.stub.playQueueEntry(
+              PlayQueueEntryRequest(index: index),
+              options: CallOptions(timeout: _commandTimeout),
+            ));
+  }
+
+  @override
   Future<void> startPlaylist(int playlistId) async {
     await _command(
       'PlayPlaylist',

@@ -45,6 +45,7 @@ abstract class MediaRepository {
   Future<void> next();
   Future<void> previous();
   Future<void> restartCurrentTrack();
+  Future<void> playQueueEntry(int index);
 
   /// Loads [playlistId] into the queue and starts playback.
   ///
