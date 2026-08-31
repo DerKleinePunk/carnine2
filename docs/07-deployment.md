@@ -206,7 +206,48 @@ sudo apt-get update && sudo apt-get install -y \
 
 ---
 
-## 7.4 Network Exposure and Firewall Policy
+## 7.4 Backend Connectivity and Debugging
+
+The installed backend binds its gRPC server to the IPv6 loopback address
+`[::1]:50051` by default. This keeps the control API local to the Raspberry Pi
+and is the required production configuration. The image recipe must not change
+this to `0.0.0.0` or `[::]`.
+
+Verify the service directly on the Pi:
+
+```bash
+sudo systemctl is-active carnine-backend.service
+sudo ss -ltnp | grep 50051
+```
+
+The socket listing should show `[::1]:50051`. The generated gRPC smoke client
+can then test the API locally on the Pi:
+
+```bash
+cargo run --example media_grpc_client -- http://[::1]:50051 version
+```
+
+For debugging from a development machine, use an SSH tunnel instead of
+exposing the backend port on the LAN:
+
+```bash
+ssh -N -L 50052:localhost:50051 pi@<pi-ip>
+```
+
+In a second terminal, run the client through the local end of the tunnel:
+
+```bash
+cargo run --example media_grpc_client -- http://127.0.0.1:50052 version
+```
+
+Changing `/etc/carnine/config.toml` to a network bind address is a temporary
+debugging exception only. Restore `[::1]:50051` and restart the service after
+the test. The versioned configuration in `resources/config/carnine.toml` and
+the generated image must remain loopback-only.
+
+---
+
+## 7.5 Network Exposure and Firewall Policy
 
 Remote control must be reachable only from the local network (LAN). Public internet exposure is not allowed.
 
