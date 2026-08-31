@@ -36,6 +36,8 @@ PlayerSnapshot snapshotFromProto(PlayerState state) {
     status: playbackStatusFrom(state.status),
     mediaPath: state.mediaPath,
     position: durationFrom(state.positionMs),
+    playlistId:
+        state.playlistId == Int64.ZERO ? null : idFrom(state.playlistId),
   );
 }
 

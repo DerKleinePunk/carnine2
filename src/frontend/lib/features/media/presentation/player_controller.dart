@@ -160,6 +160,13 @@ class PlayerController extends ChangeNotifier {
   }
 
   Future<void> previous() async {
+    if (!hasTrack || isBusy) {
+      return;
+    }
+    if (position >= const Duration(seconds: 3)) {
+      await _runCommand(_repository.restartCurrentTrack);
+      return;
+    }
     if (!canGoPrevious) {
       return;
     }
@@ -211,7 +218,7 @@ class PlayerController extends ChangeNotifier {
       case PlayerEventKind.trackChanged:
         final state = event.state;
         if (state != null) {
-          _applyState(state);
+          unawaited(_applyState(state));
         }
       case PlayerEventKind.stopped:
         if (_pendingStart) {
@@ -235,12 +242,13 @@ class PlayerController extends ChangeNotifier {
     }
   }
 
-  void _applyState(PlayerSnapshot state) {
+  Future<void> _applyState(PlayerSnapshot state) async {
     _pendingStart = false;
     _status = state.status;
     _mediaPath = state.mediaPath;
     _anchorPosition = state.position;
     _anchorStartedAt = clock.now();
+    await _restorePlaylistIfNeeded(state.playlistId);
     _currentTrack = _resolveTrack(state.mediaPath);
 
     if (_status == PlaybackStatus.playing) {
@@ -250,6 +258,28 @@ class PlayerController extends ChangeNotifier {
     }
 
     notifyListeners();
+  }
+
+  Future<void> _restorePlaylistIfNeeded(int? playlistId) async {
+    if (playlistId == null || _queue.playlistId == playlistId) {
+      return;
+    }
+    try {
+      final playlist = await _repository.getPlaylist(playlistId);
+      final tracks = playlist.entries
+          .map((entry) => entry.track)
+          .whereType<MediaLibraryTrack>()
+          .toList();
+      _queue = MediaQueue(
+        origin: MediaQueueOrigin.playlist,
+        playlistId: playlist.id,
+        playlistName: playlist.name,
+        tracks: tracks,
+      );
+    } on MediaBackendException catch (error) {
+      _logger.warning('GetPlaylist($playlistId) during state restore failed: '
+          '${error.message}');
+    }
   }
 
   /// Resolves the current track for [mediaPath], preferring the local queue

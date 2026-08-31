@@ -3,7 +3,6 @@ use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
 use std::thread::{self, JoinHandle};
-use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 
@@ -210,13 +209,15 @@ impl Playback for ProcessPlayback {
 
     fn stop(mut self: Box<Self>) -> Result<()> {
         self.target_gain.store(0, Ordering::Release);
-        thread::sleep(Duration::from_millis(FADE_MILLISECONDS as u64));
-        self.stop_requested.store(true, Ordering::Release);
+        // Stop decoding first so the copy thread can finish the buffered PCM
+        // data and apply the fade without being cut off mid-buffer.
         let _ = self.signal_process("TERM", "decoder", self.decoder.id());
         let _ = self.decoder.wait();
         if let Some(copy_thread) = self.copy_thread.take() {
             let _ = copy_thread.join();
         }
+        self.stop_requested.store(true, Ordering::Release);
+        let _ = self.signal_process("TERM", "audio output", self.audio_output.id());
         let _ = self.audio_output.wait();
         Ok(())
     }

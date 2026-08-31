@@ -125,6 +125,13 @@ class MediaServiceClient extends $grpc.Client {
     return $createUnaryCall(_$previous, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.CommandResponse> restartCurrentTrack(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$restartCurrentTrack, request, options: options);
+  }
+
   $grpc.ResponseFuture<$0.CommandResponse> playPlaylist(
     $0.PlayPlaylistRequest request, {
     $grpc.CallOptions? options,
@@ -228,6 +235,11 @@ class MediaServiceClient extends $grpc.Client {
       '/carnine.MediaService/Previous',
       ($0.Empty value) => value.writeToBuffer(),
       $0.CommandResponse.fromBuffer);
+  static final _$restartCurrentTrack =
+      $grpc.ClientMethod<$0.Empty, $0.CommandResponse>(
+          '/carnine.MediaService/RestartCurrentTrack',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.CommandResponse.fromBuffer);
   static final _$playPlaylist =
       $grpc.ClientMethod<$0.PlayPlaylistRequest, $0.CommandResponse>(
           '/carnine.MediaService/PlayPlaylist',
@@ -322,6 +334,13 @@ abstract class MediaServiceBase extends $grpc.Service {
     $addMethod($grpc.ServiceMethod<$0.Empty, $0.CommandResponse>(
         'Previous',
         previous_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.CommandResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.CommandResponse>(
+        'RestartCurrentTrack',
+        restartCurrentTrack_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
@@ -452,6 +471,14 @@ abstract class MediaServiceBase extends $grpc.Service {
   }
 
   $async.Future<$0.CommandResponse> previous(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.CommandResponse> restartCurrentTrack_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return restartCurrentTrack($call, await $request);
+  }
+
+  $async.Future<$0.CommandResponse> restartCurrentTrack(
       $grpc.ServiceCall call, $0.Empty request);
 
   $async.Future<$0.CommandResponse> playPlaylist_Pre($grpc.ServiceCall $call,

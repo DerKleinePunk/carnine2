@@ -175,6 +175,16 @@ class GrpcMediaRepository implements MediaRepository {
   }
 
   @override
+  Future<void> restartCurrentTrack() {
+    return _command(
+        'RestartCurrentTrack',
+        () => _channel.stub.restartCurrentTrack(
+              Empty(),
+              options: CallOptions(timeout: _commandTimeout),
+            ));
+  }
+
+  @override
   Future<void> startPlaylist(int playlistId) async {
     await _command(
       'PlayPlaylist',

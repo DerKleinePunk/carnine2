@@ -1553,12 +1553,14 @@ class PlayerState extends $pb.GeneratedMessage {
     $core.String? mediaPath,
     $fixnum.Int64? positionMs,
     $fixnum.Int64? durationMs,
+    $fixnum.Int64? playlistId,
   }) {
     final result = create();
     if (status != null) result.status = status;
     if (mediaPath != null) result.mediaPath = mediaPath;
     if (positionMs != null) result.positionMs = positionMs;
     if (durationMs != null) result.durationMs = durationMs;
+    if (playlistId != null) result.playlistId = playlistId;
     return result;
   }
 
@@ -1579,6 +1581,9 @@ class PlayerState extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'mediaPath')
     ..aInt64(3, _omitFieldNames ? '' : 'positionMs')
     ..aInt64(4, _omitFieldNames ? '' : 'durationMs')
+    ..a<$fixnum.Int64>(
+        5, _omitFieldNames ? '' : 'playlistId', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1635,6 +1640,15 @@ class PlayerState extends $pb.GeneratedMessage {
   $core.bool hasDurationMs() => $_has(3);
   @$pb.TagNumber(4)
   void clearDurationMs() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get playlistId => $_getI64(4);
+  @$pb.TagNumber(5)
+  set playlistId($fixnum.Int64 value) => $_setInt64(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasPlaylistId() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearPlaylistId() => $_clearField(5);
 }
 
 class PlayerEvent extends $pb.GeneratedMessage {

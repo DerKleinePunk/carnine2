@@ -19,23 +19,26 @@ PlaybackStatus playbackStatusFrom(String raw) {
 
 /// Immutable view of the backend player at one point in time.
 ///
-/// The contract's `duration_ms` is deliberately dropped: the backend hardcodes
-/// it to zero, so track length only ever comes from the media library.
+/// The contract's `duration_ms` is deliberately dropped: the backend still
+/// reports zero, so track length only ever comes from the media library.
 class PlayerSnapshot {
   const PlayerSnapshot({
     required this.status,
     required this.mediaPath,
     required this.position,
+    this.playlistId,
   });
 
   const PlayerSnapshot.stopped()
       : status = PlaybackStatus.stopped,
         mediaPath = '',
-        position = Duration.zero;
+        position = Duration.zero,
+        playlistId = null;
 
   final PlaybackStatus status;
   final String mediaPath;
   final Duration position;
+  final int? playlistId;
 
   bool get hasMedia => mediaPath.isNotEmpty;
 }

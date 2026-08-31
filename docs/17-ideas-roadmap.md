@@ -31,6 +31,8 @@
 - [x] Implement backend media search for title and artist
 - [x] Implement persistent playlists and temporary queue semantics
 - [x] Implement backend-owned playback state and play/pause/stop/next/previous
+- [x] Add RestartCurrentTrack without losing the queue (#7)
+- [x] Expose active playlist context in player snapshots and restore it in the frontend (#10)
 - [x] Implement initial player snapshot and library rescan event stream
 - [x] Implement live player and audio event streams
 - [x] Package the selected audio dependencies in the Debos image and backend Debian package
@@ -41,7 +43,7 @@
 - [x] Implement the systemd-managed storage event listener for block-device add/remove and mount-state changes, then notify the media service
 - [ ] Validate UDisks2 add/remove and mount events with a real USB device on the Raspberry Pi
 - [ ] Settings UI for media folders and playlist resume mode
-- [ ] Queue editing, direct track selection, seek RPC, shuffle, and advanced queue operations
+- [ ] Queue editing, direct queue-entry selection (#11), seek RPC (#8), shuffle (#9), and advanced queue operations
 - [ ] M3U import/export
 - [ ] Party mode
 - [ ] Gapless playback and cross-fading

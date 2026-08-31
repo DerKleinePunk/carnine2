@@ -105,6 +105,7 @@ void main() {
           mediaPath: '/music/a.mp3',
           positionMs: Int64(1000),
           durationMs: Int64(0),
+          playlistId: Int64(7),
         ),
         message: 'current player state',
       );
@@ -116,6 +117,7 @@ void main() {
       expect(update.state!.status, PlaybackStatus.playing);
       expect(update.state!.mediaPath, '/music/a.mp3');
       expect(update.state!.position, const Duration(seconds: 1));
+      expect(update.state!.playlistId, 7);
     });
 
     test('state is null when the proto event has none set', () {

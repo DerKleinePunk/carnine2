@@ -372,6 +372,7 @@ const PlayerState$json = {
     {'1': 'media_path', '3': 2, '4': 1, '5': 9, '10': 'mediaPath'},
     {'1': 'position_ms', '3': 3, '4': 1, '5': 3, '10': 'positionMs'},
     {'1': 'duration_ms', '3': 4, '4': 1, '5': 3, '10': 'durationMs'},
+    {'1': 'playlist_id', '3': 5, '4': 1, '5': 4, '10': 'playlistId'},
   ],
 };
 
@@ -379,7 +380,8 @@ const PlayerState$json = {
 final $typed_data.Uint8List playerStateDescriptor = $convert.base64Decode(
     'CgtQbGF5ZXJTdGF0ZRIWCgZzdGF0dXMYASABKAlSBnN0YXR1cxIdCgptZWRpYV9wYXRoGAIgAS'
     'gJUgltZWRpYVBhdGgSHwoLcG9zaXRpb25fbXMYAyABKANSCnBvc2l0aW9uTXMSHwoLZHVyYXRp'
-    'b25fbXMYBCABKANSCmR1cmF0aW9uTXM=');
+    'b25fbXMYBCABKANSCmR1cmF0aW9uTXMSHwoLcGxheWxpc3RfaWQYBSABKARSCnBsYXlsaXN0SW'
+    'Q=');
 
 @$core.Deprecated('Use playerEventDescriptor instead')
 const PlayerEvent$json = {

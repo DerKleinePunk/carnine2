@@ -74,6 +74,7 @@ impl MediaPlayer {
             "stop" => self.stop(),
             "next" => self.next(),
             "previous" => self.previous(),
+            "restart" => self.switch_track(0),
             unknown => Err(anyhow!("unknown media command: {unknown}")),
         };
         if let Err(error) = &result {
@@ -163,6 +164,7 @@ impl MediaPlayer {
             media_path: self.media_path(),
             position_ms: self.position_ms(),
             duration_ms: 0,
+            playlist_id: self.playlist_id().unwrap_or_default() as u64,
         }
     }
 
@@ -295,6 +297,10 @@ impl MediaPlayer {
             .queue_index
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(0);
+        *self
+            .playlist_id
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
         *self
             .position_ms
             .lock()

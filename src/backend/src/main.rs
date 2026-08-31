@@ -322,6 +322,13 @@ impl MediaService for MediaServiceImpl {
         self.command("previous", String::new())
     }
 
+    async fn restart_current_track(
+        &self,
+        _request: Request<Empty>,
+    ) -> Result<Response<CommandResponse>, Status> {
+        self.command("restart", String::new())
+    }
+
     async fn play_playlist(
         &self,
         request: Request<PlayPlaylistRequest>,
@@ -367,6 +374,7 @@ impl MediaService for MediaServiceImpl {
             media_path: self.player.media_path(),
             position_ms: self.player.position_ms(),
             duration_ms: 0,
+            playlist_id: self.player.playlist_id().unwrap_or_default() as u64,
         }))
     }
 
@@ -1033,6 +1041,56 @@ mod tests {
             second.state.expect("second state should exist").position_ms
                 >= first.state.expect("first state should exist").position_ms
         );
+    }
+
+    #[test]
+    fn restart_current_track_preserves_queue_position() {
+        let player = MediaPlayer::with_engine(Box::new(FakeAudioEngine));
+        player
+            .play_playlist(
+                1,
+                vec![
+                    (10, "first.wav".to_string()),
+                    (11, "second.wav".to_string()),
+                ],
+                Some(11),
+                0,
+                "auto-play",
+            )
+            .expect("fake playback should start");
+
+        let result = player.execute("restart", "");
+
+        assert!(result.is_ok());
+        assert_eq!(player.playlist_id(), Some(1));
+        assert_eq!(player.playlist_entry_id(), Some(11));
+        assert_eq!(player.media_path(), "second.wav");
+        assert_eq!(player.position_ms(), 0);
+        assert_eq!(player.state(), "playing");
+    }
+
+    #[test]
+    fn direct_track_play_clears_previous_playlist_context() {
+        let player = MediaPlayer::with_engine(Box::new(FakeAudioEngine));
+        player
+            .play_playlist(
+                1,
+                vec![(10, "playlist.wav".to_string())],
+                None,
+                0,
+                "restore_paused",
+            )
+            .expect("playlist should load");
+        player.execute("stop", "").expect("playback should stop");
+        let path = std::env::temp_dir().join(format!("carnine-direct-{}.wav", std::process::id()));
+        std::fs::write(&path, b"fake").expect("test media should be created");
+
+        player
+            .execute("play", &path.to_string_lossy())
+            .expect("direct playback should start");
+
+        assert_eq!(player.playlist_id(), None);
+        let _ = std::fs::remove_file(path);
     }
 
     #[tokio::test]
