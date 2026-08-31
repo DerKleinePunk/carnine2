@@ -25,16 +25,37 @@ echo "[pi] Building backend (aarch64-unknown-linux-gnu, release)..."
 (
   cd "$BACKEND_DIR"
   cargo build --release --target aarch64-unknown-linux-gnu
+  rm -f target/debian/carnine-backend_*_arm64.deb
+  rm -f target/aarch64-unknown-linux-gnu/debian/carnine-backend_*_arm64.deb
   cargo deb --target aarch64-unknown-linux-gnu
 )
 
 shopt -s nullglob
-BACKEND_PACKAGES=("$BACKEND_DIR/target/aarch64-unknown-linux-gnu/debian/carnine-backend_*_arm64.deb")
+BACKEND_PACKAGES=(
+  "$BACKEND_DIR/target/debian/"carnine-backend_*_arm64.deb
+  "$BACKEND_DIR/target/aarch64-unknown-linux-gnu/debian/"carnine-backend_*_arm64.deb
+)
 if [[ "${#BACKEND_PACKAGES[@]}" -ne 1 ]]; then
-  echo "[pi] ERROR: Expected exactly one ARM64 backend package, found ${#BACKEND_PACKAGES[@]}"
-  exit 1
+  if [[ "${#BACKEND_PACKAGES[@]}" -eq 0 ]]; then
+    echo "[pi] ERROR: No ARM64 backend package found"
+    exit 1
+  fi
+
+  BACKEND_CHECKSUM="$(sha256sum "${BACKEND_PACKAGES[0]}" | awk '{print $1}')"
+  for candidate in "${BACKEND_PACKAGES[@]:1}"; do
+    candidate_checksum="$(sha256sum "$candidate" | awk '{print $1}')"
+    if [[ "$candidate_checksum" != "$BACKEND_CHECKSUM" ]]; then
+      echo "[pi] ERROR: Multiple different ARM64 backend packages found"
+      exit 1
+    fi
+  done
+  echo "[pi] Multiple identical ARM64 backend packages found; using ${BACKEND_PACKAGES[0]}"
 fi
 BACKEND_PACKAGE="${BACKEND_PACKAGES[0]}"
+if [[ "$(dpkg-deb -f "$BACKEND_PACKAGE" Architecture)" != "arm64" ]]; then
+  echo "[pi] ERROR: Backend package is not arm64: $BACKEND_PACKAGE"
+  exit 1
+fi
 cp "$BACKEND_PACKAGE" "$ROOT_DIR/resources/debos/carnine-backend.deb"
 echo "[pi] Backend package staged: $ROOT_DIR/resources/debos/carnine-backend.deb"
 
