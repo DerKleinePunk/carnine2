@@ -93,6 +93,11 @@ actions:
       - linux-image-rpi-v8
 
   - action: run
+    description: Restore automatic Dracut kernel hook
+    chroot: true
+    command: mv /etc/kernel/postinst.d/dracut.disabled /etc/kernel/postinst.d/dracut
+
+  - action: run
     description: Reduce boot-time storage I/O
     chroot: true
     command: |
