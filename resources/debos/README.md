@@ -27,6 +27,15 @@ Vor dem Debos-Lauf muss `build_pi.sh` ausgeführt werden. Das Script baut das
 ARM64-Debian-Paket des Rust-Backends und legt es als
 `resources/debos/carnine-backend.deb` für das Image-Rezept ab.
 
+Für den Waveshare-Entwicklungs-Pi kann der native Displaymodus aktiviert werden:
+
+```sh
+debos -t display=waveshare-1024x600 raspbian.yaml
+```
+
+Ohne diesen Parameter bleibt `display=auto` aktiv und die HDMI-Auflösung wird
+weiterhin automatisch anhand der Display-Erkennung gewählt.
+
 Hinweis zur YAML-Pruefung:
 
 `raspbian.yaml` ist ein Debos-Template und enthaelt deshalb zusaetzlich

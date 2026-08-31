@@ -1,6 +1,7 @@
 {{- $image := or .image "raspbian.img" -}}
 {{- $rootpassword := or .rootpassword "raspberry" -}}
 {{- $target_hostname := or .target_hostname "carnine-pc" -}}
+{{- $display := or .display "auto" -}}
 
 architecture: arm64
 
@@ -142,9 +143,28 @@ actions:
     destination: /boot/firmware/config.txt
 
   - action: run
+    description: Configure Waveshare 1024x600 display mode
+    chroot: true
+    command: |
+      {{ if eq $display "waveshare-1024x600" -}}
+      sed -i 's/^dtoverlay=vc4-kms-v3d$/dtoverlay=vc4-fkms-v3d/' /boot/firmware/config.txt
+      sed -i '/^disable_fw_kms_setup=/d' /boot/firmware/config.txt
+      cat >> /boot/firmware/config.txt << __EOF__
+      hdmi_force_hotplug=1
+      hdmi_group=2
+      hdmi_mode=87
+      hdmi_cvt=1024 600 60 6 0 0 0
+      __EOF__
+      {{- end }}
+
+  - action: run
     description: Set up cmdline.txt
     chroot: true
-    command: echo "root=LABEL=ROOTFS quiet splash logo.nologo" > /boot/firmware/cmdline.txt
+    command: |
+      printf '%s' 'root=LABEL=ROOTFS quiet splash logo.nologo' > /boot/firmware/cmdline.txt
+      {{ if eq $display "waveshare-1024x600" -}}
+      printf '%s\n' ' video=HDMI-A-1:1024x600M@60' >> /boot/firmware/cmdline.txt
+      {{- end }}
 
   - action: run
     description: Set up user/password
