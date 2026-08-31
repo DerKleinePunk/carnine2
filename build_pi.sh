@@ -28,6 +28,16 @@ echo "[pi] Building backend (aarch64-unknown-linux-gnu, release)..."
   cargo deb --target aarch64-unknown-linux-gnu
 )
 
+shopt -s nullglob
+BACKEND_PACKAGES=("$BACKEND_DIR/target/aarch64-unknown-linux-gnu/debian/carnine-backend_*_arm64.deb")
+if [[ "${#BACKEND_PACKAGES[@]}" -ne 1 ]]; then
+  echo "[pi] ERROR: Expected exactly one ARM64 backend package, found ${#BACKEND_PACKAGES[@]}"
+  exit 1
+fi
+BACKEND_PACKAGE="${BACKEND_PACKAGES[0]}"
+cp "$BACKEND_PACKAGE" "$ROOT_DIR/resources/debos/carnine-backend.deb"
+echo "[pi] Backend package staged: $ROOT_DIR/resources/debos/carnine-backend.deb"
+
 echo "[pi] Preparing frontend dependencies..."
 (
   cd "$FRONTEND_DIR"

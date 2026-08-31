@@ -27,6 +27,7 @@ src/frontend/.metadata
 src/frontend/.gitignore
 .vscode/settings.json
 resources/debos/raspbian.img.bmap
+resources/debos/carnine-backend.deb
 resources/debos/not-sync/
 resources/raspbian.img
 resources/raspbian.img.gz

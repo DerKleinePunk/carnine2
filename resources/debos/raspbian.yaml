@@ -178,6 +178,10 @@ actions:
       chown root:carnine /etc/carnine/config.toml
       chmod 0660 /etc/carnine/config.toml
 
+  - action: install-deb
+    description: Install Carnine backend
+    origin: carnine-backend.deb
+
   - action: overlay
     description: Install Bootimage
     origin: recipe

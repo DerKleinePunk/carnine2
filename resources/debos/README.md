@@ -23,6 +23,10 @@ wget https://github.com/podman-container-tools/podman/releases/download/v6.0.2/p
 
 podman run --rm -it --device /dev/kvm --mount "type=bind,source=$(pwd),destination=/work" --workdir /work --security-opt label=disable godebos/debos raspbian.yaml
 
+Vor dem Debos-Lauf muss `build_pi.sh` ausgeführt werden. Das Script baut das
+ARM64-Debian-Paket des Rust-Backends und legt es als
+`resources/debos/carnine-backend.deb` für das Image-Rezept ab.
+
 Hinweis zur YAML-Pruefung:
 
 `raspbian.yaml` ist ein Debos-Template und enthaelt deshalb zusaetzlich
