@@ -1128,6 +1128,67 @@ mod tests {
         assert_eq!(player.state(), "playing");
     }
 
+    #[test]
+    fn queue_entry_rejects_index_outside_queue() {
+        let player = MediaPlayer::with_engine(Box::new(FakeAudioEngine));
+        player
+            .play_playlist(1, vec![(10, "first.wav".to_string())], None, 0, "auto-play")
+            .expect("fake playback should start");
+
+        let error = player
+            .execute("queue-entry", "1")
+            .expect_err("out-of-range entry should fail");
+
+        assert!(error.to_string().contains("queue index out of range"));
+    }
+
+    #[test]
+    fn queue_entry_requires_active_playback() {
+        let player = MediaPlayer::with_engine(Box::new(FakeAudioEngine));
+        player
+            .play_playlist(
+                1,
+                vec![(10, "first.wav".to_string())],
+                None,
+                0,
+                "restore_paused",
+            )
+            .expect("playlist should load");
+
+        let error = player
+            .execute("queue-entry", "0")
+            .expect_err("queue entry should require active playback");
+
+        assert!(error.to_string().contains("no active playback"));
+    }
+
+    #[test]
+    fn queue_entry_publishes_track_changed_event() {
+        let player = MediaPlayer::with_engine(Box::new(FakeAudioEngine));
+        let mut events = player.subscribe_events();
+        player
+            .play_playlist(
+                1,
+                vec![
+                    (10, "first.wav".to_string()),
+                    (11, "second.wav".to_string()),
+                ],
+                None,
+                0,
+                "auto-play",
+            )
+            .expect("fake playback should start");
+        let _ = events.try_recv().expect("start event should be published");
+
+        player
+            .execute("queue-entry", "1")
+            .expect("queue entry should start");
+        let event = events.try_recv().expect("track event should be published");
+
+        assert_eq!(event.event, "track_changed");
+        assert_eq!(event.state.expect("event state").media_path, "second.wav");
+    }
+
     #[tokio::test]
     async fn library_event_stream_receives_rescan_events() {
         let folder =

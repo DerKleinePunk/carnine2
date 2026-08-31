@@ -11,7 +11,7 @@ pub mod carnine {
 
 use carnine::{
     audio_service_client::AudioServiceClient, media_service_client::MediaServiceClient, Empty,
-    PlayPlaylistRequest, PlayRequest, RescanMediaRequest,
+    PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, RescanMediaRequest,
 };
 
 #[tokio::main]
@@ -44,6 +44,7 @@ async fn main() -> Result<()> {
         "resume" => send_play(&mut client, String::new()).await?,
         "stop" => send_stop(&mut client).await?,
         "playlist" => play_playlist(&mut client).await?,
+        "queue-entry" => play_queue_entry(&mut client).await?,
         "player-events" => stream_player_events(&mut client).await?,
         "library-events" => stream_library_events(&mut client).await?,
         "library-smoke" => library_event_smoke(&endpoint).await?,
@@ -63,6 +64,19 @@ async fn play_playlist(client: &mut MediaServiceClient<Channel>) -> Result<()> {
         .parse::<u64>()?;
     let response = client
         .play_playlist(PlayPlaylistRequest { playlist_id })
+        .await?
+        .into_inner();
+    println!("{}: {}", response.success, response.message);
+    Ok(())
+}
+
+async fn play_queue_entry(client: &mut MediaServiceClient<Channel>) -> Result<()> {
+    let index = env::args()
+        .nth(3)
+        .context("queue-entry requires a zero-based queue index")?
+        .parse::<u32>()?;
+    let response = client
+        .play_queue_entry(PlayQueueEntryRequest { index })
         .await?
         .into_inner();
     println!("{}: {}", response.success, response.message);
@@ -197,8 +211,8 @@ async fn send_stop(client: &mut MediaServiceClient<Channel>) -> Result<()> {
 async fn print_state(client: &mut MediaServiceClient<Channel>) -> Result<()> {
     let state = client.get_player_state(Empty {}).await?.into_inner();
     println!(
-        "state={} media={} position_ms={} duration_ms={}",
-        state.status, state.media_path, state.position_ms, state.duration_ms
+        "state={} media={} position_ms={} duration_ms={} playlist_id={}",
+        state.status, state.media_path, state.position_ms, state.duration_ms, state.playlist_id
     );
     Ok(())
 }
@@ -208,7 +222,7 @@ async fn smoke_test(client: &mut MediaServiceClient<Channel>) -> Result<()> {
     send_play(client, media_path).await?;
     tokio::time::sleep(Duration::from_secs(3)).await;
     send_pause(client).await?;
-    tokio::time::sleep(Duration::from_secs(1)).await;
+    tokio::time::sleep(Duration::from_secs(5)).await;
     send_play(client, String::new()).await?;
     tokio::time::sleep(Duration::from_secs(3)).await;
     send_stop(client).await

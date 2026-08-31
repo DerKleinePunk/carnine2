@@ -237,6 +237,30 @@ void main() {
     expect(repository.commands, ['playPlaylist:5', 'play:']);
   });
 
+  test('playQueueEntry sends the selected queue index', () async {
+    await controller.start();
+    const playlist = MediaPlaylist(id: 5, name: 'Drive', entries: []);
+
+    await controller.playPlaylist(playlist, [_trackA, _trackB]);
+    await controller.playQueueEntry(1);
+
+    expect(repository.commands, [
+      'playPlaylist:5',
+      'play:',
+      'playQueueEntry:1',
+    ]);
+  });
+
+  test('playQueueEntry ignores invalid indices', () async {
+    await controller.start();
+    const playlist = MediaPlaylist(id: 5, name: 'Drive', entries: []);
+
+    await controller.playPlaylist(playlist, [_trackA]);
+    await controller.playQueueEntry(1);
+
+    expect(repository.commands, ['playPlaylist:5', 'play:']);
+  });
+
   test(
       'a precondition error on next() shows a hint but does not report offline',
       () async {

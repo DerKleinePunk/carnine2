@@ -3,13 +3,18 @@ use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
 use std::thread::{self, JoinHandle};
+use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
+use tracing::info;
 
 use crate::config::AudioConfig;
 
 const SAMPLE_FORMAT: &str = "s16le";
 const FADE_MILLISECONDS: u32 = 250;
+const PCM_BUFFER_BYTES: usize = 4 * 1024;
+const PULSE_LATENCY_MILLISECONDS: u32 = 20;
+const PULSE_PROCESS_TIME_MILLISECONDS: u32 = 10;
 
 pub trait AudioEngine: Send + Sync {
     fn start(&self, input_path: &str) -> Result<Box<dyn Playback>>;
@@ -125,7 +130,7 @@ impl ProcessPlayback {
         let sample_rate = engine.sample_rate.parse::<u32>()?;
         let channels = engine.channels.parse::<u16>()?;
         let copy_thread = thread::spawn(move || -> Result<u64> {
-            let mut buffer = [0_u8; 64 * 1024];
+            let mut buffer = [0_u8; PCM_BUFFER_BYTES];
             let bytes_per_frame = channels as usize * 2;
             let mut pending_pcm = Vec::with_capacity(bytes_per_frame);
             let mut pcm_bytes = 0_u64;
@@ -166,6 +171,13 @@ impl ProcessPlayback {
             Ok(pcm_bytes)
         });
 
+        info!(
+            decoder_pid = decoder.id(),
+            audio_output_pid = audio_output.id(),
+            position_ms,
+            "audio stream started"
+        );
+
         Ok(Self {
             decoder,
             audio_output,
@@ -200,25 +212,36 @@ impl ProcessPlayback {
 impl Playback for ProcessPlayback {
     fn pause(&self) -> Result<()> {
         self.target_gain.store(0, Ordering::Release);
+        thread::sleep(Duration::from_millis(FADE_MILLISECONDS as u64));
+        self.signal("STOP")?;
+        info!("audio stream paused; decoder and output processes stopped");
         Ok(())
     }
     fn resume(&self) -> Result<()> {
+        self.signal("CONT")?;
         self.target_gain.store(1_000_000, Ordering::Release);
+        info!("audio stream resumed; decoder and output processes continued");
         Ok(())
     }
 
     fn stop(mut self: Box<Self>) -> Result<()> {
         self.target_gain.store(0, Ordering::Release);
-        // Stop decoding first so the copy thread can finish the buffered PCM
-        // data and apply the fade without being cut off mid-buffer.
+        let _ = self.signal("CONT");
+        thread::sleep(Duration::from_millis(FADE_MILLISECONDS as u64));
+        self.stop_requested.store(true, Ordering::Release);
+        // Closing the output first releases a copy thread blocked in write_all.
+        // The decoder can then be terminated without waiting indefinitely for
+        // its stdout pipe to drain.
+        let _ = self.signal_process("TERM", "audio output", self.audio_output.id());
+        let _ = self.audio_output.kill();
         let _ = self.signal_process("TERM", "decoder", self.decoder.id());
-        let _ = self.decoder.wait();
+        let _ = self.decoder.kill();
         if let Some(copy_thread) = self.copy_thread.take() {
             let _ = copy_thread.join();
         }
-        self.stop_requested.store(true, Ordering::Release);
-        let _ = self.signal_process("TERM", "audio output", self.audio_output.id());
+        let _ = self.decoder.wait();
         let _ = self.audio_output.wait();
+        info!("audio stream stopped; decoder and output processes exited");
         Ok(())
     }
 }
@@ -252,6 +275,8 @@ fn start_audio_output(engine: &ExternalProcessAudioEngine) -> Result<Child> {
             "--client-name=carnine-backend",
             "--stream-name=carnine-media",
             "--raw",
+            &format!("--latency-msec={PULSE_LATENCY_MILLISECONDS}"),
+            &format!("--process-time-msec={PULSE_PROCESS_TIME_MILLISECONDS}"),
             &format!("--rate={}", engine.sample_rate),
             &format!("--channels={}", engine.channels),
             &format!("--format={SAMPLE_FORMAT}"),
