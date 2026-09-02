@@ -167,8 +167,9 @@ actions:
     command: |
       printf '%s' 'root=LABEL=ROOTFS quiet splash logo.nologo' > /boot/firmware/cmdline.txt
       {{ if eq $display "waveshare-1024x600" -}}
-      printf '%s\n' ' video=HDMI-A-1:1024x600M@60' >> /boot/firmware/cmdline.txt
+      printf '%s' ' video=HDMI-A-1:1024x600M@60' >> /boot/firmware/cmdline.txt
       {{- end }}
+      printf '%s\n' ' vt.global_cursor_default=0' >> /boot/firmware/cmdline.txt
 
   - action: run
     description: Set up user/password
