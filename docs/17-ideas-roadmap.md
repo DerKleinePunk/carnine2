@@ -82,6 +82,7 @@
 
 ### Infrastructure / DevOps
 - [ ] Establish GitHub Actions pipeline (lint, test, cross-build checks)
+- [ ] Evaluate aptly-based local Debian repository/cache for CI/CD and Debos image builds, so package updates and image rebuilds do not require downloading the same packages from the internet repeatedly
 - [ ] Add deployment checklist and script templates for Pi provisioning
 - [ ] Add firewall baseline enforcement test (LAN-only inbound policy)
 

@@ -1,7 +1,11 @@
-{{- $image := or .image "raspbian.img" -}}
 {{- $rootpassword := or .rootpassword "raspberry" -}}
 {{- $target_hostname := or .target_hostname "carnine-pc" -}}
 {{- $display := or .display "auto" -}}
+{{- $default_image := "raspbian.img" -}}
+{{- if eq $display "waveshare-1024x600" -}}
+{{- $default_image = "raspbian-1024x600.img" -}}
+{{- end -}}
+{{- $image := or .image $default_image -}}
 
 architecture: arm64
 
