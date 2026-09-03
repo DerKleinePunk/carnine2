@@ -27,6 +27,30 @@ protoc -I ../proto --dart_out=grpc:lib/lib ../proto/carnine.proto
 - `flutter test .`
 - `flutter run`
 
+## ARM64 Debian package
+
+Build the Raspberry Pi bundle and package it together with the `flutter-pi`
+runtime:
+
+```bash
+flutterpi_tool build --arch=arm64 --cpu=pi4
+bash package-deb.sh build/flutter-pi/aarch64-generic carnine-frontend.deb
+```
+
+The package installs the application under `/opt/carnine/frontend` and
+provides `carnine-frontend.service`. It uses DRM/KMS directly, so no X11 or
+Wayland session is required.
+
+The Carnine Dart application does not use Vulkan, GStreamer, or Flutter audio.
+The bundled `flutter-pi` binary must nevertheless be built without those
+optional features before their runtime libraries can be removed from the
+Debian package dependencies.
+
+The application fonts `NotoSansSC` and `NotoSansJP` are bundled with the
+application. The image also installs `fontconfig` and `fonts-liberation` as a
+runtime-compatible replacement for the Arial font expected by the Flutter
+engine.
+
 ## Current State
 
 This is an initial UI shell to validate build and runtime setup before integrating backend communication.

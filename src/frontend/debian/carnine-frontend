@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+export CARNINE_FLUTTER_PI=1
+exec /opt/carnine/frontend/flutter-pi /opt/carnine/frontend

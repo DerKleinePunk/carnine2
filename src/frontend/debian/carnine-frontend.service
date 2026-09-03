@@ -1,0 +1,18 @@
+[Unit]
+Description=Carnine Flutter Frontend
+After=systemd-udev-settle.service carnine-backend.service
+Wants=carnine-backend.service
+
+[Service]
+Type=simple
+User=carnine
+Group=carnine
+SupplementaryGroups=render video input
+Environment=CARNINE_FLUTTER_PI=1
+Environment=CARNINE_LOG_PATH=/var/log/carnine/frontend.log
+ExecStart=/usr/bin/carnine-frontend
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

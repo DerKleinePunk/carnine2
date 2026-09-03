@@ -89,8 +89,22 @@ echo "[pi] Building Flutter-Pi bundle (arm64 / pi4)..."
   flutterpi_tool build --arch=arm64 --cpu=pi4
 )
 
+FRONTEND_BUNDLE="$FRONTEND_DIR/build/flutter-pi/aarch64-generic"
+FRONTEND_PACKAGE="$ROOT_DIR/resources/debos/carnine-frontend.deb"
+if [[ ! -x "$FRONTEND_BUNDLE/flutter-pi" ]]; then
+  echo "[pi] ERROR: Flutter-Pi runtime not found in $FRONTEND_BUNDLE"
+  exit 1
+fi
+"$FRONTEND_DIR/package-deb.sh" "$FRONTEND_BUNDLE" "$FRONTEND_PACKAGE"
+if [[ "$(dpkg-deb -f "$FRONTEND_PACKAGE" Architecture)" != "arm64" ]]; then
+  echo "[pi] ERROR: Frontend package is not arm64: $FRONTEND_PACKAGE"
+  exit 1
+fi
+echo "[pi] Frontend package staged: $FRONTEND_PACKAGE"
+
 echo
 echo "[pi] Build finished."
 echo "[pi] Backend binary: $BACKEND_DIR/target/aarch64-unknown-linux-gnu/release/carnine-backend"
-echo "[pi] Frontend bundle: $FRONTEND_DIR/build/flutter-pi/aarch64-generic"
+echo "[pi] Frontend bundle: $FRONTEND_BUNDLE"
+echo "[pi] Frontend package: $FRONTEND_PACKAGE"
 echo "[pi] Full log: $LOG_FILE"

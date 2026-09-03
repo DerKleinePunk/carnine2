@@ -16,8 +16,9 @@ abstract final class AppLogging {
   static const int maxBufferedLines = 200;
   static final Logger frontend = Logger('CarnineFrontend');
 
-  static final ValueNotifier<List<String>> _lines =
-      ValueNotifier<List<String>>(<String>[]);
+  static final ValueNotifier<List<String>> _lines = ValueNotifier<List<String>>(
+    <String>[],
+  );
 
   static IOSink? _sink;
   static bool _initialized = false;
@@ -35,14 +36,16 @@ abstract final class AppLogging {
   static ValueListenable<List<String>> get lines => _lines;
 
   /// Configures root logging once and appends records to disk and DevTools.
-  static Future<void> initialize({
-    String logPath = 'logs/frontend.log',
-  }) async {
+  static Future<void> initialize({String? logPath}) async {
     if (_initialized) {
       return;
     }
 
-    final file = File(logPath);
+    final resolvedLogPath =
+        logPath ??
+        Platform.environment['CARNINE_LOG_PATH'] ??
+        'logs/frontend.log';
+    final file = File(resolvedLogPath);
     await file.parent.create(recursive: true);
 
     _sink = file.openWrite(mode: FileMode.append);
@@ -111,13 +114,15 @@ abstract final class AppLogging {
       return;
     }
 
-    _pendingWrite = _pendingWrite.then((_) async {
-      sink.writeln(line);
-      await sink.flush();
-    }).catchError((_) {
-      // A broken log write must never crash the app or wedge the chain for
-      // subsequent lines.
-    });
+    _pendingWrite = _pendingWrite
+        .then((_) async {
+          sink.writeln(line);
+          await sink.flush();
+        })
+        .catchError((_) {
+          // A broken log write must never crash the app or wedge the chain for
+          // subsequent lines.
+        });
   }
 
   static void _sendToDeveloperLog(LogRecord record) {

@@ -1,0 +1,9 @@
+Package: carnine-frontend
+Version: 0.1.0
+Section: misc
+Priority: optional
+Architecture: arm64
+Maintainer: Carnine Project
+Depends: libdrm2, libgbm1, libsystemd0, libinput10, libxkbcommon0, libudev1, libegl1, libgles2, libvulkan1, libatomic1, gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, fontconfig, fonts-liberation
+Description: Carnine Flutter frontend
+ DRM/KMS Flutter frontend and its flutter-pi runtime for Raspberry Pi.

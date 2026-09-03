@@ -82,6 +82,8 @@ actions:
       - nano
       - dialog
       - ffmpeg
+      - fontconfig
+      - fonts-liberation
       - pulseaudio-utils
       - alsa-utils
       - udisks2
@@ -182,6 +184,9 @@ actions:
       addgroup --system carnine
       adduser --system --ingroup carnine --no-create-home --home /nonexistent --shell /usr/sbin/nologin carnine
       adduser carnine audio
+      adduser carnine render
+      adduser carnine video
+      adduser carnine input
 
       install -d -o carnine -g carnine -m 0750 /var/lib/carnine
       install -d -o carnine -g carnine -m 0750 /var/lib/carnine/media
@@ -208,6 +213,12 @@ actions:
     origin: recipe
     packages:
       - carnine-backend.deb
+
+  - action: install-deb
+    description: Install Carnine Flutter frontend
+    origin: recipe
+    packages:
+      - carnine-frontend.deb
 
   - action: overlay
     description: Install Bootimage

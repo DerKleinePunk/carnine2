@@ -30,7 +30,8 @@ abstract final class AppWindow {
   }
 
   static bool get _usesWindowManager {
-    return Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    return !Platform.environment.containsKey('CARNINE_FLUTTER_PI') &&
+        (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
   }
 
   static Future<void> _showAndFocus() async {

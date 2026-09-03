@@ -28,9 +28,14 @@ wget https://github.com/podman-container-tools/podman/releases/download/v6.0.2/p
 
 podman run --rm -it --device /dev/kvm --mount "type=bind,source=$(pwd),destination=/work" --workdir /work --security-opt label=disable godebos/debos raspbian.yaml
 
-Vor dem Debos-Lauf muss `build_pi.sh` ausgeführt werden. Das Script baut das
-ARM64-Debian-Paket des Rust-Backends und legt es als
-`resources/debos/carnine-backend.deb` für das Image-Rezept ab.
+Vor dem Debos-Lauf muss `build_pi.sh` ausgeführt werden. Das Script baut die
+beiden ARM64-Debian-Pakete und legt sie als `resources/debos/carnine-backend.deb`
+und `resources/debos/carnine-frontend.deb` für das Image-Rezept ab. Das
+Frontend-Paket enthält das `flutter-pi`-Bundle inklusive Runtime und startet
+direkt über DRM/KMS; X11 oder Wayland werden nicht benötigt. Der Benutzer
+`carnine` erhält dafür die Gruppen `render`, `video` und `input`.
+Das Image installiert außerdem `fontconfig` und `fonts-liberation` als
+Systemfont-Ersatz für die vom Flutter-Engine erwartete Arial-Schrift.
 
 Für den Waveshare-Entwicklungs-Pi kann der native Displaymodus aktiviert werden:
 
