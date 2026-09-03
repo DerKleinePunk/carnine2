@@ -18,12 +18,10 @@ import 'package:logging/logging.dart';
 /// user action.
 class LibraryController extends ChangeNotifier {
   LibraryController({
-    required MediaRepository repository,
-    void Function(Object error)? onStreamFailure,
+    required this._repository,
+    this._onStreamFailure,
     Logger? logger,
-  })  : _repository = repository,
-        _onStreamFailure = onStreamFailure,
-        _logger = logger ?? Logger('LibraryController');
+  })  : _logger = logger ?? Logger('LibraryController');
 
   static const _debounceDuration = Duration(milliseconds: 300);
   static const _scanWatchdogDuration = Duration(seconds: 60);

@@ -14,12 +14,10 @@ import 'package:logging/logging.dart';
 /// playlist always issues a fresh `GetPlaylist` call.
 class PlaylistController extends ChangeNotifier {
   PlaylistController({
-    required MediaRepository repository,
-    void Function(Object error)? onStreamFailure,
+    required this._repository,
+    this._onStreamFailure,
     Logger? logger,
-  })  : _repository = repository,
-        _onStreamFailure = onStreamFailure,
-        _logger = logger ?? Logger('PlaylistController');
+  })  : _logger = logger ?? Logger('PlaylistController');
 
   final MediaRepository _repository;
   final void Function(Object error)? _onStreamFailure;

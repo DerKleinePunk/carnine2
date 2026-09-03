@@ -35,3 +35,6 @@ resources/raspbian.img.bmap
 resources/raspbian-1024x600.img
 resources/raspbian-1024x600.img.bmap
 resources/raspbian-1024x600.img.gz
+
+# FVM Version Cache
+.fvm/

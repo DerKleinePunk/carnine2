@@ -56,3 +56,9 @@ wichtig der mount point muss unter /mnt/wsl liegen da das geteilt wird zwischen 
 
 https://wsl-ui.octasoft.co.uk/blog/podman-desktop-with-remote-client-in-wsl
 https://gist.github.com/omarmciver/0c85f5a68448aa6c94fee381e5fdbe9b
+
+Debian Packes Pinnen / Cachen
+
+https://www.aptly.info/
+
+https://salsa.debian.org/debconf-team/public/share/miniconfs/-/raw/main/2026-minidebconf-winterthur/slides/24-you-probably-dont-need-yocto-and-thats-fine-using-debian-for-embedded-systems.pdf?inline=false

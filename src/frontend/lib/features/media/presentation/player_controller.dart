@@ -25,12 +25,10 @@ import 'package:logging/logging.dart';
 /// cannot be faked.
 class PlayerController extends ChangeNotifier {
   PlayerController({
-    required MediaRepository repository,
-    void Function(Object error)? onStreamFailure,
+    required this._repository,
+    this._onStreamFailure,
     Logger? logger,
-  })  : _repository = repository,
-        _onStreamFailure = onStreamFailure,
-        _logger = logger ?? Logger('PlayerController');
+  })  : _logger = logger ?? Logger('PlayerController');
 
   static const _tickInterval = Duration(milliseconds: 250);
 
