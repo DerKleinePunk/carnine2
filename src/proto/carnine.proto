@@ -37,6 +37,10 @@ service ConfigService {
   rpc UpdateConfiguration (UpdateConfigurationRequest) returns (ConfigurationResponse);
 }
 
+service SystemService {
+  rpc ReportUiReady (Empty) returns (CommandResponse);
+}
+
 message CanDataRequest {
   string sensor_id = 1;
 }

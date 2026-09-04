@@ -10,14 +10,31 @@ typedef ClientChannelFactory = ClientChannel Function();
 /// service keeps transport creation isolated so Unix domain sockets can replace
 /// it without changing dashboard widgets.
 class CarnineGrpcService {
-  CarnineGrpcService({
-    Logger? logger,
-    ClientChannelFactory? channelFactory,
-  })  : _logger = logger ?? Logger('CarnineGrpcService'),
-        _channelFactory = channelFactory ?? _createDefaultChannel;
+  CarnineGrpcService({Logger? logger, ClientChannelFactory? channelFactory})
+    : _logger = logger ?? Logger('CarnineGrpcService'),
+      _channelFactory = channelFactory ?? _createDefaultChannel;
 
   final Logger _logger;
   final ClientChannelFactory _channelFactory;
+
+  /// Reports that the UI has rendered its first frame.
+  Future<void> reportUiReady() async {
+    final channel = _channelFactory();
+
+    try {
+      final stub = SystemServiceClient(channel);
+      final response = await stub.reportUiReady(Empty());
+      if (!response.success) {
+        throw StateError(response.message);
+      }
+      _logger.info('Backend acknowledged UI readiness');
+    } catch (error, stackTrace) {
+      _logger.severe('Could not report UI readiness', error, stackTrace);
+      rethrow;
+    } finally {
+      await channel.shutdown();
+    }
+  }
 
   /// Fetches engine temperature CAN data through the generated protobuf stub.
   Future<List<CanData>> fetchEngineTemperature() {
@@ -30,8 +47,9 @@ class CarnineGrpcService {
 
     try {
       final stub = CarnineServiceClient(channel);
-      final response =
-          await stub.getCanData(CanDataRequest(sensorId: sensorId));
+      final response = await stub.getCanData(
+        CanDataRequest(sensorId: sensorId),
+      );
 
       _logger.info('Received ${response.data.length} CAN data points');
       return List<CanData>.unmodifiable(response.data);
@@ -51,9 +69,7 @@ class CarnineGrpcService {
     return ClientChannel(
       'localhost',
       port: 50051,
-      options: const ChannelOptions(
-        credentials: ChannelCredentials.insecure(),
-      ),
+      options: const ChannelOptions(credentials: ChannelCredentials.insecure()),
     );
   }
 }

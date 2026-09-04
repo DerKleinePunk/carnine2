@@ -220,6 +220,27 @@ actions:
     packages:
       - carnine-frontend.deb
 
+  - action: run
+    description: Wait for UI readiness before leaving Plymouth
+    chroot: true
+    command: |
+      install -d /etc/systemd/system/plymouth-quit.service.d
+      printf '%s\n' \
+        '[Unit]' \
+        'After=carnine-frontend.service' \
+        'Wants=carnine-frontend.service' \
+        > /etc/systemd/system/plymouth-quit.service.d/carnine.conf
+
+  - action: run
+    description: Restore cursor on virtual consoles
+    chroot: true
+    command: |
+      install -d /etc/systemd/system/getty@.service.d
+      printf '%s\n' \
+        '[Service]' \
+        'ExecStartPre=/usr/bin/setterm --cursor on' \
+        > /etc/systemd/system/getty@.service.d/cursor.conf
+
   - action: overlay
     description: Install Bootimage
     origin: recipe

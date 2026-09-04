@@ -751,3 +751,54 @@ abstract class ConfigServiceBase extends $grpc.Service {
   $async.Future<$0.ConfigurationResponse> updateConfiguration(
       $grpc.ServiceCall call, $0.UpdateConfigurationRequest request);
 }
+
+@$pb.GrpcServiceName('carnine.SystemService')
+class SystemServiceClient extends $grpc.Client {
+  /// The hostname for this service.
+  static const $core.String defaultHost = '';
+
+  /// OAuth scopes needed for the client.
+  static const $core.List<$core.String> oauthScopes = [
+    '',
+  ];
+
+  SystemServiceClient(super.channel, {super.options, super.interceptors});
+
+  $grpc.ResponseFuture<$0.CommandResponse> reportUiReady(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$reportUiReady, request, options: options);
+  }
+
+  // method descriptors
+
+  static final _$reportUiReady =
+      $grpc.ClientMethod<$0.Empty, $0.CommandResponse>(
+          '/carnine.SystemService/ReportUiReady',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.CommandResponse.fromBuffer);
+}
+
+@$pb.GrpcServiceName('carnine.SystemService')
+abstract class SystemServiceBase extends $grpc.Service {
+  $core.String get $name => 'carnine.SystemService';
+
+  SystemServiceBase() {
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.CommandResponse>(
+        'ReportUiReady',
+        reportUiReady_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.CommandResponse value) => value.writeToBuffer()));
+  }
+
+  $async.Future<$0.CommandResponse> reportUiReady_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return reportUiReady($call, await $request);
+  }
+
+  $async.Future<$0.CommandResponse> reportUiReady(
+      $grpc.ServiceCall call, $0.Empty request);
+}

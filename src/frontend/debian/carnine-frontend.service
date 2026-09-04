@@ -1,10 +1,13 @@
 [Unit]
 Description=Carnine Flutter Frontend
-After=systemd-udev-settle.service carnine-backend.service
+After=systemd-udev-settle.service carnine-backend.service plymouth-start.service
+Before=getty@tty1.service plymouth-quit.service plymouth-quit-wait.service
 Wants=carnine-backend.service
 
 [Service]
-Type=simple
+Type=notify
+NotifyAccess=all
+TimeoutStartSec=30s
 User=carnine
 Group=carnine
 SupplementaryGroups=render video input

@@ -793,6 +793,41 @@ wake_word = ""               # Optional wake word (e.g., "Hey Carnine")
 
 ---
 
+## ADR-017: UI Readiness and Plymouth Handoff
+
+**Status:** Accepted
+
+**Context:**
+The DRM/KMS frontend must replace the Plymouth splash without briefly exposing
+the `getty` login console. The frontend also needs a bounded failure path when
+it cannot start.
+
+**Decision:**
+Expose `SystemService.ReportUiReady` over the existing gRPC channel. Flutter
+calls it after its first frame has been rendered. After the backend acknowledges
+the call, Flutter sends `READY=1` to systemd. The frontend unit uses
+`Type=notify` with a 30-second startup timeout, and `plymouth-quit.service` is
+ordered after it.
+
+**Rationale:**
+- The UI is the only component that can verify that a frame is visible.
+- The backend receives an explicit lifecycle event without gaining root
+  privileges.
+- systemd remains responsible for service state, timeouts, restarts, and the
+  privileged Plymouth operation.
+- A failed or stalled UI cannot leave Plymouth visible forever.
+
+**Consequences:**
+- The shared protobuf schema and generated clients must be regenerated when the
+  system service changes.
+- The frontend package requires `/usr/bin/systemd-notify` at runtime.
+- The 30-second timeout releases Plymouth to the usable virtual console when
+  the UI does not become ready.
+- Future power-management events can use the same `SystemService` boundary;
+  shutdown execution should remain in a dedicated privileged systemd unit.
+
+---
+
 These decisions collectively create a system that is:
 - **Safe**: Type-safe languages (Rust, Dart) prevent entire classes of bugs
 - **Performant**: Async concurrency and optimized serialization minimize latency

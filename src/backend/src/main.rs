@@ -34,6 +34,23 @@ use carnine::{
     SearchMediaResponse, ServiceVersion, UpdateConfigurationRequest,
 };
 
+#[derive(Debug, Default)]
+pub struct SystemServiceImpl;
+
+#[tonic::async_trait]
+impl carnine::system_service_server::SystemService for SystemServiceImpl {
+    async fn report_ui_ready(
+        &self,
+        _request: Request<Empty>,
+    ) -> Result<Response<CommandResponse>, Status> {
+        info!("Carnine UI reported ready");
+        Ok(Response::new(CommandResponse {
+            success: true,
+            message: "UI ready".to_string(),
+        }))
+    }
+}
+
 use database::ResumeState;
 use media_player::MediaPlayer;
 
@@ -716,6 +733,7 @@ async fn main() -> Result<()> {
         })?;
     let addr = configuration.server.address.parse()?;
     let carnine_service = CarnineServiceImpl::default();
+    let system_service = SystemServiceImpl;
     let media_service = MediaServiceImpl::new(
         &configuration.audio,
         configuration.media.database_path.clone(),
@@ -736,6 +754,9 @@ async fn main() -> Result<()> {
             &configuration.audio,
         )))
         .add_service(ConfigServiceServer::new(config_service))
+        .add_service(carnine::system_service_server::SystemServiceServer::new(
+            system_service,
+        ))
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;
 
@@ -768,11 +789,12 @@ async fn shutdown_signal() {
 #[cfg(test)]
 mod tests {
     use super::{configuration_from_proto, configuration_to_proto, ConfigServiceImpl};
-    use super::{AudioServiceImpl, MediaServiceImpl};
+    use super::{AudioServiceImpl, MediaServiceImpl, SystemServiceImpl};
     use crate::audio_engine::{AudioEngine, Playback};
     use crate::carnine::{
         audio_service_server::AudioService, config_service_server::ConfigService,
-        media_service_server::MediaService, Empty, RescanMediaRequest,
+        media_service_server::MediaService, system_service_server::SystemService, Empty,
+        RescanMediaRequest,
     };
     use crate::config;
     use crate::database;
@@ -831,6 +853,15 @@ mod tests {
                 level: "info".to_string(),
             },
         }
+    }
+
+    #[tokio::test]
+    async fn system_service_acknowledges_ui_readiness() {
+        let response = SystemService::report_ui_ready(&SystemServiceImpl, Request::new(Empty {}))
+            .await
+            .expect("UI readiness should be acknowledged");
+
+        assert!(response.into_inner().success);
     }
 
     #[test]

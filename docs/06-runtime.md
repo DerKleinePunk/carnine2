@@ -12,7 +12,15 @@ When the car is started (ignition on detected via RS232 power supply):
 2. Rust Backend initializes CAN-Bus Handler, Data Storage, Network Manager, etc.
 3. gRPC Server starts and listens for connections.
 4. Flutter Frontend launches in Linux window, connects to gRPC Server.
-5. UI loads initial state (e.g., navigation map, media controls).
+5. UI renders its first frame and reports `ReportUiReady` through the
+    `SystemService`.
+6. The frontend sends `READY=1` to systemd. Only then does systemd allow
+    `plymouth-quit.service` to finish and reveal the UI.
+
+If the frontend does not report readiness within 30 seconds, systemd marks its
+start as failed and Plymouth is still allowed to finish. This leaves the
+virtual console usable instead of hiding a permanent splash screen. The
+frontend service may be restarted by systemd according to its restart policy.
 
 ### Scenario 2: Navigation Request
 
@@ -98,6 +106,10 @@ sequenceDiagram
     GS->>GS: Listen for connections
     FF->>GS: Launch and connect via gRPC
     GS->>FF: Connection established
+    FF->>GS: SystemService.ReportUiReady()
+    GS-->>FF: UI ready
+    FF->>RB: systemd-notify READY=1
+    RB-->>FF: Plymouth is released by systemd
 ```
 
 ### Sequence Diagram: Relay Control
