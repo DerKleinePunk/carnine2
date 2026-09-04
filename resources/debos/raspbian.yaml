@@ -182,7 +182,7 @@ actions:
       {{ if eq $display "waveshare-1024x600" -}}
       printf '%s' ' video=HDMI-A-1:1024x600M@60' >> /boot/firmware/cmdline.txt
       {{- end }}
-      printf '%s\n' ' vt.global_cursor_default=0' >> /boot/firmware/cmdline.txt
+      printf '%s\n' ' vt.global_cursor_default=1' >> /boot/firmware/cmdline.txt
 
   - action: run
     description: Set up user/password
@@ -232,6 +232,11 @@ actions:
       - carnine-frontend.deb
 
   - action: run
+    description: Reserve tty1 for Flutter DRM frontend
+    chroot: true
+    command: systemctl disable getty@tty1.service
+
+  - action: run
     description: Wait for UI readiness before leaving Plymouth
     chroot: true
     command: |
@@ -241,16 +246,6 @@ actions:
         'After=carnine-frontend.service' \
         'Wants=carnine-frontend.service' \
         > /etc/systemd/system/plymouth-quit.service.d/carnine.conf
-
-  - action: run
-    description: Restore cursor on virtual consoles
-    chroot: true
-    command: |
-      install -d /etc/systemd/system/getty@.service.d
-      printf '%s\n' \
-        '[Service]' \
-        'ExecStartPre=/usr/bin/setterm --cursor on' \
-        > /etc/systemd/system/getty@.service.d/cursor.conf
 
   - action: overlay
     description: Install Bootimage
@@ -324,7 +319,16 @@ actions:
   - action: run
     description: Drop SSH host keys
     chroot: true
-    command: rm -f /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub
+    command: |
+      rm -f /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub
+      install -d /etc/systemd/system/ssh.service.d
+      printf '%s\n' \
+        '[Unit]' \
+        'After=sshd-keygen.service' \
+        \
+        '[Service]' \
+        'ExecStartPre=/usr/bin/ssh-keygen -A' \
+        > /etc/systemd/system/ssh.service.d/hostkeys.conf
 
   - action: run
     description: Force systemd first boot menchanism

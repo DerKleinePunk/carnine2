@@ -1,7 +1,7 @@
 [Unit]
 Description=Carnine Flutter Frontend
 After=systemd-udev-settle.service carnine-backend.service plymouth-start.service
-Before=getty@tty1.service plymouth-quit.service plymouth-quit-wait.service
+Before=plymouth-quit.service plymouth-quit-wait.service
 Wants=carnine-backend.service
 
 [Service]
