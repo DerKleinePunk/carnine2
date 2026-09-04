@@ -170,6 +170,8 @@ actions:
       hdmi_mode=87
       hdmi_cvt=1024 600 60 6 0 0 0
       __EOF__
+      {{- else }}
+      true
       {{- end }}
 
   - action: run
