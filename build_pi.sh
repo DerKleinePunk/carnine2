@@ -10,10 +10,16 @@ LOG_DIR="$ROOT_DIR/build-logs"
 mkdir -p "$LOG_DIR"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 LOG_FILE="$LOG_DIR/pi-${TIMESTAMP}.log"
+VERSION="$(tr -d '[:space:]' < "$ROOT_DIR/VERSION")"
 
 exec > >(tee -a "$LOG_FILE") 2>&1
 
 echo "[pi] Log file: $LOG_FILE"
+if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "[pi] ERROR: Invalid VERSION: $VERSION"
+  exit 1
+fi
+echo "[pi] Building Carnine version $VERSION"
 
 if ! command -v flutterpi_tool >/dev/null 2>&1; then
   echo "[pi] ERROR: flutterpi_tool not found in PATH."
@@ -24,10 +30,10 @@ fi
 echo "[pi] Building backend (aarch64-unknown-linux-gnu, release)..."
 (
   cd "$BACKEND_DIR"
-  cargo build --release --target aarch64-unknown-linux-gnu
+  CARNINE_VERSION="$VERSION" cargo build --release --target aarch64-unknown-linux-gnu
   rm -f target/debian/carnine-backend_*_arm64.deb
   rm -f target/aarch64-unknown-linux-gnu/debian/carnine-backend_*_arm64.deb
-  cargo deb --target aarch64-unknown-linux-gnu
+  CARNINE_VERSION="$VERSION" cargo deb --target aarch64-unknown-linux-gnu --deb-version "$VERSION"
 )
 
 shopt -s nullglob
@@ -86,7 +92,7 @@ echo "[pi] Generating shared protobuf Dart stubs..."
 echo "[pi] Building Flutter-Pi bundle (arm64 / pi4)..."
 (
   cd "$FRONTEND_DIR"
-  flutterpi_tool build --arch=arm64 --cpu=pi4
+  flutterpi_tool build --arch=arm64 --cpu=pi4 --dart-define="CARNINE_VERSION=$VERSION"
 )
 
 FRONTEND_BUNDLE="$FRONTEND_DIR/build/flutter-pi/aarch64-generic"
@@ -95,7 +101,7 @@ if [[ ! -x "$FRONTEND_BUNDLE/flutter-pi" ]]; then
   echo "[pi] ERROR: Flutter-Pi runtime not found in $FRONTEND_BUNDLE"
   exit 1
 fi
-"$FRONTEND_DIR/package-deb.sh" "$FRONTEND_BUNDLE" "$FRONTEND_PACKAGE"
+"$FRONTEND_DIR/package-deb.sh" "$FRONTEND_BUNDLE" "$FRONTEND_PACKAGE" "$VERSION"
 if [[ "$(dpkg-deb -f "$FRONTEND_PACKAGE" Architecture)" != "arm64" ]]; then
   echo "[pi] ERROR: Frontend package is not arm64: $FRONTEND_PACKAGE"
   exit 1

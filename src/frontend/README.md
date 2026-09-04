@@ -33,8 +33,9 @@ Build the Raspberry Pi bundle and package it together with the `flutter-pi`
 runtime:
 
 ```bash
-flutterpi_tool build --arch=arm64 --cpu=pi4
-bash package-deb.sh build/flutter-pi/aarch64-generic carnine-frontend.deb
+flutterpi_tool build --arch=arm64 --cpu=pi4 \
+	--dart-define="CARNINE_VERSION=$(cat ../../VERSION)"
+bash package-deb.sh build/flutter-pi/aarch64-generic carnine-frontend.deb "$(cat ../../VERSION)"
 ```
 
 The package installs the application under `/opt/carnine/frontend` and

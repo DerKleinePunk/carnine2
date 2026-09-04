@@ -828,6 +828,28 @@ ordered after it.
 
 ---
 
+## ADR-018: Single Release Version Source
+
+**Status:** Accepted
+
+**Context:**
+The release version was duplicated in Cargo, Flutter, Debian metadata, the
+Plymouth theme, and backend service responses.
+
+**Decision:**
+The repository-root `VERSION` file is the single release-version source. The
+Pi build passes it to Cargo, Flutter, Debian packaging, and Debos. Rust embeds
+the same value for both existing `GetServiceVersion` RPCs. Plymouth replaces
+its template token from the Debos `version` parameter.
+
+**Consequences:**
+- Release builds must pass `-t version:$(cat ../VERSION)` to Debos.
+- Flutter's technical build number remains independent from the release
+  version and can be added separately when needed.
+- Build scripts can reject malformed versions before producing artifacts.
+
+---
+
 These decisions collectively create a system that is:
 - **Safe**: Type-safe languages (Rust, Dart) prevent entire classes of bugs
 - **Performant**: Async concurrency and optimized serialization minimize latency

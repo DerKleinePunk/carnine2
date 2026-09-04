@@ -7,13 +7,18 @@ import 'package:carnine_frontend/core/platform/app_window.dart';
 import 'package:carnine_frontend/data/services/carnine_grpc_service.dart';
 import 'package:flutter/material.dart';
 
+const _carnineVersion = String.fromEnvironment(
+  'CARNINE_VERSION',
+  defaultValue: 'unknown',
+);
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await AppWindow.ensureConfigured();
   await AppLogging.initialize();
 
-  AppLogging.frontend.info('Frontend app started');
+  AppLogging.frontend.info('Frontend app started; version=$_carnineVersion');
   runApp(const CarnineApp());
 
   WidgetsBinding.instance.addPostFrameCallback((_) {

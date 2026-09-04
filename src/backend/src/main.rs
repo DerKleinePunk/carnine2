@@ -37,6 +37,25 @@ use carnine::{
 #[derive(Debug, Default)]
 pub struct SystemServiceImpl;
 
+fn service_version() -> ServiceVersion {
+    let parts: Vec<u32> = env!("CARNINE_VERSION")
+        .split('.')
+        .map(|part| {
+            part.parse()
+                .expect("CARNINE_VERSION must be numeric semver")
+        })
+        .collect();
+    assert!(
+        parts.len() == 3,
+        "CARNINE_VERSION must be major.minor.patch"
+    );
+    ServiceVersion {
+        major: parts[0],
+        minor: parts[1],
+        patch: parts[2],
+    }
+}
+
 #[tonic::async_trait]
 impl carnine::system_service_server::SystemService for SystemServiceImpl {
     async fn report_ui_ready(
@@ -306,11 +325,7 @@ impl MediaService for MediaServiceImpl {
         &self,
         _request: Request<Empty>,
     ) -> Result<Response<ServiceVersion>, Status> {
-        Ok(Response::new(ServiceVersion {
-            major: 0,
-            minor: 1,
-            patch: 0,
-        }))
+        Ok(Response::new(service_version()))
     }
 
     async fn play(
@@ -591,11 +606,7 @@ impl AudioService for AudioServiceImpl {
         &self,
         _request: Request<Empty>,
     ) -> Result<Response<ServiceVersion>, Status> {
-        Ok(Response::new(ServiceVersion {
-            major: 0,
-            minor: 1,
-            patch: 0,
-        }))
+        Ok(Response::new(service_version()))
     }
 
     async fn stream_audio_events(
@@ -862,6 +873,37 @@ mod tests {
             .expect("UI readiness should be acknowledged");
 
         assert!(response.into_inner().success);
+    }
+
+    #[tokio::test]
+    async fn media_and_audio_service_versions_match_central_version() {
+        let configuration = test_configuration();
+        let media = MediaServiceImpl::new(
+            &configuration.audio,
+            configuration.media.database_path.clone(),
+            configuration.media.folders.clone(),
+            configuration.media.supported_formats.clone(),
+            configuration.media.resume_mode.clone(),
+        );
+        let audio = AudioServiceImpl::new(&configuration.audio);
+
+        let media_version = MediaService::get_service_version(&media, Request::new(Empty {}))
+            .await
+            .expect("media version should be available")
+            .into_inner();
+        let audio_version = AudioService::get_service_version(&audio, Request::new(Empty {}))
+            .await
+            .expect("audio version should be available")
+            .into_inner();
+
+        assert_eq!(media_version, audio_version);
+        assert_eq!(
+            format!(
+                "{}.{}.{}",
+                media_version.major, media_version.minor, media_version.patch
+            ),
+            env!("CARNINE_VERSION")
+        );
     }
 
     #[test]
