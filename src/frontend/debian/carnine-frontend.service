@@ -5,8 +5,7 @@ Before=plymouth-quit.service plymouth-quit-wait.service
 Wants=carnine-backend.service
 
 [Service]
-Type=notify
-NotifyAccess=all
+Type=simple
 TimeoutStartSec=30s
 User=carnine
 Group=carnine

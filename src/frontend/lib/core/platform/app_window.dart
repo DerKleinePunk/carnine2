@@ -38,4 +38,8 @@ abstract final class AppWindow {
     await windowManager.show();
     await windowManager.focus();
   }
+
+  static void exitApplication() {
+    exit(0);
+  }
 }

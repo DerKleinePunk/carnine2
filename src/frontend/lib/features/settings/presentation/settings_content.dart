@@ -1,5 +1,6 @@
 import 'package:carnine_frontend/core/logging/app_logging.dart';
 import 'package:carnine_frontend/core/logging/log_viewer_dialog.dart';
+import 'package:carnine_frontend/core/platform/app_window.dart';
 import 'package:carnine_frontend/features/settings/presentation/models/settings_option_item.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_controller.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/language_flag.dart';
@@ -83,6 +84,7 @@ class _SettingsContentState extends State<SettingsContent> {
       logLines: _logLines,
       onBack: _controller.closeSection,
       onOpenLogs: _openLogViewer,
+      onExit: AppWindow.exitApplication,
     );
   }
 
@@ -146,10 +148,7 @@ class _SettingsOverview extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: _SettingsTileGrid(
-            items: items,
-            onOpenSection: onOpenSection,
-          ),
+          child: _SettingsTileGrid(items: items, onOpenSection: onOpenSection),
         ),
       ],
     );
@@ -157,10 +156,7 @@ class _SettingsOverview extends StatelessWidget {
 }
 
 class _SettingsTileGrid extends StatelessWidget {
-  const _SettingsTileGrid({
-    required this.items,
-    required this.onOpenSection,
-  });
+  const _SettingsTileGrid({required this.items, required this.onOpenSection});
 
   static const int _columns = 2;
   static const double _gap = 16;
@@ -175,7 +171,9 @@ class _SettingsTileGrid extends StatelessWidget {
     return Column(
       children: [
         for (final row in rows.indexed) ...[
-          Expanded(child: _SettingsTileRow(row: row.$2, onTap: onOpenSection)),
+          Expanded(
+            child: _SettingsTileRow(row: row.$2, onTap: onOpenSection),
+          ),
           if (row.$1 < rows.length - 1) const SizedBox(height: _gap),
         ],
       ],
@@ -185,8 +183,9 @@ class _SettingsTileGrid extends StatelessWidget {
   List<List<SettingsOptionItem>> _chunkedRows() {
     final rows = <List<SettingsOptionItem>>[];
     for (var index = 0; index < items.length; index += _columns) {
-      final end =
-          index + _columns > items.length ? items.length : index + _columns;
+      final end = index + _columns > items.length
+          ? items.length
+          : index + _columns;
       rows.add(items.sublist(index, end));
     }
 
@@ -195,10 +194,7 @@ class _SettingsTileGrid extends StatelessWidget {
 }
 
 class _SettingsTileRow extends StatelessWidget {
-  const _SettingsTileRow({
-    required this.row,
-    required this.onTap,
-  });
+  const _SettingsTileRow({required this.row, required this.onTap});
 
   final List<SettingsOptionItem> row;
   final ValueChanged<SettingsSection> onTap;
@@ -223,10 +219,7 @@ class _SettingsTileRow extends StatelessWidget {
 }
 
 class _SettingsOptionTile extends StatelessWidget {
-  const _SettingsOptionTile({
-    required this.item,
-    required this.onTap,
-  });
+  const _SettingsOptionTile({required this.item, required this.onTap});
 
   final SettingsOptionItem item;
   final VoidCallback onTap;
@@ -306,10 +299,7 @@ class _SettingsOptionTileContent extends StatelessWidget {
 }
 
 class _SettingsOptionTileTop extends StatelessWidget {
-  const _SettingsOptionTileTop({
-    required this.item,
-    required this.accentColor,
-  });
+  const _SettingsOptionTileTop({required this.item, required this.accentColor});
 
   final SettingsOptionItem item;
   final Color accentColor;
@@ -333,6 +323,7 @@ class _SettingsSectionPage extends StatelessWidget {
     required this.logLines,
     required this.onBack,
     required this.onOpenLogs,
+    required this.onExit,
     super.key,
   });
 
@@ -341,6 +332,7 @@ class _SettingsSectionPage extends StatelessWidget {
   final ValueListenable<List<String>> logLines;
   final VoidCallback onBack;
   final VoidCallback onOpenLogs;
+  final VoidCallback onExit;
 
   @override
   Widget build(BuildContext context) {
@@ -357,31 +349,29 @@ class _SettingsSectionPage extends StatelessWidget {
   Widget _bodyForSection() {
     return switch (item.section) {
       SettingsSection.language => _LanguagePage(
-          languageController: languageController,
-        ),
+        languageController: languageController,
+      ),
       SettingsSection.diagnostics => _DiagnosticsPage(
-          logLines: logLines,
-          onOpenLogs: onOpenLogs,
-        ),
+        logLines: logLines,
+        onOpenLogs: onOpenLogs,
+        onExit: onExit,
+      ),
       SettingsSection.appearance => const _PlannedPage(
-          icon: Icons.palette,
-          titleKey: AppTextKey.settingsAppearanceComingSoonTitle,
-          bodyKey: AppTextKey.settingsAppearanceComingSoonDescription,
-        ),
+        icon: Icons.palette,
+        titleKey: AppTextKey.settingsAppearanceComingSoonTitle,
+        bodyKey: AppTextKey.settingsAppearanceComingSoonDescription,
+      ),
       SettingsSection.maps => const _PlannedPage(
-          icon: Icons.map,
-          titleKey: AppTextKey.settingsMapComingSoonTitle,
-          bodyKey: AppTextKey.settingsMapComingSoonDescription,
-        ),
+        icon: Icons.map,
+        titleKey: AppTextKey.settingsMapComingSoonTitle,
+        bodyKey: AppTextKey.settingsMapComingSoonDescription,
+      ),
     };
   }
 }
 
 class _SettingsPageHeader extends StatelessWidget {
-  const _SettingsPageHeader({
-    required this.item,
-    required this.onBack,
-  });
+  const _SettingsPageHeader({required this.item, required this.onBack});
 
   final SettingsOptionItem item;
   final VoidCallback onBack;
@@ -397,17 +387,16 @@ class _SettingsPageHeader extends StatelessWidget {
         const SizedBox(width: 16),
         Icon(item.icon, color: accentColor, size: 32),
         const SizedBox(width: 14),
-        Expanded(child: _SettingsPageTitle(item: item, l10n: l10n)),
+        Expanded(
+          child: _SettingsPageTitle(item: item, l10n: l10n),
+        ),
       ],
     );
   }
 }
 
 class _BackButton extends StatelessWidget {
-  const _BackButton({
-    required this.onBack,
-    required this.l10n,
-  });
+  const _BackButton({required this.onBack, required this.l10n});
 
   final VoidCallback onBack;
   final AppLocalizations l10n;
@@ -439,10 +428,7 @@ class _BackButton extends StatelessWidget {
 }
 
 class _SettingsPageTitle extends StatelessWidget {
-  const _SettingsPageTitle({
-    required this.item,
-    required this.l10n,
-  });
+  const _SettingsPageTitle({required this.item, required this.l10n});
 
   final SettingsOptionItem item;
   final AppLocalizations l10n;
@@ -490,10 +476,7 @@ class _SettingsPageBody extends StatelessWidget {
           BoxShadow(color: AppColors.primary20, blurRadius: 18),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(22),
-        child: child,
-      ),
+      child: Padding(padding: const EdgeInsets.all(22), child: child),
     );
   }
 }
@@ -546,10 +529,7 @@ class _SectionLabel extends StatelessWidget {
 }
 
 class _SelectedLanguageDisplay extends StatelessWidget {
-  const _SelectedLanguageDisplay({
-    required this.option,
-    required this.l10n,
-  });
+  const _SelectedLanguageDisplay({required this.option, required this.l10n});
 
   final AppLanguageOption option;
   final AppLocalizations l10n;
@@ -614,7 +594,8 @@ class _LanguageGrid extends StatelessWidget {
           itemCount: options.length,
           itemBuilder: (context, index) {
             final option = options[index];
-            final isSelected = option.locale.languageCode ==
+            final isSelected =
+                option.locale.languageCode ==
                 selectedOption.locale.languageCode;
 
             return _LanguageOptionTile(
@@ -631,11 +612,11 @@ class _LanguageGrid extends StatelessWidget {
 
   List<AppLanguageOption> _sortedLanguageOptions(AppLocalizations l10n) {
     return <AppLanguageOption>[...AppLanguageOptions.all]..sort(
-        (left, right) => l10n
-            .text(left.labelKey)
-            .toLowerCase()
-            .compareTo(l10n.text(right.labelKey).toLowerCase()),
-      );
+      (left, right) => l10n
+          .text(left.labelKey)
+          .toLowerCase()
+          .compareTo(l10n.text(right.labelKey).toLowerCase()),
+    );
   }
 }
 
@@ -677,10 +658,7 @@ class _LanguageOptionTile extends StatelessWidget {
               ),
               boxShadow: isSelected
                   ? const [
-                      BoxShadow(
-                        color: AppColors.primary20,
-                        blurRadius: 18,
-                      ),
+                      BoxShadow(color: AppColors.primary20, blurRadius: 18),
                     ]
                   : null,
             ),
@@ -699,8 +677,9 @@ class _LanguageOptionTile extends StatelessWidget {
                         color: isSelected
                             ? AppColors.primary
                             : AppColors.onSurface,
-                        fontWeight:
-                            isSelected ? FontWeight.w700 : FontWeight.w400,
+                        fontWeight: isSelected
+                            ? FontWeight.w700
+                            : FontWeight.w400,
                       ),
                     ),
                   ),
@@ -718,10 +697,12 @@ class _DiagnosticsPage extends StatelessWidget {
   const _DiagnosticsPage({
     required this.logLines,
     required this.onOpenLogs,
+    required this.onExit,
   });
 
   final ValueListenable<List<String>> logLines;
   final VoidCallback onOpenLogs;
+  final VoidCallback onExit;
 
   @override
   Widget build(BuildContext context) {
@@ -731,18 +712,29 @@ class _DiagnosticsPage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionLabel(
-            text: l10n.text(AppTextKey.settingsDiagnosticsRecentLogs)),
+          text: l10n.text(AppTextKey.settingsDiagnosticsRecentLogs),
+        ),
         const SizedBox(height: 12),
         Expanded(child: _InlineLogPanel(logLines: logLines)),
         const SizedBox(height: 14),
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: ElevatedButton.icon(
-            onPressed: onOpenLogs,
-            icon: const Icon(Icons.article, size: 22),
-            label: Text(l10n.text(AppTextKey.settingsDiagnosticsOpenLogs)),
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: onOpenLogs,
+                icon: const Icon(Icons.article, size: 22),
+                label: Text(l10n.text(AppTextKey.settingsDiagnosticsOpenLogs)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: onExit,
+                icon: const Icon(Icons.power_settings_new, size: 22),
+                label: Text(l10n.text(AppTextKey.settingsDiagnosticsExit)),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -805,8 +797,9 @@ class _VisibleLogList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visibleLogs =
-        logs.length > 30 ? logs.sublist(logs.length - 30) : logs;
+    final visibleLogs = logs.length > 30
+        ? logs.sublist(logs.length - 30)
+        : logs;
 
     return ListView.builder(
       itemCount: visibleLogs.length,

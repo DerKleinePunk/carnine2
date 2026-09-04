@@ -28,7 +28,7 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.grpcConnectionErrorTitle: 'Błąd połączenia',
   AppTextKey.grpcConnectionErrorMessage:
       'Nie udało się połączyć z backendem. Spróbuj ponownie lub '
-          'sprawdź dzienniki diagnostyczne.',
+      'sprawdź dzienniki diagnostyczne.',
   AppTextKey.testGrpc: 'Testuj gRPC',
   AppTextKey.connecting: 'Łączenie',
   AppTextKey.canDataLine: 'Czujnik: {sensor}, wartość: {value}, czas: {time}',
@@ -62,7 +62,7 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.mediaOfflineTitle: 'Brak połączenia',
   AppTextKey.mediaOfflineDescription:
       'Połączenie z backendem zostało przerwane. Trwa automatyczne '
-          'ponowne łączenie.',
+      'ponowne łączenie.',
   AppTextKey.mediaBackendErrorTitle: 'Błąd',
   AppTextKey.mediaBackendErrorDescription: 'To żądanie nie powiodło się.',
   AppTextKey.mediaCommandFailed: 'Polecenie nie powiodło się',
@@ -73,7 +73,7 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchClearSemantic: 'Wyczyść wyszukiwanie',
   AppTextKey.mediaLibraryEmpty:
       'Biblioteka jest pusta. Rozpocznij skanowanie, aby zaimportować '
-          'multimedia.',
+      'multimedia.',
   AppTextKey.mediaSearchNoResults: 'Brak wyników dla tego wyszukiwania',
   AppTextKey.mediaRescanAction: 'Skanuj ponownie',
   AppTextKey.mediaRescanSemantic: 'Skanuj bibliotekę ponownie',
@@ -117,6 +117,7 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.settingsCurrentLanguage: 'Aktywny język',
   AppTextKey.settingsDiagnosticsRecentLogs: 'Ostatnie logi frontendu',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Otwórz podgląd logów',
+  AppTextKey.settingsDiagnosticsExit: 'Zakończ',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Wygląd przygotowany',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Kolory i typografia będą konfigurowane w tym obszarze.',

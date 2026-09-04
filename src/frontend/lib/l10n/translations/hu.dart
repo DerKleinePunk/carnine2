@@ -28,7 +28,7 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.grpcConnectionErrorTitle: 'Kapcsolódási hiba',
   AppTextKey.grpcConnectionErrorMessage:
       'Nem sikerült csatlakozni a háttérrendszerhez. Próbáld újra, '
-          'vagy nézd meg a diagnosztikai naplókat.',
+      'vagy nézd meg a diagnosztikai naplókat.',
   AppTextKey.testGrpc: 'gRPC tesztelése',
   AppTextKey.connecting: 'Kapcsolódás',
   AppTextKey.canDataLine: 'Érzékelő: {sensor}, érték: {value}, idő: {time}',
@@ -62,7 +62,7 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.mediaOfflineTitle: 'Nincs kapcsolat',
   AppTextKey.mediaOfflineDescription:
       'A kapcsolat a háttérrendszerrel megszakadt. Automatikus '
-          'újracsatlakozás folyamatban.',
+      'újracsatlakozás folyamatban.',
   AppTextKey.mediaBackendErrorTitle: 'Hiba',
   AppTextKey.mediaBackendErrorDescription: 'Ez a kérés sikertelen volt.',
   AppTextKey.mediaCommandFailed: 'A parancs sikertelen volt',
@@ -117,6 +117,7 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.settingsCurrentLanguage: 'Aktív nyelv',
   AppTextKey.settingsDiagnosticsRecentLogs: 'Legutóbbi frontend-naplók',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Naplónézet megnyitása',
+  AppTextKey.settingsDiagnosticsExit: 'Kilépés',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Megjelenés előkészítve',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'A színek és a tipográfia ebben a részben lesznek beállíthatók.',

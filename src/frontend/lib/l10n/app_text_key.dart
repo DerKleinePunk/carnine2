@@ -110,6 +110,7 @@ enum AppTextKey {
   settingsCurrentLanguage,
   settingsDiagnosticsRecentLogs,
   settingsDiagnosticsOpenLogs,
+  settingsDiagnosticsExit,
   settingsAppearanceComingSoonTitle,
   settingsAppearanceComingSoonDescription,
   settingsMapComingSoonTitle,

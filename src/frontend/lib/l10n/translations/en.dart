@@ -28,7 +28,7 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.grpcConnectionErrorTitle: 'Connection Error',
   AppTextKey.grpcConnectionErrorMessage:
       'Failed to connect to the backend. Please try again or check the '
-          'diagnostics logs.',
+      'diagnostics logs.',
   AppTextKey.testGrpc: 'Test gRPC',
   AppTextKey.connecting: 'Connecting',
   AppTextKey.canDataLine: 'Sensor: {sensor}, Value: {value}, Time: {time}',
@@ -114,6 +114,7 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.settingsCurrentLanguage: 'Active language',
   AppTextKey.settingsDiagnosticsRecentLogs: 'Recent frontend logs',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Open log viewer',
+  AppTextKey.settingsDiagnosticsExit: 'Exit',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Appearance prepared',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Colors and typography will be configured in this area.',

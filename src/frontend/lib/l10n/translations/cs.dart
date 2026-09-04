@@ -28,7 +28,7 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.grpcConnectionErrorTitle: 'Chyba připojení',
   AppTextKey.grpcConnectionErrorMessage:
       'Připojení k backendu se nezdařilo. Zkuste to znovu nebo '
-          'zkontrolujte diagnostické protokoly.',
+      'zkontrolujte diagnostické protokoly.',
   AppTextKey.testGrpc: 'Testovat gRPC',
   AppTextKey.connecting: 'Připojování',
   AppTextKey.canDataLine: 'Senzor: {sensor}, hodnota: {value}, čas: {time}',
@@ -62,7 +62,7 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.mediaOfflineTitle: 'Bez připojení',
   AppTextKey.mediaOfflineDescription:
       'Připojení k backendu bylo přerušeno. Probíhá automatické '
-          'opětovné připojení.',
+      'opětovné připojení.',
   AppTextKey.mediaBackendErrorTitle: 'Chyba',
   AppTextKey.mediaBackendErrorDescription: 'Tento požadavek se nezdařil.',
   AppTextKey.mediaCommandFailed: 'Příkaz se nezdařil',
@@ -117,6 +117,7 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.settingsCurrentLanguage: 'Aktivní jazyk',
   AppTextKey.settingsDiagnosticsRecentLogs: 'Nedávné frontendové logy',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Otevřít prohlížeč logů',
+  AppTextKey.settingsDiagnosticsExit: 'Ukončit',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Vzhled připraven',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Barvy a typografie se budou konfigurovat v této části.',

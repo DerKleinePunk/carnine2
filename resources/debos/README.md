@@ -11,7 +11,10 @@ mkdir -p build-logs
 podman run --rm -it --device /dev/kvm --mount "type=bind,source=$(pwd),destination=/work" --workdir /work --security-opt label=disable godebos/debos -t version:$(cat ../VERSION) ./debos/raspbian.yaml 2>&1 | tee "build-logs/debos-$(date +%Y%m%d-%H%M%S).log"
 
 # Build for Waveshare
-podman run --rm -it --device /dev/kvm --mount "type=bind,source=$(pwd),destination=/work" --workdir /work --security-opt label=disable godebos/debos -t display:waveshare-1024x600 -t version:$(cat ../VERSION) ./debos/raspbian.yaml 2>&1 | tee "build-logs/debos-$(date +%Y%m%d-%H%M%S).log"
+podman run --rm -it --device /dev/kvm --mount "type=bind,source=$(pwd),destination=/work" --workdir /work --security-opt label=disable godebos/debos -t display:waveshare-1024x600 -t version:$(cat ../VERSION) -t "ssh_public_key:$(cat "$HOME/.ssh/id_ed25519.pub")" ./debos/raspbian.yaml 2>&1 | tee "build-logs/debos-$(date +%Y%m%d-%H%M%S).log"
+
+# Verify the SSH key in the resulting image
+./debos/verify-image-ssh.sh raspbian-1024x600.img.gz "$HOME/.ssh/id_ed25519.pub"
 ```
 
 The image is created as `raspbian.img.gz`; the block map is `raspbian.img.bmap`. The complete build log is stored below `build-logs/`. Flash the image manually from Windows after verifying the selected SD card.

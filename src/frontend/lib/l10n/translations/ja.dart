@@ -109,6 +109,7 @@ const Map<AppTextKey, String> jaTranslations = <AppTextKey, String>{
   AppTextKey.settingsCurrentLanguage: '現在の言語',
   AppTextKey.settingsDiagnosticsRecentLogs: '最近のフロントエンドログ',
   AppTextKey.settingsDiagnosticsOpenLogs: 'ログビューアを開く',
+  AppTextKey.settingsDiagnosticsExit: '終了',
   AppTextKey.settingsAppearanceComingSoonTitle: '表示を準備済み',
   AppTextKey.settingsAppearanceComingSoonDescription:
       '配色と書体はこのエリアで設定できるようになります。',

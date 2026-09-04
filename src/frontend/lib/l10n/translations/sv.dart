@@ -28,7 +28,7 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.grpcConnectionErrorTitle: 'Anslutningsfel',
   AppTextKey.grpcConnectionErrorMessage:
       'Det gick inte att ansluta till backend. Försök igen eller '
-          'kontrollera diagnostikloggarna.',
+      'kontrollera diagnostikloggarna.',
   AppTextKey.testGrpc: 'Testa gRPC',
   AppTextKey.connecting: 'Ansluter',
   AppTextKey.canDataLine: 'Sensor: {sensor}, värde: {value}, tid: {time}',
@@ -116,6 +116,7 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.settingsCurrentLanguage: 'Aktivt språk',
   AppTextKey.settingsDiagnosticsRecentLogs: 'Senaste frontendloggar',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Öppna loggvisaren',
+  AppTextKey.settingsDiagnosticsExit: 'Avsluta',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Utseende förberett',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Färger och typografi kommer att konfigureras här.',

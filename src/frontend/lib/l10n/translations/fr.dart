@@ -28,7 +28,7 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.grpcConnectionErrorTitle: 'Erreur de connexion',
   AppTextKey.grpcConnectionErrorMessage:
       'Échec de la connexion au backend. Veuillez réessayer ou '
-          'consulter les journaux de diagnostic.',
+      'consulter les journaux de diagnostic.',
   AppTextKey.testGrpc: 'Tester gRPC',
   AppTextKey.connecting: 'Connexion',
   AppTextKey.canDataLine:
@@ -63,7 +63,7 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.mediaOfflineTitle: 'Aucune connexion',
   AppTextKey.mediaOfflineDescription:
       'La connexion au backend a été interrompue. Reconnexion '
-          'automatique en cours.',
+      'automatique en cours.',
   AppTextKey.mediaBackendErrorTitle: 'Erreur',
   AppTextKey.mediaBackendErrorDescription: 'Cette requête a échoué.',
   AppTextKey.mediaCommandFailed: 'Échec de la commande',
@@ -74,7 +74,7 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchClearSemantic: 'Effacer la recherche',
   AppTextKey.mediaLibraryEmpty:
       'La bibliothèque est vide. Lancez une analyse pour importer des '
-          'médias.',
+      'médias.',
   AppTextKey.mediaSearchNoResults: 'Aucun résultat pour cette recherche',
   AppTextKey.mediaRescanAction: 'Réanalyser',
   AppTextKey.mediaRescanSemantic: 'Réanalyser la bibliothèque',
@@ -120,6 +120,7 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.settingsCurrentLanguage: 'Langue active',
   AppTextKey.settingsDiagnosticsRecentLogs: 'Journaux frontend récents',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Ouvrir les journaux',
+  AppTextKey.settingsDiagnosticsExit: 'Quitter',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Apparence préparée',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Les couleurs et la typographie seront configurées ici.',

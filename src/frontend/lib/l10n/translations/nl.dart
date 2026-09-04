@@ -28,7 +28,7 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.grpcConnectionErrorTitle: 'Verbindingsfout',
   AppTextKey.grpcConnectionErrorMessage:
       'Verbinden met de backend is mislukt. Probeer het opnieuw of '
-          'controleer de diagnostische logs.',
+      'controleer de diagnostische logs.',
   AppTextKey.testGrpc: 'gRPC testen',
   AppTextKey.connecting: 'Verbinden',
   AppTextKey.canDataLine: 'Sensor: {sensor}, waarde: {value}, tijd: {time}',
@@ -62,7 +62,7 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.mediaOfflineTitle: 'Geen verbinding',
   AppTextKey.mediaOfflineDescription:
       'De verbinding met de backend is verbroken. Er wordt automatisch '
-          'opnieuw verbonden.',
+      'opnieuw verbonden.',
   AppTextKey.mediaBackendErrorTitle: 'Fout',
   AppTextKey.mediaBackendErrorDescription: 'Deze aanvraag is mislukt.',
   AppTextKey.mediaCommandFailed: 'Opdracht mislukt',
@@ -115,6 +115,7 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.settingsCurrentLanguage: 'Actieve taal',
   AppTextKey.settingsDiagnosticsRecentLogs: 'Recente frontend-logs',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Logweergave openen',
+  AppTextKey.settingsDiagnosticsExit: 'Afsluiten',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Weergave voorbereid',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Kleuren en typografie worden hier geconfigureerd.',

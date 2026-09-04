@@ -28,7 +28,7 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.grpcConnectionErrorTitle: 'Forbindelsesfejl',
   AppTextKey.grpcConnectionErrorMessage:
       'Forbindelsen til backend mislykkedes. Prøv igen, eller tjek '
-          'diagnosticeringsloggene.',
+      'diagnosticeringsloggene.',
   AppTextKey.testGrpc: 'Test gRPC',
   AppTextKey.connecting: 'Forbinder',
   AppTextKey.canDataLine: 'Sensor: {sensor}, værdi: {value}, tid: {time}',
@@ -62,7 +62,7 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.mediaOfflineTitle: 'Ingen forbindelse',
   AppTextKey.mediaOfflineDescription:
       'Forbindelsen til backend blev afbrudt. Der oprettes automatisk '
-          'forbindelse igen.',
+      'forbindelse igen.',
   AppTextKey.mediaBackendErrorTitle: 'Fejl',
   AppTextKey.mediaBackendErrorDescription: 'Denne anmodning mislykkedes.',
   AppTextKey.mediaCommandFailed: 'Kommando mislykkedes',
@@ -115,6 +115,7 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.settingsCurrentLanguage: 'Aktivt sprog',
   AppTextKey.settingsDiagnosticsRecentLogs: 'Seneste frontend-logge',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Åbn logvisning',
+  AppTextKey.settingsDiagnosticsExit: 'Afslut',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Udseende forberedt',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Farver og typografi konfigureres i dette område.',

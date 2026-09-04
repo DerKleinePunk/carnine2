@@ -28,7 +28,7 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
   AppTextKey.grpcConnectionErrorTitle: 'Error de conexión',
   AppTextKey.grpcConnectionErrorMessage:
       'No se pudo conectar con el backend. Inténtalo de nuevo o '
-          'consulta los registros de diagnóstico.',
+      'consulta los registros de diagnóstico.',
   AppTextKey.testGrpc: 'Probar gRPC',
   AppTextKey.connecting: 'Conectando',
   AppTextKey.canDataLine: 'Sensor: {sensor}, valor: {value}, hora: {time}',
@@ -62,7 +62,7 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
   AppTextKey.mediaOfflineTitle: 'Sin conexión',
   AppTextKey.mediaOfflineDescription:
       'Se perdió la conexión con el backend. Reconectando '
-          'automáticamente.',
+      'automáticamente.',
   AppTextKey.mediaBackendErrorTitle: 'Error',
   AppTextKey.mediaBackendErrorDescription: 'Esta solicitud ha fallado.',
   AppTextKey.mediaCommandFailed: 'Error al ejecutar el comando',
@@ -73,7 +73,7 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchClearSemantic: 'Borrar búsqueda',
   AppTextKey.mediaLibraryEmpty:
       'La biblioteca está vacía. Inicia un reescaneo para importar '
-          'contenido multimedia.',
+      'contenido multimedia.',
   AppTextKey.mediaSearchNoResults: 'No hay resultados para esta búsqueda',
   AppTextKey.mediaRescanAction: 'Reescanear',
   AppTextKey.mediaRescanSemantic: 'Reescanear biblioteca',
@@ -117,6 +117,7 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
   AppTextKey.settingsCurrentLanguage: 'Idioma activo',
   AppTextKey.settingsDiagnosticsRecentLogs: 'Registros recientes del frontend',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Abrir visor de registros',
+  AppTextKey.settingsDiagnosticsExit: 'Salir',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Apariencia preparada',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Los colores y la tipografía se configurarán en esta área.',

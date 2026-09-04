@@ -2,6 +2,7 @@
 {{- $target_hostname := or .target_hostname "carnine-pc" -}}
 {{- $display := or .display "auto" -}}
 {{- $version := or .version "unknown" -}}
+{{- $ssh_public_key := or .ssh_public_key "" -}}
 {{- $default_image := "raspbian.img" -}}
 {{- if eq $display "waveshare-1024x600" -}}
 {{- $default_image = "raspbian-1024x600.img" -}}
@@ -11,6 +12,23 @@
 architecture: arm64
 
 actions:
+  - action: run
+    description: Validate Waveshare SSH build key
+    chroot: false
+    command: |
+      {{ if eq $display "waveshare-1024x600" -}}
+      test -n '{{ $ssh_public_key }}' || {
+        echo 'ERROR: Waveshare builds require -t ssh_public_key:<public-key>' >&2
+        exit 1
+      }
+      printf '%s\n' '{{ $ssh_public_key }}' | grep -Eq '^(ssh-(ed25519|rsa)|ecdsa-sha2-nistp256) [A-Za-z0-9+/=]+( .*)?$' || {
+        echo 'ERROR: ssh_public_key is not a supported OpenSSH public key' >&2
+        exit 1
+      }
+      {{- else }}
+      true
+      {{- end }}
+
   - action: download
     description: Download RPi key ring
     url: https://archive.raspberrypi.org/debian/pool/main/r/raspberrypi-archive-keyring/raspberrypi-archive-keyring_2025.1+rpt1_all.deb
@@ -215,6 +233,12 @@ actions:
       adduser --gecos "Raspberry Pi User" --disabled-password --shell /bin/bash pi
       adduser pi sudo
       echo pi:{{ $rootpassword }} | chpasswd
+      {{ if $ssh_public_key -}}
+      install -d -o pi -g pi -m 0700 /home/pi/.ssh
+      printf '%s\n' '{{ $ssh_public_key }}' > /home/pi/.ssh/authorized_keys
+      chown pi:pi /home/pi/.ssh/authorized_keys
+      chmod 0600 /home/pi/.ssh/authorized_keys
+      {{- end }}
 
       addgroup --system carnine
       adduser --system --ingroup carnine --no-create-home --home /nonexistent --shell /usr/sbin/nologin carnine
@@ -229,6 +253,12 @@ actions:
       install -d -o root -g carnine -m 0770 /etc/carnine
 
       install -d -o root -g root -m 0755 /usr/share/plymouth/themes/pix
+
+  - action: overlay
+    description: Install SSH host key generator
+    origin: recipe
+    source: ssh-hostkeys.service
+    destination: /etc/systemd/system/carnine-ssh-hostkeys.service
 
   - action: overlay
     description: Install Carnine runtime configuration
@@ -258,7 +288,9 @@ actions:
   - action: run
     description: Reserve tty1 for Flutter DRM frontend
     chroot: true
-    command: systemctl disable getty@tty1.service
+    command: |
+      systemctl disable getty@tty1.service
+      systemctl enable getty@tty2.service
 
   - action: run
     description: Wait for UI readiness before leaving Plymouth
@@ -345,14 +377,15 @@ actions:
     chroot: true
     command: |
       rm -f /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub
-      install -d /etc/systemd/system/ssh.service.d
-      printf '%s\n' \
-        '[Unit]' \
-        'After=sshd-keygen.service' \
-        \
-        '[Service]' \
-        'ExecStartPre=/usr/bin/ssh-keygen -A' \
-        > /etc/systemd/system/ssh.service.d/hostkeys.conf
+      systemctl enable carnine-ssh-hostkeys.service
+      systemctl enable ssh.service
+
+  - action: run
+    description: Ensure Carnine services are enabled
+    chroot: true
+    command: |
+      systemctl enable carnine-backend.service
+      systemctl enable carnine-frontend.service
 
   - action: run
     description: Force systemd first boot menchanism

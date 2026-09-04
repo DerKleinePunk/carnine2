@@ -108,6 +108,7 @@ const Map<AppTextKey, String> zhTranslations = <AppTextKey, String>{
   AppTextKey.settingsCurrentLanguage: '当前语言',
   AppTextKey.settingsDiagnosticsRecentLogs: '最近的前端日志',
   AppTextKey.settingsDiagnosticsOpenLogs: '打开日志查看器',
+  AppTextKey.settingsDiagnosticsExit: '退出',
   AppTextKey.settingsAppearanceComingSoonTitle: '外观已预留',
   AppTextKey.settingsAppearanceComingSoonDescription: '颜色和字体将在此区域配置。',
   AppTextKey.settingsMapComingSoonTitle: '地图设置已预留',

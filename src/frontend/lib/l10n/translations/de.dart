@@ -28,7 +28,7 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.grpcConnectionErrorTitle: 'Verbindungsfehler',
   AppTextKey.grpcConnectionErrorMessage:
       'Die Verbindung zum Backend ist fehlgeschlagen. Bitte erneut '
-          'versuchen oder die Diagnose-Logs prüfen.',
+      'versuchen oder die Diagnose-Logs prüfen.',
   AppTextKey.testGrpc: 'gRPC testen',
   AppTextKey.connecting: 'Verbinden',
   AppTextKey.canDataLine: 'Sensor: {sensor}, Wert: {value}, Zeit: {time}',
@@ -62,7 +62,7 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.mediaOfflineTitle: 'Keine Verbindung',
   AppTextKey.mediaOfflineDescription:
       'Die Verbindung zum Backend wurde unterbrochen. Es wird automatisch '
-          'erneut verbunden.',
+      'erneut verbunden.',
   AppTextKey.mediaBackendErrorTitle: 'Fehler',
   AppTextKey.mediaBackendErrorDescription: 'Diese Anfrage ist fehlgeschlagen.',
   AppTextKey.mediaCommandFailed: 'Befehl fehlgeschlagen',
@@ -73,7 +73,7 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchClearSemantic: 'Suche zurücksetzen',
   AppTextKey.mediaLibraryEmpty:
       'Die Bibliothek ist leer. Starte einen Rescan, um Medien zu '
-          'importieren.',
+      'importieren.',
   AppTextKey.mediaSearchNoResults: 'Keine Treffer für diese Suche',
   AppTextKey.mediaRescanAction: 'Rescan',
   AppTextKey.mediaRescanSemantic: 'Bibliothek neu einlesen',
@@ -116,6 +116,7 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.settingsCurrentLanguage: 'Aktive Sprache',
   AppTextKey.settingsDiagnosticsRecentLogs: 'Aktuelle Frontend-Logs',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Logansicht öffnen',
+  AppTextKey.settingsDiagnosticsExit: 'Beenden',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Darstellung vorbereitet',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Farbgebung und Schriftarten folgen in diesem Bereich.',

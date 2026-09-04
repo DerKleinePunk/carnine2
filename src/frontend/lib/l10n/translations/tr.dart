@@ -28,7 +28,7 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.grpcConnectionErrorTitle: 'Bağlantı Hatası',
   AppTextKey.grpcConnectionErrorMessage:
       'Arka uca bağlanılamadı. Lütfen tekrar deneyin veya tanılama '
-          'günlüklerini kontrol edin.',
+      'günlüklerini kontrol edin.',
   AppTextKey.testGrpc: 'gRPC test et',
   AppTextKey.connecting: 'Bağlanıyor',
   AppTextKey.canDataLine: 'Sensör: {sensor}, değer: {value}, zaman: {time}',
@@ -62,7 +62,7 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.mediaOfflineTitle: 'Bağlantı yok',
   AppTextKey.mediaOfflineDescription:
       'Arka uçla bağlantı kesildi. Otomatik olarak yeniden '
-          'bağlanılıyor.',
+      'bağlanılıyor.',
   AppTextKey.mediaBackendErrorTitle: 'Hata',
   AppTextKey.mediaBackendErrorDescription: 'Bu istek başarısız oldu.',
   AppTextKey.mediaCommandFailed: 'Komut başarısız oldu',
@@ -73,7 +73,7 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchClearSemantic: 'Aramayı temizle',
   AppTextKey.mediaLibraryEmpty:
       'Kitaplık boş. Medyaları içe aktarmak için yeniden tarama '
-          'başlat.',
+      'başlat.',
   AppTextKey.mediaSearchNoResults: 'Bu arama için sonuç yok',
   AppTextKey.mediaRescanAction: 'Yeniden tara',
   AppTextKey.mediaRescanSemantic: 'Kitaplığı yeniden tara',
@@ -118,6 +118,7 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.settingsCurrentLanguage: 'Etkin dil',
   AppTextKey.settingsDiagnosticsRecentLogs: 'Son frontend günlükleri',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Günlük görüntüleyiciyi aç',
+  AppTextKey.settingsDiagnosticsExit: 'Çıkış',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Görünüm hazırlandı',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Renkler ve tipografi bu alanda yapılandırılacak.',
