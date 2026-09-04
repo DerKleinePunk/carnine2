@@ -85,6 +85,7 @@ actions:
       - ffmpeg
       - fontconfig
       - fonts-liberation
+      - i2c-tools
       - pulseaudio-utils
       - alsa-utils
       - udisks2
@@ -148,6 +149,13 @@ actions:
     description: Copy config.txt
     origin: raspberrypi-config.txt
     destination: /boot/firmware/config.txt
+
+  - action: run
+    description: Enable I2C on Raspberry Pi
+    chroot: true
+    command: |
+      sed -i '/^[[:space:]]*#\?[[:space:]]*dtparam=i2c_arm=/d' /boot/firmware/config.txt
+      printf '%s\n' 'dtparam=i2c_arm=on' >> /boot/firmware/config.txt
 
   - action: run
     description: Configure Waveshare 1024x600 display mode
