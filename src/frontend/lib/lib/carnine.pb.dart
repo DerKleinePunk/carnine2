@@ -852,6 +852,9 @@ class LibraryEvent extends $pb.GeneratedMessage {
     $fixnum.Int64? imported,
     $core.String? path,
     $core.String? message,
+    $core.String? sourceLabel,
+    $core.String? sourcePath,
+    $fixnum.Int64? matchingFiles,
   }) {
     final result = create();
     if (event != null) result.event = event;
@@ -860,6 +863,9 @@ class LibraryEvent extends $pb.GeneratedMessage {
     if (imported != null) result.imported = imported;
     if (path != null) result.path = path;
     if (message != null) result.message = message;
+    if (sourceLabel != null) result.sourceLabel = sourceLabel;
+    if (sourcePath != null) result.sourcePath = sourcePath;
+    if (matchingFiles != null) result.matchingFiles = matchingFiles;
     return result;
   }
 
@@ -887,6 +893,11 @@ class LibraryEvent extends $pb.GeneratedMessage {
         defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOS(5, _omitFieldNames ? '' : 'path')
     ..aOS(6, _omitFieldNames ? '' : 'message')
+    ..aOS(7, _omitFieldNames ? '' : 'sourceLabel')
+    ..aOS(8, _omitFieldNames ? '' : 'sourcePath')
+    ..a<$fixnum.Int64>(
+        9, _omitFieldNames ? '' : 'matchingFiles', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -961,6 +972,33 @@ class LibraryEvent extends $pb.GeneratedMessage {
   $core.bool hasMessage() => $_has(5);
   @$pb.TagNumber(6)
   void clearMessage() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get sourceLabel => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set sourceLabel($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasSourceLabel() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearSourceLabel() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get sourcePath => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set sourcePath($core.String value) => $_setString(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasSourcePath() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearSourcePath() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $fixnum.Int64 get matchingFiles => $_getI64(8);
+  @$pb.TagNumber(9)
+  set matchingFiles($fixnum.Int64 value) => $_setInt64(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasMatchingFiles() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearMatchingFiles() => $_clearField(9);
 }
 
 class MediaItem extends $pb.GeneratedMessage {

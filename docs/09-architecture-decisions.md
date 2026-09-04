@@ -401,6 +401,15 @@ media-library rescan. The `udisks2` package is part of the Raspberry Pi image.
 - The image must install and run `udisks2` with a system D-Bus
 - A storage signal can trigger more than one rescan; debouncing and source-specific filtering remain follow-up work
 - Automatic detection is limited to events visible through UDisks2
+- A mounted volume is eligible for automatic music discovery only when its
+  label equals `MUSIK` case-insensitively
+- If the eligible volume is not mounted, the backend requests the mount through
+  UDisks2. The image includes `polkitd` and a restricted rule for the `carnine`
+  service user because the headless DRM setup has no desktop automount session.
+- Matching `.mp3` files are reported through the existing
+  `MediaService.StreamLibraryEvents` contract as `LibraryEvent.event =
+  "music_found"`; the event carries the source label, mount path, and number
+  of matching files
 
 ---
 

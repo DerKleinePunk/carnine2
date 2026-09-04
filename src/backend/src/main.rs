@@ -221,10 +221,32 @@ impl MediaServiceImpl {
         Ok(events)
     }
 
-    fn rescan_library(&self) -> anyhow::Result<()> {
-        for event in self.scan_events()? {
-            let _ = self.library_events.send(event);
+    pub(crate) fn discover_music_volume(
+        &self,
+        source_label: String,
+        source_path: PathBuf,
+    ) -> anyhow::Result<()> {
+        let database = database::Database::open(&self.database_path)?;
+        let matching_files = database.rescan_folder(&source_path, &["mp3".to_string()])?;
+        if matching_files == 0 {
+            return Ok(());
         }
+        info!(
+            label = %source_label,
+            path = %source_path.display(),
+            matching_files,
+            "music found on volume"
+        );
+        let event = LibraryEvent {
+            event: "music_found".to_string(),
+            scan_id: self.next_scan_id.fetch_add(1, Ordering::Relaxed),
+            source_label,
+            source_path: source_path.display().to_string(),
+            matching_files: matching_files as u64,
+            message: format!("found {matching_files} MP3 file(s)"),
+            ..Default::default()
+        };
+        let _ = self.library_events.send(event);
         Ok(())
     }
 }

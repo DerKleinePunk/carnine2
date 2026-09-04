@@ -122,7 +122,19 @@ Startkonfiguration.
 
 - Es gibt mehrere Medienquellen beziehungsweise Ordner.
 - Der Hauptordner wird spaeter ueber Einstellungen festgelegt.
-- USB-Datentraeger werden spaeter automatisch erkannt.
+- USB-Datentraeger werden ueber UDisks2-Ereignisse automatisch erkannt.
+- Ein gemounteter Datentraeger wird nur als Musikmedium behandelt, wenn sein
+  Volume-Label ohne Beruecksichtigung von Gross-/Kleinschreibung `MUSIK` ist.
+- Ist ein passendes Volume noch nicht gemountet, fordert das Backend den Mount
+  ueber UDisks2 an. Das Image stellt dafuer `polkitd` und eine auf den Benutzer
+  `carnine` begrenzte Mount-Regel bereit.
+- Das Backend durchsucht ein passendes Volume rekursiv nach Dateien mit der
+  Endung `.mp3`, ebenfalls ohne Beruecksichtigung von Gross-/Kleinschreibung.
+- Wenn mindestens eine passende Datei gefunden wird, veroeffentlicht das
+  Backend im `MediaService.StreamLibraryEvents`-Stream ein `LibraryEvent` mit
+  `event = "music_found"`, `source_label`, `source_path` und
+  `matching_files`. Das `message`-Feld ist fuer Logging und Diagnose gedacht;
+  die UI verwendet fuer die Anzeige das Event und die strukturierten Felder.
 - Ein vollstaendiger Rescan wird explizit angefordert.
 - Der Rescan aktualisiert die SQLite-Media-Datenbank.
 - Ein Rescan laeuft nicht waehrend der Wiedergabe.

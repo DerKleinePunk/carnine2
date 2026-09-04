@@ -109,6 +109,9 @@ message LibraryEvent {
   uint64 imported = 4;
   string path = 5;
   string message = 6;
+  string source_label = 7;
+  string source_path = 8;
+  uint64 matching_files = 9;
 }
 
 message MediaItem {

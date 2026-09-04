@@ -223,6 +223,9 @@ const LibraryEvent$json = {
     {'1': 'imported', '3': 4, '4': 1, '5': 4, '10': 'imported'},
     {'1': 'path', '3': 5, '4': 1, '5': 9, '10': 'path'},
     {'1': 'message', '3': 6, '4': 1, '5': 9, '10': 'message'},
+    {'1': 'source_label', '3': 7, '4': 1, '5': 9, '10': 'sourceLabel'},
+    {'1': 'source_path', '3': 8, '4': 1, '5': 9, '10': 'sourcePath'},
+    {'1': 'matching_files', '3': 9, '4': 1, '5': 4, '10': 'matchingFiles'},
   ],
 };
 
@@ -230,7 +233,9 @@ const LibraryEvent$json = {
 final $typed_data.Uint8List libraryEventDescriptor = $convert.base64Decode(
     'CgxMaWJyYXJ5RXZlbnQSFAoFZXZlbnQYASABKAlSBWV2ZW50EhcKB3NjYW5faWQYAiABKARSBn'
     'NjYW5JZBIcCglwcm9jZXNzZWQYAyABKARSCXByb2Nlc3NlZBIaCghpbXBvcnRlZBgEIAEoBFII'
-    'aW1wb3J0ZWQSEgoEcGF0aBgFIAEoCVIEcGF0aBIYCgdtZXNzYWdlGAYgASgJUgdtZXNzYWdl');
+    'aW1wb3J0ZWQSEgoEcGF0aBgFIAEoCVIEcGF0aBIYCgdtZXNzYWdlGAYgASgJUgdtZXNzYWdlEi'
+    'EKDHNvdXJjZV9sYWJlbBgHIAEoCVILc291cmNlTGFiZWwSHwoLc291cmNlX3BhdGgYCCABKAlS'
+    'CnNvdXJjZVBhdGgSJQoObWF0Y2hpbmdfZmlsZXMYCSABKARSDW1hdGNoaW5nRmlsZXM=');
 
 @$core.Deprecated('Use mediaItemDescriptor instead')
 const MediaItem$json = {

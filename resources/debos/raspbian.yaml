@@ -73,6 +73,7 @@ actions:
       - parted
       - netbase
       - openssh-server
+      - polkitd
       - raspi-firmware
       - rfkill
       - rpi.gpio-common
@@ -120,6 +121,29 @@ actions:
       for unit in dpkg-db-backup.service dpkg-db-backup.timer e2scrub_all.service e2scrub_all.timer e2scrub_reap.service; do
         ln -sf /dev/null "/etc/systemd/system/$unit"
       done
+
+  - action: run
+    description: Configure readable MUSIK USB volumes
+    chroot: true
+    command: |
+      install -d -m 0755 /media/root
+      install -d /etc/udisks2
+      cat > /etc/udisks2/mount_options.conf << __EOF__
+      [/dev/disk/by-label/MUSIK]
+      vfat_defaults=uid=100,gid=104,umask=022
+      vfat_allow=uid=100,gid=104,umask
+      __EOF__
+      install -d /etc/polkit-1/rules.d
+      cat > /etc/polkit-1/rules.d/50-carnine-udisks.rules << __EOF__
+      polkit.addRule(function(action, subject) {
+        if (subject.user == "carnine" &&
+            (action.id == "org.freedesktop.udisks2.filesystem-mount" ||
+             action.id == "org.freedesktop.udisks2.filesystem-mount-system" ||
+             action.id == "org.freedesktop.udisks2.filesystem-mount-other-seat")) {
+          return polkit.Result.YES;
+        }
+      });
+      __EOF__
 
   - action: overlay
     description: Install first-boot root filesystem expansion service
