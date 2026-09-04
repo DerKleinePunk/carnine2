@@ -1,5 +1,15 @@
 # Ideas & Roadmap
 
+## Current Priorities
+
+These are the next concrete work items after the current backend and image integration:
+
+1. Validate UDisks2 add/remove and mount events with a real USB device on the Raspberry Pi.
+2. Investigate audio pause latency, intermittent dropouts, and the residual stop click/pop.
+3. Standardize frontend error states and recovery actions, then verify the 1024x600 layout on the Raspberry Pi.
+4. Verify the complete image boot path after power cycles, including service recovery and graceful `SIGTERM` shutdown.
+5. Establish a first CI pipeline for formatting, tests, and cross-build checks.
+
 ## Feature Ideas
 
 ### Short-term Ideas
@@ -58,8 +68,8 @@
 - [ ] Integrate CAN telemetry ingestion with bounded update rates and UI throttling
 - [ ] Add offline cache synchronization strategy for navigation/media metadata
 - [ ] Introduce authenticated LAN remote control endpoint (no WAN exposure)
-- [ ] Add the systemd unit to the Debos image, service recovery on power cycles, and graceful `SIGTERM` shutdown of audio playback
-- [ ] Install the backend Debian package and its systemd unit as part of the Debos image build
+- [ ] Add service recovery validation on power cycles and graceful `SIGTERM` shutdown of audio playback
+- [x] Install the backend Debian package and its systemd unit as part of the Debos image build
 
 ### Long-term Vision
 - [ ] Companion app operating only inside trusted LAN/VPN boundary
@@ -72,7 +82,7 @@
 - [ ] Standardize error-state widgets and recovery CTAs
 - [ ] Add performance instrumentation for frame pacing on Raspberry Pi 4
 - [ ] Define responsive layout constraints for 1024x600 and fallback sizes
-- [ ] Create a Debian package for the Flutter frontend, matching the backend package
+- [x] Create a Debian package for the Flutter frontend, matching the backend package
 
 ### Backend (Rust)
 - [ ] Finalize UDS-based gRPC transport behavior and reconnect policy
