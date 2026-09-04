@@ -12,6 +12,7 @@ ExecStart=/usr/bin/carnine-backend
 Environment=CARNINE_CONFIG=/etc/carnine/config.toml
 Restart=on-failure
 RestartSec=5
+TimeoutStopSec=10s
 
 [Install]
 WantedBy=multi-user.target

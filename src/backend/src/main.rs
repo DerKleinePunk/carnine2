@@ -7,6 +7,7 @@ use std::{fs, path::PathBuf, sync::Mutex};
 use anyhow::{bail, Context, Result};
 use futures_util::StreamExt;
 use tokio::sync::broadcast;
+use tokio::sync::oneshot;
 use tonic::{transport::Server, Request, Response, Status};
 use tracing::{info, warn};
 use tracing_appender::rolling;
@@ -29,9 +30,10 @@ use carnine::{
     media_service_server::{MediaService, MediaServiceServer},
     AddPlaylistEntryRequest, AudioEvent, CanData, CanDataRequest, CanDataResponse, CommandResponse,
     Configuration, ConfigurationResponse, CreatePlaylistRequest, Empty, GetPlaylistRequest,
-    LibraryEvent, ListPlaylistsResponse, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest,
-    PlayerEvent, PlayerState, Playlist, PlaylistEntry, RescanMediaRequest, SearchMediaRequest,
-    SearchMediaResponse, ServiceVersion, UpdateConfigurationRequest,
+    ImportMusicVolumeRequest, LibraryEvent, ListPlaylistsResponse, PlayPlaylistRequest,
+    PlayQueueEntryRequest, PlayRequest, PlayerEvent, PlayerState, Playlist, PlaylistEntry,
+    RescanMediaRequest, SearchMediaRequest, SearchMediaResponse, ServiceVersion,
+    UpdateConfigurationRequest,
 };
 
 #[derive(Debug, Default)]
@@ -226,8 +228,20 @@ impl MediaServiceImpl {
         source_label: String,
         source_path: PathBuf,
     ) -> anyhow::Result<()> {
-        let database = database::Database::open(&self.database_path)?;
-        let matching_files = database.rescan_folder(&source_path, &["mp3".to_string()])?;
+        info!(
+            label = %source_label,
+            path = %source_path.display(),
+            exists = source_path.exists(),
+            is_directory = source_path.is_dir(),
+            "scanning music volume"
+        );
+        let matching_files = database::find_audio_files(&source_path, &["mp3".to_string()])?.len();
+        info!(
+            label = %source_label,
+            path = %source_path.display(),
+            matching_files,
+            "music volume scan completed"
+        );
         if matching_files == 0 {
             return Ok(());
         }
@@ -248,6 +262,54 @@ impl MediaServiceImpl {
         };
         let _ = self.library_events.send(event);
         Ok(())
+    }
+
+    fn import_music_volume(&self, source_path: PathBuf) -> anyhow::Result<Vec<LibraryEvent>> {
+        if !source_path.is_absolute() || !source_path.starts_with("/media") {
+            bail!("music source must be a mounted path below /media");
+        }
+        let target_root = self
+            .media_folders
+            .first()
+            .context("no internal media folder configured")?;
+        let files = database::find_audio_files(&source_path, &["mp3".to_string()])?;
+        let scan_id = self.next_scan_id.fetch_add(1, Ordering::Relaxed);
+        let mut events = vec![LibraryEvent {
+            event: "import_started".to_string(),
+            scan_id,
+            matching_files: files.len() as u64,
+            source_path: source_path.display().to_string(),
+            ..Default::default()
+        }];
+        for (index, source_file) in files.iter().enumerate() {
+            let relative_path = source_file
+                .strip_prefix(&source_path)
+                .context("music file is outside the mounted source")?;
+            let target_file = target_root.join(relative_path);
+            if let Some(parent) = target_file.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::copy(source_file, &target_file)?;
+            events.push(LibraryEvent {
+                event: "import_progress".to_string(),
+                scan_id,
+                processed: (index + 1) as u64,
+                imported: (index + 1) as u64,
+                path: target_file.display().to_string(),
+                source_path: source_path.display().to_string(),
+                ..Default::default()
+            });
+        }
+        events.push(LibraryEvent {
+            event: "import_completed".to_string(),
+            scan_id,
+            processed: files.len() as u64,
+            imported: files.len() as u64,
+            source_path: source_path.display().to_string(),
+            message: format!("imported {} MP3 file(s)", files.len()),
+            ..Default::default()
+        });
+        Ok(events)
     }
 }
 
@@ -339,6 +401,8 @@ impl CarnineService for CarnineServiceImpl {
 impl MediaService for MediaServiceImpl {
     type StreamPlayerEventsStream =
         Pin<Box<dyn futures_util::Stream<Item = Result<PlayerEvent, Status>> + Send>>;
+    type ImportMusicVolumeStream =
+        tokio_stream::Iter<std::vec::IntoIter<Result<LibraryEvent, Status>>>;
     type RescanMediaStream = tokio_stream::Iter<std::vec::IntoIter<Result<LibraryEvent, Status>>>;
     type StreamLibraryEventsStream =
         Pin<Box<dyn futures_util::Stream<Item = Result<LibraryEvent, Status>> + Send>>;
@@ -460,6 +524,25 @@ impl MediaService for MediaServiceImpl {
             })
             .collect();
         Ok(Response::new(SearchMediaResponse { items }))
+    }
+
+    async fn import_music_volume(
+        &self,
+        request: Request<ImportMusicVolumeRequest>,
+    ) -> Result<Response<Self::ImportMusicVolumeStream>, Status> {
+        let source_path = PathBuf::from(request.into_inner().source_path);
+        if source_path.as_os_str().is_empty() {
+            return Err(Status::invalid_argument("source_path is required"));
+        }
+        let events = self
+            .import_music_volume(source_path)
+            .map_err(|error| Status::internal(error.to_string()))?;
+        for event in &events {
+            let _ = self.library_events.send(event.clone());
+        }
+        Ok(Response::new(tokio_stream::iter(
+            events.into_iter().map(Ok).collect::<Vec<_>>(),
+        )))
     }
 
     async fn rescan_media(
@@ -780,7 +863,8 @@ async fn main() -> Result<()> {
     let config_service = ConfigServiceImpl::new(configuration.clone(), configuration_path);
 
     info!("Starting gRPC server on {}", addr);
-    Server::builder()
+    let (shutdown_sender, shutdown_receiver) = oneshot::channel();
+    let server = Server::builder()
         .add_service(CarnineServiceServer::new(carnine_service))
         .add_service(MediaServiceServer::new(media_service.clone()))
         .add_service(AudioServiceServer::new(AudioServiceImpl::new(
@@ -790,8 +874,20 @@ async fn main() -> Result<()> {
         .add_service(carnine::system_service_server::SystemServiceServer::new(
             system_service,
         ))
-        .serve_with_shutdown(addr, shutdown_signal())
-        .await?;
+        .serve_with_shutdown(addr, async move {
+            let _ = shutdown_receiver.await;
+        });
+    tokio::pin!(server);
+    tokio::select! {
+        result = &mut server => result?,
+        _ = shutdown_signal() => {
+            let _ = shutdown_sender.send(());
+            match tokio::time::timeout(Duration::from_secs(5), &mut server).await {
+                Ok(result) => result?,
+                Err(_) => warn!("gRPC shutdown grace period expired"),
+            }
+        }
+    }
 
     media_service.save_resume_state()?;
     media_player.shutdown()?;
@@ -806,8 +902,8 @@ async fn shutdown_signal() {
 
         let mut terminate = signal(SignalKind::terminate()).expect("install SIGTERM handler");
         tokio::select! {
-            _ = tokio::signal::ctrl_c() => {}
-            _ = terminate.recv() => {}
+            _ = tokio::signal::ctrl_c() => warn!("shutdown requested by Ctrl+C"),
+            _ = terminate.recv() => warn!("shutdown requested by SIGTERM"),
         }
     }
 
@@ -816,6 +912,7 @@ async fn shutdown_signal() {
         tokio::signal::ctrl_c()
             .await
             .expect("install Ctrl+C handler");
+        warn!("shutdown requested by Ctrl+C");
     }
 }
 
@@ -876,7 +973,7 @@ mod tests {
             },
             audio: config::AudioConfig {
                 backend: "alsa".to_string(),
-                device: "plughw:1,0".to_string(),
+                device: "plughw:0,0".to_string(),
                 sample_rate: 44_100,
                 channels: 2,
                 navigation_interrupt: "pause_music".to_string(),
@@ -987,7 +1084,7 @@ mod tests {
         let saved = std::fs::read_to_string(&path).expect("configuration should be saved");
         let saved_configuration: config::Config =
             toml::from_str(&saved).expect("saved configuration should be valid TOML");
-        assert_eq!(saved_configuration.audio.device, "plughw:1,0");
+        assert_eq!(saved_configuration.audio.device, "plughw:0,0");
         let _ = std::fs::remove_file(path);
     }
 
@@ -1332,7 +1429,7 @@ mod tests {
             .expect("audio snapshot should arrive")
             .expect("audio snapshot should be valid");
         assert_eq!(snapshot.event, "audio_ready");
-        assert!(snapshot.message.contains("plughw:1,0"));
+        assert!(snapshot.message.contains("plughw:0,0"));
 
         service.publish("device_changed", "audio device changed");
         let event = events

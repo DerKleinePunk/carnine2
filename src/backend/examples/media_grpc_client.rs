@@ -11,7 +11,8 @@ pub mod carnine {
 
 use carnine::{
     audio_service_client::AudioServiceClient, media_service_client::MediaServiceClient, Empty,
-    PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, RescanMediaRequest,
+    ImportMusicVolumeRequest, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest,
+    RescanMediaRequest,
 };
 
 #[tokio::main]
@@ -51,6 +52,7 @@ async fn main() -> Result<()> {
         "audio-events" => stream_audio_events(&endpoint).await?,
         "rescan" => rescan(&mut client).await?,
         "event-smoke" => event_smoke(&endpoint).await?,
+        "import" => import_music_volume(&mut client).await?,
         "smoke" => smoke_test(&mut client).await?,
         unknown => bail!("unknown command: {unknown}"),
     }
@@ -162,6 +164,28 @@ async fn rescan(client: &mut MediaServiceClient<Channel>) -> Result<()> {
         .into_inner();
     while let Some(event) = stream.message().await? {
         println!("library event={} scan_id={}", event.event, event.scan_id);
+    }
+    Ok(())
+}
+
+async fn import_music_volume(client: &mut MediaServiceClient<Channel>) -> Result<()> {
+    let source_path = env::args()
+        .nth(3)
+        .context("import requires a mounted source path")?;
+    let mut stream = client
+        .import_music_volume(ImportMusicVolumeRequest { source_path })
+        .await?
+        .into_inner();
+    while let Some(event) = stream.message().await? {
+        println!(
+            "import event={} processed={} imported={} matching_files={} path={} message={}",
+            event.event,
+            event.processed,
+            event.imported,
+            event.matching_files,
+            event.path,
+            event.message
+        );
     }
     Ok(())
 }

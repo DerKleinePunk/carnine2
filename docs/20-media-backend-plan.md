@@ -25,7 +25,8 @@ Die erste Version konzentriert sich auf:
 - mehrere konfigurierbare Medienordner
 - MP3, FLAC und OGG, soweit der ausgewaehlte Debian-Audio-Stack sie unterstuetzt
 - Media-Datenbank in SQLite
-- explizit angeforderten vollstaendigen Rescan
+- explizit von der UI angeforderten vollstaendigen Rescan
+- USB-Musikimport nach ausdruecklicher Bestaetigung durch die UI
 - Metadatenimport aus den Audiodateien
 - Suche im Backend nach Titel und Interpret
 - gespeicherte Playlists
@@ -38,7 +39,8 @@ Die erste Version konzentriert sich auf:
 
 Diese Punkte bleiben bewusst auf der Todo-Liste:
 
-- automatische USB-Erkennung und USB-Medium-Plugin beziehungsweise Service
+- eigentliche USB-Import-RPCs und der Kopiervorgang in das interne
+  Medienverzeichnis
 - Einstellungen fuer Medienordner und Resume-Modus
 - Queue bearbeiten, umsortieren und einzelne Eintraege entfernen
 - direkte Titelauswahl und Seek-RPC
@@ -107,8 +109,8 @@ Die Konfiguration enthaelt mindestens:
 - Log-Verzeichnis und Log-Level
 
 Hardware- und deployment-spezifische Werte wie das ALSA-Geraet duerfen fuer
-den Zielrechner angepasst werden. Fuer den aktuell getesteten Pi ist HDMI 0
-als `plughw:1,0` eingetragen. Geheimnisse gehoeren nicht in diese Datei.
+den Zielrechner angepasst werden. Fuer den aktuell getesteten Pi ist HDMI 1
+als `plughw:0,0` eingetragen. Geheimnisse gehoeren nicht in diese Datei.
 
 Die UI aendert diese Datei nicht direkt. Ein spaeterer typisierter
 `ConfigService` liest und schreibt die Konfiguration ueber das Backend. Das
@@ -118,28 +120,35 @@ Ausgang, Medienordner, Resume-Modus und Log-Level sind als Laufzeit-
 Konfiguration vorgesehen; die gRPC-Bind-Adresse bleibt eine
 Startkonfiguration.
 
-## Medienquellen und Rescan
+## USB-Erkennung, Import und Rescan
 
 - Es gibt mehrere Medienquellen beziehungsweise Ordner.
 - Der Hauptordner wird spaeter ueber Einstellungen festgelegt.
 - USB-Datentraeger werden ueber UDisks2-Ereignisse automatisch erkannt.
-- Ein gemounteter Datentraeger wird nur als Musikmedium behandelt, wenn sein
-  Volume-Label ohne Beruecksichtigung von Gross-/Kleinschreibung `MUSIK` ist.
+- Ein Datentraeger wird nur behandelt, wenn sein Volume-Label ohne
+  Beruecksichtigung von Gross-/Kleinschreibung `MUSIK` ist.
 - Ist ein passendes Volume noch nicht gemountet, fordert das Backend den Mount
   ueber UDisks2 an. Das Image stellt dafuer `polkitd` und eine auf den Benutzer
   `carnine` begrenzte Mount-Regel bereit.
-- Das Backend durchsucht ein passendes Volume rekursiv nach Dateien mit der
-  Endung `.mp3`, ebenfalls ohne Beruecksichtigung von Gross-/Kleinschreibung.
-- Wenn mindestens eine passende Datei gefunden wird, veroeffentlicht das
-  Backend im `MediaService.StreamLibraryEvents`-Stream ein `LibraryEvent` mit
-  `event = "music_found"`, `source_label`, `source_path` und
-  `matching_files`. Das `message`-Feld ist fuer Logging und Diagnose gedacht;
-  die UI verwendet fuer die Anzeige das Event und die strukturierten Felder.
-- Ein vollstaendiger Rescan wird explizit angefordert.
-- Der Rescan aktualisiert die SQLite-Media-Datenbank.
+- Nach erfolgreichem Mount durchsucht das Backend das Volume rekursiv nur nach
+  Dateien mit der Endung `.mp3`, ohne Beruecksichtigung der Gross-/Kleinschreibung.
+- Das Backend veraendert bei dieser Erkennung weder die Media-Datenbank noch
+  das interne Medienverzeichnis.
+- Das Backend meldet der UI ueber den Library-Eventstream, dass ein
+  `MUSIK`-Volume bereitsteht. Das Event enthaelt mindestens `source_label`,
+  `source_path` und `matching_files`.
+- Die UI zeigt die Anzahl der gefundenen Dateien an und entscheidet mit einer
+  ausdruecklichen Aktion `Uebernehmen`, ob der Import gestartet wird.
+- Erst die Import-Aktion kopiert die ausgewaehlten beziehungsweise gefundenen
+  MP3-Dateien vom USB-Mount in das interne Medienverzeichnis.
+- Nach erfolgreichem Import fordert die UI den vollstaendigen Rescan ueber
+  `MediaService.RescanMedia` an.
+- Nur dieser UI-gesteuerte Rescan liest Metadaten und aktualisiert die
+  SQLite-Media-Datenbank.
 - Ein Rescan laeuft nicht waehrend der Wiedergabe.
 - Der Rescan meldet Fortschritt in einem eigenen Bibliotheksstream.
-- Gueltige Dateien werden importiert oder aktualisiert.
+- Gueltige Dateien im internen Medienverzeichnis werden importiert oder
+  aktualisiert.
 - Nicht lesbare Dateien werden nicht in die Media-Datenbank aufgenommen.
 - Nicht lesbare Dateien erzeugen einen Fehler im Bibliotheksstream.
 - Eine geloeschte Datei auf einer erreichbaren Quelle wird als `MISSING`
@@ -147,6 +156,18 @@ Startkonfiguration.
 - Eine nicht angeschlossene Quelle wird als `OFFLINE` behandelt.
 - Eine Playlist darf auch bei einer offline Quelle wiederhergestellt werden.
 - Ein einzelner fehlerhafter Eintrag macht den gesamten Rescan nicht ungueltig.
+
+### Verbindlicher Ablauf
+
+1. UDisks2 meldet ein hinzugekommenes oder gemountetes Volume.
+2. Das Backend prueft das Label `MUSIK` und mountet das Volume bei Bedarf.
+3. Das Backend zaehlt die `.mp3`-Dateien und meldet den Mount sowie die Anzahl
+  an die UI.
+4. Die UI zeigt die Anzahl und wartet auf die Bestaetigung `Uebernehmen`.
+5. Bei Bestaetigung kopiert das Backend die Dateien in das interne
+  Medienverzeichnis und meldet Importfortschritt und Ergebnis.
+6. Die UI startet danach `RescanMedia`.
+7. Der Rescan liest Metadaten und schreibt die Datenbankeintraege.
 
 ## Medienmodell
 

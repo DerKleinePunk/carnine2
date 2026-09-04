@@ -117,7 +117,7 @@ mod tests {
         let (config, path) = Config::load().expect("repository config should load");
         assert!(path.ends_with("resources/config/carnine.toml"));
         assert_eq!(config.server.address, "[::1]:50051");
-        assert_eq!(config.audio.device, "plughw:1,0");
+        assert_eq!(config.audio.device, "plughw:0,0");
     }
 
     #[test]

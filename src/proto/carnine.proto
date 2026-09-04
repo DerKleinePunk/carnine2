@@ -18,6 +18,7 @@ service MediaService {
   rpc PlayPlaylist (PlayPlaylistRequest) returns (CommandResponse);
   rpc GetPlayerState (Empty) returns (PlayerState);
   rpc SearchMedia (SearchMediaRequest) returns (SearchMediaResponse);
+  rpc ImportMusicVolume (ImportMusicVolumeRequest) returns (stream LibraryEvent);
   rpc RescanMedia (RescanMediaRequest) returns (stream LibraryEvent);
   rpc StreamLibraryEvents (Empty) returns (stream LibraryEvent);
   rpc CreatePlaylist (CreatePlaylistRequest) returns (Playlist);
@@ -101,6 +102,10 @@ message SearchMediaResponse {
 }
 
 message RescanMediaRequest {}
+
+message ImportMusicVolumeRequest {
+  string source_path = 1;
+}
 
 message LibraryEvent {
   string event = 1;

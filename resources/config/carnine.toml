@@ -13,7 +13,7 @@ resume_mode = "restore_paused"
 
 [audio]
 backend = "alsa"
-device = "plughw:1,0"
+device = "plughw:0,0"
 sample_rate = 44100
 channels = 2
 navigation_interrupt = "pause_music"

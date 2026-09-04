@@ -383,8 +383,9 @@ device and mount state changes on the Raspberry Pi.
 **Decision:**
 The Rust backend listens on the system D-Bus for signals from `udisks2`. The
 listener reacts to `InterfacesAdded`, `InterfacesRemoved`, and
-`PropertiesChanged` signals below `/org/freedesktop/UDisks2`, then starts a
-media-library rescan. The `udisks2` package is part of the Raspberry Pi image.
+`PropertiesChanged` signals below `/org/freedesktop/UDisks2`, then detects and
+mounts eligible music volumes. It does not start the database rescan.
+The `udisks2` package is part of the Raspberry Pi image.
 
 **Rationale:**
 - **Standard Linux integration**: UDisks2 provides the platform service for block devices and mount state
@@ -399,17 +400,21 @@ media-library rescan. The `udisks2` package is part of the Raspberry Pi image.
 
 **Consequences:**
 - The image must install and run `udisks2` with a system D-Bus
-- A storage signal can trigger more than one rescan; debouncing and source-specific filtering remain follow-up work
+- A storage signal can trigger more than one inspection; debouncing and source-specific filtering remain follow-up work
 - Automatic detection is limited to events visible through UDisks2
 - A mounted volume is eligible for automatic music discovery only when its
   label equals `MUSIK` case-insensitively
 - If the eligible volume is not mounted, the backend requests the mount through
   UDisks2. The image includes `polkitd` and a restricted rule for the `carnine`
   service user because the headless DRM setup has no desktop automount session.
-- Matching `.mp3` files are reported through the existing
+- Matching `.mp3` files are counted and reported through the existing
   `MediaService.StreamLibraryEvents` contract as `LibraryEvent.event =
   "music_found"`; the event carries the source label, mount path, and number
   of matching files
+- Detection does not write SQLite and does not copy files
+- The frontend confirmation starts a separate import operation; after the
+  import completes, the frontend explicitly requests `RescanMedia`
+- Only `RescanMedia` updates SQLite and reads audio metadata
 
 ---
 
@@ -761,7 +766,7 @@ A `CommandRouter` component in the backend maps recognized intents to service ac
 ```toml
 [audio]
 backend = "alsa"         # or "pulse"
-output_device = "plughw:1,0"
+output_device = "plughw:0,0"
 input_device = "plughw:2,0"  # Microphone ALSA device
 ducking_behavior = "duck"    # or "pause", "mix"
 ducking_level_db = -20       # Volume reduction during ducking

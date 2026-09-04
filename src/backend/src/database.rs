@@ -300,8 +300,7 @@ impl Database {
     pub fn rescan_folder(&self, folder: &Path, supported_formats: &[String]) -> Result<usize> {
         let source_uri = folder.to_string_lossy().into_owned();
         let source_id = self.upsert_source(&source_uri, "AVAILABLE")?;
-        let mut discovered = Vec::new();
-        collect_audio_files(folder, supported_formats, &mut discovered)?;
+        let discovered = find_audio_files(folder, supported_formats)?;
         self.connection.execute(
             "UPDATE media SET status = 'MISSING' WHERE source_id = ?1",
             [source_id],
@@ -375,20 +374,17 @@ fn read_audio_metadata(path: &Path) -> Result<AudioMetadata> {
     })
 }
 
-fn collect_audio_files(
-    folder: &Path,
-    supported_formats: &[String],
-    files: &mut Vec<PathBuf>,
-) -> Result<()> {
+pub fn find_audio_files(folder: &Path, supported_formats: &[String]) -> Result<Vec<PathBuf>> {
+    let mut files = Vec::new();
     if !folder.is_dir() {
-        return Ok(());
+        return Ok(files);
     }
     for entry in std::fs::read_dir(folder)
         .with_context(|| format!("failed to read media folder {}", folder.display()))?
     {
         let path = entry?.path();
         if path.is_dir() {
-            collect_audio_files(&path, supported_formats, files)?;
+            files.extend(find_audio_files(&path, supported_formats)?);
         } else if path.is_file()
             && path
                 .extension()
@@ -404,7 +400,7 @@ fn collect_audio_files(
         }
     }
     files.sort();
-    Ok(())
+    Ok(files)
 }
 
 #[cfg(test)]

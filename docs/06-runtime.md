@@ -43,9 +43,9 @@ User starts playing audio:
 
 ### Scenario 3a: Media Library Rescan
 
-The user explicitly starts a complete rescan:
+The frontend explicitly starts a complete rescan after a confirmed USB import:
 
-1. The frontend requests a rescan for one or more configured media sources.
+1. The frontend requests a rescan for the internal media source.
 2. The Media Service rejects or defers the operation while playback is active.
 3. The Media Library scans supported local audio files and reads their metadata.
 4. Valid files are inserted or updated in SQLite.
@@ -54,7 +54,22 @@ The user explicitly starts a complete rescan:
 7. Entries belonging to a detached source remain available as `OFFLINE`.
 8. The library stream reports progress and completion to the frontend.
 
-### Scenario 3b: Playlist Restore
+### Scenario 3b: USB Music Import
+
+The backend detects a removable volume with the label `MUSIK`:
+
+1. UDisks2 reports the volume or the backend requests its mount.
+2. The backend verifies the mount and counts recursive `.mp3` files.
+3. The backend reports the source path and file count to the frontend.
+4. The frontend asks the user whether the files should be taken over.
+5. Only after confirmation does the backend copy the files into the internal
+    media directory and report the import result.
+6. The frontend starts Scenario 3a by requesting `RescanMedia`.
+
+The detection step never writes the media database. The database changes only
+through the explicit frontend-triggered rescan after import.
+
+### Scenario 3c: Playlist Restore
 
 The backend restores the persistent playback context during startup:
 
