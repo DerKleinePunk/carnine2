@@ -1,4 +1,5 @@
 use std::env;
+use std::sync::mpsc::{self, Receiver};
 use std::thread;
 use std::time::Duration;
 
@@ -16,6 +17,12 @@ use audio_source::ExternalPcmSource;
 const SAMPLE_RATE: u32 = 44_100;
 const TEST_SECONDS: u64 = 20;
 
+#[derive(Debug)]
+enum MixerCommand {
+    SetGain(audio_mixer::SourceId, f32),
+    Remove(audio_mixer::SourceId),
+}
+
 fn main() -> Result<()> {
     let music_path = env::args()
         .nth(1)
@@ -30,11 +37,18 @@ fn main() -> Result<()> {
     let (source, consumer) =
         ExternalPcmSource::start(music_path, SAMPLE_RATE, SAMPLE_RATE as usize * 2)?;
     let mut mixer = AudioMixer::new(SAMPLE_RATE, 250);
-    mixer.add_stream_source(consumer, 1.0)?;
+    let source_id = mixer.add_stream_source(consumer, 1.0)?;
+    let (commands, command_receiver) = mpsc::channel();
     let stream = match supported.sample_format() {
-        cpal::SampleFormat::F32 => build_stream::<f32>(&device, &supported.config(), mixer)?,
-        cpal::SampleFormat::I16 => build_stream::<i16>(&device, &supported.config(), mixer)?,
-        cpal::SampleFormat::U16 => build_stream::<u16>(&device, &supported.config(), mixer)?,
+        cpal::SampleFormat::F32 => {
+            build_stream::<f32>(&device, &supported.config(), mixer, command_receiver)?
+        }
+        cpal::SampleFormat::I16 => {
+            build_stream::<i16>(&device, &supported.config(), mixer, command_receiver)?
+        }
+        cpal::SampleFormat::U16 => {
+            build_stream::<u16>(&device, &supported.config(), mixer, command_receiver)?
+        }
         format => anyhow::bail!("unsupported output sample format: {format:?}"),
     };
     stream
@@ -46,7 +60,16 @@ fn main() -> Result<()> {
         supported.channels(),
         supported.sample_format()
     );
-    thread::sleep(Duration::from_secs(TEST_SECONDS));
+    thread::sleep(Duration::from_secs(5));
+    commands.send(MixerCommand::SetGain(source_id, 0.0))?;
+    println!("music fade-out requested");
+    thread::sleep(Duration::from_secs(1));
+    commands.send(MixerCommand::SetGain(source_id, 1.0))?;
+    println!("music fade-in requested");
+    thread::sleep(Duration::from_secs(TEST_SECONDS - 7));
+    commands.send(MixerCommand::Remove(source_id))?;
+    println!("music source removal requested");
+    thread::sleep(Duration::from_secs(1));
     let decoded_samples = source.stop()?;
     drop(stream);
     println!("decoded {decoded_samples} stereo samples through AudioMixer");
@@ -57,6 +80,7 @@ fn build_stream<T>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
     mut mixer: AudioMixer,
+    command_receiver: Receiver<MixerCommand>,
 ) -> Result<cpal::Stream>
 where
     T: cpal::SizedSample + cpal::FromSample<f32>,
@@ -64,6 +88,16 @@ where
     Ok(device.build_output_stream(
         config,
         move |output: &mut [T], _info| {
+            for command in command_receiver.try_iter() {
+                match command {
+                    MixerCommand::SetGain(source_id, gain) => {
+                        let _ = mixer.set_gain(source_id, gain);
+                    }
+                    MixerCommand::Remove(source_id) => {
+                        let _ = mixer.remove_source(source_id);
+                    }
+                }
+            }
             let mut mixed_frame = [0.0_f32; CHANNELS];
             for frame in output.chunks_mut(CHANNELS) {
                 let _ = mixer.render(&mut mixed_frame);
