@@ -75,6 +75,7 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
     }
 }
 
+use cpal_audio_engine::CpalAudioEngine;
 use database::ResumeState;
 use media_player::MediaPlayer;
 
@@ -115,8 +116,8 @@ impl ConfigServiceImpl {
 }
 
 impl MediaServiceImpl {
-    fn new(
-        audio_config: &config::AudioConfig,
+    fn from_player(
+        player: MediaPlayer,
         database_path: PathBuf,
         media_folders: Vec<PathBuf>,
         supported_formats: Vec<String>,
@@ -124,7 +125,7 @@ impl MediaServiceImpl {
     ) -> Self {
         let (library_events, _) = broadcast::channel(64);
         Self {
-            player: Arc::new(MediaPlayer::from_audio_config(audio_config)),
+            player: Arc::new(player),
             database_path,
             media_folders,
             supported_formats,
@@ -132,6 +133,42 @@ impl MediaServiceImpl {
             library_events,
             next_scan_id: Arc::new(AtomicU64::new(1)),
         }
+    }
+
+    fn new(
+        audio_config: &config::AudioConfig,
+        database_path: PathBuf,
+        media_folders: Vec<PathBuf>,
+        supported_formats: Vec<String>,
+        resume_mode: String,
+    ) -> Self {
+        Self::from_player(
+            MediaPlayer::from_audio_config(audio_config),
+            database_path,
+            media_folders,
+            supported_formats,
+            resume_mode,
+        )
+    }
+
+    fn new_runtime(
+        audio_config: &config::AudioConfig,
+        database_path: PathBuf,
+        media_folders: Vec<PathBuf>,
+        supported_formats: Vec<String>,
+        resume_mode: String,
+    ) -> Result<Self> {
+        let player = match std::env::var("CARNINE_AUDIO_ENGINE").as_deref() {
+            Ok("cpal") => MediaPlayer::with_engine(Box::new(CpalAudioEngine::new()?)),
+            _ => MediaPlayer::from_audio_config(audio_config),
+        };
+        Ok(Self::from_player(
+            player,
+            database_path,
+            media_folders,
+            supported_formats,
+            resume_mode,
+        ))
     }
 
     #[cfg(test)]
@@ -853,13 +890,13 @@ async fn main() -> Result<()> {
     let addr = configuration.server.address.parse()?;
     let carnine_service = CarnineServiceImpl::default();
     let system_service = SystemServiceImpl;
-    let media_service = MediaServiceImpl::new(
+    let media_service = MediaServiceImpl::new_runtime(
         &configuration.audio,
         configuration.media.database_path.clone(),
         configuration.media.folders.clone(),
         configuration.media.supported_formats.clone(),
         configuration.media.resume_mode.clone(),
-    );
+    )?;
     media_service.restore_resume_state()?;
     storage_events::spawn(Arc::new(media_service.clone()));
     let media_player = Arc::clone(&media_service.player);
