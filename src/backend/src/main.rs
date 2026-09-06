@@ -18,6 +18,7 @@ pub mod carnine {
 }
 
 mod audio_engine;
+mod audio_mixer;
 mod config;
 mod database;
 mod media_player;
