@@ -26,9 +26,20 @@ direct-ffmpeg-library-spike = ["dep:ffmpeg-next"]
 name = "direct_ffmpeg_library_spike"
 required-features = ["direct-ffmpeg-library-spike"]
 
+[[example]]
+name = "cpal_audio_spike"
+
+[[example]]
+name = "cpal_decoder_spike"
+required-features = ["direct-ffmpeg-library-spike"]
+
+[[example]]
+name = "cpal_external_decoder_spike"
+
 [dependencies]
 anyhow = "1.0"
 chrono = "0.4"
+cpal = "0.16"
 futures-util = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.8"
@@ -42,6 +53,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 zbus = "5"
 tonic = "0.12"
 prost = "0.13"
+ringbuf = "0.4"
 ffmpeg-next = { version = "8", optional = true }
 
 [build-dependencies]

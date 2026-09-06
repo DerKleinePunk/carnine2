@@ -35,6 +35,48 @@ Die erste Version konzentriert sich auf:
 - Repeat: aus, Queue und einzelner Titel
 - Player-, Bibliotheks- und Audio-Ereignisstreams
 
+## Audio-Output-Rewrite
+
+Der aktuelle externe Prozesspfad bleibt vorerst als Rueckfallebene erhalten,
+ist aber nicht die Zielarchitektur. Ein neuer `aplay`- oder `paplay`-Prozess
+pro Titelwechsel fuehrt zusammen mit Prozesssignalen und Pipes zu Knacken,
+Underruns und schwer kontrollierbaren Abbruchzustaenden.
+
+Die Zielarchitektur verwendet einen dauerhaft geoeffneten `cpal`-Ausgang und
+einen zentralen Backend-AudioManager:
+
+```text
+Musikdecoder --------> Musikpuffer ----\\
+Navigationdecoder ---> Navigationspuffer -> cpal-Outputstream -> ALSA
+Sprachdecoder -------> Sprachpuffer ---/
+Systemklang ---------> Systempuffer --/
+```
+
+Der cpal-Callback mischt nur vorbereitete, begrenzte Audiobloecke. Er darf
+nicht blockieren, allozieren, loggen, Dateien lesen oder Decoderarbeit
+ausfuehren. Decoder und Steuerlogik laufen ausserhalb des Callbacks.
+
+### Rewrite-Phasen
+
+1. Synthetischer cpal-Spike mit dauerhaftem Ausgang, Musikkanal, zweitem
+   Testkanal, Gain-Fades und Quellenwechsel.
+2. Ringpuffer und Decoder-Quelle fuer eine lokale Audiodatei.
+3. ALSA-Test auf dem Raspberry Pi mit Messung von Underruns und Prozessstatus.
+4. AudioManager-Adapter hinter der bestehenden `AudioEngine`-Schnittstelle.
+5. Integration in `MediaPlayer` und AudioService-Ereignisse.
+6. Navigation, Sprache und Ducking als weitere Quellen.
+
+### Rewrite-Akzeptanzkriterien
+
+- Kein `SIGSTOP`/`SIGCONT` fuer normale Audiozustandswechsel.
+- Kein neuer `aplay`-Prozess bei Pause, Resume oder Titelwechsel.
+- Der cpal-Ausgang bleibt waehrend der Backend-Laufzeit geoeffnet.
+- Fade-out, Quellenentfernung und Titelwechsel sind auf dem Pi knacksfrei.
+- Keine ALSA-Underruns waehrend Pause, Resume oder Quellenwechsel.
+- Musik, Navigation und Sprache koennen spaeter unabhaengig geduckt und
+  gemischt werden.
+- Der Protobuf-Vertrag bleibt waehrend des Spikes unveraendert.
+
 ## Nicht Teil der ersten Version
 
 Diese Punkte bleiben bewusst auf der Todo-Liste:

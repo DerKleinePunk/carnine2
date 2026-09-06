@@ -637,6 +637,38 @@ this dependency; the experiment is behind the optional Cargo feature
 semantics, and long-running behavior still need a like-for-like comparison
 before selecting the production adapter.
 
+**Audio output rewrite decision:**
+
+The current external-process path is retained as a temporary compatibility
+implementation only. It starts a new `aplay` or `paplay` process for each
+track and controls pause and stop through process lifetime and signals. This
+caused audible clicks, ALSA underruns, and broken-pipe noise on the Raspberry
+Pi during pause, resume, and track changes.
+
+The replacement will use `cpal` for one long-lived output stream. A backend
+owned audio manager will mix independent source buffers for music,
+navigation, speech, and system sounds into fixed-size output blocks. Decoders
+run outside the real-time output callback and write to bounded source buffers.
+Pause and ducking change source gain; stop and track changes fade a source and
+remove it without closing the hardware stream.
+
+The `cpal` callback must not perform file I/O, decoding, blocking operations,
+unbounded allocation, logging, or gRPC calls. Hardware-specific failures are
+reported to the audio manager through an error path outside the callback.
+The existing `AudioEngine` interface remains the first integration boundary,
+so the spike can be evaluated without changing the protobuf contract or the
+Flutter frontend.
+
+This decision follows the existing working C++ audio-manager concept in
+`SDL2GuiHelper`: one persistent device, a mixer, and independently managed
+sources. The Rust implementation is a new implementation, not a source-code
+port.
+
+Validation proceeds in stages: synthetic `cpal` stream and software mixer,
+decoder-backed source, Raspberry Pi ALSA tests, and only then integration into
+`MediaPlayer`. The current process path stays available until the hardware
+acceptance criteria are met.
+
 **Rationale:**
 - Typed media operations are safer and easier to evolve than generic command
 	strings.
