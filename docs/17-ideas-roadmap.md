@@ -92,6 +92,10 @@ These are the next concrete work items after the current backend and image integ
 
 ### Infrastructure / DevOps
 - [ ] Establish GitHub Actions pipeline (lint, test, cross-build checks)
+- [ ] Define a reproducible ARM64 audio-build environment for CI/CD: the local
+	Pi-derived `/tmp` sysroot used by the cpal spike is not suitable for CI.
+	Compare an ARM64 container/native runner with pinned Debian FFmpeg/ALSA
+	development packages and a version-matched target sysroot.
 - [ ] Evaluate aptly-based local Debian repository/cache for CI/CD and Debos image builds, so package updates and image rebuilds do not require downloading the same packages from the internet repeatedly
 - [ ] Add deployment checklist and script templates for Pi provisioning
 - [ ] Add firewall baseline enforcement test (LAN-only inbound policy)
