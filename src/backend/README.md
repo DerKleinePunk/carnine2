@@ -50,6 +50,23 @@ enthalten. Die Pakete `libasound2-dev`, `libavcodec-dev`, `libavformat-dev`,
 `libswresample-dev` und `libpostproc-dev` sind nur fuer lokale beziehungsweise
 CI-Cross-Builds erforderlich und gehoeren nicht ins Runtime-Image.
 
+Der lokale ARM64-Sysroot fuer Cross-Builds liegt persistent unter
+`build/sysroots/carnine-pi-arm64/`. Dieser Ordner ist absichtlich ignoriert
+und wird nicht committed. Die Cross-Build-Variablen verwenden ihn so:
+
+```bash
+SYSROOT="$PWD/../../build/sysroots/carnine-pi-arm64"
+PKG_CONFIG_ALLOW_CROSS=1 \
+PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
+PKG_CONFIG_PATH="$SYSROOT/usr/lib/aarch64-linux-gnu/pkgconfig" \
+CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
+cargo build --release --target aarch64-unknown-linux-gnu
+```
+
+Nach einem neuen Pi-Image oder Paketupdate muss der Sysroot erneut vom Pi
+synchronisiert werden. Fuer CI ist ein reproduzierbarer ARM64-Container oder
+Runner vorgesehen; der lokale Sysroot ist nur ein Entwickler-Cache.
+
 Der Audio-Lifecycle wird ueber `journalctl -u carnine-backend` beobachtet. Die
 relevanten Ereignisse sind `cpal audio output stream started`, `cpal audio
 source started`, `pause requested`, `resume requested`, `decoder stopped` und
