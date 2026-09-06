@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, Result};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use tracing::{error, info};
 
 use crate::audio_engine::{AudioEngine, Playback};
 use crate::audio_mixer::{AudioMixer, SourceId, CHANNELS};
@@ -56,6 +57,12 @@ impl CpalAudioEngine {
         stream
             .play()
             .context("failed to start cpal output stream")?;
+        info!(
+            sample_rate,
+            channels,
+            sample_format = ?supported.sample_format(),
+            "cpal audio output stream started"
+        );
         Ok(Self {
             command_sender,
             _stream: Arc::new(Mutex::new(stream)),
@@ -78,6 +85,7 @@ impl AudioEngine for CpalAudioEngine {
         let source_id = reply_receiver
             .recv()
             .context("cpal mixer did not accept audio source")??;
+        info!(source_id = ?source_id, input_path, "cpal audio source started");
         Ok(Box::new(CpalPlayback {
             command_sender: self.command_sender.clone(),
             source_id,
@@ -95,6 +103,7 @@ struct CpalPlayback {
 
 impl Playback for CpalPlayback {
     fn pause(&self) -> Result<()> {
+        info!(source_id = ?self.source_id, "cpal audio source pause requested");
         self.command_sender
             .send(MixerCommand::SetGain {
                 source_id: self.source_id,
@@ -105,6 +114,7 @@ impl Playback for CpalPlayback {
     }
 
     fn resume(&self) -> Result<()> {
+        info!(source_id = ?self.source_id, "cpal audio source resume requested");
         self.command_sender
             .send(MixerCommand::SetGain {
                 source_id: self.source_id,
@@ -115,6 +125,7 @@ impl Playback for CpalPlayback {
     }
 
     fn stop(mut self: Box<Self>) -> Result<()> {
+        info!(source_id = ?self.source_id, "cpal audio source stop requested");
         self.command_sender
             .send(MixerCommand::Remove {
                 source_id: self.source_id,
@@ -192,7 +203,7 @@ where
                 }
             }
         },
-        |error| eprintln!("cpal stream error: {error}"),
+        |error| error!(error = %error, "cpal audio output stream error"),
         None,
     )?)
 }
