@@ -844,6 +844,61 @@ class RescanMediaRequest extends $pb.GeneratedMessage {
   static RescanMediaRequest? _defaultInstance;
 }
 
+class ImportMusicVolumeRequest extends $pb.GeneratedMessage {
+  factory ImportMusicVolumeRequest({
+    $core.String? sourcePath,
+  }) {
+    final result = create();
+    if (sourcePath != null) result.sourcePath = sourcePath;
+    return result;
+  }
+
+  ImportMusicVolumeRequest._();
+
+  factory ImportMusicVolumeRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ImportMusicVolumeRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ImportMusicVolumeRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'sourcePath')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ImportMusicVolumeRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ImportMusicVolumeRequest copyWith(
+          void Function(ImportMusicVolumeRequest) updates) =>
+      super.copyWith((message) => updates(message as ImportMusicVolumeRequest))
+          as ImportMusicVolumeRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ImportMusicVolumeRequest create() => ImportMusicVolumeRequest._();
+  @$core.override
+  ImportMusicVolumeRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ImportMusicVolumeRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ImportMusicVolumeRequest>(create);
+  static ImportMusicVolumeRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get sourcePath => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set sourcePath($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasSourcePath() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSourcePath() => $_clearField(1);
+}
+
 class LibraryEvent extends $pb.GeneratedMessage {
   factory LibraryEvent({
     $core.String? event,

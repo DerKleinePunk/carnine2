@@ -6,6 +6,7 @@ BACKEND_DIR="$ROOT_DIR/src/backend"
 FRONTEND_DIR="$ROOT_DIR/src/frontend"
 PROTO_DIR="$ROOT_DIR/src/proto"
 LOG_DIR="$ROOT_DIR/build-logs"
+SYSROOT="${CARNINE_ARM64_SYSROOT:-$ROOT_DIR/build/sysroots/carnine-pi-arm64}"
 
 mkdir -p "$LOG_DIR"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
@@ -21,6 +22,12 @@ if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
 fi
 echo "[pi] Building Carnine version $VERSION"
 
+if [[ ! -f "$SYSROOT/usr/lib/aarch64-linux-gnu/pkgconfig/alsa.pc" ]]; then
+  echo "[pi] ERROR: ARM64 sysroot is missing or incomplete: $SYSROOT"
+  echo "[pi] Hint: synchronize the Pi development sysroot into build/sysroots/carnine-pi-arm64."
+  exit 1
+fi
+
 if ! command -v flutterpi_tool >/dev/null 2>&1; then
   echo "[pi] ERROR: flutterpi_tool not found in PATH."
   echo "[pi] Hint: export PATH=\"$PATH:$HOME/.pub-cache/bin\""
@@ -30,9 +37,17 @@ fi
 echo "[pi] Building backend (aarch64-unknown-linux-gnu, release)..."
 (
   cd "$BACKEND_DIR"
+  PKG_CONFIG_ALLOW_CROSS=1 \
+  PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
+  PKG_CONFIG_PATH="$SYSROOT/usr/lib/aarch64-linux-gnu/pkgconfig" \
+  CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
   CARNINE_VERSION="$VERSION" cargo build --release --target aarch64-unknown-linux-gnu
   rm -f target/debian/carnine-backend_*_arm64.deb
   rm -f target/aarch64-unknown-linux-gnu/debian/carnine-backend_*_arm64.deb
+  PKG_CONFIG_ALLOW_CROSS=1 \
+  PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
+  PKG_CONFIG_PATH="$SYSROOT/usr/lib/aarch64-linux-gnu/pkgconfig" \
+  CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
   CARNINE_VERSION="$VERSION" cargo deb --target aarch64-unknown-linux-gnu --deb-version "$VERSION"
 )
 

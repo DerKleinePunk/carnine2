@@ -213,6 +213,20 @@ const RescanMediaRequest$json = {
 final $typed_data.Uint8List rescanMediaRequestDescriptor =
     $convert.base64Decode('ChJSZXNjYW5NZWRpYVJlcXVlc3Q=');
 
+@$core.Deprecated('Use importMusicVolumeRequestDescriptor instead')
+const ImportMusicVolumeRequest$json = {
+  '1': 'ImportMusicVolumeRequest',
+  '2': [
+    {'1': 'source_path', '3': 1, '4': 1, '5': 9, '10': 'sourcePath'},
+  ],
+};
+
+/// Descriptor for `ImportMusicVolumeRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List importMusicVolumeRequestDescriptor =
+    $convert.base64Decode(
+        'ChhJbXBvcnRNdXNpY1ZvbHVtZVJlcXVlc3QSHwoLc291cmNlX3BhdGgYASABKAlSCnNvdXJjZV'
+        'BhdGg=');
+
 @$core.Deprecated('Use libraryEventDescriptor instead')
 const LibraryEvent$json = {
   '1': 'LibraryEvent',
