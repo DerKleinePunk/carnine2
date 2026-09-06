@@ -21,6 +21,7 @@ class OnScreenTextField extends StatefulWidget {
     this.hintText,
     this.autofocus = false,
     this.maxLength,
+    this.obscureText = false,
     this.onChanged,
     this.onSubmitted,
     this.prefixIcon,
@@ -39,6 +40,9 @@ class OnScreenTextField extends StatefulWidget {
   /// passed to [TextField] so its standard "x/maxLength" counter still
   /// shows.
   final int? maxLength;
+
+  /// Masks entered characters with dots, for password-style fields.
+  final bool obscureText;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
   final Widget? prefixIcon;
@@ -137,6 +141,7 @@ class _OnScreenTextFieldState extends State<OnScreenTextField> {
           focusNode: _focusNode,
           readOnly: true,
           showCursor: true,
+          obscureText: widget.obscureText,
           // Deliberately using TextField's default onTapOutside (desktop
           // platforms unfocus on any outside tap) rather than suppressing
           // it: that's exactly what should close the keyboard when the user
@@ -146,17 +151,38 @@ class _OnScreenTextFieldState extends State<OnScreenTextField> {
           // tap is "inside" this field's region, not outside it.
           style: AppTextStyles.bodyLarge.copyWith(color: AppColors.onSurface),
           maxLength: widget.maxLength,
+          // Default counter sits flush under the field with barely any gap
+          // (isDense tightens it further) - build it manually with breathing
+          // room both above (separating it from the input row) and below
+          // (separating it from the surrounding box's bottom edge, since the
+          // DecoratedBox background wraps the counter too).
+          buildCounter: widget.maxLength == null
+              ? null
+              : (
+                  context, {
+                  required currentLength,
+                  required maxLength,
+                  required isFocused,
+                }) => Padding(
+                  padding: const EdgeInsets.only(top: 6, bottom: 6),
+                  child: Text(
+                    '$currentLength/$maxLength',
+                    style: AppTextStyles.bodyLarge.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
           decoration: InputDecoration(
             isDense: true,
             border: InputBorder.none,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 16,
+            ),
             hintText: widget.hintText,
-            hintStyle: AppTextStyles.bodyLarge
-                .copyWith(color: AppColors.onSurfaceVariant),
-            counterStyle: AppTextStyles.bodyLarge.copyWith(
+            hintStyle: AppTextStyles.bodyLarge.copyWith(
               color: AppColors.onSurfaceVariant,
-              fontSize: 11,
             ),
             prefixIcon: widget.prefixIcon,
             suffixIcon: widget.suffixIcon,

@@ -103,11 +103,9 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.settingsLanguageTitle: 'Jazyk',
   AppTextKey.settingsLanguageSubtitle: 'Vybrat jazyk zobrazení',
   AppTextKey.settingsLanguageSemantic: 'Otevřít nastavení jazyka',
-  AppTextKey.settingsDiagnosticsTitle: 'Diagnostika',
-  AppTextKey.settingsDiagnosticsSubtitle:
-      'Frontendové logy a systémová hlášení',
-  AppTextKey.settingsDiagnosticsSemantic:
-      'Otevřít diagnostiku a frontendové logy',
+  AppTextKey.settingsDiagnosticsTitle: 'Systém',
+  AppTextKey.settingsDiagnosticsSubtitle: 'Protokoly, restart a aktualizace',
+  AppTextKey.settingsDiagnosticsSemantic: 'Otevřít systémová nastavení',
   AppTextKey.settingsAppearanceTitle: 'Vzhled',
   AppTextKey.settingsAppearanceSubtitle: 'Barvy a typografie',
   AppTextKey.settingsAppearanceSemantic: 'Otevřít nastavení vzhledu',
@@ -118,6 +116,16 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsRecentLogs: 'Nedávné frontendové logy',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Otevřít prohlížeč logů',
   AppTextKey.settingsDiagnosticsExit: 'Ukončit',
+  AppTextKey.settingsDiagnosticsRestart: 'Restartovat',
+  AppTextKey.settingsDiagnosticsCheckUpdates: 'Zkontrolovat aktualizace',
+  AppTextKey.settingsDiagnosticsUpdatesUnavailableTitle: 'Zatím nedostupné',
+  AppTextKey.settingsDiagnosticsUpdatesUnavailableMessage:
+      'Kontrola aktualizací zatím není implementována.',
+  AppTextKey.settingsExitPasswordTitle: 'Vyžadováno heslo',
+  AppTextKey.settingsExitPasswordHint: 'Heslo',
+  AppTextKey.settingsExitPasswordIncorrect: 'Nesprávné heslo',
+  AppTextKey.settingsExitPasswordConfirmAction: 'Potvrdit',
+  AppTextKey.settingsExitPasswordCancelAction: 'Zrušit',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Vzhled připraven',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Barvy a typografie se budou konfigurovat v této části.',

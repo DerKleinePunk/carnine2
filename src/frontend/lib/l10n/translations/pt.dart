@@ -103,11 +103,9 @@ const Map<AppTextKey, String> ptTranslations = <AppTextKey, String>{
   AppTextKey.settingsLanguageTitle: 'Idioma',
   AppTextKey.settingsLanguageSubtitle: 'Escolher idioma de exibição',
   AppTextKey.settingsLanguageSemantic: 'Abrir configurações de idioma',
-  AppTextKey.settingsDiagnosticsTitle: 'Diagnóstico',
-  AppTextKey.settingsDiagnosticsSubtitle:
-      'Logs do frontend e avisos do sistema',
-  AppTextKey.settingsDiagnosticsSemantic:
-      'Abrir diagnóstico e logs do frontend',
+  AppTextKey.settingsDiagnosticsTitle: 'Sistema',
+  AppTextKey.settingsDiagnosticsSubtitle: 'Registos, reiniciar e atualizações',
+  AppTextKey.settingsDiagnosticsSemantic: 'Abrir definições do sistema',
   AppTextKey.settingsAppearanceTitle: 'Aparência',
   AppTextKey.settingsAppearanceSubtitle: 'Cores e tipografia',
   AppTextKey.settingsAppearanceSemantic: 'Abrir configurações de aparência',
@@ -119,6 +117,16 @@ const Map<AppTextKey, String> ptTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsRecentLogs: 'Logs recentes do frontend',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Abrir visualizador de logs',
   AppTextKey.settingsDiagnosticsExit: 'Sair',
+  AppTextKey.settingsDiagnosticsRestart: 'Reiniciar',
+  AppTextKey.settingsDiagnosticsCheckUpdates: 'Procurar atualizações',
+  AppTextKey.settingsDiagnosticsUpdatesUnavailableTitle: 'Ainda não disponível',
+  AppTextKey.settingsDiagnosticsUpdatesUnavailableMessage:
+      'A verificação de atualizações ainda não está implementada.',
+  AppTextKey.settingsExitPasswordTitle: 'Palavra-passe necessária',
+  AppTextKey.settingsExitPasswordHint: 'Palavra-passe',
+  AppTextKey.settingsExitPasswordIncorrect: 'Palavra-passe incorreta',
+  AppTextKey.settingsExitPasswordConfirmAction: 'Confirmar',
+  AppTextKey.settingsExitPasswordCancelAction: 'Cancelar',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Aparência preparada',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Cores e tipografia serão configuradas nesta área.',
