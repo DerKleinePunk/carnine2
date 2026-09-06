@@ -21,6 +21,7 @@ mod audio_engine;
 mod audio_mixer;
 mod audio_source;
 mod config;
+mod cpal_audio_engine;
 mod database;
 mod media_player;
 mod storage_events;
