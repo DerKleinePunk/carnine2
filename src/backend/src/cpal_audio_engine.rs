@@ -132,8 +132,14 @@ impl Playback for CpalPlayback {
             })
             .map_err(|_| anyhow::anyhow!("cpal mixer thread is not available"))?;
         if let Some(source) = self.source.take() {
-            source.stop()?;
+            let decoded_samples = source.stop()?;
+            info!(
+                source_id = ?self.source_id,
+                decoded_samples,
+                "cpal audio decoder stopped"
+            );
         }
+        info!(source_id = ?self.source_id, "cpal audio source removed");
         Ok(())
     }
 }
