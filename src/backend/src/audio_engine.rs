@@ -136,16 +136,11 @@ impl ProcessPlayback {
             let mut pcm_bytes = 0_u64;
             let mut current_gain = 1_000_000_u32;
             let fade_frames = (sample_rate * FADE_MILLISECONDS / 1_000).max(1);
-            let zero_buffer = vec![0_u8; channels as usize * 2 * 1024];
             loop {
                 if stop_requested_for_copy.load(Ordering::Acquire) {
                     break;
                 }
                 let target_gain = target_gain_for_copy.load(Ordering::Acquire);
-                if target_gain == 0 && current_gain == 0 {
-                    playback_input.write_all(&zero_buffer)?;
-                    continue;
-                }
                 let bytes_read = decoded_pcm.read(&mut buffer)?;
                 if bytes_read == 0 {
                     break;
@@ -187,16 +182,6 @@ impl ProcessPlayback {
         })
     }
 
-    fn signal(&self, signal: &str) -> Result<()> {
-        for (name, process_id) in [
-            ("decoder", self.decoder.id()),
-            ("audio output", self.audio_output.id()),
-        ] {
-            self.signal_process(signal, name, process_id)?;
-        }
-        Ok(())
-    }
-
     fn signal_process(&self, signal: &str, name: &str, process_id: u32) -> Result<()> {
         let status = Command::new("kill")
             .args([format!("-{signal}"), process_id.to_string()])
@@ -213,20 +198,17 @@ impl Playback for ProcessPlayback {
     fn pause(&self) -> Result<()> {
         self.target_gain.store(0, Ordering::Release);
         thread::sleep(Duration::from_millis(FADE_MILLISECONDS as u64));
-        self.signal("STOP")?;
-        info!("audio stream paused; decoder and output processes stopped");
+        info!("audio stream paused; decoder and output processes remain active");
         Ok(())
     }
     fn resume(&self) -> Result<()> {
-        self.signal("CONT")?;
         self.target_gain.store(1_000_000, Ordering::Release);
-        info!("audio stream resumed; decoder and output processes continued");
+        info!("audio stream resumed; output gain is being restored");
         Ok(())
     }
 
     fn stop(mut self: Box<Self>) -> Result<()> {
         self.target_gain.store(0, Ordering::Release);
-        let _ = self.signal("CONT");
         thread::sleep(Duration::from_millis(FADE_MILLISECONDS as u64));
         self.stop_requested.store(true, Ordering::Release);
         // Keep the output pipe alive while the decoder is terminated so ffmpeg
@@ -237,8 +219,6 @@ impl Playback for ProcessPlayback {
         if let Some(copy_thread) = self.copy_thread.take() {
             let _ = copy_thread.join();
         }
-        let _ = self.signal_process("TERM", "audio output", self.audio_output.id());
-        let _ = self.audio_output.kill();
         let _ = self.audio_output.wait();
         info!("audio stream stopped; decoder and output processes exited");
         Ok(())
@@ -247,7 +227,17 @@ impl Playback for ProcessPlayback {
 
 impl Drop for ProcessPlayback {
     fn drop(&mut self) {
-        let _ = self.signal("TERM");
+        terminate_if_running(&mut self.decoder);
+        terminate_if_running(&mut self.audio_output);
+    }
+}
+
+fn terminate_if_running(child: &mut Child) {
+    match child.try_wait() {
+        Ok(Some(_)) => {}
+        Ok(None) | Err(_) => {
+            let _ = child.kill();
+        }
     }
 }
 
