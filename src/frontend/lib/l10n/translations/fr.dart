@@ -163,4 +163,13 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.keyboardBackspaceSemantic: 'Supprimer le caractère',
   AppTextKey.keyboardSpaceSemantic: 'Espace',
   AppTextKey.keyboardDiacriticOptionsSemantic: 'Plus d’options pour {letter}',
+  AppTextKey.mapsSearchPlaceholder: 'Entrer une destination',
+  AppTextKey.mapsNextTurnLabel: 'Prochain virage',
+  AppTextKey.mapsArrivalLabel: 'Arrivée',
+  AppTextKey.mapsDurationLabel: 'Durée',
+  AppTextKey.mapsDistanceLabel: 'Distance',
+  AppTextKey.mapsCancelRouteAction: 'ANNULER',
+  AppTextKey.mapsZoomInSemantic: 'Zoom avant',
+  AppTextKey.mapsZoomOutSemantic: 'Zoom arrière',
+  AppTextKey.mapsRecenterSemantic: 'Recentrer sur la position',
 };

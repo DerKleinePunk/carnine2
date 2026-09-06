@@ -1,5 +1,6 @@
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/models/dashboard_nav_item.dart';
+import 'package:carnine_frontend/features/maps/presentation/maps_content.dart';
 import 'package:carnine_frontend/features/media/presentation/media_content.dart';
 import 'package:carnine_frontend/features/media/presentation/media_controller.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_content.dart';
@@ -43,6 +44,10 @@ class DashboardContent extends StatelessWidget {
       return MediaContent(controller: mediaController);
     }
 
+    if (selectedItem.destination == DashboardDestination.maps) {
+      return const MapsContent();
+    }
+
     final l10n = AppLocalizations.of(context);
     final selectedLabel = l10n.text(selectedItem.labelKey);
     final status = _localizedGrpcStatus(l10n);
@@ -53,16 +58,12 @@ class DashboardContent extends StatelessWidget {
         children: [
           Text(
             l10n.dashboardContentFor(selectedLabel),
-            style: AppTextStyles.bodyLarge.copyWith(
-              color: AppColors.onSurface,
-            ),
+            style: AppTextStyles.bodyLarge.copyWith(color: AppColors.onSurface),
           ),
           const SizedBox(height: 20),
           Text(
             l10n.grpcStatus(status),
-            style: AppTextStyles.bodyLarge.copyWith(
-              color: AppColors.onSurface,
-            ),
+            style: AppTextStyles.bodyLarge.copyWith(color: AppColors.onSurface),
           ),
           const SizedBox(height: 10),
           ElevatedButton.icon(
@@ -85,11 +86,13 @@ class DashboardContent extends StatelessWidget {
 
   String _localizedGrpcStatus(AppLocalizations l10n) {
     return switch (grpcStatus) {
-      DashboardGrpcStatus.notConnected =>
-        l10n.text(AppTextKey.statusNotConnected),
+      DashboardGrpcStatus.notConnected => l10n.text(
+        AppTextKey.statusNotConnected,
+      ),
       DashboardGrpcStatus.connecting => l10n.text(AppTextKey.statusConnecting),
-      DashboardGrpcStatus.connected =>
-        l10n.statusConnected(receivedCanDataCount),
+      DashboardGrpcStatus.connected => l10n.statusConnected(
+        receivedCanDataCount,
+      ),
       DashboardGrpcStatus.error => l10n.text(AppTextKey.statusError),
     };
   }
@@ -128,9 +131,7 @@ class _CanDataLine extends StatelessWidget {
         value: data.value,
         timestamp: data.timestamp,
       ),
-      style: AppTextStyles.bodyLarge.copyWith(
-        color: AppColors.onSurface,
-      ),
+      style: AppTextStyles.bodyLarge.copyWith(color: AppColors.onSurface),
     );
   }
 }

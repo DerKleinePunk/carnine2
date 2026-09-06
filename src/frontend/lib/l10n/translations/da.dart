@@ -160,4 +160,13 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.keyboardSpaceSemantic: 'Mellemrum',
   AppTextKey.keyboardDiacriticOptionsSemantic:
       'Flere valgmuligheder for {letter}',
+  AppTextKey.mapsSearchPlaceholder: 'Angiv destination',
+  AppTextKey.mapsNextTurnLabel: 'Næste sving',
+  AppTextKey.mapsArrivalLabel: 'Ankomst',
+  AppTextKey.mapsDurationLabel: 'Varighed',
+  AppTextKey.mapsDistanceLabel: 'Afstand',
+  AppTextKey.mapsCancelRouteAction: 'ANNULLER',
+  AppTextKey.mapsZoomInSemantic: 'Zoom ind',
+  AppTextKey.mapsZoomOutSemantic: 'Zoom ud',
+  AppTextKey.mapsRecenterSemantic: 'Centrer på position',
 };

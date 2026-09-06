@@ -149,4 +149,13 @@ enum AppTextKey {
   keyboardBackspaceSemantic,
   keyboardSpaceSemantic,
   keyboardDiacriticOptionsSemantic,
+  mapsSearchPlaceholder,
+  mapsNextTurnLabel,
+  mapsArrivalLabel,
+  mapsDurationLabel,
+  mapsDistanceLabel,
+  mapsCancelRouteAction,
+  mapsZoomInSemantic,
+  mapsZoomOutSemantic,
+  mapsRecenterSemantic,
 }

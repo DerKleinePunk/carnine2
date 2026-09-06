@@ -158,4 +158,13 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.keyboardBackspaceSemantic: 'Teken verwijderen',
   AppTextKey.keyboardSpaceSemantic: 'Spatie',
   AppTextKey.keyboardDiacriticOptionsSemantic: 'Meer opties voor {letter}',
+  AppTextKey.mapsSearchPlaceholder: 'Bestemming invoeren',
+  AppTextKey.mapsNextTurnLabel: 'Volgende afslag',
+  AppTextKey.mapsArrivalLabel: 'Aankomst',
+  AppTextKey.mapsDurationLabel: 'Duur',
+  AppTextKey.mapsDistanceLabel: 'Afstand',
+  AppTextKey.mapsCancelRouteAction: 'ANNULEREN',
+  AppTextKey.mapsZoomInSemantic: 'Inzoomen',
+  AppTextKey.mapsZoomOutSemantic: 'Uitzoomen',
+  AppTextKey.mapsRecenterSemantic: 'Centreren op locatie',
 };

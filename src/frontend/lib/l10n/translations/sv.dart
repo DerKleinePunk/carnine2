@@ -158,4 +158,13 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.keyboardBackspaceSemantic: 'Ta bort tecken',
   AppTextKey.keyboardSpaceSemantic: 'Mellanslag',
   AppTextKey.keyboardDiacriticOptionsSemantic: 'Fler alternativ för {letter}',
+  AppTextKey.mapsSearchPlaceholder: 'Ange destination',
+  AppTextKey.mapsNextTurnLabel: 'Nästa sväng',
+  AppTextKey.mapsArrivalLabel: 'Ankomst',
+  AppTextKey.mapsDurationLabel: 'Varaktighet',
+  AppTextKey.mapsDistanceLabel: 'Avstånd',
+  AppTextKey.mapsCancelRouteAction: 'AVBRYT',
+  AppTextKey.mapsZoomInSemantic: 'Zooma in',
+  AppTextKey.mapsZoomOutSemantic: 'Zooma ut',
+  AppTextKey.mapsRecenterSemantic: 'Centrera på position',
 };

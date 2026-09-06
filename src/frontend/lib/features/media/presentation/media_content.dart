@@ -1,6 +1,7 @@
 import 'package:carnine_frontend/features/media/presentation/media_controller.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/collections/collections_page.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/create/playlist_create_page.dart';
+import 'package:carnine_frontend/features/media/presentation/widgets/library/library_page.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/media_connection_banner.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/player/player_page.dart';
 import 'package:flutter/material.dart';
@@ -67,23 +68,31 @@ class _MediaContentState extends State<MediaContent> {
                   duration: _pageSwitchDuration,
                   child: switch (libraryAction) {
                     null => PlayerPage(
-                        key: const ValueKey('media-player'),
-                        controller: _controller),
+                      key: const ValueKey('media-player'),
+                      controller: _controller,
+                    ),
                     MediaLibraryAction.create => PlaylistCreatePage(
-                        key: const ValueKey('media-create'),
-                        playlists: _controller.playlists,
-                        onBack: _controller.closeLibraryAction,
-                        onCreated: () => _controller
-                            .showLibraryAction(MediaLibraryAction.collections),
+                      key: const ValueKey('media-create'),
+                      playlists: _controller.playlists,
+                      onBack: _controller.closeLibraryAction,
+                      onCreated: () => _controller.showLibraryAction(
+                        MediaLibraryAction.collections,
                       ),
+                    ),
+                    MediaLibraryAction.library => LibraryPage(
+                      key: const ValueKey('media-library'),
+                      library: _controller.library,
+                      player: _controller.player,
+                      onBack: _controller.closeLibraryAction,
+                    ),
                     MediaLibraryAction.collections => CollectionsPage(
-                        key: const ValueKey('media-collections'),
-                        controller: _controller,
-                        library: _controller.library,
-                        player: _controller.player,
-                        playlists: _controller.playlists,
-                        onBack: _controller.closeLibraryAction,
-                      ),
+                      key: const ValueKey('media-collections'),
+                      controller: _controller,
+                      library: _controller.library,
+                      player: _controller.player,
+                      playlists: _controller.playlists,
+                      onBack: _controller.closeLibraryAction,
+                    ),
                   },
                 ),
               ),

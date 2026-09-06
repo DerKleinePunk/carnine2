@@ -159,4 +159,13 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.keyboardBackspaceSemantic: 'Zeichen löschen',
   AppTextKey.keyboardSpaceSemantic: 'Leerzeichen',
   AppTextKey.keyboardDiacriticOptionsSemantic: 'Weitere Optionen für {letter}',
+  AppTextKey.mapsSearchPlaceholder: 'Ziel eingeben',
+  AppTextKey.mapsNextTurnLabel: 'Nächste Abbiegung',
+  AppTextKey.mapsArrivalLabel: 'Ankunft',
+  AppTextKey.mapsDurationLabel: 'Dauer',
+  AppTextKey.mapsDistanceLabel: 'Distanz',
+  AppTextKey.mapsCancelRouteAction: 'ABBRECHEN',
+  AppTextKey.mapsZoomInSemantic: 'Ansicht vergrößern',
+  AppTextKey.mapsZoomOutSemantic: 'Ansicht verkleinern',
+  AppTextKey.mapsRecenterSemantic: 'Auf Standort zentrieren',
 };

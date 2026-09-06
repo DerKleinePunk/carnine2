@@ -46,8 +46,9 @@ void main() {
     controller.dispose();
   });
 
-  testWidgets('shows the current track once the player emits a snapshot',
-      (tester) async {
+  testWidgets('shows the current track once the player emits a snapshot', (
+    tester,
+  ) async {
     setUpMediaView(tester);
     await tester.pumpWidget(mediaHarness(controller));
     await tester.pump();
@@ -69,8 +70,9 @@ void main() {
     expect(find.byIcon(Icons.play_arrow), findsWidgets);
   });
 
-  testWidgets('play/pause taps issue the expected backend commands',
-      (tester) async {
+  testWidgets('play/pause taps issue the expected backend commands', (
+    tester,
+  ) async {
     setUpMediaView(tester);
     await tester.pumpWidget(mediaHarness(controller));
     await tester.pump();
@@ -109,8 +111,9 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('shuffle and repeat are visible but permanently disabled',
-      (tester) async {
+  testWidgets('shuffle and repeat are visible but permanently disabled', (
+    tester,
+  ) async {
     setUpMediaView(tester);
     await tester.pumpWidget(mediaHarness(controller));
     await tester.pump();
@@ -142,33 +145,37 @@ void main() {
     expect(find.byIcon(Icons.chevron_right), findsNothing);
   });
 
-  testWidgets('opens the collections page and shows an unavailable track badge',
-      (tester) async {
+  testWidgets(
+    'opens the collections page and shows an unavailable track badge',
+    (tester) async {
+      setUpMediaView(tester);
+      await tester.pumpWidget(mediaHarness(controller));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('BIBLIOTHEK'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('GHOST TRACK', findRichText: true), findsNothing);
+      expect(find.textContaining('Ghost Track'), findsOneWidget);
+      expect(find.text('NICHT VERFÜGBAR'), findsOneWidget);
+
+      // The unavailable row must not be offered for playback.
+      await tester.tap(find.textContaining('Ghost Track'));
+      await tester.pump();
+      expect(repository.commands, isEmpty);
+    },
+  );
+
+  testWidgets('creating a playlist hands off to the add-entries view', (
+    tester,
+  ) async {
     setUpMediaView(tester);
     await tester.pumpWidget(mediaHarness(controller));
     await tester.pumpAndSettle();
 
-    // Not find.byIcon(Icons.library_music): the same icon is also the
-    // empty-state glyph for the (still empty) queue sidebar next to it.
+    // "Erstellen" now lives inside "Sammlungen", not in the queue sidebar.
     await tester.tap(find.text('SAMMLUNGEN'));
     await tester.pumpAndSettle();
-
-    expect(find.text('GHOST TRACK', findRichText: true), findsNothing);
-    expect(find.textContaining('Ghost Track'), findsOneWidget);
-    expect(find.text('NICHT VERFÜGBAR'), findsOneWidget);
-
-    // The unavailable row must not be offered for playback.
-    await tester.tap(find.textContaining('Ghost Track'));
-    await tester.pump();
-    expect(repository.commands, isEmpty);
-  });
-
-  testWidgets('creating a playlist hands off to the add-entries view',
-      (tester) async {
-    setUpMediaView(tester);
-    await tester.pumpWidget(mediaHarness(controller));
-    await tester.pumpAndSettle();
-
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
 
@@ -176,9 +183,10 @@ void main() {
     // the platform IME), so tester.enterText can't drive it - mutate the
     // bound controller directly instead, the same way a key tap would.
     tester
-        .widget<OnScreenTextField>(find.byType(OnScreenTextField))
-        .controller
-        .text = 'Drive';
+            .widget<OnScreenTextField>(find.byType(OnScreenTextField))
+            .controller
+            .text =
+        'Drive';
     await tester.pump();
     // There's no separate "create" button anymore - submitting via the
     // on-screen keyboard's Fertig key is the only way to create the
@@ -193,8 +201,9 @@ void main() {
     expect(find.byType(OnScreenTextField), findsWidgets);
   });
 
-  testWidgets('a player stream failure shows the offline banner',
-      (tester) async {
+  testWidgets('a player stream failure shows the offline banner', (
+    tester,
+  ) async {
     setUpMediaView(tester);
     await tester.pumpWidget(mediaHarness(controller));
     await tester.pump();

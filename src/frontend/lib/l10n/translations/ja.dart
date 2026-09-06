@@ -151,4 +151,13 @@ const Map<AppTextKey, String> jaTranslations = <AppTextKey, String>{
   AppTextKey.keyboardBackspaceSemantic: '文字を削除',
   AppTextKey.keyboardSpaceSemantic: 'スペース',
   AppTextKey.keyboardDiacriticOptionsSemantic: '{letter} のその他のオプション',
+  AppTextKey.mapsSearchPlaceholder: '目的地を入力',
+  AppTextKey.mapsNextTurnLabel: '次の曲がり角',
+  AppTextKey.mapsArrivalLabel: '到着',
+  AppTextKey.mapsDurationLabel: '所要時間',
+  AppTextKey.mapsDistanceLabel: '距離',
+  AppTextKey.mapsCancelRouteAction: 'キャンセル',
+  AppTextKey.mapsZoomInSemantic: '拡大',
+  AppTextKey.mapsZoomOutSemantic: '縮小',
+  AppTextKey.mapsRecenterSemantic: '現在地に戻す',
 };

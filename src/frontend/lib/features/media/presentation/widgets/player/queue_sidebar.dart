@@ -12,8 +12,11 @@ import 'package:carnine_frontend/styles/text_styles.dart';
 import 'package:flutter/material.dart';
 
 class QueueSidebar extends StatelessWidget {
-  const QueueSidebar(
-      {required this.controller, required this.player, super.key});
+  const QueueSidebar({
+    required this.controller,
+    required this.player,
+    super.key,
+  });
 
   static const Duration _animationDuration = Duration(milliseconds: 200);
 
@@ -211,17 +214,17 @@ class _QueueQuickActions extends StatelessWidget {
         children: [
           Expanded(
             child: QuickActionTile(
-              icon: Icons.add,
-              label: l10n.text(AppTextKey.mediaCreateAction).toUpperCase(),
-              semanticLabel: l10n.text(AppTextKey.mediaCreateSemantic),
+              icon: Icons.library_music,
+              label: l10n.text(AppTextKey.mediaLibraryTitle).toUpperCase(),
+              semanticLabel: l10n.text(AppTextKey.mediaLibraryTitle),
               onTap: () =>
-                  controller.showLibraryAction(MediaLibraryAction.create),
+                  controller.showLibraryAction(MediaLibraryAction.library),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: QuickActionTile(
-              icon: Icons.library_music,
+              icon: Icons.queue_music,
               label: l10n.text(AppTextKey.mediaCollectionsTitle).toUpperCase(),
               semanticLabel: l10n.text(AppTextKey.mediaCollectionsSemantic),
               onTap: () =>
