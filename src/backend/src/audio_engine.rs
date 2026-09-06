@@ -229,17 +229,16 @@ impl Playback for ProcessPlayback {
         let _ = self.signal("CONT");
         thread::sleep(Duration::from_millis(FADE_MILLISECONDS as u64));
         self.stop_requested.store(true, Ordering::Release);
-        // Closing the output first releases a copy thread blocked in write_all.
-        // The decoder can then be terminated without waiting indefinitely for
-        // its stdout pipe to drain.
-        let _ = self.signal_process("TERM", "audio output", self.audio_output.id());
-        let _ = self.audio_output.kill();
+        // Keep the output pipe alive while the decoder is terminated so ffmpeg
+        // does not report a broken pipe during normal teardown.
         let _ = self.signal_process("TERM", "decoder", self.decoder.id());
         let _ = self.decoder.kill();
+        let _ = self.decoder.wait();
         if let Some(copy_thread) = self.copy_thread.take() {
             let _ = copy_thread.join();
         }
-        let _ = self.decoder.wait();
+        let _ = self.signal_process("TERM", "audio output", self.audio_output.id());
+        let _ = self.audio_output.kill();
         let _ = self.audio_output.wait();
         info!("audio stream stopped; decoder and output processes exited");
         Ok(())
