@@ -1,4 +1,5 @@
 use anyhow::{bail, Result};
+use ringbuf::{traits::Consumer, HeapCons};
 
 pub const CHANNELS: usize = 2;
 const MAX_SOURCES: usize = 8;
@@ -6,9 +7,9 @@ const MAX_SOURCES: usize = 8;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SourceId(usize);
 
-#[derive(Debug)]
 struct AudioSource {
-    samples: Vec<f32>,
+    samples: Option<Vec<f32>>,
+    consumer: Option<HeapCons<f32>>,
     position: usize,
     gain: f32,
     target_gain: f32,
@@ -16,7 +17,6 @@ struct AudioSource {
     fade_frames_remaining: usize,
 }
 
-#[derive(Debug)]
 pub struct AudioMixer {
     sources: [Option<AudioSource>; MAX_SOURCES],
     fade_frames: usize,
@@ -44,7 +44,29 @@ impl AudioMixer {
             .position(Option::is_none)
             .ok_or_else(|| anyhow::anyhow!("audio mixer source limit reached"))?;
         self.sources[slot] = Some(AudioSource {
-            samples,
+            samples: Some(samples),
+            consumer: None,
+            position: 0,
+            gain,
+            target_gain: gain,
+            gain_step: 0.0,
+            fade_frames_remaining: 0,
+        });
+        Ok(SourceId(slot))
+    }
+
+    pub fn add_stream_source(&mut self, consumer: HeapCons<f32>, gain: f32) -> Result<SourceId> {
+        if !(0.0..=1.0).contains(&gain) {
+            bail!("audio source gain must be between 0 and 1");
+        }
+        let slot = self
+            .sources
+            .iter()
+            .position(Option::is_none)
+            .ok_or_else(|| anyhow::anyhow!("audio mixer source limit reached"))?;
+        self.sources[slot] = Some(AudioSource {
+            samples: None,
+            consumer: Some(consumer),
             position: 0,
             gain,
             target_gain: gain,
@@ -82,22 +104,34 @@ impl AudioMixer {
                 let Some(source) = source else {
                     continue;
                 };
-                if source.position + CHANNELS > source.samples.len() {
-                    continue;
-                }
                 advance_gain(source);
-                frame[0] += source.samples[source.position] * source.gain;
-                frame[1] += source.samples[source.position + 1] * source.gain;
-                source.position += CHANNELS;
+                let (left, right) = if let Some(samples) = source.samples.as_ref() {
+                    if source.position + CHANNELS > samples.len() {
+                        continue;
+                    }
+                    let values = (samples[source.position], samples[source.position + 1]);
+                    source.position += CHANNELS;
+                    values
+                } else if let Some(consumer) = source.consumer.as_mut() {
+                    let left = consumer.try_pop().unwrap_or(0.0);
+                    let right = consumer.try_pop().unwrap_or(left);
+                    (left, right)
+                } else {
+                    continue;
+                };
+                frame[0] += left * source.gain;
+                frame[1] += right * source.gain;
             }
             frame[0] = frame[0].clamp(-1.0, 1.0);
             frame[1] = frame[1].clamp(-1.0, 1.0);
         }
         for source in &mut self.sources {
-            if source
-                .as_ref()
-                .is_some_and(|source| source.position >= source.samples.len())
-            {
+            if source.as_ref().is_some_and(|source| {
+                source
+                    .samples
+                    .as_ref()
+                    .is_some_and(|samples| source.position >= samples.len())
+            }) {
                 *source = None;
             }
         }

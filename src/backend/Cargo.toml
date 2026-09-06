@@ -39,6 +39,9 @@ name = "cpal_external_decoder_spike"
 [[example]]
 name = "cpal_mixer_spike"
 
+[[example]]
+name = "cpal_source_mixer_spike"
+
 [dependencies]
 anyhow = "1.0"
 chrono = "0.4"
