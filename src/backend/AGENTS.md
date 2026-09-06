@@ -24,6 +24,20 @@
 - Structure modules with `mod.rs` files for organization
 - Use the `debug!`, `info!` and `error!` from `tracing` for printing and logging
 
+## Runtime Logging
+- Every externally visible lifecycle operation must log both the request and
+	its successful completion or failure.
+- Audio sources use consistent events: `source_started`,
+  `source_pause_requested`, `source_resume_requested`,
+  `source_stop_requested`, `decoder_stopped`, and `source_removed`.
+- Include structured context fields whenever available: `source_id`, media
+	path, backend, sample rate, channel count, decoded sample count, and error.
+- Log control paths and error callbacks, but never log from a real-time audio
+	callback. The callback must remain allocation-free, non-blocking, and free
+	of I/O.
+- A stop operation is not complete until the decoder, source buffer, and output
+	ownership have been released or an explicit failure has been logged.
+
 ## Development Process Guidelines
 - Don't run the graphical application unless absolutely necessary. Prefer writing tests to answer your questions instead if possible
 - Prefer `cargo check` as a first layer of validating your code

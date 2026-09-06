@@ -104,6 +104,26 @@ Audio-Engine-Adapter.
 **Commit-Regel:** Nach jedem Meilenstein muessen Formatter, fokussierte Tests,
 die vollstaendige Backend-Test-Suite und `git diff --check` erfolgreich sein.
 
+### Audio-Logging-Konvention
+
+Jede Audioquelle wird ueber ihren gesamten Lebenszyklus mit strukturierten
+Tracing-Ereignissen beobachtbar gemacht:
+
+```text
+source_started
+source_pause_requested
+source_resume_requested
+source_stop_requested
+decoder_stopped
+source_removed
+```
+
+Die Ereignisse enthalten nach Moeglichkeit `source_id`, Medienpfad,
+Samplerate, Kanalzahl, Backend und `decoded_samples`. Fehler werden mit
+`error!` beziehungsweise einem strukturierten Fehlerfeld protokolliert.
+Der Echtzeit-cpal-Callback bleibt frei von Logging, Datei-I/O, Blockierung und
+Allokationen; dort werden nur vorbereitete Audiobloecke verarbeitet.
+
 ## Nicht Teil der ersten Version
 
 Diese Punkte bleiben bewusst auf der Todo-Liste:
