@@ -19,6 +19,42 @@ The protobuf schema is shared across frontend and backend at `../proto/carnine.p
 - `cargo test`
 - `cargo deb`
 
+### cpal-Testpfad
+
+Der Testbranch kann den neuen persistenten cpal-Ausgang verwenden, ohne den
+Default-Audiopfad fuer andere Builds umzuschalten:
+
+```bash
+CARNINE_AUDIO_ENGINE=cpal cargo run
+```
+
+Auf dem Raspberry Pi wird der Testpfad fuer einen laufenden systemd-Dienst so
+aktiviert:
+
+```bash
+sudo systemctl set-environment CARNINE_AUDIO_ENGINE=cpal
+sudo systemctl restart carnine-backend
+```
+
+Zuruecksetzen:
+
+```bash
+sudo systemctl unset-environment CARNINE_AUDIO_ENGINE
+sudo systemctl restart carnine-backend
+```
+
+Der cpal-Pfad verwendet die ALSA-Laufzeitbibliothek. Das Image installiert
+`libasound2t64` explizit; `alsa-utils` bleibt fuer Diagnose und Hardwaretests
+enthalten. Die Pakete `libasound2-dev`, `libavcodec-dev`, `libavformat-dev`,
+`libavutil-dev`, `libavdevice-dev`, `libavfilter-dev`, `libswscale-dev`,
+`libswresample-dev` und `libpostproc-dev` sind nur fuer lokale beziehungsweise
+CI-Cross-Builds erforderlich und gehoeren nicht ins Runtime-Image.
+
+Der Audio-Lifecycle wird ueber `journalctl -u carnine-backend` beobachtet. Die
+relevanten Ereignisse sind `cpal audio output stream started`, `cpal audio
+source started`, `pause requested`, `resume requested`, `decoder stopped` und
+`source removed`.
+
 ### Developer start
 
 The repository configuration contains the installed-system paths

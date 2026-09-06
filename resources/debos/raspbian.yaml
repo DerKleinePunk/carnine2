@@ -89,6 +89,7 @@ actions:
       - dracut
       - firmware-brcm80211
       - iproute2
+      - libasound2t64
       - libnss-mdns
       - parted
       - netbase
