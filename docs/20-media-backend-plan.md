@@ -77,6 +77,33 @@ ausfuehren. Decoder und Steuerlogik laufen ausserhalb des Callbacks.
   gemischt werden.
 - Der Protobuf-Vertrag bleibt waehrend des Spikes unveraendert.
 
+### Naechste Audio-Meilensteine
+
+Jeder Schritt wird separat getestet und committed. Der produktive
+`MediaPlayer` bleibt bis zum erfolgreichen Hardwaretest auf dem bisherigen
+Audio-Engine-Adapter.
+
+1. **Decoderquelle:** Einen wiederverwendbaren Decoder-Thread mit begrenztem
+  Stereo-Ringpuffer kapseln. Der Baustein liefert PCM-Frames, kennt weder
+  cpal noch gRPC und kann kontrolliert beendet werden.
+2. **Mixer-Quelle:** Den `AudioMixer` mit einer laufenden Decoderquelle statt
+  vorbereiteter Testvektoren speisen. Pause, Fade und Quellenende werden
+  ohne Hardware getestet.
+3. **cpal-Output:** Den Mixerblock-Adapter mit einer echten Decoderquelle auf
+  WSL und danach auf dem Pi testen. Dabei werden Underruns, Quellenwechsel
+  und Stop-Verhalten protokolliert.
+4. **AudioEngine-Adapter:** Eine neue Engine hinter der bestehenden
+  `AudioEngine`-/`Playback`-Schnittstelle bereitstellen. Noch kein Proto- oder
+  Flutter-Change.
+5. **MediaPlayer-Integration:** Play, Pause, Stop, Next und Previous auf die
+  neue Engine umstellen und bestehende Regressionstests erweitern.
+6. **AudioService-Quellen:** Musik, Navigation, Sprache und Systemklänge als
+  priorisierte Mixerquellen modellieren; erst danach UI- und Proto-Erweiterung
+  prüfen.
+
+**Commit-Regel:** Nach jedem Meilenstein muessen Formatter, fokussierte Tests,
+die vollstaendige Backend-Test-Suite und `git diff --check` erfolgreich sein.
+
 ## Nicht Teil der ersten Version
 
 Diese Punkte bleiben bewusst auf der Todo-Liste:
