@@ -82,12 +82,14 @@ actions:
     description: Install packages
     packages:
       - adduser
+      - avahi-daemon
       - bluez
       - bluez-firmware
       - dbus-user-session
       - dracut
       - firmware-brcm80211
       - iproute2
+      - libnss-mdns
       - parted
       - netbase
       - openssh-server
@@ -362,7 +364,7 @@ actions:
       mkdir -p /etc/systemd/network/
       cat > /etc/systemd/network/wired.network << __EOF__
       [Match]
-      Name=e*
+      Name=eth* en* end* wl* wlan*
 
       [Network]
       DHCP=yes
@@ -371,6 +373,7 @@ actions:
       systemctl enable systemd-networkd
       systemctl enable systemd-resolved
       systemctl enable systemd-timesyncd
+      systemctl enable avahi-daemon.service
 
   - action: run
     description: Drop SSH host keys
