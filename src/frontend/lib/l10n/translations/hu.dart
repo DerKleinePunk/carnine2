@@ -159,4 +159,13 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.keyboardBackspaceSemantic: 'Karakter törlése',
   AppTextKey.keyboardSpaceSemantic: 'Szóköz',
   AppTextKey.keyboardDiacriticOptionsSemantic: 'További lehetőségek: {letter}',
+  AppTextKey.mapsSearchPlaceholder: 'Add meg az úticélt',
+  AppTextKey.mapsNextTurnLabel: 'Következő kanyar',
+  AppTextKey.mapsArrivalLabel: 'Érkezés',
+  AppTextKey.mapsDurationLabel: 'Időtartam',
+  AppTextKey.mapsDistanceLabel: 'Távolság',
+  AppTextKey.mapsCancelRouteAction: 'MÉGSE',
+  AppTextKey.mapsZoomInSemantic: 'Nagyítás',
+  AppTextKey.mapsZoomOutSemantic: 'Kicsinyítés',
+  AppTextKey.mapsRecenterSemantic: 'Központosítás a helyzetre',
 };

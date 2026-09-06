@@ -157,4 +157,13 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.keyboardBackspaceSemantic: 'Delete character',
   AppTextKey.keyboardSpaceSemantic: 'Space',
   AppTextKey.keyboardDiacriticOptionsSemantic: 'More options for {letter}',
+  AppTextKey.mapsSearchPlaceholder: 'Enter destination',
+  AppTextKey.mapsNextTurnLabel: 'Next Turn',
+  AppTextKey.mapsArrivalLabel: 'Arrival',
+  AppTextKey.mapsDurationLabel: 'Duration',
+  AppTextKey.mapsDistanceLabel: 'Distance',
+  AppTextKey.mapsCancelRouteAction: 'CANCEL',
+  AppTextKey.mapsZoomInSemantic: 'Zoom in',
+  AppTextKey.mapsZoomOutSemantic: 'Zoom out',
+  AppTextKey.mapsRecenterSemantic: 'Recenter on location',
 };

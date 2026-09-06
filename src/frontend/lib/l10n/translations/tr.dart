@@ -160,4 +160,13 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.keyboardBackspaceSemantic: 'Karakteri sil',
   AppTextKey.keyboardSpaceSemantic: 'Boşluk',
   AppTextKey.keyboardDiacriticOptionsSemantic: '{letter} için diğer seçenekler',
+  AppTextKey.mapsSearchPlaceholder: 'Varış noktası girin',
+  AppTextKey.mapsNextTurnLabel: 'Sıradaki dönüş',
+  AppTextKey.mapsArrivalLabel: 'Varış',
+  AppTextKey.mapsDurationLabel: 'Süre',
+  AppTextKey.mapsDistanceLabel: 'Mesafe',
+  AppTextKey.mapsCancelRouteAction: 'İPTAL',
+  AppTextKey.mapsZoomInSemantic: 'Yakınlaştır',
+  AppTextKey.mapsZoomOutSemantic: 'Uzaklaştır',
+  AppTextKey.mapsRecenterSemantic: 'Konuma ortala',
 };

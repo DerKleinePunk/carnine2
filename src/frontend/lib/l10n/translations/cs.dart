@@ -158,4 +158,13 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.keyboardBackspaceSemantic: 'Smazat znak',
   AppTextKey.keyboardSpaceSemantic: 'Mezerník',
   AppTextKey.keyboardDiacriticOptionsSemantic: 'Další možnosti pro {letter}',
+  AppTextKey.mapsSearchPlaceholder: 'Zadejte cíl',
+  AppTextKey.mapsNextTurnLabel: 'Další zatáčka',
+  AppTextKey.mapsArrivalLabel: 'Příjezd',
+  AppTextKey.mapsDurationLabel: 'Doba trvání',
+  AppTextKey.mapsDistanceLabel: 'Vzdálenost',
+  AppTextKey.mapsCancelRouteAction: 'ZRUŠIT',
+  AppTextKey.mapsZoomInSemantic: 'Přiblížit',
+  AppTextKey.mapsZoomOutSemantic: 'Oddálit',
+  AppTextKey.mapsRecenterSemantic: 'Vycentrovat na polohu',
 };

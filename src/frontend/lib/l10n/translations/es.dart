@@ -159,4 +159,13 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
   AppTextKey.keyboardBackspaceSemantic: 'Eliminar carácter',
   AppTextKey.keyboardSpaceSemantic: 'Espacio',
   AppTextKey.keyboardDiacriticOptionsSemantic: 'Más opciones para {letter}',
+  AppTextKey.mapsSearchPlaceholder: 'Introducir destino',
+  AppTextKey.mapsNextTurnLabel: 'Próximo giro',
+  AppTextKey.mapsArrivalLabel: 'Llegada',
+  AppTextKey.mapsDurationLabel: 'Duración',
+  AppTextKey.mapsDistanceLabel: 'Distancia',
+  AppTextKey.mapsCancelRouteAction: 'CANCELAR',
+  AppTextKey.mapsZoomInSemantic: 'Acercar',
+  AppTextKey.mapsZoomOutSemantic: 'Alejar',
+  AppTextKey.mapsRecenterSemantic: 'Centrar en la ubicación',
 };

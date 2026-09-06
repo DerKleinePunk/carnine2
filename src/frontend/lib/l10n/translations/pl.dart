@@ -159,4 +159,13 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.keyboardBackspaceSemantic: 'Usuń znak',
   AppTextKey.keyboardSpaceSemantic: 'Spacja',
   AppTextKey.keyboardDiacriticOptionsSemantic: 'Więcej opcji dla {letter}',
+  AppTextKey.mapsSearchPlaceholder: 'Wprowadź cel podróży',
+  AppTextKey.mapsNextTurnLabel: 'Następny zakręt',
+  AppTextKey.mapsArrivalLabel: 'Przyjazd',
+  AppTextKey.mapsDurationLabel: 'Czas trwania',
+  AppTextKey.mapsDistanceLabel: 'Odległość',
+  AppTextKey.mapsCancelRouteAction: 'ANULUJ',
+  AppTextKey.mapsZoomInSemantic: 'Przybliż',
+  AppTextKey.mapsZoomOutSemantic: 'Oddal',
+  AppTextKey.mapsRecenterSemantic: 'Wyśrodkuj na lokalizacji',
 };

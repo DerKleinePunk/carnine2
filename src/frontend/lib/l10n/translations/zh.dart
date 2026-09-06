@@ -147,4 +147,13 @@ const Map<AppTextKey, String> zhTranslations = <AppTextKey, String>{
   AppTextKey.keyboardBackspaceSemantic: '删除字符',
   AppTextKey.keyboardSpaceSemantic: '空格',
   AppTextKey.keyboardDiacriticOptionsSemantic: '{letter} 的更多选项',
+  AppTextKey.mapsSearchPlaceholder: '输入目的地',
+  AppTextKey.mapsNextTurnLabel: '下一个转弯',
+  AppTextKey.mapsArrivalLabel: '到达时间',
+  AppTextKey.mapsDurationLabel: '时长',
+  AppTextKey.mapsDistanceLabel: '距离',
+  AppTextKey.mapsCancelRouteAction: '取消',
+  AppTextKey.mapsZoomInSemantic: '放大',
+  AppTextKey.mapsZoomOutSemantic: '缩小',
+  AppTextKey.mapsRecenterSemantic: '定位到当前位置',
 };
