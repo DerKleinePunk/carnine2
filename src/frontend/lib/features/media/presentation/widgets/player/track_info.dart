@@ -26,12 +26,22 @@ class TrackInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(
-          title.toUpperCase(),
-          textAlign: TextAlign.center,
-          style: AppTextStyles.headlineLarge.copyWith(
-            color: AppColors.onSurface,
-            fontSize: 32 * scale,
+        // Shrinks the title to fit one line instead of wrapping to a
+        // second - a wrapped title pushes the timeline/transport controls
+        // further down than this fixed-height player has room for. Never
+        // truncates: FittedBox scales the whole line down until it fits,
+        // it doesn't cut characters off.
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            title.toUpperCase(),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            softWrap: false,
+            style: AppTextStyles.headlineLarge.copyWith(
+              color: AppColors.onSurface,
+              fontSize: 32 * scale,
+            ),
           ),
         ),
         const SizedBox(height: 4),

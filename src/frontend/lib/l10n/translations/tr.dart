@@ -104,11 +104,10 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.settingsLanguageTitle: 'Dil',
   AppTextKey.settingsLanguageSubtitle: 'Görüntüleme dilini seç',
   AppTextKey.settingsLanguageSemantic: 'Dil ayarlarını aç',
-  AppTextKey.settingsDiagnosticsTitle: 'Tanılama',
+  AppTextKey.settingsDiagnosticsTitle: 'Sistem',
   AppTextKey.settingsDiagnosticsSubtitle:
-      'Frontend günlükleri ve sistem bildirimleri',
-  AppTextKey.settingsDiagnosticsSemantic:
-      'Tanılama ve frontend günlüklerini aç',
+      'Günlükler, yeniden başlatma ve güncellemeler',
+  AppTextKey.settingsDiagnosticsSemantic: 'Sistem ayarlarını aç',
   AppTextKey.settingsAppearanceTitle: 'Görünüm',
   AppTextKey.settingsAppearanceSubtitle: 'Renkler ve tipografi',
   AppTextKey.settingsAppearanceSemantic: 'Görünüm ayarlarını aç',
@@ -119,6 +118,16 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsRecentLogs: 'Son frontend günlükleri',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Günlük görüntüleyiciyi aç',
   AppTextKey.settingsDiagnosticsExit: 'Çıkış',
+  AppTextKey.settingsDiagnosticsRestart: 'Yeniden başlat',
+  AppTextKey.settingsDiagnosticsCheckUpdates: 'Güncellemeleri kontrol et',
+  AppTextKey.settingsDiagnosticsUpdatesUnavailableTitle: 'Henüz kullanılamıyor',
+  AppTextKey.settingsDiagnosticsUpdatesUnavailableMessage:
+      'Güncelleme kontrolü henüz uygulanmadı.',
+  AppTextKey.settingsExitPasswordTitle: 'Şifre gerekli',
+  AppTextKey.settingsExitPasswordHint: 'Şifre',
+  AppTextKey.settingsExitPasswordIncorrect: 'Yanlış şifre',
+  AppTextKey.settingsExitPasswordConfirmAction: 'Onayla',
+  AppTextKey.settingsExitPasswordCancelAction: 'İptal',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Görünüm hazırlandı',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Renkler ve tipografi bu alanda yapılandırılacak.',

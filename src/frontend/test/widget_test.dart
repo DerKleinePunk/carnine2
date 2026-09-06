@@ -34,14 +34,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Sprache'), findsWidgets);
-    expect(find.text('Diagnose'), findsOneWidget);
+    expect(find.text('System'), findsOneWidget);
     expect(find.text('Darstellung'), findsOneWidget);
     expect(find.text('Karteneinstellungen'), findsOneWidget);
-    expect(find.text('Touchoptimierte Fahrzeug- und Systemoptionen.'),
-        findsNothing);
+    expect(
+      find.text('Touchoptimierte Fahrzeug- und Systemoptionen.'),
+      findsNothing,
+    );
     expect(find.byType(GridView), findsNothing);
 
-    await tester.tap(find.text('Diagnose'));
+    await tester.tap(find.text('System'));
     await tester.pumpAndSettle();
 
     expect(find.text('Aktuelle Frontend-Logs'), findsOneWidget);

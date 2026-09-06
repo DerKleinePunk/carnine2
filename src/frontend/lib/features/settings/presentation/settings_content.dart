@@ -3,6 +3,7 @@ import 'package:carnine_frontend/core/logging/log_viewer_dialog.dart';
 import 'package:carnine_frontend/core/platform/app_window.dart';
 import 'package:carnine_frontend/features/settings/presentation/models/settings_option_item.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_controller.dart';
+import 'package:carnine_frontend/features/settings/presentation/widgets/exit_password_dialog.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/language_flag.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
 import 'package:carnine_frontend/l10n/app_language_option.dart';
@@ -18,12 +19,19 @@ class SettingsContent extends StatefulWidget {
     required this.languageController,
     this.controller,
     this.logLines,
+    this.onRestart,
+    this.onExit,
     super.key,
   });
 
   final AppLanguageController languageController;
   final SettingsController? controller;
   final ValueListenable<List<String>>? logLines;
+
+  /// Overridable for tests - both default to the real [AppWindow] actions,
+  /// which cannot be exercised in a test process (they call `exit(0)`).
+  final VoidCallback? onRestart;
+  final VoidCallback? onExit;
 
   @override
   State<SettingsContent> createState() => _SettingsContentState();
@@ -84,7 +92,8 @@ class _SettingsContentState extends State<SettingsContent> {
       logLines: _logLines,
       onBack: _controller.closeSection,
       onOpenLogs: _openLogViewer,
-      onExit: AppWindow.exitApplication,
+      onRestart: widget.onRestart ?? AppWindow.restartApplication,
+      onExit: widget.onExit ?? AppWindow.exitApplication,
     );
   }
 
@@ -121,7 +130,7 @@ const List<SettingsOptionItem> _options = <SettingsOptionItem>[
   ),
   SettingsOptionItem(
     section: SettingsSection.diagnostics,
-    icon: Icons.manage_search,
+    icon: Icons.build,
     titleKey: AppTextKey.settingsDiagnosticsTitle,
     subtitleKey: AppTextKey.settingsDiagnosticsSubtitle,
     semanticLabelKey: AppTextKey.settingsDiagnosticsSemantic,
@@ -323,6 +332,7 @@ class _SettingsSectionPage extends StatelessWidget {
     required this.logLines,
     required this.onBack,
     required this.onOpenLogs,
+    required this.onRestart,
     required this.onExit,
     super.key,
   });
@@ -332,6 +342,7 @@ class _SettingsSectionPage extends StatelessWidget {
   final ValueListenable<List<String>> logLines;
   final VoidCallback onBack;
   final VoidCallback onOpenLogs;
+  final VoidCallback onRestart;
   final VoidCallback onExit;
 
   @override
@@ -354,6 +365,7 @@ class _SettingsSectionPage extends StatelessWidget {
       SettingsSection.diagnostics => _DiagnosticsPage(
         logLines: logLines,
         onOpenLogs: onOpenLogs,
+        onRestart: onRestart,
         onExit: onExit,
       ),
       SettingsSection.appearance => const _PlannedPage(
@@ -697,12 +709,43 @@ class _DiagnosticsPage extends StatelessWidget {
   const _DiagnosticsPage({
     required this.logLines,
     required this.onOpenLogs,
+    required this.onRestart,
     required this.onExit,
   });
 
   final ValueListenable<List<String>> logLines;
   final VoidCallback onOpenLogs;
+  final VoidCallback onRestart;
   final VoidCallback onExit;
+
+  Future<void> _showUpdatesUnavailable(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          l10n.text(AppTextKey.settingsDiagnosticsUpdatesUnavailableTitle),
+        ),
+        content: Text(
+          l10n.text(AppTextKey.settingsDiagnosticsUpdatesUnavailableMessage),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(l10n.text(AppTextKey.close)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmExit(BuildContext context) async {
+    final confirmed = await ExitPasswordDialog.show(context);
+    if (confirmed) {
+      onExit();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -729,7 +772,29 @@ class _DiagnosticsPage extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: onExit,
+                onPressed: () => _showUpdatesUnavailable(context),
+                icon: const Icon(Icons.system_update, size: 22),
+                label: Text(
+                  l10n.text(AppTextKey.settingsDiagnosticsCheckUpdates),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: onRestart,
+                icon: const Icon(Icons.restart_alt, size: 22),
+                label: Text(l10n.text(AppTextKey.settingsDiagnosticsRestart)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _confirmExit(context),
                 icon: const Icon(Icons.power_settings_new, size: 22),
                 label: Text(l10n.text(AppTextKey.settingsDiagnosticsExit)),
               ),

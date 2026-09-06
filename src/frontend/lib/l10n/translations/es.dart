@@ -103,11 +103,10 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
   AppTextKey.settingsLanguageTitle: 'Idioma',
   AppTextKey.settingsLanguageSubtitle: 'Seleccionar idioma de visualización',
   AppTextKey.settingsLanguageSemantic: 'Abrir ajustes de idioma',
-  AppTextKey.settingsDiagnosticsTitle: 'Diagnósticos',
+  AppTextKey.settingsDiagnosticsTitle: 'Sistema',
   AppTextKey.settingsDiagnosticsSubtitle:
-      'Registros del frontend y avisos del sistema',
-  AppTextKey.settingsDiagnosticsSemantic:
-      'Abrir diagnósticos y registros del frontend',
+      'Registros, reinicio y actualizaciones',
+  AppTextKey.settingsDiagnosticsSemantic: 'Abrir la configuración del sistema',
   AppTextKey.settingsAppearanceTitle: 'Apariencia',
   AppTextKey.settingsAppearanceSubtitle: 'Colores y tipografía',
   AppTextKey.settingsAppearanceSemantic: 'Abrir ajustes de apariencia',
@@ -118,6 +117,16 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsRecentLogs: 'Registros recientes del frontend',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Abrir visor de registros',
   AppTextKey.settingsDiagnosticsExit: 'Salir',
+  AppTextKey.settingsDiagnosticsRestart: 'Reiniciar',
+  AppTextKey.settingsDiagnosticsCheckUpdates: 'Buscar actualizaciones',
+  AppTextKey.settingsDiagnosticsUpdatesUnavailableTitle: 'Aún no disponible',
+  AppTextKey.settingsDiagnosticsUpdatesUnavailableMessage:
+      'La búsqueda de actualizaciones aún no está implementada.',
+  AppTextKey.settingsExitPasswordTitle: 'Se requiere contraseña',
+  AppTextKey.settingsExitPasswordHint: 'Contraseña',
+  AppTextKey.settingsExitPasswordIncorrect: 'Contraseña incorrecta',
+  AppTextKey.settingsExitPasswordConfirmAction: 'Confirmar',
+  AppTextKey.settingsExitPasswordCancelAction: 'Cancelar',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Apariencia preparada',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Los colores y la tipografía se configurarán en esta área.',

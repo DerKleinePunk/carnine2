@@ -105,11 +105,10 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.settingsLanguageTitle: 'Langue',
   AppTextKey.settingsLanguageSubtitle: 'Choisir la langue d’affichage',
   AppTextKey.settingsLanguageSemantic: 'Ouvrir les réglages de langue',
-  AppTextKey.settingsDiagnosticsTitle: 'Diagnostic',
+  AppTextKey.settingsDiagnosticsTitle: 'Système',
   AppTextKey.settingsDiagnosticsSubtitle:
-      'Journaux frontend et messages système',
-  AppTextKey.settingsDiagnosticsSemantic:
-      'Ouvrir le diagnostic et les journaux frontend',
+      'Journaux, redémarrage et mises à jour',
+  AppTextKey.settingsDiagnosticsSemantic: 'Ouvrir les paramètres système',
   AppTextKey.settingsAppearanceTitle: 'Apparence',
   AppTextKey.settingsAppearanceSubtitle: 'Couleurs et typographie',
   AppTextKey.settingsAppearanceSemantic: 'Ouvrir les réglages d’apparence',
@@ -121,6 +120,17 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsRecentLogs: 'Journaux frontend récents',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Ouvrir les journaux',
   AppTextKey.settingsDiagnosticsExit: 'Quitter',
+  AppTextKey.settingsDiagnosticsRestart: 'Redémarrer',
+  AppTextKey.settingsDiagnosticsCheckUpdates: 'Rechercher des mises à jour',
+  AppTextKey.settingsDiagnosticsUpdatesUnavailableTitle:
+      'Pas encore disponible',
+  AppTextKey.settingsDiagnosticsUpdatesUnavailableMessage:
+      'La recherche de mises à jour n\'est pas encore implémentée.',
+  AppTextKey.settingsExitPasswordTitle: 'Mot de passe requis',
+  AppTextKey.settingsExitPasswordHint: 'Mot de passe',
+  AppTextKey.settingsExitPasswordIncorrect: 'Mot de passe incorrect',
+  AppTextKey.settingsExitPasswordConfirmAction: 'Confirmer',
+  AppTextKey.settingsExitPasswordCancelAction: 'Annuler',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Apparence préparée',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Les couleurs et la typographie seront configurées ici.',
