@@ -170,6 +170,25 @@ void main() {
           expect(tester.takeException(), isNull);
         },
       );
+
+      testWidgets(
+        'the library page renders without overflow at $size, ${scale}x text',
+        (tester) async {
+          final controller = MediaController(repository: repository);
+          addTearDown(controller.dispose);
+
+          await _pumpAt(
+            tester,
+            size: size,
+            textScale: scale,
+            controller: controller,
+          );
+          controller.showLibraryAction(MediaLibraryAction.library);
+          await tester.pump();
+
+          expect(tester.takeException(), isNull);
+        },
+      );
     }
   }
 }

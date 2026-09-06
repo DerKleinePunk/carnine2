@@ -11,12 +11,16 @@ class MediaPageHeader extends StatelessWidget {
     required this.titleKey,
     required this.onBack,
     required this.backSemanticLabelKey,
+    this.trailing,
     super.key,
   });
 
   final AppTextKey titleKey;
   final VoidCallback onBack;
   final AppTextKey backSemanticLabelKey;
+
+  /// Optional action shown at the end of the header row (e.g. "create").
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +31,9 @@ class MediaPageHeader extends StatelessWidget {
       child: Row(
         children: [
           MediaBackButton(
-              onBack: onBack, semanticLabelKey: backSemanticLabelKey),
+            onBack: onBack,
+            semanticLabelKey: backSemanticLabelKey,
+          ),
           const SizedBox(width: 12),
           Text(
             l10n.text(titleKey).toUpperCase(),
@@ -37,6 +43,7 @@ class MediaPageHeader extends StatelessWidget {
               letterSpacing: 1.5,
             ),
           ),
+          if (trailing != null) ...[const Spacer(), trailing!],
         ],
       ),
     );

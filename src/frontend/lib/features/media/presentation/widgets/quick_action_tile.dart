@@ -7,15 +7,19 @@ import 'package:flutter/material.dart';
 class QuickActionTile extends StatelessWidget {
   const QuickActionTile({
     required this.icon,
-    required this.label,
     required this.semanticLabel,
     required this.onTap,
+    this.label,
     this.isEnabled = true,
     super.key,
   });
 
   final IconData icon;
-  final String label;
+
+  /// Shown under the icon. Omit for a tile too small to fit a label without
+  /// truncating it - the icon alone stays centered, [semanticLabel] still
+  /// carries the meaning for accessibility.
+  final String? label;
   final String semanticLabel;
   final VoidCallback onTap;
   final bool isEnabled;
@@ -47,25 +51,27 @@ class QuickActionTile extends StatelessWidget {
                       : AppColors.outlineVariant20,
                 ),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(icon, color: color, size: 28),
-                  const SizedBox(height: 8),
-                  Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.labelLarge.copyWith(
-                      color: isEnabled
-                          ? AppColors.onSurface
-                          : AppColors.onSurfaceVariant,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
+              child: label == null
+                  ? Center(child: Icon(icon, color: color, size: 28))
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(icon, color: color, size: 28),
+                        const SizedBox(height: 8),
+                        Text(
+                          label!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.labelLarge.copyWith(
+                            color: isEnabled
+                                ? AppColors.onSurface
+                                : AppColors.onSurfaceVariant,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
             ),
           ),
         ),

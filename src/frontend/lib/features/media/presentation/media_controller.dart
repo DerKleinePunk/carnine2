@@ -9,11 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
 /// Connection status towards the backend media services.
-enum MediaConnectionStatus {
-  connecting,
-  online,
-  offline,
-}
+enum MediaConnectionStatus { connecting, online, offline }
 
 /// Composition root for the media feature: owns the repository and the
 /// player/library/playlist sub-controllers, plus navigation between the
@@ -26,17 +22,26 @@ class MediaController extends ChangeNotifier {
     LibraryController? library,
     PlaylistController? playlists,
     Logger? logger,
-  })  : _repository = repository ?? GrpcMediaRepository(),
-        _logger = logger ?? Logger('MediaController') {
-    player = player ??
+  }) : _repository = repository ?? GrpcMediaRepository(),
+       _logger = logger ?? Logger('MediaController') {
+    player =
+        player ??
         PlayerController(
-            repository: _repository, onStreamFailure: reportStreamFailure);
-    library = library ??
+          repository: _repository,
+          onStreamFailure: reportStreamFailure,
+        );
+    library =
+        library ??
         LibraryController(
-            repository: _repository, onStreamFailure: reportStreamFailure);
-    playlists = playlists ??
+          repository: _repository,
+          onStreamFailure: reportStreamFailure,
+        );
+    playlists =
+        playlists ??
         PlaylistController(
-            repository: _repository, onStreamFailure: reportStreamFailure);
+          repository: _repository,
+          onStreamFailure: reportStreamFailure,
+        );
     this.player = player;
     this.library = library;
     this.playlists = playlists;
@@ -142,8 +147,10 @@ class MediaController extends ChangeNotifier {
       unawaited(_reconnect());
     });
     _nextReconnectDelay = Duration(
-      milliseconds: (_nextReconnectDelay.inMilliseconds * 2)
-          .clamp(0, _maxReconnectDelay.inMilliseconds),
+      milliseconds: (_nextReconnectDelay.inMilliseconds * 2).clamp(
+        0,
+        _maxReconnectDelay.inMilliseconds,
+      ),
     );
   }
 
@@ -165,8 +172,6 @@ class MediaController extends ChangeNotifier {
 }
 
 /// Library quick actions surfaced below the queue, each opening its own
-/// sub-page: create a playlist, or browse the library and playlists.
-enum MediaLibraryAction {
-  create,
-  collections,
-}
+/// sub-page: create a playlist, browse individual library tracks, or browse
+/// existing playlists.
+enum MediaLibraryAction { create, library, collections }
