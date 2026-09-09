@@ -8,3 +8,6 @@ https://www.tomshardware.com/how-to/custom-raspberry-pi-splash-screen
 https://raspberrypi.stackexchange.com/questions/136783/how-can-i-customize-what-rpi-displays-on-boot
 Idee ein ani gif machen ein binary machen welches das abspielt
 wenn flutter app oben ist das beenden. Via Backened ?
+
+* Idea
+https://florentblot.medium.com/using-bluetooth-low-energy-between-raspberry-pi-and-flutter-cba012c48b97
