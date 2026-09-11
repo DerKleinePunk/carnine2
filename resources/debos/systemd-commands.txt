@@ -1,4 +1,19 @@
 systemctl cat carnine-frontend.service
 sudo systemctl edit --full carnine-frontend.service
-
+systemd-analyze time
+systemd-analyze blame
+systemd-analyze plot > start.svg
 getty.target
+
+cmdline.txt
+plymouth.ignore-serial-consoles
+
+config.txt
+dtoverlay=sdtweak,overclock_50=100
+
+Ohne Boot Mount ca 1 sek gewonnen
+
+UUID=C89E-430D  /boot/firmware  vfat    defaults,auto   0       2
+
+https://documentation.suse.com/de-de/sle-micro/6.0/html/Micro-systemd-basics/index.html
+https://github.com/raspberrypi/firmware
