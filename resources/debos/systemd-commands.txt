@@ -3,6 +3,7 @@ sudo systemctl edit --full carnine-frontend.service
 systemd-analyze time
 systemd-analyze blame
 systemd-analyze plot > start.svg
+systemd-analyze critical-chain
 getty.target
 
 cmdline.txt
