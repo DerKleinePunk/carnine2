@@ -1,5 +1,7 @@
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
 
 use anyhow::{Context, Result};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
@@ -126,6 +128,13 @@ impl Playback for CpalPlayback {
 
     fn stop(mut self: Box<Self>) -> Result<()> {
         info!(source_id = ?self.source_id, "cpal audio source stop requested");
+        self.command_sender
+            .send(MixerCommand::SetGain {
+                source_id: self.source_id,
+                gain: 0.0,
+            })
+            .map_err(|_| anyhow::anyhow!("cpal mixer thread is not available"))?;
+        thread::sleep(Duration::from_millis(FADE_MILLISECONDS as u64));
         self.command_sender
             .send(MixerCommand::Remove {
                 source_id: self.source_id,

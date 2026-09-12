@@ -6,6 +6,7 @@ import 'package:carnine_frontend/core/logging/app_logging.dart';
 import 'package:carnine_frontend/core/platform/app_window.dart';
 import 'package:carnine_frontend/data/services/carnine_grpc_service.dart';
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
 
 const _carnineVersion = String.fromEnvironment(
   'CARNINE_VERSION',
@@ -29,11 +30,14 @@ Future<void> main() async {
 Future<void> _reportUiReady() async {
   try {
     await CarnineGrpcService().reportUiReady();
+    Logger('CarnineGrpcService').info('UI readiness reported to backend');
     if (Platform.environment.containsKey('NOTIFY_SOCKET')) {
       await Process.run('/usr/bin/systemd-notify', [
         '--ready',
         '--status=Carnine UI ready',
       ]);
+    } else {
+      Logger('CarnineGrpcService').warning('UI readiness reported to backend, but NOTIFY_SOCKET is not set');
     }
   } catch (error, stackTrace) {
     AppLogging.frontend.severe(
