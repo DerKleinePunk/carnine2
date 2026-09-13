@@ -712,9 +712,18 @@ impl MediaService for MediaServiceImpl {
         _request: Request<Empty>,
     ) -> Result<Response<Self::StreamPlayerEventsStream>, Status> {
         let snapshot = tokio_stream::once(Ok(self.player.snapshot_event()));
-        let command_updates =
-            tokio_stream::wrappers::BroadcastStream::new(self.player.subscribe_events())
-                .filter_map(|event| async move { event.ok().map(Ok) });
+        let command_updates = tokio_stream::wrappers::BroadcastStream::new(
+            self.player.subscribe_events(),
+        )
+        .map(|event| {
+            event.map_err(|error| match error {
+                tokio_stream::wrappers::errors::BroadcastStreamRecvError::Lagged(count) => {
+                    Status::resource_exhausted(format!(
+                        "player event subscriber lagged; {count} events were dropped"
+                    ))
+                }
+            })
+        });
         let player = Arc::clone(&self.player);
         let position_updates = tokio_stream::wrappers::IntervalStream::new(tokio::time::interval(
             Duration::from_secs(1),
@@ -1288,6 +1297,111 @@ mod tests {
             second.state.expect("second state should exist").position_ms
                 >= first.state.expect("first state should exist").position_ms
         );
+    }
+
+    #[tokio::test]
+    async fn player_event_stream_supports_multiple_subscribers() {
+        let service = MediaServiceImpl::new(
+            &test_configuration().audio,
+            std::env::temp_dir().join(format!(
+                "carnine-multiple-player-events-{}.sqlite3",
+                std::process::id()
+            )),
+            Vec::new(),
+            Vec::new(),
+            "restore_paused".to_string(),
+        );
+        let mut first = service
+            .stream_player_events(Request::new(Empty {}))
+            .await
+            .expect("first player stream should open")
+            .into_inner();
+        let mut second = service
+            .stream_player_events(Request::new(Empty {}))
+            .await
+            .expect("second player stream should open")
+            .into_inner();
+
+        assert_eq!(
+            first
+                .next()
+                .await
+                .expect("first snapshot")
+                .expect("valid event")
+                .event,
+            PlayerEventType::PlayerSnapshot as i32
+        );
+        assert_eq!(
+            second
+                .next()
+                .await
+                .expect("second snapshot")
+                .expect("valid event")
+                .event,
+            PlayerEventType::PlayerSnapshot as i32
+        );
+
+        service
+            .player
+            .execute("invalid", "")
+            .expect_err("invalid command should publish an error event");
+
+        assert_eq!(
+            first
+                .next()
+                .await
+                .expect("first update")
+                .expect("valid event")
+                .event,
+            PlayerEventType::PlayerError as i32
+        );
+        assert_eq!(
+            second
+                .next()
+                .await
+                .expect("second update")
+                .expect("valid event")
+                .event,
+            PlayerEventType::PlayerError as i32
+        );
+    }
+
+    #[tokio::test]
+    async fn lagging_player_event_stream_reports_resource_exhausted() {
+        let service = MediaServiceImpl::new(
+            &test_configuration().audio,
+            std::env::temp_dir().join(format!(
+                "carnine-lagging-player-events-{}.sqlite3",
+                std::process::id()
+            )),
+            Vec::new(),
+            Vec::new(),
+            "restore_paused".to_string(),
+        );
+        let mut events = service
+            .stream_player_events(Request::new(Empty {}))
+            .await
+            .expect("player stream should open")
+            .into_inner();
+        let snapshot = events.next().await.expect("snapshot should exist");
+        assert_eq!(
+            snapshot.expect("snapshot should be valid").event,
+            PlayerEventType::PlayerSnapshot as i32
+        );
+
+        for _ in 0..=32 {
+            service
+                .player
+                .execute("invalid", "")
+                .expect_err("invalid command should publish an error event");
+        }
+
+        let error = events
+            .next()
+            .await
+            .expect("lagging stream should report an error")
+            .expect_err("lagging stream should not silently drop events");
+        assert_eq!(error.code(), tonic::Code::ResourceExhausted);
     }
 
     #[test]
