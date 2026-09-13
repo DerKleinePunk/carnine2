@@ -21,7 +21,7 @@ class LibraryController extends ChangeNotifier {
     required this._repository,
     this._onStreamFailure,
     Logger? logger,
-  })  : _logger = logger ?? Logger('LibraryController');
+  }) : _logger = logger ?? Logger('LibraryController');
 
   static const _debounceDuration = Duration(milliseconds: 300);
   static const _scanWatchdogDuration = Duration(seconds: 60);
@@ -56,9 +56,9 @@ class LibraryController extends ChangeNotifier {
   Future<void> start() async {
     await _libraryEvents?.cancel();
     _libraryEvents = _repository.libraryEvents().listen(
-          _onLibraryEvent,
-          onError: _onStreamError,
-        );
+      _onLibraryEvent,
+      onError: _onStreamError,
+    );
     await _load();
   }
 
@@ -182,8 +182,13 @@ class LibraryController extends ChangeNotifier {
         _armScanWatchdog();
         notifyListeners();
       case LibraryScanEventKind.progress:
+      case LibraryScanEventKind.importProgress:
         _scanProcessed = event.processed;
         _scanImported = event.imported;
+        _armScanWatchdog();
+        notifyListeners();
+      case LibraryScanEventKind.importStarted:
+        _isScanning = true;
         _armScanWatchdog();
         notifyListeners();
       case LibraryScanEventKind.error:
@@ -191,9 +196,12 @@ class LibraryController extends ChangeNotifier {
         _armScanWatchdog();
         notifyListeners();
       case LibraryScanEventKind.scanCompleted:
+      case LibraryScanEventKind.importCompleted:
         _isScanning = false;
         _scanWatchdog?.cancel();
         notifyListeners();
+        unawaited(_search());
+      case LibraryScanEventKind.musicFound:
         unawaited(_search());
       case LibraryScanEventKind.unknown:
         _logger.info('Ignoring unknown library event: ${event.message}');

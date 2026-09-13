@@ -5,6 +5,10 @@ enum LibraryScanEventKind {
   progress,
   error,
   scanCompleted,
+  musicFound,
+  importStarted,
+  importProgress,
+  importCompleted,
   unknown,
 }
 
@@ -15,6 +19,10 @@ LibraryScanEventKind libraryScanEventKindFrom(String raw) {
     'progress' => LibraryScanEventKind.progress,
     'error' => LibraryScanEventKind.error,
     'scan_completed' => LibraryScanEventKind.scanCompleted,
+    'music_found' => LibraryScanEventKind.musicFound,
+    'import_started' => LibraryScanEventKind.importStarted,
+    'import_progress' => LibraryScanEventKind.importProgress,
+    'import_completed' => LibraryScanEventKind.importCompleted,
     _ => LibraryScanEventKind.unknown,
   };
 }
@@ -28,6 +36,9 @@ class LibraryScanEvent {
     required this.imported,
     required this.path,
     required this.message,
+    this.sourceLabel = '',
+    this.sourcePath = '',
+    this.matchingFiles = 0,
   });
 
   final LibraryScanEventKind kind;
@@ -36,4 +47,7 @@ class LibraryScanEvent {
   final int imported;
   final String path;
   final String message;
+  final String sourceLabel;
+  final String sourcePath;
+  final int matchingFiles;
 }

@@ -1,4 +1,5 @@
 import 'package:carnine_frontend/features/media/domain/models/library_scan_event.dart';
+import 'package:carnine_frontend/features/media/domain/models/audio_event.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_library_track.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_playlist.dart';
 import 'package:carnine_frontend/features/media/domain/models/player_event_update.dart';
@@ -61,8 +62,13 @@ abstract class MediaRepository {
   /// The long-lived library event stream (manual and automatic rescans).
   Stream<LibraryScanEvent> libraryEvents();
 
+  Stream<AudioEvent> audioEvents();
+
   /// Triggers a full rescan and streams its progress.
   Stream<LibraryScanEvent> rescan();
+
+  /// Imports one music volume and streams its library changes.
+  Stream<LibraryScanEvent> importMusicVolume(String sourcePath);
 
   /// Lists saved playlists. Entries are always empty on this call - use
   /// [getPlaylist] to load a playlist's entries.

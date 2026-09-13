@@ -6,7 +6,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use tokio::sync::broadcast;
 
 use crate::audio_engine::{self, AudioEngine, Playback};
-use crate::carnine::{PlayerEvent, PlayerState};
+use crate::carnine::{AudioEvent, PlayerEvent, PlayerState};
 use crate::config::AudioConfig;
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -29,11 +29,13 @@ pub struct MediaPlayer {
     position_ms: Mutex<i64>,
     started_at: Mutex<Option<Instant>>,
     events: broadcast::Sender<PlayerEvent>,
+    audio_events: broadcast::Sender<AudioEvent>,
 }
 
 impl Default for MediaPlayer {
     fn default() -> Self {
         let (events, _) = broadcast::channel(32);
+        let (audio_events, _) = broadcast::channel(32);
         Self {
             engine: Box::new(audio_engine::ExternalProcessAudioEngine::default()),
             playback: Mutex::new(None),
@@ -46,6 +48,7 @@ impl Default for MediaPlayer {
             position_ms: Mutex::new(0),
             started_at: Mutex::new(None),
             events,
+            audio_events,
         }
     }
 }
@@ -86,6 +89,14 @@ impl MediaPlayer {
 
     pub fn subscribe_events(&self) -> broadcast::Receiver<PlayerEvent> {
         self.events.subscribe()
+    }
+
+    pub fn subscribe_audio_events(&self) -> broadcast::Receiver<AudioEvent> {
+        self.audio_events.subscribe()
+    }
+
+    pub fn audio_event_sender(&self) -> broadcast::Sender<AudioEvent> {
+        self.audio_events.clone()
     }
 
     pub fn snapshot_event(&self) -> PlayerEvent {
@@ -173,6 +184,13 @@ impl MediaPlayer {
         let _ = self.events.send(PlayerEvent {
             event: event.to_string(),
             state: Some(self.player_state()),
+            message: message.into(),
+        });
+    }
+
+    fn publish_audio(&self, event: &str, message: impl Into<String>) {
+        let _ = self.audio_events.send(AudioEvent {
+            event: event.to_string(),
             message: message.into(),
         });
     }
@@ -276,6 +294,7 @@ impl MediaPlayer {
                 .started_at
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(Instant::now());
+            self.publish_audio("source_resume_requested", "audio source resume requested");
             self.publish("resumed", "playback resumed");
             return Ok("playback resumed".to_string());
         }
@@ -343,6 +362,7 @@ impl MediaPlayer {
             .started_at
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(Instant::now());
+        self.publish_audio("source_started", "audio source started");
         self.publish("playback_started", "playback started");
         Ok("playback started".to_string())
     }
@@ -444,6 +464,7 @@ impl MediaPlayer {
             .started_at
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
+        self.publish_audio("source_pause_requested", "audio source pause requested");
         self.publish("paused", "playback paused");
         Ok("playback paused".to_string())
     }
@@ -453,8 +474,12 @@ impl MediaPlayer {
             .playback
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let position_ms = self.position_ms();
         if let Some(active_playback) = playback.take() {
+            self.publish_audio("source_stop_requested", "audio source stop requested");
             active_playback.stop()?;
+            self.publish_audio("decoder_stopped", "audio decoder stopped");
+            self.publish_audio("source_removed", "audio source removed");
         }
         *self
             .media_path
@@ -463,7 +488,7 @@ impl MediaPlayer {
         *self
             .position_ms
             .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner()) = 0;
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = position_ms;
         *self
             .started_at
             .lock()
@@ -546,5 +571,18 @@ mod tests {
             "stopped"
         );
         assert_eq!(event.message, "playback position updated");
+    }
+
+    #[test]
+    fn stopping_playback_preserves_resume_position() {
+        let player = player();
+        *player
+            .position_ms
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = 12_345;
+
+        player.stop().expect("playback should stop");
+
+        assert_eq!(player.position_ms(), 12_345);
     }
 }

@@ -1,4 +1,6 @@
 import 'package:carnine_frontend/features/media/domain/models/library_scan_event.dart';
+import 'package:carnine_frontend/features/media/domain/models/audio_event.dart'
+    as domain;
 import 'package:carnine_frontend/features/media/domain/models/media_availability.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_library_track.dart';
 import 'package:carnine_frontend/features/media/domain/models/player_event_update.dart';
@@ -36,8 +38,9 @@ PlayerSnapshot snapshotFromProto(PlayerState state) {
     status: playbackStatusFrom(state.status),
     mediaPath: state.mediaPath,
     position: durationFrom(state.positionMs),
-    playlistId:
-        state.playlistId == Int64.ZERO ? null : idFrom(state.playlistId),
+    playlistId: state.playlistId == Int64.ZERO
+        ? null
+        : idFrom(state.playlistId),
   );
 }
 
@@ -56,6 +59,16 @@ LibraryScanEvent scanEventFromProto(LibraryEvent event) {
     processed: idFrom(event.processed),
     imported: idFrom(event.imported),
     path: event.path,
+    message: event.message,
+    sourceLabel: event.sourceLabel,
+    sourcePath: event.sourcePath,
+    matchingFiles: idFrom(event.matchingFiles),
+  );
+}
+
+domain.AudioEvent audioEventFromProto(AudioEvent event) {
+  return domain.AudioEvent(
+    kind: domain.audioEventKindFrom(event.event),
     message: event.message,
   );
 }

@@ -12,23 +12,27 @@ typedef MediaChannelFactory = ClientChannel Function();
 /// on. This class keeps one channel alive instead and exposes [reconnect]
 /// for the connection-loss recovery loop in `MediaController`.
 class MediaChannel {
-  MediaChannel({
-    MediaChannelFactory? channelFactory,
-    Logger? logger,
-  })  : _channelFactory = channelFactory ?? _createDefaultChannel,
-        _logger = logger ?? Logger('MediaChannel');
+  MediaChannel({MediaChannelFactory? channelFactory, Logger? logger})
+    : _channelFactory = channelFactory ?? _createDefaultChannel,
+      _logger = logger ?? Logger('MediaChannel');
 
   final MediaChannelFactory _channelFactory;
   final Logger _logger;
 
   ClientChannel? _channel;
   MediaServiceClient? _stub;
+  AudioServiceClient? _audioStub;
 
   /// The client stub bound to the current channel, created lazily and
   /// reused across calls.
   MediaServiceClient get stub {
     final channel = _channel ??= _channelFactory();
     return _stub ??= MediaServiceClient(channel);
+  }
+
+  AudioServiceClient get audioStub {
+    final channel = _channel ??= _channelFactory();
+    return _audioStub ??= AudioServiceClient(channel);
   }
 
   Stream<ConnectionState> get connectionStates {
@@ -43,6 +47,7 @@ class MediaChannel {
     final channel = _channel;
     _channel = null;
     _stub = null;
+    _audioStub = null;
 
     if (channel == null) {
       return;
@@ -59,6 +64,7 @@ class MediaChannel {
     final channel = _channel;
     _channel = null;
     _stub = null;
+    _audioStub = null;
 
     if (channel == null) {
       return;

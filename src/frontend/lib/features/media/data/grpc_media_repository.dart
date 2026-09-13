@@ -3,11 +3,12 @@ import 'package:carnine_frontend/features/media/data/media_error_mapper.dart';
 import 'package:carnine_frontend/features/media/data/proto_mappers.dart';
 import 'package:carnine_frontend/features/media/domain/media_repository.dart';
 import 'package:carnine_frontend/features/media/domain/models/library_scan_event.dart';
+import 'package:carnine_frontend/features/media/domain/models/audio_event.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_library_track.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_playlist.dart';
 import 'package:carnine_frontend/features/media/domain/models/player_event_update.dart';
 import 'package:carnine_frontend/features/media/domain/models/player_snapshot.dart';
-import 'package:carnine_frontend/lib/carnine.pb.dart';
+import 'package:carnine_frontend/lib/carnine.pb.dart' hide AudioEvent;
 import 'package:fixnum/fixnum.dart';
 import 'package:grpc/grpc.dart';
 import 'package:logging/logging.dart';
@@ -15,11 +16,9 @@ import 'package:logging/logging.dart';
 /// gRPC-backed [MediaRepository]; the only place `MediaServiceClient` is
 /// used directly.
 class GrpcMediaRepository implements MediaRepository {
-  GrpcMediaRepository({
-    MediaChannel? channel,
-    Logger? logger,
-  })  : _channel = channel ?? MediaChannel(),
-        _logger = logger ?? Logger('GrpcMediaRepository');
+  GrpcMediaRepository({MediaChannel? channel, Logger? logger})
+    : _channel = channel ?? MediaChannel(),
+      _logger = logger ?? Logger('GrpcMediaRepository');
 
   // Play/Pause/Stop/Next/Previous can wait for external audio processes
   // (ffmpeg, paplay/aplay) to actually exit before returning - occasionally
@@ -82,7 +81,10 @@ class GrpcMediaRepository implements MediaRepository {
       return tracks;
     } catch (error, stackTrace) {
       _logger.severe(
-          'SearchMedia failed for query "$query"', error, stackTrace);
+        'SearchMedia failed for query "$query"',
+        error,
+        stackTrace,
+      );
       throw mediaExceptionFrom(error);
     }
   }
@@ -111,87 +113,96 @@ class GrpcMediaRepository implements MediaRepository {
   @override
   Future<void> startTrack(String mediaPath) async {
     await _command(
-        'Stop',
-        () => _channel.stub.stop(
-              Empty(),
-              options: CallOptions(timeout: _commandTimeout),
-            ));
+      'Stop',
+      () => _channel.stub.stop(
+        Empty(),
+        options: CallOptions(timeout: _commandTimeout),
+      ),
+    );
     await _command(
-        'Play',
-        () => _channel.stub.play(
-              PlayRequest(mediaPath: mediaPath),
-              options: CallOptions(timeout: _commandTimeout),
-            ));
+      'Play',
+      () => _channel.stub.play(
+        PlayRequest(mediaPath: mediaPath),
+        options: CallOptions(timeout: _commandTimeout),
+      ),
+    );
   }
 
   @override
   Future<void> resume() {
     return _command(
-        'Play',
-        () => _channel.stub.play(
-              PlayRequest(mediaPath: ''),
-              options: CallOptions(timeout: _commandTimeout),
-            ));
+      'Play',
+      () => _channel.stub.play(
+        PlayRequest(mediaPath: ''),
+        options: CallOptions(timeout: _commandTimeout),
+      ),
+    );
   }
 
   @override
   Future<void> pause() {
     return _command(
-        'Pause',
-        () => _channel.stub.pause(
-              Empty(),
-              options: CallOptions(timeout: _commandTimeout),
-            ));
+      'Pause',
+      () => _channel.stub.pause(
+        Empty(),
+        options: CallOptions(timeout: _commandTimeout),
+      ),
+    );
   }
 
   @override
   Future<void> stop() {
     return _command(
-        'Stop',
-        () => _channel.stub.stop(
-              Empty(),
-              options: CallOptions(timeout: _commandTimeout),
-            ));
+      'Stop',
+      () => _channel.stub.stop(
+        Empty(),
+        options: CallOptions(timeout: _commandTimeout),
+      ),
+    );
   }
 
   @override
   Future<void> next() {
     return _command(
-        'Next',
-        () => _channel.stub.next(
-              Empty(),
-              options: CallOptions(timeout: _commandTimeout),
-            ));
+      'Next',
+      () => _channel.stub.next(
+        Empty(),
+        options: CallOptions(timeout: _commandTimeout),
+      ),
+    );
   }
 
   @override
   Future<void> previous() {
     return _command(
-        'Previous',
-        () => _channel.stub.previous(
-              Empty(),
-              options: CallOptions(timeout: _commandTimeout),
-            ));
+      'Previous',
+      () => _channel.stub.previous(
+        Empty(),
+        options: CallOptions(timeout: _commandTimeout),
+      ),
+    );
   }
 
   @override
   Future<void> restartCurrentTrack() {
     return _command(
-        'RestartCurrentTrack',
-        () => _channel.stub.restartCurrentTrack(
-              Empty(),
-              options: CallOptions(timeout: _commandTimeout),
-            ));
+      'RestartCurrentTrack',
+      () => _channel.stub.restartCurrentTrack(
+        Empty(),
+        options: CallOptions(timeout: _commandTimeout),
+      ),
+    );
   }
 
   @override
   Future<void> playQueueEntry(int index) {
     return _command(
-        'PlayQueueEntry',
-        () => _channel.stub.playQueueEntry(
-              PlayQueueEntryRequest(index: index),
-              options: CallOptions(timeout: _commandTimeout),
-            ));
+      'PlayQueueEntry',
+      () => _channel.stub.playQueueEntry(
+        PlayQueueEntryRequest(index: index),
+        options: CallOptions(timeout: _commandTimeout),
+      ),
+    );
   }
 
   @override
@@ -204,11 +215,12 @@ class GrpcMediaRepository implements MediaRepository {
       ),
     );
     await _command(
-        'Play',
-        () => _channel.stub.play(
-              PlayRequest(mediaPath: ''),
-              options: CallOptions(timeout: _commandTimeout),
-            ));
+      'Play',
+      () => _channel.stub.play(
+        PlayRequest(mediaPath: ''),
+        options: CallOptions(timeout: _commandTimeout),
+      ),
+    );
   }
 
   Future<void> _command(
@@ -235,9 +247,23 @@ class GrpcMediaRepository implements MediaRepository {
   }
 
   @override
+  Stream<AudioEvent> audioEvents() {
+    return _channel.audioStub
+        .streamAudioEvents(Empty())
+        .map(audioEventFromProto);
+  }
+
+  @override
   Stream<LibraryScanEvent> rescan() {
     return _channel.stub
         .rescanMedia(RescanMediaRequest())
+        .map(scanEventFromProto);
+  }
+
+  @override
+  Stream<LibraryScanEvent> importMusicVolume(String sourcePath) {
+    return _channel.stub
+        .importMusicVolume(ImportMusicVolumeRequest(sourcePath: sourcePath))
         .map(scanEventFromProto);
   }
 
@@ -249,11 +275,13 @@ class GrpcMediaRepository implements MediaRepository {
         options: CallOptions(timeout: _commandTimeout),
       );
       return response.playlists
-          .map((playlist) => MediaPlaylist(
-                id: idFrom(playlist.id),
-                name: playlist.name,
-                entries: const [],
-              ))
+          .map(
+            (playlist) => MediaPlaylist(
+              id: idFrom(playlist.id),
+              name: playlist.name,
+              entries: const [],
+            ),
+          )
           .toList();
     } catch (error, stackTrace) {
       _logger.severe('ListPlaylists failed', error, stackTrace);
@@ -269,13 +297,15 @@ class GrpcMediaRepository implements MediaRepository {
         options: CallOptions(timeout: _commandTimeout),
       );
       final entries = playlist.entries
-          .map((entry) => MediaPlaylistEntry(
-                id: idFrom(entry.id),
-                playlistId: idFrom(entry.playlistId),
-                mediaId: idFrom(entry.mediaId),
-                position: idFrom(entry.position),
-                track: trackForId(idFrom(entry.mediaId)),
-              ))
+          .map(
+            (entry) => MediaPlaylistEntry(
+              id: idFrom(entry.id),
+              playlistId: idFrom(entry.playlistId),
+              mediaId: idFrom(entry.mediaId),
+              position: idFrom(entry.position),
+              track: trackForId(idFrom(entry.mediaId)),
+            ),
+          )
           .toList();
       return MediaPlaylist(
         id: idFrom(playlist.id),

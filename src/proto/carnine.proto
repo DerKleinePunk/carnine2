@@ -108,6 +108,8 @@ message ImportMusicVolumeRequest {
 }
 
 message LibraryEvent {
+  // Values: scan_started, progress, error, scan_completed, music_found,
+  // import_started, import_progress, import_completed.
   string event = 1;
   uint64 scan_id = 2;
   uint64 processed = 3;
@@ -182,6 +184,9 @@ message PlayerEvent {
 }
 
 message AudioEvent {
+  // Values: audio_ready, source_started, source_pause_requested,
+  // source_resume_requested, source_stop_requested, decoder_stopped,
+  // source_removed, device_changed, error.
   string event = 1;
   string message = 2;
 }

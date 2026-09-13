@@ -402,6 +402,13 @@ pub struct AudioServiceImpl {
 impl AudioServiceImpl {
     fn new(configuration: &config::AudioConfig) -> Self {
         let (events, _) = broadcast::channel(32);
+        Self::with_events(configuration, events)
+    }
+
+    fn with_events(
+        configuration: &config::AudioConfig,
+        events: broadcast::Sender<AudioEvent>,
+    ) -> Self {
         Self {
             events,
             backend: configuration.backend.clone(),
@@ -907,8 +914,9 @@ async fn main() -> Result<()> {
     let server = Server::builder()
         .add_service(CarnineServiceServer::new(carnine_service))
         .add_service(MediaServiceServer::new(media_service.clone()))
-        .add_service(AudioServiceServer::new(AudioServiceImpl::new(
+        .add_service(AudioServiceServer::new(AudioServiceImpl::with_events(
             &configuration.audio,
+            media_service.player.audio_event_sender(),
         )))
         .add_service(ConfigServiceServer::new(config_service))
         .add_service(carnine::system_service_server::SystemServiceServer::new(

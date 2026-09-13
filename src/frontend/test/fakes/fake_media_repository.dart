@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:carnine_frontend/features/media/domain/media_backend_exception.dart';
 import 'package:carnine_frontend/features/media/domain/media_repository.dart';
 import 'package:carnine_frontend/features/media/domain/models/library_scan_event.dart';
+import 'package:carnine_frontend/features/media/domain/models/audio_event.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_library_track.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_playlist.dart';
 import 'package:carnine_frontend/features/media/domain/models/player_event_update.dart';
@@ -31,6 +32,10 @@ class FakeMediaRepository implements MediaRepository {
       StreamController<LibraryScanEvent>.broadcast();
   final StreamController<LibraryScanEvent> rescanController =
       StreamController<LibraryScanEvent>.broadcast();
+  final StreamController<LibraryScanEvent> importController =
+      StreamController<LibraryScanEvent>.broadcast();
+  final StreamController<AudioEvent> audioEventsController =
+      StreamController<AudioEvent>.broadcast();
 
   int reconnectCallCount = 0;
   int disposeCallCount = 0;
@@ -83,9 +88,11 @@ class FakeMediaRepository implements MediaRepository {
     }
     final lower = query.toLowerCase();
     return library
-        .where((track) =>
-            track.title.toLowerCase().contains(lower) ||
-            track.artist.toLowerCase().contains(lower))
+        .where(
+          (track) =>
+              track.title.toLowerCase().contains(lower) ||
+              track.artist.toLowerCase().contains(lower),
+        )
         .toList();
   }
 
@@ -167,7 +174,14 @@ class FakeMediaRepository implements MediaRepository {
   Stream<LibraryScanEvent> libraryEvents() => libraryEventsController.stream;
 
   @override
+  Stream<AudioEvent> audioEvents() => audioEventsController.stream;
+
+  @override
   Stream<LibraryScanEvent> rescan() => rescanController.stream;
+
+  @override
+  Stream<LibraryScanEvent> importMusicVolume(String sourcePath) =>
+      importController.stream;
 
   @override
   Future<List<MediaPlaylist>> listPlaylists() async {
@@ -188,8 +202,11 @@ class FakeMediaRepository implements MediaRepository {
   @override
   Future<MediaPlaylist> createPlaylist(String name) async {
     await _maybeThrow();
-    final playlist =
-        MediaPlaylist(id: playlists.length + 1, name: name, entries: const []);
+    final playlist = MediaPlaylist(
+      id: playlists.length + 1,
+      name: name,
+      entries: const [],
+    );
     playlists = [...playlists, playlist];
     return playlist;
   }
