@@ -1,3 +1,5 @@
+import 'package:carnine_frontend/lib/carnine.pb.dart';
+
 enum AudioEventKind {
   ready,
   sourceStarted,
@@ -11,17 +13,20 @@ enum AudioEventKind {
   unknown,
 }
 
-AudioEventKind audioEventKindFrom(String raw) {
-  return switch (raw.trim()) {
-    'audio_ready' => AudioEventKind.ready,
-    'source_started' => AudioEventKind.sourceStarted,
-    'source_pause_requested' => AudioEventKind.sourcePauseRequested,
-    'source_resume_requested' => AudioEventKind.sourceResumeRequested,
-    'source_stop_requested' => AudioEventKind.sourceStopRequested,
-    'decoder_stopped' => AudioEventKind.decoderStopped,
-    'source_removed' => AudioEventKind.sourceRemoved,
-    'device_changed' => AudioEventKind.deviceChanged,
-    'error' => AudioEventKind.error,
+AudioEventKind audioEventKindFrom(AudioEventType raw) {
+  return switch (raw) {
+    AudioEventType.AUDIO_READY => AudioEventKind.ready,
+    AudioEventType.AUDIO_SOURCE_STARTED => AudioEventKind.sourceStarted,
+    AudioEventType.AUDIO_SOURCE_PAUSE_REQUESTED =>
+      AudioEventKind.sourcePauseRequested,
+    AudioEventType.AUDIO_SOURCE_RESUME_REQUESTED =>
+      AudioEventKind.sourceResumeRequested,
+    AudioEventType.AUDIO_SOURCE_STOP_REQUESTED =>
+      AudioEventKind.sourceStopRequested,
+    AudioEventType.AUDIO_DECODER_STOPPED => AudioEventKind.decoderStopped,
+    AudioEventType.AUDIO_SOURCE_REMOVED => AudioEventKind.sourceRemoved,
+    AudioEventType.AUDIO_DEVICE_CHANGED => AudioEventKind.deviceChanged,
+    AudioEventType.AUDIO_ERROR => AudioEventKind.error,
     _ => AudioEventKind.unknown,
   };
 }

@@ -15,6 +15,80 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+@$core.Deprecated('Use libraryEventTypeDescriptor instead')
+const LibraryEventType$json = {
+  '1': 'LibraryEventType',
+  '2': [
+    {'1': 'LIBRARY_EVENT_TYPE_UNSPECIFIED', '2': 0},
+    {'1': 'LIBRARY_SCAN_STARTED', '2': 1},
+    {'1': 'LIBRARY_PROGRESS', '2': 2},
+    {'1': 'LIBRARY_ERROR', '2': 3},
+    {'1': 'LIBRARY_SCAN_COMPLETED', '2': 4},
+    {'1': 'LIBRARY_MUSIC_FOUND', '2': 5},
+    {'1': 'LIBRARY_IMPORT_STARTED', '2': 6},
+    {'1': 'LIBRARY_IMPORT_PROGRESS', '2': 7},
+    {'1': 'LIBRARY_IMPORT_COMPLETED', '2': 8},
+  ],
+};
+
+/// Descriptor for `LibraryEventType`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List libraryEventTypeDescriptor = $convert.base64Decode(
+    'ChBMaWJyYXJ5RXZlbnRUeXBlEiIKHkxJQlJBUllfRVZFTlRfVFlQRV9VTlNQRUNJRklFRBAAEh'
+    'gKFExJQlJBUllfU0NBTl9TVEFSVEVEEAESFAoQTElCUkFSWV9QUk9HUkVTUxACEhEKDUxJQlJB'
+    'UllfRVJST1IQAxIaChZMSUJSQVJZX1NDQU5fQ09NUExFVEVEEAQSFwoTTElCUkFSWV9NVVNJQ1'
+    '9GT1VORBAFEhoKFkxJQlJBUllfSU1QT1JUX1NUQVJURUQQBhIbChdMSUJSQVJZX0lNUE9SVF9Q'
+    'Uk9HUkVTUxAHEhwKGExJQlJBUllfSU1QT1JUX0NPTVBMRVRFRBAI');
+
+@$core.Deprecated('Use playerEventTypeDescriptor instead')
+const PlayerEventType$json = {
+  '1': 'PlayerEventType',
+  '2': [
+    {'1': 'PLAYER_EVENT_TYPE_UNSPECIFIED', '2': 0},
+    {'1': 'PLAYER_SNAPSHOT', '2': 1},
+    {'1': 'PLAYER_POSITION_CHANGED', '2': 2},
+    {'1': 'PLAYER_PLAYBACK_STARTED', '2': 3},
+    {'1': 'PLAYER_RESUMED', '2': 4},
+    {'1': 'PLAYER_PAUSED', '2': 5},
+    {'1': 'PLAYER_STOPPED', '2': 6},
+    {'1': 'PLAYER_TRACK_CHANGED', '2': 7},
+    {'1': 'PLAYER_ERROR', '2': 8},
+  ],
+};
+
+/// Descriptor for `PlayerEventType`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List playerEventTypeDescriptor = $convert.base64Decode(
+    'Cg9QbGF5ZXJFdmVudFR5cGUSIQodUExBWUVSX0VWRU5UX1RZUEVfVU5TUEVDSUZJRUQQABITCg'
+    '9QTEFZRVJfU05BUFNIT1QQARIbChdQTEFZRVJfUE9TSVRJT05fQ0hBTkdFRBACEhsKF1BMQVlF'
+    'Ul9QTEFZQkFDS19TVEFSVEVEEAMSEgoOUExBWUVSX1JFU1VNRUQQBBIRCg1QTEFZRVJfUEFVU0'
+    'VEEAUSEgoOUExBWUVSX1NUT1BQRUQQBhIYChRQTEFZRVJfVFJBQ0tfQ0hBTkdFRBAHEhAKDFBM'
+    'QVlFUl9FUlJPUhAI');
+
+@$core.Deprecated('Use audioEventTypeDescriptor instead')
+const AudioEventType$json = {
+  '1': 'AudioEventType',
+  '2': [
+    {'1': 'AUDIO_EVENT_TYPE_UNSPECIFIED', '2': 0},
+    {'1': 'AUDIO_READY', '2': 1},
+    {'1': 'AUDIO_SOURCE_STARTED', '2': 2},
+    {'1': 'AUDIO_SOURCE_PAUSE_REQUESTED', '2': 3},
+    {'1': 'AUDIO_SOURCE_RESUME_REQUESTED', '2': 4},
+    {'1': 'AUDIO_SOURCE_STOP_REQUESTED', '2': 5},
+    {'1': 'AUDIO_DECODER_STOPPED', '2': 6},
+    {'1': 'AUDIO_SOURCE_REMOVED', '2': 7},
+    {'1': 'AUDIO_DEVICE_CHANGED', '2': 8},
+    {'1': 'AUDIO_ERROR', '2': 9},
+  ],
+};
+
+/// Descriptor for `AudioEventType`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List audioEventTypeDescriptor = $convert.base64Decode(
+    'Cg5BdWRpb0V2ZW50VHlwZRIgChxBVURJT19FVkVOVF9UWVBFX1VOU1BFQ0lGSUVEEAASDwoLQV'
+    'VESU9fUkVBRFkQARIYChRBVURJT19TT1VSQ0VfU1RBUlRFRBACEiAKHEFVRElPX1NPVVJDRV9Q'
+    'QVVTRV9SRVFVRVNURUQQAxIhCh1BVURJT19TT1VSQ0VfUkVTVU1FX1JFUVVFU1RFRBAEEh8KG0'
+    'FVRElPX1NPVVJDRV9TVE9QX1JFUVVFU1RFRBAFEhkKFUFVRElPX0RFQ09ERVJfU1RPUFBFRBAG'
+    'EhgKFEFVRElPX1NPVVJDRV9SRU1PVkVEEAcSGAoUQVVESU9fREVWSUNFX0NIQU5HRUQQCBIPCg'
+    'tBVURJT19FUlJPUhAJ');
+
 @$core.Deprecated('Use canDataRequestDescriptor instead')
 const CanDataRequest$json = {
   '1': 'CanDataRequest',
@@ -231,7 +305,14 @@ final $typed_data.Uint8List importMusicVolumeRequestDescriptor =
 const LibraryEvent$json = {
   '1': 'LibraryEvent',
   '2': [
-    {'1': 'event', '3': 1, '4': 1, '5': 9, '10': 'event'},
+    {
+      '1': 'event',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.carnine.LibraryEventType',
+      '10': 'event'
+    },
     {'1': 'scan_id', '3': 2, '4': 1, '5': 4, '10': 'scanId'},
     {'1': 'processed', '3': 3, '4': 1, '5': 4, '10': 'processed'},
     {'1': 'imported', '3': 4, '4': 1, '5': 4, '10': 'imported'},
@@ -245,11 +326,12 @@ const LibraryEvent$json = {
 
 /// Descriptor for `LibraryEvent`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List libraryEventDescriptor = $convert.base64Decode(
-    'CgxMaWJyYXJ5RXZlbnQSFAoFZXZlbnQYASABKAlSBWV2ZW50EhcKB3NjYW5faWQYAiABKARSBn'
-    'NjYW5JZBIcCglwcm9jZXNzZWQYAyABKARSCXByb2Nlc3NlZBIaCghpbXBvcnRlZBgEIAEoBFII'
-    'aW1wb3J0ZWQSEgoEcGF0aBgFIAEoCVIEcGF0aBIYCgdtZXNzYWdlGAYgASgJUgdtZXNzYWdlEi'
-    'EKDHNvdXJjZV9sYWJlbBgHIAEoCVILc291cmNlTGFiZWwSHwoLc291cmNlX3BhdGgYCCABKAlS'
-    'CnNvdXJjZVBhdGgSJQoObWF0Y2hpbmdfZmlsZXMYCSABKARSDW1hdGNoaW5nRmlsZXM=');
+    'CgxMaWJyYXJ5RXZlbnQSLwoFZXZlbnQYASABKA4yGS5jYXJuaW5lLkxpYnJhcnlFdmVudFR5cG'
+    'VSBWV2ZW50EhcKB3NjYW5faWQYAiABKARSBnNjYW5JZBIcCglwcm9jZXNzZWQYAyABKARSCXBy'
+    'b2Nlc3NlZBIaCghpbXBvcnRlZBgEIAEoBFIIaW1wb3J0ZWQSEgoEcGF0aBgFIAEoCVIEcGF0aB'
+    'IYCgdtZXNzYWdlGAYgASgJUgdtZXNzYWdlEiEKDHNvdXJjZV9sYWJlbBgHIAEoCVILc291cmNl'
+    'TGFiZWwSHwoLc291cmNlX3BhdGgYCCABKAlSCnNvdXJjZVBhdGgSJQoObWF0Y2hpbmdfZmlsZX'
+    'MYCSABKARSDW1hdGNoaW5nRmlsZXM=');
 
 @$core.Deprecated('Use mediaItemDescriptor instead')
 const MediaItem$json = {
@@ -419,7 +501,14 @@ final $typed_data.Uint8List playerStateDescriptor = $convert.base64Decode(
 const PlayerEvent$json = {
   '1': 'PlayerEvent',
   '2': [
-    {'1': 'event', '3': 1, '4': 1, '5': 9, '10': 'event'},
+    {
+      '1': 'event',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.carnine.PlayerEventType',
+      '10': 'event'
+    },
     {
       '1': 'state',
       '3': 2,
@@ -434,22 +523,30 @@ const PlayerEvent$json = {
 
 /// Descriptor for `PlayerEvent`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List playerEventDescriptor = $convert.base64Decode(
-    'CgtQbGF5ZXJFdmVudBIUCgVldmVudBgBIAEoCVIFZXZlbnQSKgoFc3RhdGUYAiABKAsyFC5jYX'
-    'JuaW5lLlBsYXllclN0YXRlUgVzdGF0ZRIYCgdtZXNzYWdlGAMgASgJUgdtZXNzYWdl');
+    'CgtQbGF5ZXJFdmVudBIuCgVldmVudBgBIAEoDjIYLmNhcm5pbmUuUGxheWVyRXZlbnRUeXBlUg'
+    'VldmVudBIqCgVzdGF0ZRgCIAEoCzIULmNhcm5pbmUuUGxheWVyU3RhdGVSBXN0YXRlEhgKB21l'
+    'c3NhZ2UYAyABKAlSB21lc3NhZ2U=');
 
 @$core.Deprecated('Use audioEventDescriptor instead')
 const AudioEvent$json = {
   '1': 'AudioEvent',
   '2': [
-    {'1': 'event', '3': 1, '4': 1, '5': 9, '10': 'event'},
+    {
+      '1': 'event',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.carnine.AudioEventType',
+      '10': 'event'
+    },
     {'1': 'message', '3': 2, '4': 1, '5': 9, '10': 'message'},
   ],
 };
 
 /// Descriptor for `AudioEvent`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List audioEventDescriptor = $convert.base64Decode(
-    'CgpBdWRpb0V2ZW50EhQKBWV2ZW50GAEgASgJUgVldmVudBIYCgdtZXNzYWdlGAIgASgJUgdtZX'
-    'NzYWdl');
+    'CgpBdWRpb0V2ZW50Ei0KBWV2ZW50GAEgASgOMhcuY2FybmluZS5BdWRpb0V2ZW50VHlwZVIFZX'
+    'ZlbnQSGAoHbWVzc2FnZRgCIAEoCVIHbWVzc2FnZQ==');
 
 @$core.Deprecated('Use configurationDescriptor instead')
 const Configuration$json = {

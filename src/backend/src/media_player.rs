@@ -6,7 +6,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use tokio::sync::broadcast;
 
 use crate::audio_engine::{self, AudioEngine, Playback};
-use crate::carnine::{AudioEvent, PlayerEvent, PlayerState};
+use crate::carnine::{AudioEvent, AudioEventType, PlayerEvent, PlayerEventType, PlayerState};
 use crate::config::AudioConfig;
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -82,7 +82,7 @@ impl MediaPlayer {
             unknown => Err(anyhow!("unknown media command: {unknown}")),
         };
         if let Err(error) = &result {
-            self.publish("error", error.to_string());
+            self.publish(PlayerEventType::PlayerError, error.to_string());
         }
         result
     }
@@ -101,7 +101,7 @@ impl MediaPlayer {
 
     pub fn snapshot_event(&self) -> PlayerEvent {
         PlayerEvent {
-            event: "snapshot".to_string(),
+            event: PlayerEventType::PlayerSnapshot as i32,
             state: Some(self.player_state()),
             message: "current player state".to_string(),
         }
@@ -109,7 +109,7 @@ impl MediaPlayer {
 
     pub fn position_event(&self) -> PlayerEvent {
         PlayerEvent {
-            event: "position_changed".to_string(),
+            event: PlayerEventType::PlayerPositionChanged as i32,
             state: Some(self.player_state()),
             message: "playback position updated".to_string(),
         }
@@ -180,17 +180,17 @@ impl MediaPlayer {
         }
     }
 
-    fn publish(&self, event: &str, message: impl Into<String>) {
+    fn publish(&self, event: PlayerEventType, message: impl Into<String>) {
         let _ = self.events.send(PlayerEvent {
-            event: event.to_string(),
+            event: event as i32,
             state: Some(self.player_state()),
             message: message.into(),
         });
     }
 
-    fn publish_audio(&self, event: &str, message: impl Into<String>) {
+    fn publish_audio(&self, event: AudioEventType, message: impl Into<String>) {
         let _ = self.audio_events.send(AudioEvent {
-            event: event.to_string(),
+            event: event as i32,
             message: message.into(),
         });
     }
@@ -294,8 +294,11 @@ impl MediaPlayer {
                 .started_at
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(Instant::now());
-            self.publish_audio("source_resume_requested", "audio source resume requested");
-            self.publish("resumed", "playback resumed");
+            self.publish_audio(
+                AudioEventType::AudioSourceResumeRequested,
+                "audio source resume requested",
+            );
+            self.publish(PlayerEventType::PlayerResumed, "playback resumed");
             return Ok("playback resumed".to_string());
         }
         if input_path.is_empty() && !self.media_path().is_empty() {
@@ -362,8 +365,8 @@ impl MediaPlayer {
             .started_at
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(Instant::now());
-        self.publish_audio("source_started", "audio source started");
-        self.publish("playback_started", "playback started");
+        self.publish_audio(AudioEventType::AudioSourceStarted, "audio source started");
+        self.publish(PlayerEventType::PlayerPlaybackStarted, "playback started");
         Ok("playback started".to_string())
     }
 
@@ -441,7 +444,7 @@ impl MediaPlayer {
             .started_at
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(Instant::now());
-        self.publish("track_changed", "playback switched");
+        self.publish(PlayerEventType::PlayerTrackChanged, "playback switched");
         Ok("playback switched".to_string())
     }
 
@@ -464,8 +467,11 @@ impl MediaPlayer {
             .started_at
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
-        self.publish_audio("source_pause_requested", "audio source pause requested");
-        self.publish("paused", "playback paused");
+        self.publish_audio(
+            AudioEventType::AudioSourcePauseRequested,
+            "audio source pause requested",
+        );
+        self.publish(PlayerEventType::PlayerPaused, "playback paused");
         Ok("playback paused".to_string())
     }
 
@@ -476,10 +482,13 @@ impl MediaPlayer {
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let position_ms = self.position_ms();
         if let Some(active_playback) = playback.take() {
-            self.publish_audio("source_stop_requested", "audio source stop requested");
+            self.publish_audio(
+                AudioEventType::AudioSourceStopRequested,
+                "audio source stop requested",
+            );
             active_playback.stop()?;
-            self.publish_audio("decoder_stopped", "audio decoder stopped");
-            self.publish_audio("source_removed", "audio source removed");
+            self.publish_audio(AudioEventType::AudioDecoderStopped, "audio decoder stopped");
+            self.publish_audio(AudioEventType::AudioSourceRemoved, "audio source removed");
         }
         *self
             .media_path
@@ -497,7 +506,7 @@ impl MediaPlayer {
             .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = PlaybackState::Stopped;
-        self.publish("stopped", "playback stopped");
+        self.publish(PlayerEventType::PlayerStopped, "playback stopped");
         Ok("playback stopped".to_string())
     }
 }
@@ -505,6 +514,7 @@ impl MediaPlayer {
 #[cfg(test)]
 mod tests {
     use super::MediaPlayer;
+    use crate::carnine::PlayerEventType;
     use crate::config::AudioConfig;
 
     fn player() -> MediaPlayer {
@@ -565,7 +575,7 @@ mod tests {
 
         let event = player.position_event();
 
-        assert_eq!(event.event, "position_changed");
+        assert_eq!(event.event, PlayerEventType::PlayerPositionChanged as i32);
         assert_eq!(
             event.state.expect("position state should exist").status,
             "stopped"

@@ -1,4 +1,6 @@
-/// Kind of `LibraryEvent.event` string emitted by the backend rescan and
+import 'package:carnine_frontend/lib/carnine.pb.dart';
+
+/// Kind of `LibraryEvent.event` emitted by the backend rescan and
 /// library event streams.
 enum LibraryScanEventKind {
   scanStarted,
@@ -12,17 +14,21 @@ enum LibraryScanEventKind {
   unknown,
 }
 
-/// Maps the backend's `LibraryEvent.event` string onto [LibraryScanEventKind].
-LibraryScanEventKind libraryScanEventKindFrom(String raw) {
-  return switch (raw.trim()) {
-    'scan_started' => LibraryScanEventKind.scanStarted,
-    'progress' => LibraryScanEventKind.progress,
-    'error' => LibraryScanEventKind.error,
-    'scan_completed' => LibraryScanEventKind.scanCompleted,
-    'music_found' => LibraryScanEventKind.musicFound,
-    'import_started' => LibraryScanEventKind.importStarted,
-    'import_progress' => LibraryScanEventKind.importProgress,
-    'import_completed' => LibraryScanEventKind.importCompleted,
+/// Maps the protobuf enum onto the presentation-layer event kind.
+LibraryScanEventKind libraryScanEventKindFrom(LibraryEventType raw) {
+  return switch (raw) {
+    LibraryEventType.LIBRARY_SCAN_STARTED => LibraryScanEventKind.scanStarted,
+    LibraryEventType.LIBRARY_PROGRESS => LibraryScanEventKind.progress,
+    LibraryEventType.LIBRARY_ERROR => LibraryScanEventKind.error,
+    LibraryEventType.LIBRARY_SCAN_COMPLETED =>
+      LibraryScanEventKind.scanCompleted,
+    LibraryEventType.LIBRARY_MUSIC_FOUND => LibraryScanEventKind.musicFound,
+    LibraryEventType.LIBRARY_IMPORT_STARTED =>
+      LibraryScanEventKind.importStarted,
+    LibraryEventType.LIBRARY_IMPORT_PROGRESS =>
+      LibraryScanEventKind.importProgress,
+    LibraryEventType.LIBRARY_IMPORT_COMPLETED =>
+      LibraryScanEventKind.importCompleted,
     _ => LibraryScanEventKind.unknown,
   };
 }

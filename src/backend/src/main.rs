@@ -31,12 +31,12 @@ use carnine::{
     carnine_service_server::{CarnineService, CarnineServiceServer},
     config_service_server::{ConfigService, ConfigServiceServer},
     media_service_server::{MediaService, MediaServiceServer},
-    AddPlaylistEntryRequest, AudioEvent, CanData, CanDataRequest, CanDataResponse, CommandResponse,
-    Configuration, ConfigurationResponse, CreatePlaylistRequest, Empty, GetPlaylistRequest,
-    ImportMusicVolumeRequest, LibraryEvent, ListPlaylistsResponse, PlayPlaylistRequest,
-    PlayQueueEntryRequest, PlayRequest, PlayerEvent, PlayerState, Playlist, PlaylistEntry,
-    RescanMediaRequest, SearchMediaRequest, SearchMediaResponse, ServiceVersion,
-    UpdateConfigurationRequest,
+    AddPlaylistEntryRequest, AudioEvent, AudioEventType, CanData, CanDataRequest, CanDataResponse,
+    CommandResponse, Configuration, ConfigurationResponse, CreatePlaylistRequest, Empty,
+    GetPlaylistRequest, ImportMusicVolumeRequest, LibraryEvent, LibraryEventType,
+    ListPlaylistsResponse, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PlayerEvent,
+    PlayerState, Playlist, PlaylistEntry, RescanMediaRequest, SearchMediaRequest,
+    SearchMediaResponse, ServiceVersion, UpdateConfigurationRequest,
 };
 
 #[derive(Debug, Default)]
@@ -224,7 +224,7 @@ impl MediaServiceImpl {
         let database = database::Database::open(&self.database_path)?;
         let scan_id = self.next_scan_id.fetch_add(1, Ordering::Relaxed);
         let mut events = vec![LibraryEvent {
-            event: "scan_started".to_string(),
+            event: LibraryEventType::LibraryScanStarted as i32,
             scan_id,
             ..Default::default()
         }];
@@ -236,7 +236,7 @@ impl MediaServiceImpl {
                     imported += count as u64;
                     processed += count as u64;
                     events.push(LibraryEvent {
-                        event: "progress".to_string(),
+                        event: LibraryEventType::LibraryProgress as i32,
                         scan_id,
                         processed,
                         imported,
@@ -245,7 +245,7 @@ impl MediaServiceImpl {
                     });
                 }
                 Err(error) => events.push(LibraryEvent {
-                    event: "error".to_string(),
+                    event: LibraryEventType::LibraryError as i32,
                     scan_id,
                     path: folder.display().to_string(),
                     message: error.to_string(),
@@ -254,7 +254,7 @@ impl MediaServiceImpl {
             }
         }
         events.push(LibraryEvent {
-            event: "scan_completed".to_string(),
+            event: LibraryEventType::LibraryScanCompleted as i32,
             scan_id,
             processed,
             imported,
@@ -292,7 +292,7 @@ impl MediaServiceImpl {
             "music found on volume"
         );
         let event = LibraryEvent {
-            event: "music_found".to_string(),
+            event: LibraryEventType::LibraryMusicFound as i32,
             scan_id: self.next_scan_id.fetch_add(1, Ordering::Relaxed),
             source_label,
             source_path: source_path.display().to_string(),
@@ -315,7 +315,7 @@ impl MediaServiceImpl {
         let files = database::find_audio_files(&source_path, &["mp3".to_string()])?;
         let scan_id = self.next_scan_id.fetch_add(1, Ordering::Relaxed);
         let mut events = vec![LibraryEvent {
-            event: "import_started".to_string(),
+            event: LibraryEventType::LibraryImportStarted as i32,
             scan_id,
             matching_files: files.len() as u64,
             source_path: source_path.display().to_string(),
@@ -331,7 +331,7 @@ impl MediaServiceImpl {
             }
             fs::copy(source_file, &target_file)?;
             events.push(LibraryEvent {
-                event: "import_progress".to_string(),
+                event: LibraryEventType::LibraryImportProgress as i32,
                 scan_id,
                 processed: (index + 1) as u64,
                 imported: (index + 1) as u64,
@@ -341,7 +341,7 @@ impl MediaServiceImpl {
             });
         }
         events.push(LibraryEvent {
-            event: "import_completed".to_string(),
+            event: LibraryEventType::LibraryImportCompleted as i32,
             scan_id,
             processed: files.len() as u64,
             imported: files.len() as u64,
@@ -416,9 +416,9 @@ impl AudioServiceImpl {
         }
     }
 
-    pub fn publish(&self, event: &str, message: impl Into<String>) {
+    pub fn publish(&self, event: AudioEventType, message: impl Into<String>) {
         let _ = self.events.send(AudioEvent {
-            event: event.to_string(),
+            event: event as i32,
             message: message.into(),
         });
     }
@@ -766,7 +766,7 @@ impl AudioService for AudioServiceImpl {
         _request: Request<Empty>,
     ) -> Result<Response<Self::StreamAudioEventsStream>, Status> {
         let snapshot = tokio_stream::once(Ok(AudioEvent {
-            event: "audio_ready".to_string(),
+            event: AudioEventType::AudioReady as i32,
             message: format!("audio backend {} on {}", self.backend, self.device),
         }));
         let updates = tokio_stream::wrappers::BroadcastStream::new(self.events.subscribe())
@@ -971,8 +971,8 @@ mod tests {
     use crate::audio_engine::{AudioEngine, Playback};
     use crate::carnine::{
         audio_service_server::AudioService, config_service_server::ConfigService,
-        media_service_server::MediaService, system_service_server::SystemService, Empty,
-        RescanMediaRequest,
+        media_service_server::MediaService, system_service_server::SystemService, AudioEventType,
+        Empty, LibraryEventType, PlayerEventType, RescanMediaRequest,
     };
     use crate::config;
     use crate::database;
@@ -1169,16 +1169,16 @@ mod tests {
         assert_eq!(events.len(), 3);
         assert_eq!(
             events[0].as_ref().expect("start event").event,
-            "scan_started"
+            LibraryEventType::LibraryScanStarted as i32
         );
         assert_eq!(
             events[1].as_ref().expect("progress event").event,
-            "progress"
+            LibraryEventType::LibraryProgress as i32
         );
         assert_eq!(events[1].as_ref().expect("progress event").imported, 1);
         assert_eq!(
             events[2].as_ref().expect("complete event").event,
-            "scan_completed"
+            LibraryEventType::LibraryScanCompleted as i32
         );
         let _ = std::fs::remove_dir_all(folder);
     }
@@ -1214,7 +1214,7 @@ mod tests {
             .expect("snapshot should exist")
             .expect("snapshot should be valid");
 
-        assert_eq!(event.event, "snapshot");
+        assert_eq!(event.event, PlayerEventType::PlayerSnapshot as i32);
         assert_eq!(event.state.expect("snapshot state").status, "stopped");
 
         let _ = service.player.execute("invalid", "");
@@ -1224,7 +1224,7 @@ mod tests {
             .expect("error event should arrive")
             .expect("error event should be valid");
 
-        assert_eq!(event.event, "error");
+        assert_eq!(event.event, PlayerEventType::PlayerError as i32);
         assert!(event.message.contains("unknown media command"));
     }
 
@@ -1251,7 +1251,7 @@ mod tests {
             .await
             .expect("snapshot should exist")
             .expect("snapshot should be valid");
-        assert_eq!(snapshot.event, "snapshot");
+        assert_eq!(snapshot.event, PlayerEventType::PlayerSnapshot as i32);
 
         service
             .player
@@ -1269,7 +1269,7 @@ mod tests {
             .await
             .expect("start event should arrive")
             .expect("start event should be valid");
-        assert_eq!(started.event, "playback_started");
+        assert_eq!(started.event, PlayerEventType::PlayerPlaybackStarted as i32);
 
         let first = tokio::time::timeout(Duration::from_secs(2), events.next())
             .await
@@ -1282,8 +1282,8 @@ mod tests {
             .expect("position stream should remain open")
             .expect("second position event should be valid");
 
-        assert_eq!(first.event, "position_changed");
-        assert_eq!(second.event, "position_changed");
+        assert_eq!(first.event, PlayerEventType::PlayerPositionChanged as i32);
+        assert_eq!(second.event, PlayerEventType::PlayerPositionChanged as i32);
         assert!(
             second.state.expect("second state should exist").position_ms
                 >= first.state.expect("first state should exist").position_ms
@@ -1425,7 +1425,7 @@ mod tests {
             .expect("queue entry should start");
         let event = events.try_recv().expect("track event should be published");
 
-        assert_eq!(event.event, "track_changed");
+        assert_eq!(event.event, PlayerEventType::PlayerTrackChanged as i32);
         assert_eq!(event.state.expect("event state").media_path, "second.wav");
     }
 
@@ -1458,7 +1458,7 @@ mod tests {
             .await
             .expect("scan event should arrive")
             .expect("scan event should be valid");
-        assert_eq!(event.event, "scan_started");
+        assert_eq!(event.event, LibraryEventType::LibraryScanStarted as i32);
         let _ = std::fs::remove_dir_all(folder);
     }
 
@@ -1476,16 +1476,16 @@ mod tests {
             .await
             .expect("audio snapshot should arrive")
             .expect("audio snapshot should be valid");
-        assert_eq!(snapshot.event, "audio_ready");
+        assert_eq!(snapshot.event, AudioEventType::AudioReady as i32);
         assert!(snapshot.message.contains("plughw:0,0"));
 
-        service.publish("device_changed", "audio device changed");
+        service.publish(AudioEventType::AudioDeviceChanged, "audio device changed");
         let event = events
             .next()
             .await
             .expect("audio update should arrive")
             .expect("audio update should be valid");
-        assert_eq!(event.event, "device_changed");
+        assert_eq!(event.event, AudioEventType::AudioDeviceChanged as i32);
     }
 
     #[test]

@@ -11,8 +11,8 @@ pub mod carnine {
 
 use carnine::{
     audio_service_client::AudioServiceClient, media_service_client::MediaServiceClient, Empty,
-    ImportMusicVolumeRequest, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest,
-    RescanMediaRequest,
+    ImportMusicVolumeRequest, LibraryEventType, PlayPlaylistRequest, PlayQueueEntryRequest,
+    PlayRequest, RescanMediaRequest,
 };
 
 #[tokio::main]
@@ -133,7 +133,7 @@ async fn library_event_smoke(endpoint: &str) -> Result<()> {
     println!("rescan started");
     while let Some(event) = stream.message().await? {
         println!("library event={} scan_id={}", event.event, event.scan_id);
-        if event.event == "scan_completed" {
+        if event.event == LibraryEventType::LibraryScanCompleted as i32 {
             break;
         }
     }

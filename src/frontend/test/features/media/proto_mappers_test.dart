@@ -74,32 +74,37 @@ void main() {
   });
 
   group('playerEventKindFrom', () {
-    test('maps every backend event string', () {
+    test('maps every backend event enum', () {
       const cases = {
-        'snapshot': PlayerEventKind.snapshot,
-        'position_changed': PlayerEventKind.positionChanged,
-        'playback_started': PlayerEventKind.playbackStarted,
-        'resumed': PlayerEventKind.resumed,
-        'paused': PlayerEventKind.paused,
-        'stopped': PlayerEventKind.stopped,
-        'track_changed': PlayerEventKind.trackChanged,
-        'error': PlayerEventKind.error,
+        PlayerEventType.PLAYER_SNAPSHOT: PlayerEventKind.snapshot,
+        PlayerEventType.PLAYER_POSITION_CHANGED:
+            PlayerEventKind.positionChanged,
+        PlayerEventType.PLAYER_PLAYBACK_STARTED:
+            PlayerEventKind.playbackStarted,
+        PlayerEventType.PLAYER_RESUMED: PlayerEventKind.resumed,
+        PlayerEventType.PLAYER_PAUSED: PlayerEventKind.paused,
+        PlayerEventType.PLAYER_STOPPED: PlayerEventKind.stopped,
+        PlayerEventType.PLAYER_TRACK_CHANGED: PlayerEventKind.trackChanged,
+        PlayerEventType.PLAYER_ERROR: PlayerEventKind.error,
       };
 
       for (final entry in cases.entries) {
-        expect(playerEventKindFrom(entry.key), entry.value, reason: entry.key);
+        expect(playerEventKindFrom(entry.key), entry.value);
       }
     });
 
-    test('maps an unrecognised event to unknown', () {
-      expect(playerEventKindFrom('some_future_event'), PlayerEventKind.unknown);
+    test('maps the unspecified event to unknown', () {
+      expect(
+        playerEventKindFrom(PlayerEventType.PLAYER_EVENT_TYPE_UNSPECIFIED),
+        PlayerEventKind.unknown,
+      );
     });
   });
 
   group('playerEventFromProto', () {
     test('resolves state when the proto event carries one', () {
       final event = PlayerEvent(
-        event: 'snapshot',
+        event: PlayerEventType.PLAYER_SNAPSHOT,
         state: PlayerState(
           status: 'playing',
           mediaPath: '/music/a.mp3',
@@ -121,7 +126,10 @@ void main() {
     });
 
     test('state is null when the proto event has none set', () {
-      final event = PlayerEvent(event: 'error', message: 'boom');
+      final event = PlayerEvent(
+        event: PlayerEventType.PLAYER_ERROR,
+        message: 'boom',
+      );
 
       final update = playerEventFromProto(event);
 
@@ -131,23 +139,27 @@ void main() {
   });
 
   group('libraryScanEventKindFrom', () {
-    test('maps every backend event string', () {
+    test('maps every backend event enum', () {
       const cases = {
-        'scan_started': LibraryScanEventKind.scanStarted,
-        'progress': LibraryScanEventKind.progress,
-        'error': LibraryScanEventKind.error,
-        'scan_completed': LibraryScanEventKind.scanCompleted,
+        LibraryEventType.LIBRARY_SCAN_STARTED: LibraryScanEventKind.scanStarted,
+        LibraryEventType.LIBRARY_PROGRESS: LibraryScanEventKind.progress,
+        LibraryEventType.LIBRARY_ERROR: LibraryScanEventKind.error,
+        LibraryEventType.LIBRARY_SCAN_COMPLETED:
+            LibraryScanEventKind.scanCompleted,
       };
 
       for (final entry in cases.entries) {
-        expect(libraryScanEventKindFrom(entry.key), entry.value,
-            reason: entry.key);
+        expect(libraryScanEventKindFrom(entry.key), entry.value);
       }
     });
 
-    test('maps an unrecognised event to unknown', () {
-      expect(libraryScanEventKindFrom('something_else'),
-          LibraryScanEventKind.unknown);
+    test('maps the unspecified event to unknown', () {
+      expect(
+        libraryScanEventKindFrom(
+          LibraryEventType.LIBRARY_EVENT_TYPE_UNSPECIFIED,
+        ),
+        LibraryScanEventKind.unknown,
+      );
     });
   });
 }

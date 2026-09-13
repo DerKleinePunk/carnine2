@@ -107,10 +107,20 @@ message ImportMusicVolumeRequest {
   string source_path = 1;
 }
 
+enum LibraryEventType {
+  LIBRARY_EVENT_TYPE_UNSPECIFIED = 0;
+  LIBRARY_SCAN_STARTED = 1;
+  LIBRARY_PROGRESS = 2;
+  LIBRARY_ERROR = 3;
+  LIBRARY_SCAN_COMPLETED = 4;
+  LIBRARY_MUSIC_FOUND = 5;
+  LIBRARY_IMPORT_STARTED = 6;
+  LIBRARY_IMPORT_PROGRESS = 7;
+  LIBRARY_IMPORT_COMPLETED = 8;
+}
+
 message LibraryEvent {
-  // Values: scan_started, progress, error, scan_completed, music_found,
-  // import_started, import_progress, import_completed.
-  string event = 1;
+  LibraryEventType event = 1;
   uint64 scan_id = 2;
   uint64 processed = 3;
   uint64 imported = 4;
@@ -178,16 +188,38 @@ message PlayerState {
 }
 
 message PlayerEvent {
-  string event = 1;
+  PlayerEventType event = 1;
   PlayerState state = 2;
   string message = 3;
 }
 
+enum PlayerEventType {
+  PLAYER_EVENT_TYPE_UNSPECIFIED = 0;
+  PLAYER_SNAPSHOT = 1;
+  PLAYER_POSITION_CHANGED = 2;
+  PLAYER_PLAYBACK_STARTED = 3;
+  PLAYER_RESUMED = 4;
+  PLAYER_PAUSED = 5;
+  PLAYER_STOPPED = 6;
+  PLAYER_TRACK_CHANGED = 7;
+  PLAYER_ERROR = 8;
+}
+
+enum AudioEventType {
+  AUDIO_EVENT_TYPE_UNSPECIFIED = 0;
+  AUDIO_READY = 1;
+  AUDIO_SOURCE_STARTED = 2;
+  AUDIO_SOURCE_PAUSE_REQUESTED = 3;
+  AUDIO_SOURCE_RESUME_REQUESTED = 4;
+  AUDIO_SOURCE_STOP_REQUESTED = 5;
+  AUDIO_DECODER_STOPPED = 6;
+  AUDIO_SOURCE_REMOVED = 7;
+  AUDIO_DEVICE_CHANGED = 8;
+  AUDIO_ERROR = 9;
+}
+
 message AudioEvent {
-  // Values: audio_ready, source_started, source_pause_requested,
-  // source_resume_requested, source_stop_requested, decoder_stopped,
-  // source_removed, device_changed, error.
-  string event = 1;
+  AudioEventType event = 1;
   string message = 2;
 }
 

@@ -28,6 +28,7 @@ This directory contains the Arc42 template for documenting the architecture of t
 19. [18 – Future Work](18-future-work.md)
 20. [19 – ivi-homescreen Evaluation](19-ivi-homescreen-evaluation.md)
 21. [20 – Media Backend Plan](20-media-backend-plan.md)
+22. [21 – Protobuf Event Contract](21-protobuf-event-contract.md)
 
 ## Code
 

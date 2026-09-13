@@ -1,6 +1,7 @@
 import 'package:carnine_frontend/features/media/domain/models/player_snapshot.dart';
+import 'package:carnine_frontend/lib/carnine.pb.dart';
 
-/// Kind of `PlayerEvent.event` string emitted by the backend player stream.
+/// Kind of `PlayerEvent.event` emitted by the backend player stream.
 ///
 /// [unknown] keeps the mapping forward-compatible: a future backend event
 /// name is logged and ignored instead of crashing the UI.
@@ -16,17 +17,17 @@ enum PlayerEventKind {
   unknown,
 }
 
-/// Maps the backend's `PlayerEvent.event` string onto [PlayerEventKind].
-PlayerEventKind playerEventKindFrom(String raw) {
-  return switch (raw.trim()) {
-    'snapshot' => PlayerEventKind.snapshot,
-    'position_changed' => PlayerEventKind.positionChanged,
-    'playback_started' => PlayerEventKind.playbackStarted,
-    'resumed' => PlayerEventKind.resumed,
-    'paused' => PlayerEventKind.paused,
-    'stopped' => PlayerEventKind.stopped,
-    'track_changed' => PlayerEventKind.trackChanged,
-    'error' => PlayerEventKind.error,
+/// Maps the protobuf enum onto the presentation-layer event kind.
+PlayerEventKind playerEventKindFrom(PlayerEventType raw) {
+  return switch (raw) {
+    PlayerEventType.PLAYER_SNAPSHOT => PlayerEventKind.snapshot,
+    PlayerEventType.PLAYER_POSITION_CHANGED => PlayerEventKind.positionChanged,
+    PlayerEventType.PLAYER_PLAYBACK_STARTED => PlayerEventKind.playbackStarted,
+    PlayerEventType.PLAYER_RESUMED => PlayerEventKind.resumed,
+    PlayerEventType.PLAYER_PAUSED => PlayerEventKind.paused,
+    PlayerEventType.PLAYER_STOPPED => PlayerEventKind.stopped,
+    PlayerEventType.PLAYER_TRACK_CHANGED => PlayerEventKind.trackChanged,
+    PlayerEventType.PLAYER_ERROR => PlayerEventKind.error,
     _ => PlayerEventKind.unknown,
   };
 }

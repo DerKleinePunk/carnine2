@@ -15,7 +15,11 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
+import 'carnine.pbenum.dart';
+
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
+
+export 'carnine.pbenum.dart';
 
 class CanDataRequest extends $pb.GeneratedMessage {
   factory CanDataRequest({
@@ -901,7 +905,7 @@ class ImportMusicVolumeRequest extends $pb.GeneratedMessage {
 
 class LibraryEvent extends $pb.GeneratedMessage {
   factory LibraryEvent({
-    $core.String? event,
+    LibraryEventType? event,
     $fixnum.Int64? scanId,
     $fixnum.Int64? processed,
     $fixnum.Int64? imported,
@@ -937,7 +941,8 @@ class LibraryEvent extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'LibraryEvent',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
       createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'event')
+    ..aE<LibraryEventType>(1, _omitFieldNames ? '' : 'event',
+        enumValues: LibraryEventType.values)
     ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'scanId', $pb.PbFieldType.OU6,
         defaultOrMaker: $fixnum.Int64.ZERO)
     ..a<$fixnum.Int64>(
@@ -975,9 +980,9 @@ class LibraryEvent extends $pb.GeneratedMessage {
   static LibraryEvent? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.String get event => $_getSZ(0);
+  LibraryEventType get event => $_getN(0);
   @$pb.TagNumber(1)
-  set event($core.String value) => $_setString(0, value);
+  set event(LibraryEventType value) => $_setField(1, value);
   @$pb.TagNumber(1)
   $core.bool hasEvent() => $_has(0);
   @$pb.TagNumber(1)
@@ -1801,7 +1806,7 @@ class PlayerState extends $pb.GeneratedMessage {
 
 class PlayerEvent extends $pb.GeneratedMessage {
   factory PlayerEvent({
-    $core.String? event,
+    PlayerEventType? event,
     PlayerState? state,
     $core.String? message,
   }) {
@@ -1825,7 +1830,8 @@ class PlayerEvent extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'PlayerEvent',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
       createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'event')
+    ..aE<PlayerEventType>(1, _omitFieldNames ? '' : 'event',
+        enumValues: PlayerEventType.values)
     ..aOM<PlayerState>(2, _omitFieldNames ? '' : 'state',
         subBuilder: PlayerState.create)
     ..aOS(3, _omitFieldNames ? '' : 'message')
@@ -1851,9 +1857,9 @@ class PlayerEvent extends $pb.GeneratedMessage {
   static PlayerEvent? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.String get event => $_getSZ(0);
+  PlayerEventType get event => $_getN(0);
   @$pb.TagNumber(1)
-  set event($core.String value) => $_setString(0, value);
+  set event(PlayerEventType value) => $_setField(1, value);
   @$pb.TagNumber(1)
   $core.bool hasEvent() => $_has(0);
   @$pb.TagNumber(1)
@@ -1882,7 +1888,7 @@ class PlayerEvent extends $pb.GeneratedMessage {
 
 class AudioEvent extends $pb.GeneratedMessage {
   factory AudioEvent({
-    $core.String? event,
+    AudioEventType? event,
     $core.String? message,
   }) {
     final result = create();
@@ -1904,7 +1910,8 @@ class AudioEvent extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'AudioEvent',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
       createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'event')
+    ..aE<AudioEventType>(1, _omitFieldNames ? '' : 'event',
+        enumValues: AudioEventType.values)
     ..aOS(2, _omitFieldNames ? '' : 'message')
     ..hasRequiredFields = false;
 
@@ -1927,9 +1934,9 @@ class AudioEvent extends $pb.GeneratedMessage {
   static AudioEvent? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.String get event => $_getSZ(0);
+  AudioEventType get event => $_getN(0);
   @$pb.TagNumber(1)
-  set event($core.String value) => $_setString(0, value);
+  set event(AudioEventType value) => $_setField(1, value);
   @$pb.TagNumber(1)
   $core.bool hasEvent() => $_has(0);
   @$pb.TagNumber(1)
