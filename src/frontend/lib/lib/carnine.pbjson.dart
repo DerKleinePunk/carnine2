@@ -548,6 +548,30 @@ final $typed_data.Uint8List audioEventDescriptor = $convert.base64Decode(
     'CgpBdWRpb0V2ZW50Ei0KBWV2ZW50GAEgASgOMhcuY2FybmluZS5BdWRpb0V2ZW50VHlwZVIFZX'
     'ZlbnQSGAoHbWVzc2FnZRgCIAEoCVIHbWVzc2FnZQ==');
 
+@$core.Deprecated('Use setVolumeRequestDescriptor instead')
+const SetVolumeRequest$json = {
+  '1': 'SetVolumeRequest',
+  '2': [
+    {'1': 'percent', '3': 1, '4': 1, '5': 13, '10': 'percent'},
+  ],
+};
+
+/// Descriptor for `SetVolumeRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setVolumeRequestDescriptor = $convert.base64Decode(
+    'ChBTZXRWb2x1bWVSZXF1ZXN0EhgKB3BlcmNlbnQYASABKA1SB3BlcmNlbnQ=');
+
+@$core.Deprecated('Use volumeResponseDescriptor instead')
+const VolumeResponse$json = {
+  '1': 'VolumeResponse',
+  '2': [
+    {'1': 'percent', '3': 1, '4': 1, '5': 13, '10': 'percent'},
+  ],
+};
+
+/// Descriptor for `VolumeResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List volumeResponseDescriptor = $convert
+    .base64Decode('Cg5Wb2x1bWVSZXNwb25zZRIYCgdwZXJjZW50GAEgASgNUgdwZXJjZW50');
+
 @$core.Deprecated('Use configurationDescriptor instead')
 const Configuration$json = {
   '1': 'Configuration',

@@ -19,6 +19,10 @@ const PULSE_PROCESS_TIME_MILLISECONDS: u32 = 10;
 pub trait AudioEngine: Send + Sync {
     fn start(&self, input_path: &str) -> Result<Box<dyn Playback>>;
 
+    fn shutdown(&self) -> Result<()> {
+        Ok(())
+    }
+
     fn start_at(&self, input_path: &str, position_ms: i64) -> Result<Box<dyn Playback>> {
         let _ = position_ms;
         self.start(input_path)

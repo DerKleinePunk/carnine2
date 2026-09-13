@@ -1952,6 +1952,114 @@ class AudioEvent extends $pb.GeneratedMessage {
   void clearMessage() => $_clearField(2);
 }
 
+class SetVolumeRequest extends $pb.GeneratedMessage {
+  factory SetVolumeRequest({
+    $core.int? percent,
+  }) {
+    final result = create();
+    if (percent != null) result.percent = percent;
+    return result;
+  }
+
+  SetVolumeRequest._();
+
+  factory SetVolumeRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SetVolumeRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SetVolumeRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aI(1, _omitFieldNames ? '' : 'percent', fieldType: $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetVolumeRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetVolumeRequest copyWith(void Function(SetVolumeRequest) updates) =>
+      super.copyWith((message) => updates(message as SetVolumeRequest))
+          as SetVolumeRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetVolumeRequest create() => SetVolumeRequest._();
+  @$core.override
+  SetVolumeRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SetVolumeRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SetVolumeRequest>(create);
+  static SetVolumeRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get percent => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set percent($core.int value) => $_setUnsignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPercent() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPercent() => $_clearField(1);
+}
+
+class VolumeResponse extends $pb.GeneratedMessage {
+  factory VolumeResponse({
+    $core.int? percent,
+  }) {
+    final result = create();
+    if (percent != null) result.percent = percent;
+    return result;
+  }
+
+  VolumeResponse._();
+
+  factory VolumeResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory VolumeResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'VolumeResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aI(1, _omitFieldNames ? '' : 'percent', fieldType: $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  VolumeResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  VolumeResponse copyWith(void Function(VolumeResponse) updates) =>
+      super.copyWith((message) => updates(message as VolumeResponse))
+          as VolumeResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static VolumeResponse create() => VolumeResponse._();
+  @$core.override
+  VolumeResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static VolumeResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<VolumeResponse>(create);
+  static VolumeResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get percent => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set percent($core.int value) => $_setUnsignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPercent() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPercent() => $_clearField(1);
+}
+
 class Configuration extends $pb.GeneratedMessage {
   factory Configuration({
     $core.String? serverAddress,

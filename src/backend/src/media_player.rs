@@ -199,6 +199,10 @@ impl MediaPlayer {
         self.stop().map(|_| ())
     }
 
+    pub fn shutdown_output(&self) -> Result<()> {
+        self.engine.shutdown()
+    }
+
     fn stop_active_playback(&self) -> Result<()> {
         let active_playback = self
             .playback

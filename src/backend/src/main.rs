@@ -20,6 +20,7 @@ pub mod carnine {
 mod audio_engine;
 mod audio_mixer;
 mod audio_source;
+mod audio_volume;
 mod config;
 mod cpal_audio_engine;
 mod database;
@@ -36,7 +37,8 @@ use carnine::{
     GetPlaylistRequest, ImportMusicVolumeRequest, LibraryEvent, LibraryEventType,
     ListPlaylistsResponse, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PlayerEvent,
     PlayerState, Playlist, PlaylistEntry, RescanMediaRequest, SearchMediaRequest,
-    SearchMediaResponse, ServiceVersion, UpdateConfigurationRequest,
+    SearchMediaResponse, ServiceVersion, SetVolumeRequest, UpdateConfigurationRequest,
+    VolumeResponse,
 };
 
 #[derive(Debug, Default)]
@@ -397,22 +399,31 @@ pub struct AudioServiceImpl {
     events: broadcast::Sender<AudioEvent>,
     backend: String,
     device: String,
+    volume: Arc<audio_volume::AudioVolume>,
 }
 
 impl AudioServiceImpl {
     fn new(configuration: &config::AudioConfig) -> Self {
         let (events, _) = broadcast::channel(32);
-        Self::with_events(configuration, events)
+        Self::with_events(
+            configuration,
+            events,
+            Arc::new(audio_volume::AudioVolume::new(PathBuf::from(
+                "/var/lib/carnine/audio-volume",
+            ))),
+        )
     }
 
     fn with_events(
         configuration: &config::AudioConfig,
         events: broadcast::Sender<AudioEvent>,
+        volume: Arc<audio_volume::AudioVolume>,
     ) -> Self {
         Self {
             events,
             backend: configuration.backend.clone(),
             device: configuration.device.clone(),
+            volume,
         }
     }
 
@@ -782,6 +793,30 @@ impl AudioService for AudioServiceImpl {
             .filter_map(|event| async move { event.ok().map(Ok) });
         Ok(Response::new(Box::pin(snapshot.chain(updates))))
     }
+
+    async fn get_volume(
+        &self,
+        _request: Request<Empty>,
+    ) -> Result<Response<VolumeResponse>, Status> {
+        Ok(Response::new(VolumeResponse {
+            percent: u32::from(self.volume.current()),
+        }))
+    }
+
+    async fn set_volume(
+        &self,
+        request: Request<SetVolumeRequest>,
+    ) -> Result<Response<VolumeResponse>, Status> {
+        let percent = u8::try_from(request.into_inner().percent)
+            .map_err(|_| Status::invalid_argument("audio volume must be between 0 and 100"))?;
+        let percent = self
+            .volume
+            .set(percent)
+            .map_err(|error| Status::internal(error.to_string()))?;
+        Ok(Response::new(VolumeResponse {
+            percent: u32::from(percent),
+        }))
+    }
 }
 
 fn configuration_to_proto(configuration: &config::Config) -> Configuration {
@@ -884,6 +919,8 @@ async fn main() -> Result<()> {
         .init();
 
     info!(
+        release_version = env!("CARNINE_VERSION"),
+        build_id = env!("CARNINE_BUILD_ID"),
         "carnine backend bootstrap started; config={}",
         configuration_path.display()
     );
@@ -913,6 +950,10 @@ async fn main() -> Result<()> {
         configuration.media.supported_formats.clone(),
         configuration.media.resume_mode.clone(),
     )?;
+    let audio_volume = Arc::new(audio_volume::AudioVolume::new(PathBuf::from(
+        "/var/lib/carnine/audio-volume",
+    )));
+    audio_volume.start();
     media_service.restore_resume_state()?;
     storage_events::spawn(Arc::new(media_service.clone()));
     let media_player = Arc::clone(&media_service.player);
@@ -926,6 +967,7 @@ async fn main() -> Result<()> {
         .add_service(AudioServiceServer::new(AudioServiceImpl::with_events(
             &configuration.audio,
             media_service.player.audio_event_sender(),
+            Arc::clone(&audio_volume),
         )))
         .add_service(ConfigServiceServer::new(config_service))
         .add_service(carnine::system_service_server::SystemServiceServer::new(
@@ -938,6 +980,16 @@ async fn main() -> Result<()> {
     tokio::select! {
         result = &mut server => result?,
         _ = shutdown_signal() => {
+            if let Err(error) = media_service.save_resume_state() {
+                warn!(%error, "failed to save resume state during shutdown");
+            }
+            if let Err(error) = media_player.shutdown() {
+                warn!(%error, "failed to stop playback during shutdown");
+            }
+            if let Err(error) = media_player.shutdown_output() {
+                warn!(%error, "failed to pause audio output during shutdown");
+            }
+            audio_volume.shutdown();
             let _ = shutdown_sender.send(());
             match tokio::time::timeout(Duration::from_secs(5), &mut server).await {
                 Ok(result) => result?,
@@ -946,8 +998,10 @@ async fn main() -> Result<()> {
         }
     }
 
-    media_service.save_resume_state()?;
-    media_player.shutdown()?;
+    let resume_result = media_service.save_resume_state();
+    let player_result = media_player.shutdown();
+    resume_result?;
+    player_result?;
     warn!("gRPC server stopped");
     Ok(())
 }

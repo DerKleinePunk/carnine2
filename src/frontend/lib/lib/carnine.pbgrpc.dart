@@ -641,6 +641,20 @@ class AudioServiceClient extends $grpc.Client {
     return $createUnaryCall(_$getServiceVersion, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.VolumeResponse> getVolume(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getVolume, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.VolumeResponse> setVolume(
+    $0.SetVolumeRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setVolume, request, options: options);
+  }
+
   $grpc.ResponseStream<$0.AudioEvent> streamAudioEvents(
     $0.Empty request, {
     $grpc.CallOptions? options,
@@ -657,6 +671,15 @@ class AudioServiceClient extends $grpc.Client {
           '/carnine.AudioService/GetServiceVersion',
           ($0.Empty value) => value.writeToBuffer(),
           $0.ServiceVersion.fromBuffer);
+  static final _$getVolume = $grpc.ClientMethod<$0.Empty, $0.VolumeResponse>(
+      '/carnine.AudioService/GetVolume',
+      ($0.Empty value) => value.writeToBuffer(),
+      $0.VolumeResponse.fromBuffer);
+  static final _$setVolume =
+      $grpc.ClientMethod<$0.SetVolumeRequest, $0.VolumeResponse>(
+          '/carnine.AudioService/SetVolume',
+          ($0.SetVolumeRequest value) => value.writeToBuffer(),
+          $0.VolumeResponse.fromBuffer);
   static final _$streamAudioEvents =
       $grpc.ClientMethod<$0.Empty, $0.AudioEvent>(
           '/carnine.AudioService/StreamAudioEvents',
@@ -676,6 +699,20 @@ abstract class AudioServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($0.ServiceVersion value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.VolumeResponse>(
+        'GetVolume',
+        getVolume_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.VolumeResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.SetVolumeRequest, $0.VolumeResponse>(
+        'SetVolume',
+        setVolume_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.SetVolumeRequest.fromBuffer(value),
+        ($0.VolumeResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.Empty, $0.AudioEvent>(
         'StreamAudioEvents',
         streamAudioEvents_Pre,
@@ -692,6 +729,22 @@ abstract class AudioServiceBase extends $grpc.Service {
 
   $async.Future<$0.ServiceVersion> getServiceVersion(
       $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.VolumeResponse> getVolume_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return getVolume($call, await $request);
+  }
+
+  $async.Future<$0.VolumeResponse> getVolume(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.VolumeResponse> setVolume_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.SetVolumeRequest> $request) async {
+    return setVolume($call, await $request);
+  }
+
+  $async.Future<$0.VolumeResponse> setVolume(
+      $grpc.ServiceCall call, $0.SetVolumeRequest request);
 
   $async.Stream<$0.AudioEvent> streamAudioEvents_Pre(
       $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async* {

@@ -2,6 +2,8 @@
 Description=Carnine Backend
 After=network.target udisks2.service sound.target
 Wants=network.target
+Conflicts=shutdown.target reboot.target halt.target poweroff.target
+Before=shutdown.target reboot.target halt.target poweroff.target
 
 [Service]
 Type=simple

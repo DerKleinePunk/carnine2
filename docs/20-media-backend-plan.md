@@ -409,9 +409,12 @@ konfigurierbar sein, mindestens zwischen:
 - Musik pausieren
 - Musik leiser machen
 
-Die Lautstaerke wird in der ersten Version nicht durch den MediaService
-verwaltet. Getrennte Lautstaerkegruppen und die vollstaendige Audio-System-
-Policy kommen spaeter.
+Das Waveshare 7inch HDMI LCD (H) besitzt zwei Audioausgaenge fuer Kopfhoerer
+und Lautsprecher; jeder Lautsprecherkanal verfuegt ueber einen 2,6-W-PA-
+Verstaerker. Die Lautstaerke wird in der ersten Version nicht durch den
+MediaService verwaltet, sondern ueber den ALSA-PCM-Mixer des gewaehlten
+Ausgabegeraets geregelt. Getrennte Lautstaerkegruppen und die vollstaendige
+Audio-System-Policy kommen spaeter.
 
 ## FFmpeg- und Audio-Entscheidung
 

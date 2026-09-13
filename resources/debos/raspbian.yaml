@@ -235,6 +235,7 @@ actions:
     command: |
       adduser --gecos "Raspberry Pi User" --disabled-password --shell /bin/bash pi
       adduser pi sudo
+      adduser pi audio
       echo pi:{{ $rootpassword }} | chpasswd
       {{ if $ssh_public_key -}}
       install -d -o pi -g pi -m 0700 /home/pi/.ssh

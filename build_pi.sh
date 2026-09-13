@@ -12,6 +12,9 @@ mkdir -p "$LOG_DIR"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 LOG_FILE="$LOG_DIR/pi-${TIMESTAMP}.log"
 VERSION="$(tr -d '[:space:]' < "$ROOT_DIR/VERSION")"
+GIT_HASH="$(git -C "$ROOT_DIR" rev-parse --short=12 HEAD)"
+BUILD_TIMESTAMP="$(date -u +%Y%m%d%H%M%S)"
+BUILD_VERSION="${VERSION}+git${BUILD_TIMESTAMP}.${GIT_HASH}"
 
 exec > >(tee -a "$LOG_FILE") 2>&1
 
@@ -21,6 +24,7 @@ if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   exit 1
 fi
 echo "[pi] Building Carnine version $VERSION"
+echo "[pi] Build version: $BUILD_VERSION"
 
 if [[ ! -f "$SYSROOT/usr/lib/aarch64-linux-gnu/pkgconfig/alsa.pc" ]]; then
   echo "[pi] ERROR: ARM64 sysroot is missing or incomplete: $SYSROOT"
@@ -41,14 +45,14 @@ echo "[pi] Building backend (aarch64-unknown-linux-gnu, release)..."
   PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
   PKG_CONFIG_PATH="$SYSROOT/usr/lib/aarch64-linux-gnu/pkgconfig" \
   CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
-  CARNINE_VERSION="$VERSION" cargo build --release --target aarch64-unknown-linux-gnu
+  CARNINE_VERSION="$VERSION" CARNINE_BUILD_ID="$BUILD_VERSION" cargo build --release --target aarch64-unknown-linux-gnu
   rm -f target/debian/carnine-backend_*_arm64.deb
   rm -f target/aarch64-unknown-linux-gnu/debian/carnine-backend_*_arm64.deb
   PKG_CONFIG_ALLOW_CROSS=1 \
   PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
   PKG_CONFIG_PATH="$SYSROOT/usr/lib/aarch64-linux-gnu/pkgconfig" \
   CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
-  CARNINE_VERSION="$VERSION" cargo deb --target aarch64-unknown-linux-gnu --deb-version "$VERSION"
+  CARNINE_VERSION="$VERSION" CARNINE_BUILD_ID="$BUILD_VERSION" cargo deb --target aarch64-unknown-linux-gnu --deb-version "$BUILD_VERSION"
 )
 
 shopt -s nullglob
@@ -107,7 +111,9 @@ echo "[pi] Generating shared protobuf Dart stubs..."
 echo "[pi] Building Flutter-Pi bundle (arm64 / pi4)..."
 (
   cd "$FRONTEND_DIR"
-  flutterpi_tool build --arch=arm64 --cpu=pi4 --dart-define="CARNINE_VERSION=$VERSION"
+  flutterpi_tool build --arch=arm64 --cpu=pi4 \
+    --dart-define="CARNINE_VERSION=$VERSION" \
+    --dart-define="CARNINE_BUILD_VERSION=$BUILD_VERSION"
 )
 
 FRONTEND_BUNDLE="$FRONTEND_DIR/build/flutter-pi/aarch64-generic"
@@ -116,7 +122,7 @@ if [[ ! -x "$FRONTEND_BUNDLE/flutter-pi" ]]; then
   echo "[pi] ERROR: Flutter-Pi runtime not found in $FRONTEND_BUNDLE"
   exit 1
 fi
-"$FRONTEND_DIR/package-deb.sh" "$FRONTEND_BUNDLE" "$FRONTEND_PACKAGE" "$VERSION"
+"$FRONTEND_DIR/package-deb.sh" "$FRONTEND_BUNDLE" "$FRONTEND_PACKAGE" "$BUILD_VERSION"
 if [[ "$(dpkg-deb -f "$FRONTEND_PACKAGE" Architecture)" != "arm64" ]]; then
   echo "[pi] ERROR: Frontend package is not arm64: $FRONTEND_PACKAGE"
   exit 1

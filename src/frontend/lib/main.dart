@@ -12,6 +12,10 @@ const _carnineVersion = String.fromEnvironment(
   'CARNINE_VERSION',
   defaultValue: 'unknown',
 );
+const _carnineBuildVersion = String.fromEnvironment(
+  'CARNINE_BUILD_VERSION',
+  defaultValue: _carnineVersion,
+);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +23,9 @@ Future<void> main() async {
   await AppWindow.ensureConfigured();
   await AppLogging.initialize();
 
-  AppLogging.frontend.info('Frontend app started; version=$_carnineVersion');
+  AppLogging.frontend.info(
+    'Frontend app started; version=$_carnineVersion build=$_carnineBuildVersion',
+  );
   runApp(const CarnineApp());
 
   WidgetsBinding.instance.addPostFrameCallback((_) {

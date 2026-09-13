@@ -30,6 +30,8 @@ service MediaService {
 
 service AudioService {
   rpc GetServiceVersion (Empty) returns (ServiceVersion);
+  rpc GetVolume (Empty) returns (VolumeResponse);
+  rpc SetVolume (SetVolumeRequest) returns (VolumeResponse);
   rpc StreamAudioEvents (Empty) returns (stream AudioEvent);
 }
 
@@ -221,6 +223,14 @@ enum AudioEventType {
 message AudioEvent {
   AudioEventType event = 1;
   string message = 2;
+}
+
+message SetVolumeRequest {
+  uint32 percent = 1;
+}
+
+message VolumeResponse {
+  uint32 percent = 1;
 }
 
 message Configuration {

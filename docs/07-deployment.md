@@ -21,9 +21,10 @@ The deployment architecture emphasizes reliability, minimal resource consumption
 - **RAM**: 4GB minimum (8GB recommended to avoid swap pressure)
 
 ### Peripherals and Interfaces
-- **Display**: Waveshare 7" HDMI touchscreen ([wiki](https://www.waveshare.com/wiki/7inch_HDMI_LCD_(H)_(with_case)))
+- **Display**: Waveshare 7" HDMI LCD (H) touchscreen ([product page](https://www.waveshare.com/7inch-hdmi-lcd-h.htm))
   - Connection: HDMI video + USB for touch input
   - Resolution: 1024×600 (native)
+   - Audio: HDMI audio with separate headphone and speaker outputs; each speaker channel has a 2.6 W PA amplifier
   - Requires correct HDMI modes in `/boot/config.txt`
 - **CAN Interface**:
   • Adapter: MCP2515 (SPI) or isolated CAN HAT (e.g. PiCAN 2, Kvaser)

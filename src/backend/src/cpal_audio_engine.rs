@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -13,11 +14,13 @@ use crate::audio_source::ExternalPcmSource;
 
 const FADE_MILLISECONDS: u32 = 250;
 const SOURCE_BUFFER_FRAMES: usize = 44_100 * 2;
+const SOURCE_START_TIMEOUT: Duration = Duration::from_secs(2);
 
 enum MixerCommand {
     Add {
         consumer: ringbuf::HeapCons<f32>,
         reply: mpsc::SyncSender<Result<SourceId>>,
+        cancelled: Arc<AtomicBool>,
     },
     SetGain {
         source_id: SourceId,
@@ -78,21 +81,44 @@ impl AudioEngine for CpalAudioEngine {
         let (source, consumer) =
             ExternalPcmSource::start(input_path, self.sample_rate, SOURCE_BUFFER_FRAMES)?;
         let (reply_sender, reply_receiver) = mpsc::sync_channel(1);
+        let cancelled = Arc::new(AtomicBool::new(false));
         self.command_sender
             .send(MixerCommand::Add {
                 consumer,
                 reply: reply_sender,
+                cancelled: Arc::clone(&cancelled),
             })
             .map_err(|_| anyhow::anyhow!("cpal mixer thread is not available"))?;
-        let source_id = reply_receiver
-            .recv()
-            .context("cpal mixer did not accept audio source")??;
+        let source_id = match reply_receiver.recv_timeout(SOURCE_START_TIMEOUT) {
+            Ok(Ok(source_id)) => source_id,
+            Ok(Err(error)) => {
+                let _ = source.stop();
+                return Err(error);
+            }
+            Err(error) => {
+                cancelled.store(true, Ordering::Release);
+                let _ = source.stop();
+                return Err(anyhow::anyhow!(
+                    "timed out waiting for cpal mixer to accept audio source: {error}"
+                ));
+            }
+        };
         info!(source_id = ?source_id, input_path, "cpal audio source started");
         Ok(Box::new(CpalPlayback {
             command_sender: self.command_sender.clone(),
             source_id,
             source: Some(source),
         }))
+    }
+
+    fn shutdown(&self) -> Result<()> {
+        self._stream
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .pause()
+            .context("failed to pause cpal output stream")?;
+        info!("cpal audio output stream paused for shutdown");
+        Ok(())
     }
 }
 
@@ -190,8 +216,16 @@ where
         move |output: &mut [T], _info| {
             for command in command_receiver.try_iter() {
                 match command {
-                    MixerCommand::Add { consumer, reply } => {
-                        let result = mixer.add_stream_source(consumer, 1.0);
+                    MixerCommand::Add {
+                        consumer,
+                        reply,
+                        cancelled,
+                    } => {
+                        let result = if cancelled.load(Ordering::Acquire) {
+                            Err(anyhow::anyhow!("cpal audio source start was cancelled"))
+                        } else {
+                            mixer.add_stream_source(consumer, 1.0)
+                        };
                         let _ = reply.send(result);
                     }
                     MixerCommand::SetGain { source_id, gain } => {
