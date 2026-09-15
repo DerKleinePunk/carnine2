@@ -445,23 +445,67 @@ fn extract_cover_art(path: &Path, cache_dir: &Path) -> Result<Option<String>> {
         ])
         .output()
         .with_context(|| format!("failed to start ffmpeg for {}", path.display()))?;
-    if !output.status.success() || output.stdout.is_empty() {
+    if output.status.success() && !output.stdout.is_empty() {
+        return store_cover_image(&output.stdout, cache_dir).map(Some);
+    }
+
+    let Some(folder_cover) = path.parent().and_then(find_folder_cover_image) else {
+        return Ok(None);
+    };
+    let bytes = std::fs::read(&folder_cover)
+        .with_context(|| format!("failed to read folder cover art {}", folder_cover.display()))?;
+    if bytes.is_empty() {
         return Ok(None);
     }
-    let extension = match output.stdout.get(0..4) {
+    store_cover_image(&bytes, cache_dir).map(Some)
+}
+
+fn store_cover_image(bytes: &[u8], cache_dir: &Path) -> Result<String> {
+    let extension = match bytes.get(0..4) {
         Some([0xFF, 0xD8, ..]) => "jpg",
         Some([0x89, 0x50, 0x4E, 0x47]) => "png",
         _ => "jpg",
     };
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    output.stdout.hash(&mut hasher);
+    bytes.hash(&mut hasher);
     let file_name = format!("{:016x}.{extension}", hasher.finish());
     let file_path = cache_dir.join(&file_name);
     if !file_path.exists() {
-        std::fs::write(&file_path, &output.stdout)
+        std::fs::write(&file_path, bytes)
             .with_context(|| format!("failed to write cover art {}", file_path.display()))?;
     }
-    Ok(Some(file_name))
+    Ok(file_name)
+}
+
+const FOLDER_COVER_NAMES: [&str; 4] = ["cover.jpg", "cover.png", "folder.jpg", "folder.png"];
+
+/// Looks for a folder-level cover image (as written by tools like Windows
+/// Media Player) next to an audio file that has no embedded artwork.
+pub fn find_folder_cover_image(dir: &Path) -> Option<PathBuf> {
+    let entries = std::fs::read_dir(dir).ok()?;
+    let mut album_art_large: Option<PathBuf> = None;
+    let mut album_art_small: Option<PathBuf> = None;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
+            continue;
+        };
+        let lower = file_name.to_ascii_lowercase();
+        if FOLDER_COVER_NAMES.contains(&lower.as_str()) {
+            return Some(path);
+        }
+        if lower.starts_with("albumart") && (lower.ends_with(".jpg") || lower.ends_with(".png")) {
+            if lower.contains("large") {
+                album_art_large.get_or_insert(path);
+            } else {
+                album_art_small.get_or_insert(path);
+            }
+        }
+    }
+    album_art_large.or(album_art_small)
 }
 
 pub fn find_audio_files(folder: &Path, supported_formats: &[String]) -> Result<Vec<PathBuf>> {
@@ -496,8 +540,8 @@ pub fn find_audio_files(folder: &Path, supported_formats: &[String]) -> Result<V
 #[cfg(test)]
 mod tests {
     use super::{
-        extract_cover_art, read_audio_metadata, Database, MediaRecord, ResumeState,
-        CURRENT_SCHEMA_VERSION,
+        extract_cover_art, find_folder_cover_image, read_audio_metadata, Database, MediaRecord,
+        ResumeState, CURRENT_SCHEMA_VERSION,
     };
 
     #[test]
@@ -711,6 +755,44 @@ mod tests {
         let cover_path = extract_cover_art(&path, &cache_dir).expect("extraction should not error");
 
         assert_eq!(cover_path, None);
+        let _ = std::fs::remove_dir_all(cache_dir);
+    }
+
+    #[test]
+    fn extracting_cover_art_falls_back_to_a_folder_image_without_embedded_artwork() {
+        let source = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../resources/musik/1-Here We Go Now (Single Edit).mp3");
+        let album_dir = std::env::temp_dir().join(format!(
+            "carnine-folder-cover-album-test-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&album_dir).expect("album dir should be created");
+        let track_path = album_dir.join("track.mp3");
+        std::fs::copy(&source, &track_path).expect("track should be copied into album dir");
+        std::fs::write(
+            album_dir.join("Folder.jpg"),
+            [0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3],
+        )
+        .expect("folder cover should be written");
+        assert_eq!(
+            find_folder_cover_image(&album_dir),
+            Some(album_dir.join("Folder.jpg"))
+        );
+
+        let cache_dir = std::env::temp_dir().join(format!(
+            "carnine-cover-extract-folder-test-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&cache_dir).expect("cover cache dir should be created");
+
+        let cover_path =
+            extract_cover_art(&track_path, &cache_dir).expect("extraction should not error");
+
+        let cover_path = cover_path.expect("folder cover should be used as fallback");
+        assert!(cover_path.ends_with(".jpg"));
+        assert!(cache_dir.join(&cover_path).exists());
+
+        let _ = std::fs::remove_dir_all(album_dir);
         let _ = std::fs::remove_dir_all(cache_dir);
     }
 

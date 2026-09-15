@@ -310,6 +310,7 @@ impl MediaServiceImpl {
             source_path: source_path.display().to_string(),
             ..Default::default()
         }];
+        let mut cover_copied_dirs = std::collections::HashSet::new();
         for (index, source_file) in files.iter().enumerate() {
             let relative_path = source_file
                 .strip_prefix(&source_path)
@@ -319,6 +320,21 @@ impl MediaServiceImpl {
                 fs::create_dir_all(parent)?;
             }
             fs::copy(source_file, &target_file)?;
+
+            if let Some(source_dir) = source_file.parent() {
+                if cover_copied_dirs.insert(source_dir.to_path_buf()) {
+                    if let Some(cover_source) = database::find_folder_cover_image(source_dir) {
+                        if let Some(cover_target) = target_file
+                            .parent()
+                            .and_then(|dir| cover_source.file_name().map(|name| dir.join(name)))
+                        {
+                            if !cover_target.exists() {
+                                fs::copy(&cover_source, &cover_target)?;
+                            }
+                        }
+                    }
+                }
+            }
             events.push(LibraryEvent {
                 event: LibraryEventType::LibraryImportProgress as i32,
                 scan_id,
