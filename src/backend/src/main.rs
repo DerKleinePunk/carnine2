@@ -1098,8 +1098,10 @@ mod tests {
     use crate::audio_engine::{AudioEngine, Playback};
     use crate::carnine::{
         audio_service_server::AudioService, config_service_server::ConfigService,
-        media_service_server::MediaService, system_service_server::SystemService, AudioEventType,
-        Empty, LibraryEventType, PlayerEventType, RescanMediaRequest,
+        get_cover_art_request::Target as CoverArtTarget, media_service_server::MediaService,
+        system_service_server::SystemService, AddPlaylistEntryRequest, AudioEventType,
+        CreatePlaylistRequest, Empty, GetCoverArtRequest, GetPlaylistRequest, LibraryEventType,
+        PlayerEventType, RescanMediaRequest,
     };
     use crate::config;
     use crate::database;
@@ -1810,6 +1812,527 @@ mod tests {
         );
         assert_eq!(restored_service.player.position_ms(), 12_345);
         assert_eq!(restored_service.player.state(), "paused");
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    fn playlist_test_service(database_path: PathBuf, cover_cache_dir: PathBuf) -> MediaServiceImpl {
+        MediaServiceImpl::new(
+            &test_configuration().audio,
+            database_path,
+            Vec::new(),
+            Vec::new(),
+            "restore_paused".to_string(),
+            cover_cache_dir,
+        )
+    }
+
+    #[tokio::test]
+    async fn create_playlist_returns_new_playlist_without_entries_or_cover() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-playlist-create-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&database_path);
+        let service =
+            playlist_test_service(database_path.clone(), PathBuf::from("/tmp/carnine-covers"));
+
+        let playlist = service
+            .create_playlist(Request::new(CreatePlaylistRequest {
+                name: "Favorites".to_string(),
+            }))
+            .await
+            .expect("playlist should be created")
+            .into_inner();
+
+        assert_eq!(playlist.name, "Favorites");
+        assert!(playlist.entries.is_empty());
+        assert!(!playlist.has_cover_art);
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    #[tokio::test]
+    async fn create_playlist_rejects_empty_name() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-playlist-empty-name-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&database_path);
+        let service =
+            playlist_test_service(database_path.clone(), PathBuf::from("/tmp/carnine-covers"));
+
+        let status = service
+            .create_playlist(Request::new(CreatePlaylistRequest {
+                name: "  ".to_string(),
+            }))
+            .await
+            .expect_err("empty playlist name should be rejected");
+
+        assert_eq!(status.code(), tonic::Code::InvalidArgument);
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    #[tokio::test]
+    async fn create_playlist_rejects_duplicate_name() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-playlist-duplicate-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&database_path);
+        let service =
+            playlist_test_service(database_path.clone(), PathBuf::from("/tmp/carnine-covers"));
+        service
+            .create_playlist(Request::new(CreatePlaylistRequest {
+                name: "Favorites".to_string(),
+            }))
+            .await
+            .expect("first playlist should be created");
+
+        let status = service
+            .create_playlist(Request::new(CreatePlaylistRequest {
+                name: "Favorites".to_string(),
+            }))
+            .await
+            .expect_err("duplicate playlist name should be rejected");
+
+        assert_eq!(status.code(), tonic::Code::AlreadyExists);
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    #[tokio::test]
+    async fn list_playlists_returns_created_playlists_in_stable_order() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-playlist-list-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&database_path);
+        let service =
+            playlist_test_service(database_path.clone(), PathBuf::from("/tmp/carnine-covers"));
+        service
+            .create_playlist(Request::new(CreatePlaylistRequest {
+                name: "zeta".to_string(),
+            }))
+            .await
+            .expect("first playlist should be created");
+        service
+            .create_playlist(Request::new(CreatePlaylistRequest {
+                name: "Alpha".to_string(),
+            }))
+            .await
+            .expect("second playlist should be created");
+
+        let response = service
+            .list_playlists(Request::new(Empty {}))
+            .await
+            .expect("playlists should be listed")
+            .into_inner();
+
+        assert_eq!(
+            response
+                .playlists
+                .iter()
+                .map(|playlist| playlist.name.as_str())
+                .collect::<Vec<_>>(),
+            ["Alpha", "zeta"]
+        );
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    #[tokio::test]
+    async fn add_playlist_entry_returns_created_entry() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-playlist-add-entry-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&database_path);
+        let database = database::Database::open(&database_path).expect("database should open");
+        let source_id = database
+            .upsert_source("/music", "AVAILABLE")
+            .expect("source should be stored");
+        let media_id = database
+            .upsert_media(&database::MediaRecord {
+                id: 0,
+                source_id,
+                path: "/music/song.mp3".to_string(),
+                title: "Song".to_string(),
+                artist: "Artist".to_string(),
+                duration_ms: 1000,
+                status: "AVAILABLE".to_string(),
+                cover_path: None,
+            })
+            .expect("media should be stored");
+        drop(database);
+        let service =
+            playlist_test_service(database_path.clone(), PathBuf::from("/tmp/carnine-covers"));
+        let playlist = service
+            .create_playlist(Request::new(CreatePlaylistRequest {
+                name: "Favorites".to_string(),
+            }))
+            .await
+            .expect("playlist should be created")
+            .into_inner();
+
+        let entry = service
+            .add_playlist_entry(Request::new(AddPlaylistEntryRequest {
+                playlist_id: playlist.id,
+                media_id: media_id as u64,
+            }))
+            .await
+            .expect("playlist entry should be added")
+            .into_inner();
+
+        assert_eq!(entry.playlist_id, playlist.id);
+        assert_eq!(entry.media_id, media_id as u64);
+        assert_eq!(entry.position, 0);
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    #[tokio::test]
+    async fn add_playlist_entry_rejects_unknown_playlist() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-playlist-add-entry-unknown-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&database_path);
+        let service =
+            playlist_test_service(database_path.clone(), PathBuf::from("/tmp/carnine-covers"));
+
+        let status = service
+            .add_playlist_entry(Request::new(AddPlaylistEntryRequest {
+                playlist_id: 999,
+                media_id: 1,
+            }))
+            .await
+            .expect_err("unknown playlist should be rejected");
+
+        assert_eq!(status.code(), tonic::Code::InvalidArgument);
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    #[tokio::test]
+    async fn get_playlist_rejects_unknown_id() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-playlist-get-unknown-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&database_path);
+        let service =
+            playlist_test_service(database_path.clone(), PathBuf::from("/tmp/carnine-covers"));
+
+        let status = service
+            .get_playlist(Request::new(GetPlaylistRequest { playlist_id: 999 }))
+            .await
+            .expect_err("unknown playlist id should be rejected");
+
+        assert_eq!(status.code(), tonic::Code::NotFound);
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    #[tokio::test]
+    async fn get_playlist_reports_has_cover_art_true_when_a_track_has_cover() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-playlist-cover-true-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&database_path);
+        let database = database::Database::open(&database_path).expect("database should open");
+        let source_id = database
+            .upsert_source("/music", "AVAILABLE")
+            .expect("source should be stored");
+        let media_id = database
+            .upsert_media(&database::MediaRecord {
+                id: 0,
+                source_id,
+                path: "/music/song.mp3".to_string(),
+                title: "Song".to_string(),
+                artist: "Artist".to_string(),
+                duration_ms: 1000,
+                status: "AVAILABLE".to_string(),
+                cover_path: Some("abc123.jpg".to_string()),
+            })
+            .expect("media should be stored");
+        let playlist_id = database
+            .create_playlist("Favorites")
+            .expect("playlist should be created");
+        database
+            .add_playlist_entry(playlist_id, media_id)
+            .expect("entry should be added");
+        drop(database);
+        let service =
+            playlist_test_service(database_path.clone(), PathBuf::from("/tmp/carnine-covers"));
+
+        let playlist = service
+            .get_playlist(Request::new(GetPlaylistRequest {
+                playlist_id: playlist_id as u64,
+            }))
+            .await
+            .expect("playlist should be found")
+            .into_inner();
+
+        assert_eq!(playlist.entries.len(), 1);
+        assert!(playlist.has_cover_art);
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    #[tokio::test]
+    async fn get_playlist_reports_has_cover_art_false_when_no_track_has_cover() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-playlist-cover-false-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&database_path);
+        let database = database::Database::open(&database_path).expect("database should open");
+        let source_id = database
+            .upsert_source("/music", "AVAILABLE")
+            .expect("source should be stored");
+        let media_id = database
+            .upsert_media(&database::MediaRecord {
+                id: 0,
+                source_id,
+                path: "/music/song.mp3".to_string(),
+                title: "Song".to_string(),
+                artist: "Artist".to_string(),
+                duration_ms: 1000,
+                status: "AVAILABLE".to_string(),
+                cover_path: None,
+            })
+            .expect("media should be stored");
+        let playlist_id = database
+            .create_playlist("Favorites")
+            .expect("playlist should be created");
+        database
+            .add_playlist_entry(playlist_id, media_id)
+            .expect("entry should be added");
+        drop(database);
+        let service =
+            playlist_test_service(database_path.clone(), PathBuf::from("/tmp/carnine-covers"));
+
+        let playlist = service
+            .get_playlist(Request::new(GetPlaylistRequest {
+                playlist_id: playlist_id as u64,
+            }))
+            .await
+            .expect("playlist should be found")
+            .into_inner();
+
+        assert!(!playlist.has_cover_art);
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    #[tokio::test]
+    async fn get_cover_art_returns_bytes_and_mime_type_for_media_with_cover() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-cover-art-media-{}.sqlite3",
+            std::process::id()
+        ));
+        let cover_cache_dir = std::env::temp_dir().join(format!(
+            "carnine-cover-art-media-cache-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&database_path);
+        std::fs::create_dir_all(&cover_cache_dir).expect("cover cache dir should be created");
+        std::fs::write(cover_cache_dir.join("abc123.jpg"), b"fake-jpeg-bytes")
+            .expect("fixture cover file should be written");
+        let database = database::Database::open(&database_path).expect("database should open");
+        let source_id = database
+            .upsert_source("/music", "AVAILABLE")
+            .expect("source should be stored");
+        let media_id = database
+            .upsert_media(&database::MediaRecord {
+                id: 0,
+                source_id,
+                path: "/music/song.mp3".to_string(),
+                title: "Song".to_string(),
+                artist: "Artist".to_string(),
+                duration_ms: 1000,
+                status: "AVAILABLE".to_string(),
+                cover_path: Some("abc123.jpg".to_string()),
+            })
+            .expect("media should be stored");
+        drop(database);
+        let service = playlist_test_service(database_path.clone(), cover_cache_dir.clone());
+
+        let response = service
+            .get_cover_art(Request::new(GetCoverArtRequest {
+                target: Some(CoverArtTarget::MediaId(media_id as u64)),
+            }))
+            .await
+            .expect("cover art should be returned")
+            .into_inner();
+
+        assert_eq!(response.data, b"fake-jpeg-bytes");
+        assert_eq!(response.mime_type, "image/jpeg");
+        let _ = std::fs::remove_file(database_path);
+        let _ = std::fs::remove_dir_all(cover_cache_dir);
+    }
+
+    #[tokio::test]
+    async fn get_cover_art_infers_png_mime_type_from_extension() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-cover-art-png-{}.sqlite3",
+            std::process::id()
+        ));
+        let cover_cache_dir = std::env::temp_dir().join(format!(
+            "carnine-cover-art-png-cache-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&database_path);
+        std::fs::create_dir_all(&cover_cache_dir).expect("cover cache dir should be created");
+        std::fs::write(cover_cache_dir.join("abc123.png"), b"fake-png-bytes")
+            .expect("fixture cover file should be written");
+        let database = database::Database::open(&database_path).expect("database should open");
+        let source_id = database
+            .upsert_source("/music", "AVAILABLE")
+            .expect("source should be stored");
+        let media_id = database
+            .upsert_media(&database::MediaRecord {
+                id: 0,
+                source_id,
+                path: "/music/song.mp3".to_string(),
+                title: "Song".to_string(),
+                artist: "Artist".to_string(),
+                duration_ms: 1000,
+                status: "AVAILABLE".to_string(),
+                cover_path: Some("abc123.png".to_string()),
+            })
+            .expect("media should be stored");
+        drop(database);
+        let service = playlist_test_service(database_path.clone(), cover_cache_dir.clone());
+
+        let response = service
+            .get_cover_art(Request::new(GetCoverArtRequest {
+                target: Some(CoverArtTarget::MediaId(media_id as u64)),
+            }))
+            .await
+            .expect("cover art should be returned")
+            .into_inner();
+
+        assert_eq!(response.mime_type, "image/png");
+        let _ = std::fs::remove_file(database_path);
+        let _ = std::fs::remove_dir_all(cover_cache_dir);
+    }
+
+    #[tokio::test]
+    async fn get_cover_art_returns_not_found_for_media_without_cover() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-cover-art-missing-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&database_path);
+        let database = database::Database::open(&database_path).expect("database should open");
+        let source_id = database
+            .upsert_source("/music", "AVAILABLE")
+            .expect("source should be stored");
+        let media_id = database
+            .upsert_media(&database::MediaRecord {
+                id: 0,
+                source_id,
+                path: "/music/song.mp3".to_string(),
+                title: "Song".to_string(),
+                artist: "Artist".to_string(),
+                duration_ms: 1000,
+                status: "AVAILABLE".to_string(),
+                cover_path: None,
+            })
+            .expect("media should be stored");
+        drop(database);
+        let service =
+            playlist_test_service(database_path.clone(), PathBuf::from("/tmp/carnine-covers"));
+
+        let status = service
+            .get_cover_art(Request::new(GetCoverArtRequest {
+                target: Some(CoverArtTarget::MediaId(media_id as u64)),
+            }))
+            .await
+            .expect_err("missing cover art should be reported as not found");
+
+        assert_eq!(status.code(), tonic::Code::NotFound);
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    #[tokio::test]
+    async fn get_cover_art_returns_bytes_for_playlist_via_first_covered_track() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-cover-art-playlist-{}.sqlite3",
+            std::process::id()
+        ));
+        let cover_cache_dir = std::env::temp_dir().join(format!(
+            "carnine-cover-art-playlist-cache-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&database_path);
+        std::fs::create_dir_all(&cover_cache_dir).expect("cover cache dir should be created");
+        std::fs::write(cover_cache_dir.join("cover.jpg"), b"fake-jpeg-bytes")
+            .expect("fixture cover file should be written");
+        let database = database::Database::open(&database_path).expect("database should open");
+        let source_id = database
+            .upsert_source("/music", "AVAILABLE")
+            .expect("source should be stored");
+        let uncovered_media_id = database
+            .upsert_media(&database::MediaRecord {
+                id: 0,
+                source_id,
+                path: "/music/uncovered.mp3".to_string(),
+                title: "Uncovered".to_string(),
+                artist: "Artist".to_string(),
+                duration_ms: 1000,
+                status: "AVAILABLE".to_string(),
+                cover_path: None,
+            })
+            .expect("uncovered media should be stored");
+        let covered_media_id = database
+            .upsert_media(&database::MediaRecord {
+                id: 0,
+                source_id,
+                path: "/music/covered.mp3".to_string(),
+                title: "Covered".to_string(),
+                artist: "Artist".to_string(),
+                duration_ms: 1000,
+                status: "AVAILABLE".to_string(),
+                cover_path: Some("cover.jpg".to_string()),
+            })
+            .expect("covered media should be stored");
+        let playlist_id = database
+            .create_playlist("Favorites")
+            .expect("playlist should be created");
+        database
+            .add_playlist_entry(playlist_id, uncovered_media_id)
+            .expect("first entry should be added");
+        database
+            .add_playlist_entry(playlist_id, covered_media_id)
+            .expect("second entry should be added");
+        drop(database);
+        let service = playlist_test_service(database_path.clone(), cover_cache_dir.clone());
+
+        let response = service
+            .get_cover_art(Request::new(GetCoverArtRequest {
+                target: Some(CoverArtTarget::PlaylistId(playlist_id as u64)),
+            }))
+            .await
+            .expect("playlist cover art should be returned")
+            .into_inner();
+
+        assert_eq!(response.data, b"fake-jpeg-bytes");
+        assert_eq!(response.mime_type, "image/jpeg");
+        let _ = std::fs::remove_file(database_path);
+        let _ = std::fs::remove_dir_all(cover_cache_dir);
+    }
+
+    #[tokio::test]
+    async fn get_cover_art_rejects_missing_target() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-cover-art-no-target-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&database_path);
+        let service =
+            playlist_test_service(database_path.clone(), PathBuf::from("/tmp/carnine-covers"));
+
+        let status = service
+            .get_cover_art(Request::new(GetCoverArtRequest { target: None }))
+            .await
+            .expect_err("missing target should be rejected");
+
+        assert_eq!(status.code(), tonic::Code::InvalidArgument);
         let _ = std::fs::remove_file(database_path);
     }
 }

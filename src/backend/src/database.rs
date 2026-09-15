@@ -733,4 +733,166 @@ mod tests {
             ["Alpha", "zeta"]
         );
     }
+
+    #[test]
+    fn playlist_name_resolves_saved_name_and_errors_for_unknown_id() {
+        let database = Database::open(":memory:").expect("database should open");
+        let playlist_id = database
+            .create_playlist("Road Trip")
+            .expect("playlist should be created");
+
+        assert_eq!(
+            database
+                .playlist_name(playlist_id)
+                .expect("playlist name should resolve"),
+            "Road Trip"
+        );
+        assert!(database.playlist_name(playlist_id + 1).is_err());
+    }
+
+    #[test]
+    fn create_playlist_rejects_duplicate_names() {
+        let database = Database::open(":memory:").expect("database should open");
+        database
+            .create_playlist("Favorites")
+            .expect("first playlist should be created");
+
+        assert!(database.create_playlist("Favorites").is_err());
+    }
+
+    #[test]
+    fn add_playlist_entry_rejects_unknown_playlist_or_media() {
+        let database = Database::open(":memory:").expect("database should open");
+        let source_id = database
+            .upsert_source("/music", "AVAILABLE")
+            .expect("source should be stored");
+        let media_id = database
+            .upsert_media(&MediaRecord {
+                id: 0,
+                source_id,
+                path: "/music/song.mp3".to_string(),
+                title: "Song".to_string(),
+                artist: "Artist".to_string(),
+                duration_ms: 1000,
+                status: "AVAILABLE".to_string(),
+                cover_path: None,
+            })
+            .expect("media should be stored");
+        let playlist_id = database
+            .create_playlist("Favorites")
+            .expect("playlist should be created");
+
+        assert!(database
+            .add_playlist_entry(playlist_id + 1, media_id)
+            .is_err());
+        assert!(database
+            .add_playlist_entry(playlist_id, media_id + 1)
+            .is_err());
+    }
+
+    #[test]
+    fn playlist_media_paths_returns_entries_in_position_order() {
+        let database = Database::open(":memory:").expect("database should open");
+        let source_id = database
+            .upsert_source("/music", "AVAILABLE")
+            .expect("source should be stored");
+        let first_media_id = database
+            .upsert_media(&MediaRecord {
+                id: 0,
+                source_id,
+                path: "/music/first.mp3".to_string(),
+                title: "First".to_string(),
+                artist: "Artist".to_string(),
+                duration_ms: 1000,
+                status: "AVAILABLE".to_string(),
+                cover_path: None,
+            })
+            .expect("first media should be stored");
+        let second_media_id = database
+            .upsert_media(&MediaRecord {
+                id: 0,
+                source_id,
+                path: "/music/second.mp3".to_string(),
+                title: "Second".to_string(),
+                artist: "Artist".to_string(),
+                duration_ms: 1000,
+                status: "AVAILABLE".to_string(),
+                cover_path: None,
+            })
+            .expect("second media should be stored");
+        let playlist_id = database
+            .create_playlist("Favorites")
+            .expect("playlist should be created");
+        database
+            .add_playlist_entry(playlist_id, first_media_id)
+            .expect("first entry should be added");
+        database
+            .add_playlist_entry(playlist_id, second_media_id)
+            .expect("second entry should be added");
+
+        let paths = database
+            .playlist_media_paths(playlist_id)
+            .expect("media paths should load")
+            .into_iter()
+            .map(|(_, path)| path)
+            .collect::<Vec<_>>();
+
+        assert_eq!(paths, ["/music/first.mp3", "/music/second.mp3"]);
+    }
+
+    #[test]
+    fn playlist_cover_path_returns_first_covered_entry_and_none_without_cover() {
+        let database = Database::open(":memory:").expect("database should open");
+        let source_id = database
+            .upsert_source("/music", "AVAILABLE")
+            .expect("source should be stored");
+        let uncovered_media_id = database
+            .upsert_media(&MediaRecord {
+                id: 0,
+                source_id,
+                path: "/music/uncovered.mp3".to_string(),
+                title: "Uncovered".to_string(),
+                artist: "Artist".to_string(),
+                duration_ms: 1000,
+                status: "AVAILABLE".to_string(),
+                cover_path: None,
+            })
+            .expect("uncovered media should be stored");
+        let playlist_id = database
+            .create_playlist("Favorites")
+            .expect("playlist should be created");
+        database
+            .add_playlist_entry(playlist_id, uncovered_media_id)
+            .expect("first entry should be added");
+
+        assert_eq!(
+            database
+                .playlist_cover_path(playlist_id)
+                .expect("cover lookup should not error"),
+            None
+        );
+
+        let covered_media_id = database
+            .upsert_media(&MediaRecord {
+                id: 0,
+                source_id,
+                path: "/music/covered.mp3".to_string(),
+                title: "Covered".to_string(),
+                artist: "Artist".to_string(),
+                duration_ms: 1000,
+                status: "AVAILABLE".to_string(),
+                cover_path: Some("abc123.jpg".to_string()),
+            })
+            .expect("covered media should be stored");
+        database
+            .add_playlist_entry(playlist_id, covered_media_id)
+            .expect("second entry should be added");
+
+        assert_eq!(
+            database
+                .playlist_cover_path(playlist_id)
+                .expect("cover lookup should not error"),
+            Some("abc123.jpg".to_string())
+        );
+    }
 }
