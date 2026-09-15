@@ -2380,10 +2380,6 @@ class Configuration extends $pb.GeneratedMessage {
     $core.Iterable<$core.String>? supportedFormats,
     $core.bool? rescanOnStart,
     $core.String? resumeMode,
-    $core.String? audioBackend,
-    $core.String? audioDevice,
-    $core.int? sampleRate,
-    $core.int? channels,
     $core.String? navigationInterrupt,
     $core.String? logDirectory,
     $core.String? logLevel,
@@ -2397,10 +2393,6 @@ class Configuration extends $pb.GeneratedMessage {
       result.supportedFormats.addAll(supportedFormats);
     if (rescanOnStart != null) result.rescanOnStart = rescanOnStart;
     if (resumeMode != null) result.resumeMode = resumeMode;
-    if (audioBackend != null) result.audioBackend = audioBackend;
-    if (audioDevice != null) result.audioDevice = audioDevice;
-    if (sampleRate != null) result.sampleRate = sampleRate;
-    if (channels != null) result.channels = channels;
     if (navigationInterrupt != null)
       result.navigationInterrupt = navigationInterrupt;
     if (logDirectory != null) result.logDirectory = logDirectory;
@@ -2428,10 +2420,6 @@ class Configuration extends $pb.GeneratedMessage {
     ..pPS(4, _omitFieldNames ? '' : 'supportedFormats')
     ..aOB(5, _omitFieldNames ? '' : 'rescanOnStart')
     ..aOS(6, _omitFieldNames ? '' : 'resumeMode')
-    ..aOS(7, _omitFieldNames ? '' : 'audioBackend')
-    ..aOS(8, _omitFieldNames ? '' : 'audioDevice')
-    ..aI(9, _omitFieldNames ? '' : 'sampleRate', fieldType: $pb.PbFieldType.OU3)
-    ..aI(10, _omitFieldNames ? '' : 'channels', fieldType: $pb.PbFieldType.OU3)
     ..aOS(11, _omitFieldNames ? '' : 'navigationInterrupt')
     ..aOS(12, _omitFieldNames ? '' : 'logDirectory')
     ..aOS(13, _omitFieldNames ? '' : 'logLevel')
@@ -2499,75 +2487,39 @@ class Configuration extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   void clearResumeMode() => $_clearField(6);
 
-  @$pb.TagNumber(7)
-  $core.String get audioBackend => $_getSZ(6);
-  @$pb.TagNumber(7)
-  set audioBackend($core.String value) => $_setString(6, value);
-  @$pb.TagNumber(7)
-  $core.bool hasAudioBackend() => $_has(6);
-  @$pb.TagNumber(7)
-  void clearAudioBackend() => $_clearField(7);
-
-  @$pb.TagNumber(8)
-  $core.String get audioDevice => $_getSZ(7);
-  @$pb.TagNumber(8)
-  set audioDevice($core.String value) => $_setString(7, value);
-  @$pb.TagNumber(8)
-  $core.bool hasAudioDevice() => $_has(7);
-  @$pb.TagNumber(8)
-  void clearAudioDevice() => $_clearField(8);
-
-  @$pb.TagNumber(9)
-  $core.int get sampleRate => $_getIZ(8);
-  @$pb.TagNumber(9)
-  set sampleRate($core.int value) => $_setUnsignedInt32(8, value);
-  @$pb.TagNumber(9)
-  $core.bool hasSampleRate() => $_has(8);
-  @$pb.TagNumber(9)
-  void clearSampleRate() => $_clearField(9);
-
-  @$pb.TagNumber(10)
-  $core.int get channels => $_getIZ(9);
-  @$pb.TagNumber(10)
-  set channels($core.int value) => $_setUnsignedInt32(9, value);
-  @$pb.TagNumber(10)
-  $core.bool hasChannels() => $_has(9);
-  @$pb.TagNumber(10)
-  void clearChannels() => $_clearField(10);
-
   @$pb.TagNumber(11)
-  $core.String get navigationInterrupt => $_getSZ(10);
+  $core.String get navigationInterrupt => $_getSZ(6);
   @$pb.TagNumber(11)
-  set navigationInterrupt($core.String value) => $_setString(10, value);
+  set navigationInterrupt($core.String value) => $_setString(6, value);
   @$pb.TagNumber(11)
-  $core.bool hasNavigationInterrupt() => $_has(10);
+  $core.bool hasNavigationInterrupt() => $_has(6);
   @$pb.TagNumber(11)
   void clearNavigationInterrupt() => $_clearField(11);
 
   @$pb.TagNumber(12)
-  $core.String get logDirectory => $_getSZ(11);
+  $core.String get logDirectory => $_getSZ(7);
   @$pb.TagNumber(12)
-  set logDirectory($core.String value) => $_setString(11, value);
+  set logDirectory($core.String value) => $_setString(7, value);
   @$pb.TagNumber(12)
-  $core.bool hasLogDirectory() => $_has(11);
+  $core.bool hasLogDirectory() => $_has(7);
   @$pb.TagNumber(12)
   void clearLogDirectory() => $_clearField(12);
 
   @$pb.TagNumber(13)
-  $core.String get logLevel => $_getSZ(12);
+  $core.String get logLevel => $_getSZ(8);
   @$pb.TagNumber(13)
-  set logLevel($core.String value) => $_setString(12, value);
+  set logLevel($core.String value) => $_setString(8, value);
   @$pb.TagNumber(13)
-  $core.bool hasLogLevel() => $_has(12);
+  $core.bool hasLogLevel() => $_has(8);
   @$pb.TagNumber(13)
   void clearLogLevel() => $_clearField(13);
 
   @$pb.TagNumber(14)
-  $core.String get coverCacheDir => $_getSZ(13);
+  $core.String get coverCacheDir => $_getSZ(9);
   @$pb.TagNumber(14)
-  set coverCacheDir($core.String value) => $_setString(13, value);
+  set coverCacheDir($core.String value) => $_setString(9, value);
   @$pb.TagNumber(14)
-  $core.bool hasCoverCacheDir() => $_has(13);
+  $core.bool hasCoverCacheDir() => $_has(9);
   @$pb.TagNumber(14)
   void clearCoverCacheDir() => $_clearField(14);
 }

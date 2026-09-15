@@ -682,10 +682,6 @@ const Configuration$json = {
     },
     {'1': 'rescan_on_start', '3': 5, '4': 1, '5': 8, '10': 'rescanOnStart'},
     {'1': 'resume_mode', '3': 6, '4': 1, '5': 9, '10': 'resumeMode'},
-    {'1': 'audio_backend', '3': 7, '4': 1, '5': 9, '10': 'audioBackend'},
-    {'1': 'audio_device', '3': 8, '4': 1, '5': 9, '10': 'audioDevice'},
-    {'1': 'sample_rate', '3': 9, '4': 1, '5': 13, '10': 'sampleRate'},
-    {'1': 'channels', '3': 10, '4': 1, '5': 13, '10': 'channels'},
     {
       '1': 'navigation_interrupt',
       '3': 11,
@@ -705,12 +701,10 @@ final $typed_data.Uint8List configurationDescriptor = $convert.base64Decode(
     'MKDWRhdGFiYXNlX3BhdGgYAiABKAlSDGRhdGFiYXNlUGF0aBIjCg1tZWRpYV9mb2xkZXJzGAMg'
     'AygJUgxtZWRpYUZvbGRlcnMSKwoRc3VwcG9ydGVkX2Zvcm1hdHMYBCADKAlSEHN1cHBvcnRlZE'
     'Zvcm1hdHMSJgoPcmVzY2FuX29uX3N0YXJ0GAUgASgIUg1yZXNjYW5PblN0YXJ0Eh8KC3Jlc3Vt'
-    'ZV9tb2RlGAYgASgJUgpyZXN1bWVNb2RlEiMKDWF1ZGlvX2JhY2tlbmQYByABKAlSDGF1ZGlvQm'
-    'Fja2VuZBIhCgxhdWRpb19kZXZpY2UYCCABKAlSC2F1ZGlvRGV2aWNlEh8KC3NhbXBsZV9yYXRl'
-    'GAkgASgNUgpzYW1wbGVSYXRlEhoKCGNoYW5uZWxzGAogASgNUghjaGFubmVscxIxChRuYXZpZ2'
-    'F0aW9uX2ludGVycnVwdBgLIAEoCVITbmF2aWdhdGlvbkludGVycnVwdBIjCg1sb2dfZGlyZWN0'
-    'b3J5GAwgASgJUgxsb2dEaXJlY3RvcnkSGwoJbG9nX2xldmVsGA0gASgJUghsb2dMZXZlbBImCg'
-    '9jb3Zlcl9jYWNoZV9kaXIYDiABKAlSDWNvdmVyQ2FjaGVEaXI=');
+    'ZV9tb2RlGAYgASgJUgpyZXN1bWVNb2RlEjEKFG5hdmlnYXRpb25faW50ZXJydXB0GAsgASgJUh'
+    'NuYXZpZ2F0aW9uSW50ZXJydXB0EiMKDWxvZ19kaXJlY3RvcnkYDCABKAlSDGxvZ0RpcmVjdG9y'
+    'eRIbCglsb2dfbGV2ZWwYDSABKAlSCGxvZ0xldmVsEiYKD2NvdmVyX2NhY2hlX2RpchgOIAEoCV'
+    'INY292ZXJDYWNoZURpcg==');
 
 @$core.Deprecated('Use updateConfigurationRequestDescriptor instead')
 const UpdateConfigurationRequest$json = {
