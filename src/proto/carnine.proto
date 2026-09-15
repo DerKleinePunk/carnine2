@@ -26,6 +26,7 @@ service MediaService {
   rpc AddPlaylistEntry (AddPlaylistEntryRequest) returns (PlaylistEntry);
   rpc GetPlaylist (GetPlaylistRequest) returns (Playlist);
   rpc StreamPlayerEvents (Empty) returns (stream PlayerEvent);
+  rpc GetCoverArt (GetCoverArtRequest) returns (GetCoverArtResponse);
 }
 
 service AudioService {
@@ -141,12 +142,26 @@ message MediaItem {
   string artist = 5;
   int64 duration_ms = 6;
   string status = 7;
+  bool has_cover_art = 8;
 }
 
 message Playlist {
   uint64 id = 1;
   string name = 2;
   repeated PlaylistEntry entries = 3;
+  bool has_cover_art = 4;
+}
+
+message GetCoverArtRequest {
+  oneof target {
+    uint64 media_id = 1;
+    uint64 playlist_id = 2;
+  }
+}
+
+message GetCoverArtResponse {
+  bytes data = 1;
+  string mime_type = 2;
 }
 
 message PlaylistEntry {
@@ -247,6 +262,7 @@ message Configuration {
   string navigation_interrupt = 11;
   string log_directory = 12;
   string log_level = 13;
+  string cover_cache_dir = 14;
 }
 
 message UpdateConfigurationRequest {

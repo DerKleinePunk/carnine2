@@ -27,6 +27,7 @@ mod database;
 mod media_player;
 mod storage_events;
 
+use carnine::get_cover_art_request::Target as CoverArtTarget;
 use carnine::{
     audio_service_server::{AudioService, AudioServiceServer},
     carnine_service_server::{CarnineService, CarnineServiceServer},
@@ -34,11 +35,11 @@ use carnine::{
     media_service_server::{MediaService, MediaServiceServer},
     AddPlaylistEntryRequest, AudioEvent, AudioEventType, CanData, CanDataRequest, CanDataResponse,
     CommandResponse, Configuration, ConfigurationResponse, CreatePlaylistRequest, Empty,
-    GetPlaylistRequest, ImportMusicVolumeRequest, LibraryEvent, LibraryEventType,
-    ListPlaylistsResponse, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PlayerEvent,
-    PlayerState, Playlist, PlaylistEntry, RescanMediaRequest, SearchMediaRequest,
-    SearchMediaResponse, ServiceVersion, SetVolumeRequest, UpdateConfigurationRequest,
-    VolumeResponse,
+    GetCoverArtRequest, GetCoverArtResponse, GetPlaylistRequest, ImportMusicVolumeRequest,
+    LibraryEvent, LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest,
+    PlayQueueEntryRequest, PlayRequest, PlayerEvent, PlayerState, Playlist, PlaylistEntry,
+    RescanMediaRequest, SearchMediaRequest, SearchMediaResponse, ServiceVersion, SetVolumeRequest,
+    UpdateConfigurationRequest, VolumeResponse,
 };
 
 #[derive(Debug, Default)]
@@ -91,6 +92,7 @@ pub struct MediaServiceImpl {
     media_folders: Vec<PathBuf>,
     supported_formats: Vec<String>,
     resume_mode: String,
+    cover_cache_dir: PathBuf,
     library_events: broadcast::Sender<LibraryEvent>,
     next_scan_id: Arc<AtomicU64>,
 }
@@ -124,6 +126,7 @@ impl MediaServiceImpl {
         media_folders: Vec<PathBuf>,
         supported_formats: Vec<String>,
         resume_mode: String,
+        cover_cache_dir: PathBuf,
     ) -> Self {
         let (library_events, _) = broadcast::channel(64);
         Self {
@@ -132,6 +135,7 @@ impl MediaServiceImpl {
             media_folders,
             supported_formats,
             resume_mode,
+            cover_cache_dir,
             library_events,
             next_scan_id: Arc::new(AtomicU64::new(1)),
         }
@@ -143,6 +147,7 @@ impl MediaServiceImpl {
         media_folders: Vec<PathBuf>,
         supported_formats: Vec<String>,
         resume_mode: String,
+        cover_cache_dir: PathBuf,
     ) -> Self {
         Self::from_player(
             MediaPlayer::from_audio_config(audio_config),
@@ -150,6 +155,7 @@ impl MediaServiceImpl {
             media_folders,
             supported_formats,
             resume_mode,
+            cover_cache_dir,
         )
     }
 
@@ -159,6 +165,7 @@ impl MediaServiceImpl {
         media_folders: Vec<PathBuf>,
         supported_formats: Vec<String>,
         resume_mode: String,
+        cover_cache_dir: PathBuf,
     ) -> Result<Self> {
         let player = match std::env::var("CARNINE_AUDIO_ENGINE").as_deref() {
             Ok("cpal") => MediaPlayer::with_engine(Box::new(CpalAudioEngine::new()?)),
@@ -170,6 +177,7 @@ impl MediaServiceImpl {
             media_folders,
             supported_formats,
             resume_mode,
+            cover_cache_dir,
         ))
     }
 
@@ -180,6 +188,7 @@ impl MediaServiceImpl {
         media_folders: Vec<PathBuf>,
         supported_formats: Vec<String>,
         resume_mode: String,
+        cover_cache_dir: PathBuf,
     ) -> Self {
         let (library_events, _) = broadcast::channel(64);
         Self {
@@ -188,6 +197,7 @@ impl MediaServiceImpl {
             media_folders,
             supported_formats,
             resume_mode,
+            cover_cache_dir,
             library_events,
             next_scan_id: Arc::new(AtomicU64::new(1)),
         }
@@ -233,7 +243,7 @@ impl MediaServiceImpl {
         let mut processed = 0_u64;
         let mut imported = 0_u64;
         for folder in &self.media_folders {
-            match database.rescan_folder(folder, &self.supported_formats) {
+            match database.rescan_folder(folder, &self.supported_formats, &self.cover_cache_dir) {
                 Ok(count) => {
                     imported += count as u64;
                     processed += count as u64;
@@ -579,6 +589,7 @@ impl MediaService for MediaServiceImpl {
                 artist: media.artist,
                 duration_ms: media.duration_ms,
                 status: media.status,
+                has_cover_art: media.cover_path.is_some(),
             })
             .collect();
         Ok(Response::new(SearchMediaResponse { items }))
@@ -643,6 +654,7 @@ impl MediaService for MediaServiceImpl {
             id: id as u64,
             name,
             entries: Vec::new(),
+            has_cover_art: false,
         }))
     }
 
@@ -660,6 +672,7 @@ impl MediaService for MediaServiceImpl {
                 id: playlist.id as u64,
                 name: playlist.name,
                 entries: Vec::new(),
+                has_cover_art: false,
             })
             .collect();
         Ok(Response::new(ListPlaylistsResponse { playlists }))
@@ -711,11 +724,53 @@ impl MediaService for MediaServiceImpl {
                 position: entry.position as u64,
             })
             .collect();
+        let has_cover_art = database
+            .playlist_cover_path(playlist_id)
+            .map_err(|error| Status::internal(error.to_string()))?
+            .is_some();
         Ok(Response::new(Playlist {
             id: playlist_id as u64,
             name,
             entries,
+            has_cover_art,
         }))
+    }
+
+    async fn get_cover_art(
+        &self,
+        request: Request<GetCoverArtRequest>,
+    ) -> Result<Response<GetCoverArtResponse>, Status> {
+        let database = database::Database::open(&self.database_path)
+            .map_err(|error| Status::internal(error.to_string()))?;
+        let cover_path = match request.into_inner().target {
+            Some(CoverArtTarget::MediaId(media_id)) => database
+                .media_by_id(media_id as i64)
+                .map_err(|error| Status::internal(error.to_string()))?
+                .and_then(|media| media.cover_path),
+            Some(CoverArtTarget::PlaylistId(playlist_id)) => database
+                .playlist_cover_path(playlist_id as i64)
+                .map_err(|error| Status::internal(error.to_string()))?,
+            None => {
+                return Err(Status::invalid_argument(
+                    "media_id or playlist_id is required",
+                ))
+            }
+        };
+        let Some(file_name) = cover_path else {
+            return Err(Status::not_found("no cover art available"));
+        };
+        let file_path = self.cover_cache_dir.join(&file_name);
+        let data =
+            std::fs::read(&file_path).map_err(|error| Status::internal(error.to_string()))?;
+        let mime_type = match file_path
+            .extension()
+            .and_then(|extension| extension.to_str())
+        {
+            Some("png") => "image/png",
+            _ => "image/jpeg",
+        }
+        .to_string();
+        Ok(Response::new(GetCoverArtResponse { data, mime_type }))
     }
 
     async fn stream_player_events(
@@ -839,6 +894,7 @@ fn configuration_to_proto(configuration: &config::Config) -> Configuration {
         navigation_interrupt: configuration.audio.navigation_interrupt.clone(),
         log_directory: configuration.logging.directory.display().to_string(),
         log_level: configuration.logging.level.clone(),
+        cover_cache_dir: configuration.media.cover_cache_dir.display().to_string(),
     }
 }
 
@@ -869,6 +925,7 @@ fn configuration_from_proto(configuration: &Configuration) -> Result<config::Con
             supported_formats: configuration.supported_formats.clone(),
             rescan_on_start: configuration.rescan_on_start,
             resume_mode: configuration.resume_mode.clone(),
+            cover_cache_dir: PathBuf::from(&configuration.cover_cache_dir),
         },
         audio: config::AudioConfig {
             backend: configuration.audio_backend.clone(),
@@ -933,6 +990,12 @@ async fn main() -> Result<()> {
             )
         })?;
     }
+    std::fs::create_dir_all(&configuration.media.cover_cache_dir).with_context(|| {
+        format!(
+            "cannot create cover art cache directory {}; for development use a writable path",
+            configuration.media.cover_cache_dir.display()
+        )
+    })?;
     let _database =
         database::Database::open(&configuration.media.database_path).with_context(|| {
             format!(
@@ -949,6 +1012,7 @@ async fn main() -> Result<()> {
         configuration.media.folders.clone(),
         configuration.media.supported_formats.clone(),
         configuration.media.resume_mode.clone(),
+        configuration.media.cover_cache_dir.clone(),
     )?;
     let audio_volume = Arc::new(audio_volume::AudioVolume::new(PathBuf::from(
         "/var/lib/carnine/audio-volume",
@@ -1081,6 +1145,7 @@ mod tests {
                 supported_formats: vec!["mp3".to_string(), "flac".to_string()],
                 rescan_on_start: true,
                 resume_mode: "restore_paused".to_string(),
+                cover_cache_dir: PathBuf::from("/tmp/carnine-covers"),
             },
             audio: config::AudioConfig {
                 backend: "alsa".to_string(),
@@ -1114,6 +1179,7 @@ mod tests {
             configuration.media.folders.clone(),
             configuration.media.supported_formats.clone(),
             configuration.media.resume_mode.clone(),
+            configuration.media.cover_cache_dir.clone(),
         );
         let audio = AudioServiceImpl::new(&configuration.audio);
 
@@ -1154,6 +1220,10 @@ mod tests {
             original.media.rescan_on_start
         );
         assert_eq!(restored.media.resume_mode, original.media.resume_mode);
+        assert_eq!(
+            restored.media.cover_cache_dir,
+            original.media.cover_cache_dir
+        );
         assert_eq!(restored.audio.backend, original.audio.backend);
         assert_eq!(restored.audio.device, original.audio.device);
         assert_eq!(restored.audio.sample_rate, original.audio.sample_rate);
@@ -1222,6 +1292,7 @@ mod tests {
             vec![folder.clone()],
             vec!["mp3".to_string()],
             "restore_paused".to_string(),
+            PathBuf::from("/tmp/carnine-covers"),
         );
         let response = service
             .rescan_media(Request::new(RescanMediaRequest {}))
@@ -1265,6 +1336,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
             "restore_paused".to_string(),
+            PathBuf::from("/tmp/carnine-covers"),
         );
         let mut events = service
             .stream_player_events(Request::new(super::Empty {}))
@@ -1303,6 +1375,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
             "restore_paused".to_string(),
+            PathBuf::from("/tmp/carnine-covers"),
         );
         let mut events = service
             .stream_player_events(Request::new(Empty {}))
@@ -1364,6 +1437,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
             "restore_paused".to_string(),
+            PathBuf::from("/tmp/carnine-covers"),
         );
         let mut first = service
             .stream_player_events(Request::new(Empty {}))
@@ -1431,6 +1505,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
             "restore_paused".to_string(),
+            PathBuf::from("/tmp/carnine-covers"),
         );
         let mut events = service
             .stream_player_events(Request::new(Empty {}))
@@ -1609,6 +1684,7 @@ mod tests {
             vec![folder.clone()],
             vec!["mp3".to_string()],
             "restore_paused".to_string(),
+            PathBuf::from("/tmp/carnine-covers"),
         );
         let mut events = service
             .stream_library_events(Request::new(Empty {}))
@@ -1676,6 +1752,7 @@ mod tests {
                 artist: "Artist".to_string(),
                 duration_ms: 100_000,
                 status: "AVAILABLE".to_string(),
+                cover_path: None,
             })
             .expect("media should save");
         let playlist_id = database
@@ -1698,6 +1775,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
             "restore_paused".to_string(),
+            PathBuf::from("/tmp/carnine-covers"),
         );
         service
             .player
@@ -1719,6 +1797,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
             "restore_paused".to_string(),
+            PathBuf::from("/tmp/carnine-covers"),
         );
         restored_service
             .restore_resume_state()

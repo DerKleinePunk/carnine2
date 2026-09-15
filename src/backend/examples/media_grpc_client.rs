@@ -10,9 +10,11 @@ pub mod carnine {
 }
 
 use carnine::{
-    audio_service_client::AudioServiceClient, media_service_client::MediaServiceClient, Empty,
-    ImportMusicVolumeRequest, LibraryEventType, PlayPlaylistRequest, PlayQueueEntryRequest,
-    PlayRequest, RescanMediaRequest,
+    audio_service_client::AudioServiceClient, get_cover_art_request::Target as CoverArtTarget,
+    media_service_client::MediaServiceClient, AddPlaylistEntryRequest, CreatePlaylistRequest,
+    Empty, GetCoverArtRequest, GetPlaylistRequest, ImportMusicVolumeRequest, LibraryEventType,
+    PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, RescanMediaRequest,
+    SearchMediaRequest,
 };
 
 #[tokio::main]
@@ -54,6 +56,12 @@ async fn main() -> Result<()> {
         "event-smoke" => event_smoke(&endpoint).await?,
         "import" => import_music_volume(&mut client).await?,
         "smoke" => smoke_test(&mut client).await?,
+        "search" => search_media(&mut client).await?,
+        "create-playlist" => create_playlist(&mut client).await?,
+        "list-playlists" => list_playlists(&mut client).await?,
+        "add-playlist-entry" => add_playlist_entry(&mut client).await?,
+        "get-playlist" => get_playlist(&mut client).await?,
+        "cover-art" => get_cover_art(&mut client).await?,
         unknown => bail!("unknown command: {unknown}"),
     }
     Ok(())
@@ -82,6 +90,126 @@ async fn play_queue_entry(client: &mut MediaServiceClient<Channel>) -> Result<()
         .await?
         .into_inner();
     println!("{}: {}", response.success, response.message);
+    Ok(())
+}
+
+async fn search_media(client: &mut MediaServiceClient<Channel>) -> Result<()> {
+    let query = env::args().nth(3).unwrap_or_default();
+    let items = client
+        .search_media(SearchMediaRequest { query })
+        .await?
+        .into_inner()
+        .items;
+    for item in items {
+        println!(
+            "media id={} title={} artist={} duration_ms={} status={} has_cover_art={}",
+            item.id, item.title, item.artist, item.duration_ms, item.status, item.has_cover_art
+        );
+    }
+    Ok(())
+}
+
+async fn create_playlist(client: &mut MediaServiceClient<Channel>) -> Result<()> {
+    let name = env::args()
+        .nth(3)
+        .context("create-playlist requires a playlist name")?;
+    let playlist = client
+        .create_playlist(CreatePlaylistRequest { name })
+        .await?
+        .into_inner();
+    println!("playlist id={} name={}", playlist.id, playlist.name);
+    Ok(())
+}
+
+async fn list_playlists(client: &mut MediaServiceClient<Channel>) -> Result<()> {
+    let playlists = client
+        .list_playlists(Empty {})
+        .await?
+        .into_inner()
+        .playlists;
+    for playlist in playlists {
+        println!(
+            "playlist id={} name={} has_cover_art={}",
+            playlist.id, playlist.name, playlist.has_cover_art
+        );
+    }
+    Ok(())
+}
+
+async fn add_playlist_entry(client: &mut MediaServiceClient<Channel>) -> Result<()> {
+    let playlist_id = env::args()
+        .nth(3)
+        .context("add-playlist-entry requires a playlist id")?
+        .parse::<u64>()?;
+    let media_id = env::args()
+        .nth(4)
+        .context("add-playlist-entry requires a media id")?
+        .parse::<u64>()?;
+    let entry = client
+        .add_playlist_entry(AddPlaylistEntryRequest {
+            playlist_id,
+            media_id,
+        })
+        .await?
+        .into_inner();
+    println!(
+        "entry id={} playlist_id={} media_id={} position={}",
+        entry.id, entry.playlist_id, entry.media_id, entry.position
+    );
+    Ok(())
+}
+
+async fn get_playlist(client: &mut MediaServiceClient<Channel>) -> Result<()> {
+    let playlist_id = env::args()
+        .nth(3)
+        .context("get-playlist requires a playlist id")?
+        .parse::<u64>()?;
+    let playlist = client
+        .get_playlist(GetPlaylistRequest { playlist_id })
+        .await?
+        .into_inner();
+    println!(
+        "playlist id={} name={} has_cover_art={}",
+        playlist.id, playlist.name, playlist.has_cover_art
+    );
+    for entry in playlist.entries {
+        println!(
+            "  entry id={} media_id={} position={}",
+            entry.id, entry.media_id, entry.position
+        );
+    }
+    Ok(())
+}
+
+async fn get_cover_art(client: &mut MediaServiceClient<Channel>) -> Result<()> {
+    let kind = env::args()
+        .nth(3)
+        .context("cover-art requires a target: media|playlist")?;
+    let id = env::args()
+        .nth(4)
+        .context("cover-art requires a media or playlist id")?
+        .parse::<u64>()?;
+    let target = match kind.as_str() {
+        "media" => CoverArtTarget::MediaId(id),
+        "playlist" => CoverArtTarget::PlaylistId(id),
+        other => bail!("unknown cover-art target: {other} (expected media|playlist)"),
+    };
+    let response = client
+        .get_cover_art(GetCoverArtRequest {
+            target: Some(target),
+        })
+        .await?
+        .into_inner();
+    println!(
+        "cover art bytes={} mime_type={}",
+        response.data.len(),
+        response.mime_type
+    );
+    if let Some(output_path) = env::args().nth(5) {
+        std::fs::write(&output_path, &response.data)
+            .with_context(|| format!("failed to write cover art to {output_path}"))?;
+        println!("saved to {output_path}");
+    }
     Ok(())
 }
 

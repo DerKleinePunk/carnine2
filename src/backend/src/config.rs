@@ -25,6 +25,7 @@ pub struct MediaConfig {
     pub supported_formats: Vec<String>,
     pub rescan_on_start: bool,
     pub resume_mode: String,
+    pub cover_cache_dir: PathBuf,
 }
 
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
@@ -54,6 +55,7 @@ impl Config {
                 .folders
                 .iter()
                 .any(|path| path.as_os_str().is_empty())
+            || self.media.cover_cache_dir.as_os_str().is_empty()
             || self.logging.directory.as_os_str().is_empty()
         {
             anyhow::bail!("configuration contains an empty path");

@@ -1,10 +1,11 @@
+use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use anyhow::{Context, Result};
 use rusqlite::{params, Connection};
 
-const CURRENT_SCHEMA_VERSION: i64 = 1;
+const CURRENT_SCHEMA_VERSION: i64 = 2;
 
 pub struct Database {
     connection: Connection,
@@ -19,6 +20,7 @@ pub struct MediaRecord {
     pub artist: String,
     pub duration_ms: i64,
     pub status: String,
+    pub cover_path: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -121,6 +123,12 @@ impl Database {
                 INSERT INTO schema_migrations (version) VALUES (1);",
             )?;
         }
+        if version < 2 {
+            self.connection.execute_batch(
+                "ALTER TABLE media ADD COLUMN cover_path TEXT;
+                INSERT INTO schema_migrations (version) VALUES (2);",
+            )?;
+        }
         if version > CURRENT_SCHEMA_VERSION {
             anyhow::bail!(
                 "database schema version {version} is newer than supported version {CURRENT_SCHEMA_VERSION}"
@@ -145,20 +153,22 @@ impl Database {
     pub fn upsert_media(&self, media: &MediaRecord) -> Result<i64> {
         self.connection.execute(
             "INSERT INTO media
-                (source_id, path, title, artist, duration_ms, status)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                (source_id, path, title, artist, duration_ms, status, cover_path)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
              ON CONFLICT(source_id, path) DO UPDATE SET
                 title = excluded.title,
                 artist = excluded.artist,
                 duration_ms = excluded.duration_ms,
-                status = excluded.status",
+                status = excluded.status,
+                cover_path = excluded.cover_path",
             params![
                 media.source_id,
                 media.path,
                 media.title,
                 media.artist,
                 media.duration_ms,
-                media.status
+                media.status,
+                media.cover_path
             ],
         )?;
         Ok(self.connection.query_row(
@@ -171,7 +181,7 @@ impl Database {
     pub fn search_media(&self, query: &str) -> Result<Vec<MediaRecord>> {
         let pattern = format!("%{}%", query.trim());
         let mut statement = self.connection.prepare(
-            "SELECT id, source_id, path, title, artist, duration_ms, status
+            "SELECT id, source_id, path, title, artist, duration_ms, status, cover_path
              FROM media
              WHERE title LIKE ?1 COLLATE NOCASE OR artist LIKE ?1 COLLATE NOCASE
              ORDER BY artist COLLATE NOCASE, title COLLATE NOCASE, id",
@@ -185,9 +195,47 @@ impl Database {
                 artist: row.get(4)?,
                 duration_ms: row.get(5)?,
                 status: row.get(6)?,
+                cover_path: row.get(7)?,
             })
         })?;
         Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+    }
+
+    pub fn media_by_id(&self, media_id: i64) -> Result<Option<MediaRecord>> {
+        let mut statement = self.connection.prepare(
+            "SELECT id, source_id, path, title, artist, duration_ms, status, cover_path
+             FROM media WHERE id = ?1",
+        )?;
+        let mut rows = statement.query([media_id])?;
+        let Some(row) = rows.next()? else {
+            return Ok(None);
+        };
+        Ok(Some(MediaRecord {
+            id: row.get(0)?,
+            source_id: row.get(1)?,
+            path: row.get(2)?,
+            title: row.get(3)?,
+            artist: row.get(4)?,
+            duration_ms: row.get(5)?,
+            status: row.get(6)?,
+            cover_path: row.get(7)?,
+        }))
+    }
+
+    pub fn playlist_cover_path(&self, playlist_id: i64) -> Result<Option<String>> {
+        let mut statement = self.connection.prepare(
+            "SELECT media.cover_path
+             FROM playlist_entries
+             JOIN media ON media.id = playlist_entries.media_id
+             WHERE playlist_entries.playlist_id = ?1 AND media.cover_path IS NOT NULL
+             ORDER BY playlist_entries.position
+             LIMIT 1",
+        )?;
+        let mut rows = statement.query([playlist_id])?;
+        let Some(row) = rows.next()? else {
+            return Ok(None);
+        };
+        Ok(row.get(0)?)
     }
 
     pub fn create_playlist(&self, name: &str) -> Result<i64> {
@@ -297,7 +345,12 @@ impl Database {
         }))
     }
 
-    pub fn rescan_folder(&self, folder: &Path, supported_formats: &[String]) -> Result<usize> {
+    pub fn rescan_folder(
+        &self,
+        folder: &Path,
+        supported_formats: &[String],
+        cover_cache_dir: &Path,
+    ) -> Result<usize> {
         let source_uri = folder.to_string_lossy().into_owned();
         let source_id = self.upsert_source(&source_uri, "AVAILABLE")?;
         let discovered = find_audio_files(folder, supported_formats)?;
@@ -312,6 +365,7 @@ impl Database {
                 .unwrap_or_default()
                 .to_string();
             let metadata = read_audio_metadata(path).unwrap_or_default();
+            let cover_path = extract_cover_art(path, cover_cache_dir).unwrap_or(None);
             self.upsert_media(&MediaRecord {
                 id: 0,
                 source_id,
@@ -320,6 +374,7 @@ impl Database {
                 artist: metadata.artist.unwrap_or_default(),
                 duration_ms: metadata.duration_ms,
                 status: "AVAILABLE".to_string(),
+                cover_path,
             })?;
         }
         Ok(discovered.len())
@@ -374,6 +429,41 @@ fn read_audio_metadata(path: &Path) -> Result<AudioMetadata> {
     })
 }
 
+fn extract_cover_art(path: &Path, cache_dir: &Path) -> Result<Option<String>> {
+    let output = Command::new("ffmpeg")
+        .args([
+            "-v",
+            "error",
+            "-i",
+            &path.to_string_lossy(),
+            "-an",
+            "-c:v",
+            "copy",
+            "-f",
+            "image2pipe",
+            "-",
+        ])
+        .output()
+        .with_context(|| format!("failed to start ffmpeg for {}", path.display()))?;
+    if !output.status.success() || output.stdout.is_empty() {
+        return Ok(None);
+    }
+    let extension = match output.stdout.get(0..4) {
+        Some([0xFF, 0xD8, ..]) => "jpg",
+        Some([0x89, 0x50, 0x4E, 0x47]) => "png",
+        _ => "jpg",
+    };
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    output.stdout.hash(&mut hasher);
+    let file_name = format!("{:016x}.{extension}", hasher.finish());
+    let file_path = cache_dir.join(&file_name);
+    if !file_path.exists() {
+        std::fs::write(&file_path, &output.stdout)
+            .with_context(|| format!("failed to write cover art {}", file_path.display()))?;
+    }
+    Ok(Some(file_name))
+}
+
 pub fn find_audio_files(folder: &Path, supported_formats: &[String]) -> Result<Vec<PathBuf>> {
     let mut files = Vec::new();
     if !folder.is_dir() {
@@ -405,7 +495,10 @@ pub fn find_audio_files(folder: &Path, supported_formats: &[String]) -> Result<V
 
 #[cfg(test)]
 mod tests {
-    use super::{read_audio_metadata, Database, MediaRecord, ResumeState, CURRENT_SCHEMA_VERSION};
+    use super::{
+        extract_cover_art, read_audio_metadata, Database, MediaRecord, ResumeState,
+        CURRENT_SCHEMA_VERSION,
+    };
 
     #[test]
     fn creates_current_schema_and_is_idempotent() {
@@ -447,6 +540,7 @@ mod tests {
             artist: "Kensington Road".to_string(),
             duration_ms: 175_000,
             status: "AVAILABLE".to_string(),
+            cover_path: None,
         };
 
         let first_id = database
@@ -480,18 +574,22 @@ mod tests {
         std::fs::write(&first_file, b"test").expect("first file should be created");
         std::fs::write(&second_file, b"test").expect("second file should be created");
 
+        let cover_cache_dir =
+            std::env::temp_dir().join(format!("carnine-covers-test-{}", std::process::id()));
+        std::fs::create_dir_all(&cover_cache_dir).expect("cover cache dir should be created");
+
         let database = Database::open(":memory:").expect("database should open");
         let formats = ["mp3".to_string(), "ogg".to_string()];
         assert_eq!(
             database
-                .rescan_folder(&folder, &formats)
+                .rescan_folder(&folder, &formats, &cover_cache_dir)
                 .expect("rescan should succeed"),
             2
         );
         std::fs::remove_file(&first_file).expect("first file should be removed");
         assert_eq!(
             database
-                .rescan_folder(&folder, &formats)
+                .rescan_folder(&folder, &formats, &cover_cache_dir)
                 .expect("second rescan should succeed"),
             1
         );
@@ -500,6 +598,7 @@ mod tests {
             .expect("missing media should remain searchable");
         assert_eq!(results[0].status, "MISSING");
         let _ = std::fs::remove_dir_all(folder);
+        let _ = std::fs::remove_dir_all(cover_cache_dir);
     }
 
     #[test]
@@ -517,6 +616,7 @@ mod tests {
                 artist: "Artist".to_string(),
                 duration_ms: 1000,
                 status: "AVAILABLE".to_string(),
+                cover_path: None,
             })
             .expect("media should be stored");
         let playlist_id = database
@@ -560,6 +660,7 @@ mod tests {
                 artist: "Artist".to_string(),
                 duration_ms: 1000,
                 status: "AVAILABLE".to_string(),
+                cover_path: None,
             })
             .expect("media should be stored");
         let playlist_id = database
@@ -597,6 +698,20 @@ mod tests {
         );
         assert_eq!(metadata.artist.as_deref(), Some("Kensington Road"));
         assert!(metadata.duration_ms > 170_000);
+    }
+
+    #[test]
+    fn extracting_cover_art_from_a_file_without_embedded_artwork_returns_none() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../resources/musik/1-Here We Go Now (Single Edit).mp3");
+        let cache_dir =
+            std::env::temp_dir().join(format!("carnine-cover-extract-test-{}", std::process::id()));
+        std::fs::create_dir_all(&cache_dir).expect("cover cache dir should be created");
+
+        let cover_path = extract_cover_art(&path, &cache_dir).expect("extraction should not error");
+
+        assert_eq!(cover_path, None);
+        let _ = std::fs::remove_dir_all(cache_dir);
     }
 
     #[test]
