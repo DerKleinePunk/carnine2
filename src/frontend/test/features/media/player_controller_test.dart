@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:carnine_frontend/features/media/domain/media_backend_exception.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_availability.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_library_track.dart';
@@ -41,13 +43,24 @@ const _trackMissing = MediaLibraryTrack(
   availability: MediaAvailability.missing,
 );
 
+const _trackWithCover = MediaLibraryTrack(
+  id: 4,
+  sourceId: 1,
+  path: '/music/cover.mp3',
+  title: 'Cover',
+  artist: 'Artist D',
+  duration: Duration(minutes: 3),
+  availability: MediaAvailability.available,
+  hasCoverArt: true,
+);
+
 void main() {
   late FakeMediaRepository repository;
   late PlayerController controller;
 
   setUp(() {
     repository = FakeMediaRepository()
-      ..library = const [_trackA, _trackB, _trackMissing];
+      ..library = const [_trackA, _trackB, _trackMissing, _trackWithCover];
     controller = PlayerController(repository: repository);
   });
 
@@ -76,47 +89,49 @@ void main() {
     expect(controller.position, const Duration(seconds: 30));
   });
 
-  test('a position_changed event corrects the anchor instead of adding to it',
-      () {
-    fakeAsync((async) {
-      controller.start();
-      async.flushMicrotasks();
+  test(
+    'a position_changed event corrects the anchor instead of adding to it',
+    () {
+      fakeAsync((async) {
+        controller.start();
+        async.flushMicrotasks();
 
-      repository.playerEventsController.add(
-        PlayerEventUpdate(
-          kind: PlayerEventKind.playbackStarted,
-          state: const PlayerSnapshot(
-            status: PlaybackStatus.playing,
-            mediaPath: '/music/a.mp3',
-            position: Duration.zero,
+        repository.playerEventsController.add(
+          PlayerEventUpdate(
+            kind: PlayerEventKind.playbackStarted,
+            state: const PlayerSnapshot(
+              status: PlaybackStatus.playing,
+              mediaPath: '/music/a.mp3',
+              position: Duration.zero,
+            ),
+            message: 'playback started',
           ),
-          message: 'playback started',
-        ),
-      );
-      async.flushMicrotasks();
+        );
+        async.flushMicrotasks();
 
-      async.elapse(const Duration(seconds: 1));
-      expect(controller.position, const Duration(seconds: 1));
+        async.elapse(const Duration(seconds: 1));
+        expect(controller.position, const Duration(seconds: 1));
 
-      // The backend reports position_changed once per second, always
-      // wall-clock authoritative. If the local ticker were also
-      // accumulating, this would land on 2s instead of 1s.
-      repository.playerEventsController.add(
-        PlayerEventUpdate(
-          kind: PlayerEventKind.positionChanged,
-          state: const PlayerSnapshot(
-            status: PlaybackStatus.playing,
-            mediaPath: '/music/a.mp3',
-            position: Duration(seconds: 1),
+        // The backend reports position_changed once per second, always
+        // wall-clock authoritative. If the local ticker were also
+        // accumulating, this would land on 2s instead of 1s.
+        repository.playerEventsController.add(
+          PlayerEventUpdate(
+            kind: PlayerEventKind.positionChanged,
+            state: const PlayerSnapshot(
+              status: PlaybackStatus.playing,
+              mediaPath: '/music/a.mp3',
+              position: Duration(seconds: 1),
+            ),
+            message: 'playback position updated',
           ),
-          message: 'playback position updated',
-        ),
-      );
-      async.flushMicrotasks();
+        );
+        async.flushMicrotasks();
 
-      expect(controller.position, const Duration(seconds: 1));
-    });
-  });
+        expect(controller.position, const Duration(seconds: 1));
+      });
+    },
+  );
 
   test('position clamps at the known track duration', () {
     fakeAsync((async) {
@@ -201,13 +216,19 @@ void main() {
 
     repository.playerEventsController.add(
       const PlayerEventUpdate(
-          kind: PlayerEventKind.stopped, state: null, message: 'stopped'),
+        kind: PlayerEventKind.stopped,
+        state: null,
+        message: 'stopped',
+      ),
     );
     await Future<void>.delayed(Duration.zero);
 
     expect(controller.status, PlaybackStatus.stopped);
-    expect(controller.currentTrack?.title, 'A',
-        reason: 'track should stay sticky after stop');
+    expect(
+      controller.currentTrack?.title,
+      'A',
+      reason: 'track should stay sticky after stop',
+    );
     expect(controller.position, Duration.zero);
   });
 
@@ -227,14 +248,41 @@ void main() {
     expect(repository.commands, ['stop', 'play:/music/a.mp3']);
   });
 
-  test('playPlaylist issues playPlaylist then an empty play, in order',
-      () async {
+  test(
+    'playPlaylist issues playPlaylist then an empty play, in order',
+    () async {
+      await controller.start();
+      const playlist = MediaPlaylist(id: 5, name: 'Drive', entries: []);
+
+      final started = await controller.playPlaylist(playlist, [_trackA]);
+
+      expect(repository.commands, ['playPlaylist:5', 'play:']);
+      expect(started, isTrue);
+    },
+  );
+
+  test('playPlaylist returns false and issues no command for an empty '
+      'playlist', () async {
     await controller.start();
     const playlist = MediaPlaylist(id: 5, name: 'Drive', entries: []);
 
-    await controller.playPlaylist(playlist, [_trackA]);
+    final started = await controller.playPlaylist(playlist, const []);
 
-    expect(repository.commands, ['playPlaylist:5', 'play:']);
+    expect(started, isFalse);
+    expect(repository.commands, isEmpty);
+  });
+
+  test('playPlaylist returns false when the backend call fails', () async {
+    await controller.start();
+    const playlist = MediaPlaylist(id: 5, name: 'Drive', entries: []);
+    repository.nextError = const MediaBackendException(
+      MediaErrorKind.unknown,
+      'boom',
+    );
+
+    final started = await controller.playPlaylist(playlist, [_trackA]);
+
+    expect(started, isFalse);
   });
 
   test('playQueueEntry sends the selected queue index', () async {
@@ -262,8 +310,51 @@ void main() {
   });
 
   test(
-      'a precondition error on next() shows a hint but does not report offline',
-      () async {
+    'a precondition error on next() shows a hint but does not report offline',
+    () async {
+      var offlineReported = false;
+      final controllerWithCallback = PlayerController(
+        repository: repository,
+        onStreamFailure: (_) => offlineReported = true,
+      );
+      await controllerWithCallback.start();
+
+      const playlist = MediaPlaylist(id: 5, name: 'Drive', entries: []);
+      await controllerWithCallback.playPlaylist(playlist, [_trackA, _trackB]);
+      // Put the player at the first of two tracks, so canGoNext is true and
+      // next() actually attempts the call.
+      repository.playerEventsController.add(
+        PlayerEventUpdate(
+          kind: PlayerEventKind.playbackStarted,
+          state: const PlayerSnapshot(
+            status: PlaybackStatus.playing,
+            mediaPath: '/music/a.mp3',
+            position: Duration.zero,
+          ),
+          message: 'playback started',
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(controllerWithCallback.canGoNext, isTrue);
+
+      repository.nextError = const MediaBackendException(
+        MediaErrorKind.precondition,
+        'queue end',
+      );
+      await controllerWithCallback.next();
+
+      expect(
+        controllerWithCallback.transientMessageKey,
+        AppTextKey.mediaNoAdjacentTrack,
+      );
+      expect(offlineReported, isFalse);
+
+      controllerWithCallback.dispose();
+    },
+  );
+
+  test('a slow command (deadlineExceeded -> unknown) shows a hint but does '
+      'not report offline or tear down the channel', () async {
     var offlineReported = false;
     final controllerWithCallback = PlayerController(
       repository: repository,
@@ -271,10 +362,96 @@ void main() {
     );
     await controllerWithCallback.start();
 
+    // Simulates Stop/Next/Previous outliving the client's call deadline
+    // while the backend is still waiting for external audio processes to
+    // exit (e.g. under WSL) - the connection itself is fine.
+    repository.nextError = const MediaBackendException(
+      MediaErrorKind.unknown,
+      'slow',
+    );
+    await controllerWithCallback.playTrack(_trackA);
+
+    expect(
+      controllerWithCallback.transientMessageKey,
+      AppTextKey.mediaCommandFailed,
+    );
+    expect(offlineReported, isFalse);
+
+    controllerWithCallback.dispose();
+  });
+
+  test('toggleShuffle flips optimistically and calls SetShuffleMode', () async {
+    expect(controller.shuffleEnabled, isFalse);
+
+    await controller.toggleShuffle();
+
+    expect(controller.shuffleEnabled, isTrue);
+    expect(repository.commands, contains('setShuffleMode:true'));
+
+    await controller.toggleShuffle();
+
+    expect(controller.shuffleEnabled, isFalse);
+    expect(repository.commands, contains('setShuffleMode:false'));
+  });
+
+  test('cycleRepeat cycles off -> queue -> track -> off', () async {
+    expect(controller.repeatMode, MediaRepeatMode.off);
+
+    await controller.cycleRepeat();
+    expect(controller.repeatMode, MediaRepeatMode.queue);
+    expect(repository.commands, contains('setRepeatMode:queue'));
+
+    await controller.cycleRepeat();
+    expect(controller.repeatMode, MediaRepeatMode.track);
+    expect(repository.commands, contains('setRepeatMode:track'));
+
+    await controller.cycleRepeat();
+    expect(controller.repeatMode, MediaRepeatMode.off);
+    expect(repository.commands, contains('setRepeatMode:off'));
+  });
+
+  test(
+    'canGoNext at the last linear queue track opens up with repeat',
+    () async {
+      await controller.start();
+      const playlist = MediaPlaylist(id: 5, name: 'Drive', entries: []);
+      await controller.playPlaylist(playlist, [_trackA, _trackB]);
+      repository.playerEventsController.add(
+        PlayerEventUpdate(
+          kind: PlayerEventKind.playbackStarted,
+          state: const PlayerSnapshot(
+            status: PlaybackStatus.playing,
+            mediaPath: '/music/b.mp3',
+            position: Duration.zero,
+          ),
+          message: 'playback started',
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.canGoNext, isFalse);
+
+      await controller.cycleRepeat();
+      expect(controller.repeatMode, MediaRepeatMode.queue);
+      expect(controller.canGoNext, isTrue);
+
+      await controller.cycleRepeat();
+      await controller.cycleRepeat();
+      expect(controller.repeatMode, MediaRepeatMode.off);
+      expect(controller.canGoNext, isFalse);
+    },
+  );
+
+  test('with shuffle (repeat off), canGoNext only disables once every track in '
+      'the queue has been played - not when the current track merely happens '
+      'to be last in the original list order', () async {
+    await controller.start();
     const playlist = MediaPlaylist(id: 5, name: 'Drive', entries: []);
-    await controllerWithCallback.playPlaylist(playlist, [_trackA, _trackB]);
-    // Put the player at the first of two tracks, so canGoNext is true and
-    // next() actually attempts the call.
+    await controller.playPlaylist(playlist, [
+      _trackA,
+      _trackB,
+      _trackWithCover,
+    ]);
     repository.playerEventsController.add(
       PlayerEventUpdate(
         kind: PlayerEventKind.playbackStarted,
@@ -287,40 +464,182 @@ void main() {
       ),
     );
     await Future<void>.delayed(Duration.zero);
-    expect(controllerWithCallback.canGoNext, isTrue);
 
-    repository.nextError =
-        const MediaBackendException(MediaErrorKind.precondition, 'queue end');
-    await controllerWithCallback.next();
+    // Turning shuffle on pins a fresh bag at the current track (mirrors
+    // `media_player.rs` `reshuffle_from_current`) - 2 more steps available
+    // in a 3-track queue, regardless of linear position.
+    await controller.toggleShuffle();
+    expect(controller.canGoNext, isTrue);
 
-    expect(controllerWithCallback.transientMessageKey,
-        AppTextKey.mediaNoAdjacentTrack);
-    expect(offlineReported, isFalse);
+    // The shuffle order lands on the track that is last in the *original*
+    // list (`_trackWithCover`, index 2) after just one step - this used to
+    // wrongly disable Next because it compared against the linear index
+    // instead of counting shuffle steps.
+    repository.playerEventsController.add(
+      PlayerEventUpdate(
+        kind: PlayerEventKind.trackChanged,
+        state: const PlayerSnapshot(
+          status: PlaybackStatus.playing,
+          mediaPath: '/music/cover.mp3',
+          position: Duration.zero,
+          shuffleEnabled: true,
+        ),
+        message: 'track changed',
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(
+      controller.canGoNext,
+      isTrue,
+      reason: 'only 2 of 3 tracks played so far',
+    );
 
-    controllerWithCallback.dispose();
+    // The final (third) track of the bag - now Next is exhausted.
+    repository.playerEventsController.add(
+      PlayerEventUpdate(
+        kind: PlayerEventKind.trackChanged,
+        state: const PlayerSnapshot(
+          status: PlaybackStatus.playing,
+          mediaPath: '/music/b.mp3',
+          position: Duration.zero,
+          shuffleEnabled: true,
+        ),
+        message: 'track changed',
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.canGoNext, isFalse);
+  });
+
+  test('previous() during shuffle steps the bag position back', () async {
+    await controller.start();
+    const playlist = MediaPlaylist(id: 5, name: 'Drive', entries: []);
+    await controller.playPlaylist(playlist, [_trackA, _trackB]);
+    repository.playerEventsController.add(
+      PlayerEventUpdate(
+        kind: PlayerEventKind.playbackStarted,
+        state: const PlayerSnapshot(
+          status: PlaybackStatus.playing,
+          mediaPath: '/music/a.mp3',
+          position: Duration.zero,
+        ),
+        message: 'playback started',
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    await controller.toggleShuffle();
+
+    repository.playerEventsController.add(
+      PlayerEventUpdate(
+        kind: PlayerEventKind.trackChanged,
+        state: const PlayerSnapshot(
+          status: PlaybackStatus.playing,
+          mediaPath: '/music/b.mp3',
+          position: Duration.zero,
+          shuffleEnabled: true,
+        ),
+        message: 'track changed',
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.canGoNext, isFalse, reason: '2-track bag exhausted');
+
+    // previous() only calls the backend's Previous (instead of restarting
+    // the current track) within the first 3s of playback - position is
+    // still zero here, so this takes that branch.
+    await controller.previous();
+    repository.playerEventsController.add(
+      PlayerEventUpdate(
+        kind: PlayerEventKind.trackChanged,
+        state: const PlayerSnapshot(
+          status: PlaybackStatus.playing,
+          mediaPath: '/music/a.mp3',
+          position: Duration.zero,
+          shuffleEnabled: true,
+        ),
+        message: 'track changed',
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(
+      controller.canGoNext,
+      isTrue,
+      reason: 'stepping back into the bag frees up a step forward again',
+    );
   });
 
   test(
-      'a slow command (deadlineExceeded -> unknown) shows a hint but does '
-      'not report offline or tear down the channel', () async {
-    var offlineReported = false;
-    final controllerWithCallback = PlayerController(
-      repository: repository,
-      onStreamFailure: (_) => offlineReported = true,
+    'a snapshot reconciles repeat/shuffle with the backend-reported state',
+    () async {
+      await controller.start();
+      // Simulates a locally-optimistic toggle that the backend then overrides
+      // (e.g. another client changed it, or the command actually failed
+      // server-side) - the next snapshot is always the source of truth.
+      await controller.toggleShuffle();
+      expect(controller.shuffleEnabled, isTrue);
+
+      repository.playerEventsController.add(
+        PlayerEventUpdate(
+          kind: PlayerEventKind.snapshot,
+          state: const PlayerSnapshot(
+            status: PlaybackStatus.stopped,
+            mediaPath: '',
+            position: Duration.zero,
+            repeatMode: MediaRepeatMode.track,
+            shuffleEnabled: false,
+          ),
+          message: 'snapshot',
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.shuffleEnabled, isFalse);
+      expect(controller.repeatMode, MediaRepeatMode.track);
+    },
+  );
+
+  test('cover art is fetched once for a track that has one', () async {
+    repository.trackCoverArt[_trackWithCover.id] = Uint8List.fromList([1, 2]);
+    await controller.start();
+
+    repository.playerEventsController.add(
+      PlayerEventUpdate(
+        kind: PlayerEventKind.snapshot,
+        state: const PlayerSnapshot(
+          status: PlaybackStatus.playing,
+          mediaPath: '/music/cover.mp3',
+          position: Duration.zero,
+        ),
+        message: 'snapshot',
+      ),
     );
-    await controllerWithCallback.start();
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
 
-    // Simulates Stop/Next/Previous outliving the client's call deadline
-    // while the backend is still waiting for external audio processes to
-    // exit (e.g. under WSL) - the connection itself is fine.
-    repository.nextError =
-        const MediaBackendException(MediaErrorKind.unknown, 'slow');
-    await controllerWithCallback.playTrack(_trackA);
-
-    expect(controllerWithCallback.transientMessageKey,
-        AppTextKey.mediaCommandFailed);
-    expect(offlineReported, isFalse);
-
-    controllerWithCallback.dispose();
+    expect(controller.currentTrackCoverArt, [1, 2]);
   });
+
+  test(
+    'cover art is never fetched for a track that reports having none',
+    () async {
+      await controller.start();
+
+      repository.playerEventsController.add(
+        PlayerEventUpdate(
+          kind: PlayerEventKind.snapshot,
+          state: const PlayerSnapshot(
+            status: PlaybackStatus.playing,
+            mediaPath: '/music/a.mp3',
+            position: Duration.zero,
+          ),
+          message: 'snapshot',
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.currentTrackCoverArt, isNull);
+    },
+  );
 }

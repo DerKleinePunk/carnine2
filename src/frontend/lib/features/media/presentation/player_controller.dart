@@ -28,7 +28,7 @@ class PlayerController extends ChangeNotifier {
     required this._repository,
     this._onStreamFailure,
     Logger? logger,
-  })  : _logger = logger ?? Logger('PlayerController');
+  }) : _logger = logger ?? Logger('PlayerController');
 
   static const _tickInterval = Duration(milliseconds: 250);
 
@@ -46,6 +46,27 @@ class PlayerController extends ChangeNotifier {
   bool _pendingStart = false;
   AppTextKey? _transientMessageKey;
   int _lastNotifiedPositionSeconds = -1;
+  MediaRepeatMode _repeatMode = MediaRepeatMode.off;
+  bool _shuffleEnabled = false;
+
+  // Mirrors the backend's shuffle bag walk (`media_player.rs`
+  // `resolve_next_shuffled_index`/`shuffle_position`): a plain position into
+  // a fixed-but-unknown-to-us shuffled order, 0 at the track shuffle was
+  // turned on (or a new queue loaded) at, capped at `queue length - 1`. The
+  // backend doesn't expose its actual shuffle order or position, so this is
+  // a best-effort client-side mirror for the single-client case the app
+  // otherwise assumes (`docs/20-media-backend-plan.md` explicitly defers
+  // multi-client support) - a direct `playQueueEntry` jump can desync it,
+  // same as it would desync the backend's own bag.
+  int _shufflePosition = 0;
+  bool _pendingShuffleStepBack = false;
+
+  // Cover art is fetched once per track and kept for the app's lifetime -
+  // the backend cover cache is immutable per file (`database.rs`
+  // `upsert_media` only ever replaces the whole row on rescan), so there is
+  // no staleness to guard against, and re-visiting a track is free.
+  final Map<int, Uint8List?> _coverArtCache = {};
+  int? _coverArtTrackId;
 
   StreamSubscription<PlayerEventUpdate>? _subscription;
   Timer? _ticker;
@@ -58,11 +79,29 @@ class PlayerController extends ChangeNotifier {
   MediaQueue get queue => _queue;
   int? get activeQueueIndex => _queue.indexOfPath(_mediaPath);
   AppTextKey? get transientMessageKey => _transientMessageKey;
+  MediaRepeatMode get repeatMode => _repeatMode;
+  bool get shuffleEnabled => _shuffleEnabled;
 
+  /// The current track's cover art, once fetched - `null` while loading, not
+  /// yet requested, or the track has none. Callers show their icon fallback
+  /// for `null` regardless of which of those it is.
+  Uint8List? get currentTrackCoverArt =>
+      _currentTrack == null ? null : _coverArtCache[_currentTrack!.id];
+
+  /// With repeat (queue or track) active, the backend always has a next
+  /// track to advance to - either it loops the queue or replays the current
+  /// entry - so the boundary check only applies with repeat off. With
+  /// shuffle (and repeat off), the boundary is [_shufflePosition] against the
+  /// queue length rather than [activeQueueIndex] - the currently playing
+  /// track's position in the *original* queue order says nothing about how
+  /// many of the shuffled tracks have actually been played yet.
   bool get canGoNext =>
       hasTrack &&
       !isBusy &&
-      (activeQueueIndex ?? -1) < _queue.tracks.length - 1;
+      (_repeatMode != MediaRepeatMode.off ||
+          (_shuffleEnabled
+              ? _shufflePosition < _queue.tracks.length - 1
+              : (activeQueueIndex ?? -1) < _queue.tracks.length - 1));
   bool get canGoPrevious => hasTrack && !isBusy && (activeQueueIndex ?? 0) > 0;
 
   Duration get duration => _currentTrack?.duration ?? Duration.zero;
@@ -97,10 +136,10 @@ class PlayerController extends ChangeNotifier {
   Future<void> start() async {
     await _subscription?.cancel();
     _subscription = _repository.playerEvents().listen(
-          _onEvent,
-          onError: _onStreamError,
-          onDone: _onStreamDone,
-        );
+      _onEvent,
+      onError: _onStreamError,
+      onDone: _onStreamDone,
+    );
   }
 
   /// Re-subscribes to the player event stream after the underlying
@@ -128,14 +167,19 @@ class PlayerController extends ChangeNotifier {
       return;
     }
 
+    _shufflePosition = 0;
     _pendingStart = true;
     await _runCommand(() => _repository.startTrack(track.path));
   }
 
-  Future<void> playPlaylist(
-      MediaPlaylist playlist, List<MediaLibraryTrack> tracks) async {
+  /// Returns whether playback actually started - `false` for an empty
+  /// playlist, while busy, or on a backend failure.
+  Future<bool> playPlaylist(
+    MediaPlaylist playlist,
+    List<MediaLibraryTrack> tracks,
+  ) async {
     if (tracks.isEmpty || isBusy) {
-      return;
+      return false;
     }
 
     _queue = MediaQueue(
@@ -144,8 +188,12 @@ class PlayerController extends ChangeNotifier {
       playlistName: playlist.name,
       tracks: tracks,
     );
+    // A fresh queue always starts a fresh shuffle bag on the backend
+    // (`media_player.rs` reshuffles from the new current track whenever a
+    // playlist loads while shuffle is on).
+    _shufflePosition = 0;
     _pendingStart = true;
-    await _runCommand(() => _repository.startPlaylist(playlist.id));
+    return _runCommand(() => _repository.startPlaylist(playlist.id));
   }
 
   Future<void> stop() => _runCommand(_repository.stop);
@@ -164,6 +212,28 @@ class PlayerController extends ChangeNotifier {
     await _runCommand(() => _repository.playQueueEntry(index));
   }
 
+  Future<void> toggleShuffle() async {
+    final next = !_shuffleEnabled;
+    // Optimistic: flips immediately so the toggle feels instant, then the
+    // next `PlayerState` (from this call's own event, or any other) becomes
+    // the source of truth - same reconciliation the backend already forces
+    // on every other command in this controller.
+    _shuffleEnabled = next;
+    notifyListeners();
+    await _runCommand(() => _repository.setShuffleMode(next));
+  }
+
+  Future<void> cycleRepeat() async {
+    final next = switch (_repeatMode) {
+      MediaRepeatMode.off => MediaRepeatMode.queue,
+      MediaRepeatMode.queue => MediaRepeatMode.track,
+      MediaRepeatMode.track => MediaRepeatMode.off,
+    };
+    _repeatMode = next;
+    notifyListeners();
+    await _runCommand(() => _repository.setRepeatMode(next));
+  }
+
   Future<void> previous() async {
     if (!hasTrack || isBusy) {
       return;
@@ -174,6 +244,9 @@ class PlayerController extends ChangeNotifier {
     }
     if (!canGoPrevious) {
       return;
+    }
+    if (_shuffleEnabled && _repeatMode == MediaRepeatMode.off) {
+      _pendingShuffleStepBack = true;
     }
     await _runCommand(_repository.previous);
   }
@@ -186,12 +259,18 @@ class PlayerController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _runCommand(Future<void> Function() command) async {
+  /// Returns whether [command] actually succeeded - most callers just await
+  /// this for its side effects, but a caller that needs to know (e.g.
+  /// navigating to the player only once a playlist actually started) can
+  /// use the result instead of guessing from other state.
+  Future<bool> _runCommand(Future<void> Function() command) async {
     _isCommandInFlight = true;
     notifyListeners();
+    var succeeded = false;
 
     try {
       await command();
+      succeeded = true;
     } on MediaBackendException catch (error) {
       _pendingStart = false;
       // Only an actually-offline backend should flip the whole screen into
@@ -211,6 +290,7 @@ class PlayerController extends ChangeNotifier {
       _isCommandInFlight = false;
       notifyListeners();
     }
+    return succeeded;
   }
 
   void _onEvent(PlayerEventUpdate event) {
@@ -249,12 +329,23 @@ class PlayerController extends ChangeNotifier {
 
   Future<void> _applyState(PlayerSnapshot state) async {
     _pendingStart = false;
+    final previousMediaPath = _mediaPath;
+    final shuffleJustEnabled = !_shuffleEnabled && state.shuffleEnabled;
+    final previousPlaylistId = _queue.playlistId;
     _status = state.status;
     _mediaPath = state.mediaPath;
     _anchorPosition = state.position;
     _anchorStartedAt = clock.now();
+    _repeatMode = state.repeatMode;
+    _shuffleEnabled = state.shuffleEnabled;
     await _restorePlaylistIfNeeded(state.playlistId);
     _currentTrack = _resolveTrack(state.mediaPath);
+    unawaited(_ensureCoverArtLoaded(_currentTrack));
+    _updateShufflePosition(
+      previousMediaPath: previousMediaPath,
+      shuffleJustEnabled: shuffleJustEnabled,
+      playlistJustChanged: _queue.playlistId != previousPlaylistId,
+    );
 
     if (_status == PlaybackStatus.playing) {
       _startTicker();
@@ -262,6 +353,64 @@ class PlayerController extends ChangeNotifier {
       _stopTicker();
     }
 
+    notifyListeners();
+  }
+
+  /// Keeps [_shufflePosition] tracking the backend's own shuffle bag walk
+  /// (see the field doc). Resets to 0 exactly when the backend would
+  /// re-pin its shuffle order to the current track - shuffle just turned on,
+  /// or a different playlist was loaded - and otherwise steps by one on an
+  /// actual track change, forward unless it was this client's own
+  /// [previous] call.
+  void _updateShufflePosition({
+    required String previousMediaPath,
+    required bool shuffleJustEnabled,
+    required bool playlistJustChanged,
+  }) {
+    final steppedBack = _pendingShuffleStepBack;
+    _pendingShuffleStepBack = false;
+
+    if (shuffleJustEnabled || playlistJustChanged) {
+      _shufflePosition = 0;
+      return;
+    }
+
+    final trackChanged =
+        _mediaPath.isNotEmpty && _mediaPath != previousMediaPath;
+    if (!_shuffleEnabled ||
+        _repeatMode != MediaRepeatMode.off ||
+        !trackChanged) {
+      return;
+    }
+
+    final maxIndex = _queue.tracks.length - 1;
+    if (maxIndex < 0) {
+      return;
+    }
+    _shufflePosition = (_shufflePosition + (steppedBack ? -1 : 1)).clamp(
+      0,
+      maxIndex,
+    );
+  }
+
+  /// Fetches and caches [track]'s cover art if it has one and this is the
+  /// first time this controller has seen that track id.
+  Future<void> _ensureCoverArtLoaded(MediaLibraryTrack? track) async {
+    if (track == null ||
+        !track.hasCoverArt ||
+        _coverArtCache.containsKey(track.id)) {
+      return;
+    }
+
+    // Guards against two overlapping fetches for the same track (e.g. a
+    // `positionChanged` event arriving while the first fetch is in flight).
+    if (_coverArtTrackId == track.id) {
+      return;
+    }
+    _coverArtTrackId = track.id;
+
+    final bytes = await _repository.getTrackCoverArt(track.id);
+    _coverArtCache[track.id] = bytes;
     notifyListeners();
   }
 
@@ -282,8 +431,10 @@ class PlayerController extends ChangeNotifier {
         tracks: tracks,
       );
     } on MediaBackendException catch (error) {
-      _logger.warning('GetPlaylist($playlistId) during state restore failed: '
-          '${error.message}');
+      _logger.warning(
+        'GetPlaylist($playlistId) during state restore failed: '
+        '${error.message}',
+      );
     }
   }
 

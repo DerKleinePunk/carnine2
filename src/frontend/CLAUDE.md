@@ -49,6 +49,9 @@ Das Stitch-Projekt ist Source of Truth für Screens, Komponenten, Spacing und vi
 - Kein reines Weiß (#ffffff) für Fließtext – stattdessen `on_surface_variant` (#ababab).
 - Bei Unsicherheit, ob eine UI-Änderung vom Design-System abweicht: nachfragen (siehe Regel oben), nicht frei improvisieren.
 
+### Flutter-Version-Updates
+Ein Update der Flutter-Version im Frontend darf **nur** durchgeführt werden, wenn diese Version bereits auch für `flutter-pi` verfügbar ist (siehe `docs/07-deployment.md`, `resources/debos/README.md`). Kein Update auf eine neuere Flutter-Version vorziehen, ohne vorher zu prüfen, ob `flutter-pi` sie bereits unterstützt.
+
 ## Verhältnis zu AGENTS.md
 
 `src/frontend/AGENTS.md` enthält die verbindlichen Code-Konventionen (Naming, Ordnerstruktur, GoRouter, JSON-Serialisierung, Testing-Tools, State-Management-Vorgaben). Diese Datei ergänzt das um den architektonischen Kontext aus `docs/` sowie um die Nachfrage-Pflicht für die Zusammenarbeit. Bei Widersprüchen: `AGENTS.md` gilt für Code-Konventionen, diese Datei gilt für die Zusammenarbeitsregeln.

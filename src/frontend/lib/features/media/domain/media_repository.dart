@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:carnine_frontend/features/media/domain/models/library_scan_event.dart';
 import 'package:carnine_frontend/features/media/domain/models/audio_event.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_library_track.dart';
@@ -48,6 +50,15 @@ abstract class MediaRepository {
   Future<void> restartCurrentTrack();
   Future<void> playQueueEntry(int index);
 
+  /// Sets the active queue's repeat mode. The result reaches the UI through
+  /// the next `PlayerState` on the player event stream, not this call's
+  /// return value.
+  Future<void> setRepeatMode(MediaRepeatMode mode);
+
+  /// Toggles shuffle for the active queue, same reconciliation as
+  /// [setRepeatMode].
+  Future<void> setShuffleMode(bool enabled);
+
   /// Loads [playlistId] into the queue and starts playback.
   ///
   /// The backend's `PlayPlaylist` leaves playback paused and emits no event
@@ -63,6 +74,13 @@ abstract class MediaRepository {
   Stream<LibraryScanEvent> libraryEvents();
 
   Stream<AudioEvent> audioEvents();
+
+  /// The system output volume, 0-100.
+  Future<int> getVolume();
+
+  /// Sets the system output volume, 0-100. Returns the value the backend
+  /// actually applied (it may clamp).
+  Future<int> setVolume(int percent);
 
   /// Triggers a full rescan and streams its progress.
   Stream<LibraryScanEvent> rescan();
@@ -83,6 +101,17 @@ abstract class MediaRepository {
     required int playlistId,
     required int mediaId,
   });
+
+  /// Fetches a track's cover art, or `null` if it has none. Only worth
+  /// calling when the track's `hasCoverArt` is `true` - a track search/list
+  /// result reports this accurately.
+  Future<Uint8List?> getTrackCoverArt(int mediaId);
+
+  /// Fetches a playlist's cover art (borrowed from its first entry with
+  /// artwork), or `null` if it has none. Only worth calling when the
+  /// playlist's `hasCoverArt` is `true`, which only `getPlaylist` reports
+  /// accurately - `listPlaylists` always reports `false`.
+  Future<Uint8List?> getPlaylistCoverArt(int playlistId);
 
   /// Tears down and rebuilds the underlying transport connection. Used by
   /// the connection-loss reconnect loop; safe to call repeatedly.

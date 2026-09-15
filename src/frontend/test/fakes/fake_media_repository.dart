@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:carnine_frontend/features/media/domain/media_backend_exception.dart';
 import 'package:carnine_frontend/features/media/domain/media_repository.dart';
@@ -21,6 +22,10 @@ class FakeMediaRepository implements MediaRepository {
   final Map<int, MediaPlaylist> playlistDetails = {};
 
   final List<String> commands = [];
+
+  int volumePercent = 100;
+  final Map<int, Uint8List?> trackCoverArt = {};
+  final Map<int, Uint8List?> playlistCoverArt = {};
 
   /// When set, the next repository call throws this instead of succeeding.
   /// Cleared automatically after firing once.
@@ -160,6 +165,18 @@ class FakeMediaRepository implements MediaRepository {
   }
 
   @override
+  Future<void> setRepeatMode(MediaRepeatMode mode) async {
+    commands.add('setRepeatMode:${mode.name}');
+    await _maybeThrow();
+  }
+
+  @override
+  Future<void> setShuffleMode(bool enabled) async {
+    commands.add('setShuffleMode:$enabled');
+    await _maybeThrow();
+  }
+
+  @override
   Future<void> startPlaylist(int playlistId) async {
     commands.add('playPlaylist:$playlistId');
     await _maybeThrow();
@@ -175,6 +192,20 @@ class FakeMediaRepository implements MediaRepository {
 
   @override
   Stream<AudioEvent> audioEvents() => audioEventsController.stream;
+
+  @override
+  Future<int> getVolume() async {
+    await _maybeThrow();
+    return volumePercent;
+  }
+
+  @override
+  Future<int> setVolume(int percent) async {
+    commands.add('setVolume:$percent');
+    await _maybeThrow();
+    volumePercent = percent.clamp(0, 100);
+    return volumePercent;
+  }
 
   @override
   Stream<LibraryScanEvent> rescan() => rescanController.stream;
@@ -224,6 +255,18 @@ class FakeMediaRepository implements MediaRepository {
       position: 0,
       track: trackForId(mediaId),
     );
+  }
+
+  @override
+  Future<Uint8List?> getTrackCoverArt(int mediaId) async {
+    await _maybeThrow();
+    return trackCoverArt[mediaId];
+  }
+
+  @override
+  Future<Uint8List?> getPlaylistCoverArt(int playlistId) async {
+    await _maybeThrow();
+    return playlistCoverArt[playlistId];
   }
 
   @override

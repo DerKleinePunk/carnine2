@@ -44,6 +44,14 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.mediaQueueCollapseSemantic: 'Sor elrejtése',
   AppTextKey.mediaShuffleSemantic: 'Véletlenszerű lejátszás',
   AppTextKey.mediaRepeatSemantic: 'Ismétlés',
+  AppTextKey.mediaRepeatOffSemantic: 'Ismétlés: kikapcsolva',
+  AppTextKey.mediaRepeatQueueSemantic: 'Ismétlés: lejátszási lista',
+  AppTextKey.mediaRepeatTrackSemantic: 'Ismétlés: aktuális szám',
+  AppTextKey.mediaVolumeSemantic: 'Hangerő {percent} százalék',
+  AppTextKey.mediaMuteSemantic: 'Némítás',
+  AppTextKey.mediaUnmuteSemantic: 'Némítás feloldása',
+  AppTextKey.mediaAudioErrorBanner: 'Hanghiba történt',
+  AppTextKey.mediaAudioDeviceChangedBanner: 'Audiokimeneti eszköz megváltozott',
   AppTextKey.mediaCreateAction: 'Létrehozás',
   AppTextKey.mediaCreateSemantic: 'Új gyűjtemény létrehozása',
   AppTextKey.mediaCollectionsSemantic: 'Gyűjtemények megnyitása',
@@ -97,6 +105,8 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistCreateAction: 'Playlist létrehozása',
   AppTextKey.mediaPlaylistAddEntriesTitle: 'Számok hozzáadása',
   AppTextKey.mediaPlaylistAddEntryAction: 'Számok hozzáadása',
+  AppTextKey.mediaPlaylistTrackAlreadyAdded:
+      'A szám már szerepel a lejátszási listán',
   AppTextKey.mediaPlaylistAddEntrySemantic:
       '{title} hozzáadása ehhez: {playlist}',
   AppTextKey.mediaBackToCollectionsSemantic: 'Vissza a gyűjteményekhez',

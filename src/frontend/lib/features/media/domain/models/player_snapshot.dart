@@ -1,9 +1,5 @@
 /// Playback state reported by the backend player.
-enum PlaybackStatus {
-  stopped,
-  playing,
-  paused,
-}
+enum PlaybackStatus { stopped, playing, paused }
 
 /// Maps the backend's `PlayerState.status` string onto [PlaybackStatus].
 ///
@@ -17,6 +13,10 @@ PlaybackStatus playbackStatusFrom(String raw) {
   };
 }
 
+/// Repeat behaviour for the active queue, mirrored from the backend's
+/// `RepeatMode` enum (`docs/20-media-backend-plan.md`: aus/Queue/Titel).
+enum MediaRepeatMode { off, queue, track }
+
 /// Immutable view of the backend player at one point in time.
 ///
 /// The contract's `duration_ms` is deliberately dropped: the backend still
@@ -27,18 +27,24 @@ class PlayerSnapshot {
     required this.mediaPath,
     required this.position,
     this.playlistId,
+    this.repeatMode = MediaRepeatMode.off,
+    this.shuffleEnabled = false,
   });
 
   const PlayerSnapshot.stopped()
-      : status = PlaybackStatus.stopped,
-        mediaPath = '',
-        position = Duration.zero,
-        playlistId = null;
+    : status = PlaybackStatus.stopped,
+      mediaPath = '',
+      position = Duration.zero,
+      playlistId = null,
+      repeatMode = MediaRepeatMode.off,
+      shuffleEnabled = false;
 
   final PlaybackStatus status;
   final String mediaPath;
   final Duration position;
   final int? playlistId;
+  final MediaRepeatMode repeatMode;
+  final bool shuffleEnabled;
 
   bool get hasMedia => mediaPath.isNotEmpty;
 }

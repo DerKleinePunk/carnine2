@@ -14,6 +14,7 @@ class MediaLibraryTrack {
     required this.artist,
     required this.duration,
     required this.availability,
+    this.hasCoverArt = false,
   });
 
   final int id;
@@ -23,6 +24,7 @@ class MediaLibraryTrack {
   final String artist;
   final Duration duration;
   final MediaAvailability availability;
+  final bool hasCoverArt;
 
   bool get isPlayable => availability.isPlayable;
 

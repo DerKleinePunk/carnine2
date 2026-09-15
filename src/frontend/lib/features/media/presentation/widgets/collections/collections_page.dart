@@ -57,6 +57,7 @@ class CollectionsPage extends StatelessWidget {
             player: player,
             onBack: playlists.closePlaylist,
             onAddEntries: playlists.startAddingEntries,
+            onPlaylistStarted: controller.closeLibraryAction,
           );
         }
 
@@ -121,11 +122,18 @@ class _Overview extends StatelessWidget {
     );
   }
 
-  void _startPlaylist(MediaPlaylist playlist) {
-    final tracks = playlist.entries
+  // `ListPlaylists` (backing this overview) never returns entries, so
+  // `playlist.entries` here is always empty - the track list has to be
+  // fetched before `PlayerController.playPlaylist` can do anything with it.
+  Future<void> _startPlaylist(MediaPlaylist playlist) async {
+    final full = await playlists.fetchPlaylistForPlayback(playlist.id);
+    if (full == null) {
+      return;
+    }
+    final tracks = full.entries
         .map((entry) => entry.track)
         .whereType<MediaLibraryTrack>()
         .toList();
-    player.playPlaylist(playlist, tracks);
+    await player.playPlaylist(full, tracks);
   }
 }

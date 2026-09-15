@@ -1,6 +1,7 @@
 import 'package:carnine_frontend/core/keyboard/on_screen_text_field.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_availability.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_library_track.dart';
+import 'package:carnine_frontend/features/media/domain/models/media_playlist.dart';
 import 'package:carnine_frontend/features/media/domain/models/player_event_update.dart';
 import 'package:carnine_frontend/features/media/domain/models/player_snapshot.dart';
 import 'dart:ui' as ui;
@@ -111,7 +112,7 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('shuffle and repeat are visible but permanently disabled', (
+  testWidgets('tapping shuffle toggles it and calls SetShuffleMode', (
     tester,
   ) async {
     setUpMediaView(tester);
@@ -119,16 +120,39 @@ void main() {
     await tester.pump();
 
     final shuffleSemantics = tester.getSemantics(find.byIcon(Icons.shuffle));
-    final repeatSemantics = tester.getSemantics(find.byIcon(Icons.repeat));
-
-    expect(shuffleSemantics.flagsCollection.isEnabled, ui.Tristate.isFalse);
-    expect(repeatSemantics.flagsCollection.isEnabled, ui.Tristate.isFalse);
+    expect(shuffleSemantics.flagsCollection.isEnabled, ui.Tristate.isTrue);
 
     await tester.tap(find.byIcon(Icons.shuffle));
     await tester.pump();
 
-    expect(repository.commands, isEmpty);
+    expect(repository.commands, contains('setShuffleMode:true'));
   });
+
+  testWidgets(
+    'tapping repeat cycles off -> queue -> track and back, swapping icons',
+    (tester) async {
+      setUpMediaView(tester);
+      await tester.pumpWidget(mediaHarness(controller));
+      await tester.pump();
+
+      expect(find.byIcon(Icons.repeat), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.repeat));
+      await tester.pump();
+      expect(repository.commands, contains('setRepeatMode:queue'));
+      expect(find.byIcon(Icons.repeat), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.repeat));
+      await tester.pump();
+      expect(repository.commands, contains('setRepeatMode:track'));
+      expect(find.byIcon(Icons.repeat_one), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.repeat_one));
+      await tester.pump();
+      expect(repository.commands, contains('setRepeatMode:off'));
+      expect(find.byIcon(Icons.repeat), findsOneWidget);
+    },
+  );
 
   testWidgets('collapses and expands the queue sidebar', (tester) async {
     setUpMediaView(tester);
@@ -166,6 +190,82 @@ void main() {
     },
   );
 
+  testWidgets('the Play icon on a Collections overview row actually starts the '
+      'playlist - listPlaylists() never returns entries, so this has to '
+      'fetch them first', (tester) async {
+    repository.playlists = const [
+      MediaPlaylist(id: 7, name: 'Drive', entries: []),
+    ];
+    repository.playlistDetails[7] = const MediaPlaylist(
+      id: 7,
+      name: 'Drive',
+      entries: [
+        MediaPlaylistEntry(
+          id: 1,
+          playlistId: 7,
+          mediaId: 1,
+          position: 0,
+          track: _trackA,
+        ),
+      ],
+    );
+    setUpMediaView(tester);
+    await tester.pumpWidget(mediaHarness(controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('SAMMLUNGEN'));
+    await tester.pumpAndSettle();
+
+    // Only the playlist row's trailing button shows this icon here - the
+    // main player (with its own play/pause icon) isn't on screen while
+    // the Collections overview is.
+    await tester.tap(find.byIcon(Icons.play_arrow));
+    await tester.pumpAndSettle();
+
+    expect(repository.commands, contains('playPlaylist:7'));
+  });
+
+  testWidgets(
+    'starting a playlist from its detail page navigates back to the player',
+    (tester) async {
+      repository.playlists = const [
+        MediaPlaylist(id: 7, name: 'Drive', entries: []),
+      ];
+      repository.playlistDetails[7] = const MediaPlaylist(
+        id: 7,
+        name: 'Drive',
+        entries: [
+          MediaPlaylistEntry(
+            id: 1,
+            playlistId: 7,
+            mediaId: 1,
+            position: 0,
+            track: _trackA,
+          ),
+        ],
+      );
+      setUpMediaView(tester);
+      await tester.pumpWidget(mediaHarness(controller));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('SAMMLUNGEN'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Playlist Drive öffnen'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('PLAYLIST STARTEN'), findsOneWidget);
+      await tester.tap(find.text('PLAYLIST STARTEN'));
+      await tester.pumpAndSettle();
+
+      expect(repository.commands, contains('playPlaylist:7'));
+      // Back on the player - the playlist detail page is gone (its "quick
+      // actions" sidebar button also reads "SAMMLUNGEN", so that text alone
+      // isn't a useful signal here).
+      expect(find.text('PLAYLIST STARTEN'), findsNothing);
+      expect(find.text('DRIVE'), findsNothing);
+    },
+  );
+
   testWidgets('creating a playlist hands off to the add-entries view', (
     tester,
   ) async {
@@ -200,6 +300,42 @@ void main() {
     // that flow should now be visible.
     expect(find.byType(OnScreenTextField), findsWidgets);
   });
+
+  testWidgets(
+    'tapping an already-added track again shows a hint instead of adding '
+    'it a second time',
+    (tester) async {
+      setUpMediaView(tester);
+      await tester.pumpWidget(mediaHarness(controller));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('SAMMLUNGEN'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      tester
+              .widget<OnScreenTextField>(find.byType(OnScreenTextField))
+              .controller
+              .text =
+          'Drive';
+      await tester.pump();
+      await tester.tap(find.text('Fertig'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.textContaining('Neon Dreams'));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.check), findsOneWidget);
+
+      await tester.tap(find.textContaining('Neon Dreams'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Titel ist bereits in der Playlist'), findsOneWidget);
+
+      // Let the hint's own auto-dismiss timer fire before the test ends -
+      // otherwise the harness flags it as a leaked pending Timer.
+      await tester.pump(const Duration(seconds: 4));
+    },
+  );
 
   testWidgets('a player stream failure shows the offline banner', (
     tester,

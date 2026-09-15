@@ -30,7 +30,26 @@ MediaLibraryTrack trackFromProto(MediaItem item) {
     artist: item.artist,
     duration: durationFrom(item.durationMs),
     availability: mediaAvailabilityFrom(item.status),
+    hasCoverArt: item.hasCoverArt,
   );
+}
+
+/// Maps the backend's three-state repeat enum. Unspecified (a stream/state
+/// that predates repeat support) reads as [MediaRepeatMode.off].
+MediaRepeatMode repeatModeFrom(RepeatMode raw) {
+  return switch (raw) {
+    RepeatMode.REPEAT_QUEUE => MediaRepeatMode.queue,
+    RepeatMode.REPEAT_TRACK => MediaRepeatMode.track,
+    _ => MediaRepeatMode.off,
+  };
+}
+
+RepeatMode repeatModeToProto(MediaRepeatMode mode) {
+  return switch (mode) {
+    MediaRepeatMode.off => RepeatMode.REPEAT_OFF,
+    MediaRepeatMode.queue => RepeatMode.REPEAT_QUEUE,
+    MediaRepeatMode.track => RepeatMode.REPEAT_TRACK,
+  };
 }
 
 PlayerSnapshot snapshotFromProto(PlayerState state) {
@@ -41,6 +60,8 @@ PlayerSnapshot snapshotFromProto(PlayerState state) {
     playlistId: state.playlistId == Int64.ZERO
         ? null
         : idFrom(state.playlistId),
+    repeatMode: repeatModeFrom(state.repeatMode),
+    shuffleEnabled: state.shuffleEnabled,
   );
 }
 

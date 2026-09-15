@@ -46,6 +46,7 @@ void main() {
         artist: 'B',
         durationMs: Int64(60000),
         status: 'AVAILABLE',
+        hasCoverArt: true,
       );
 
       final track = trackFromProto(item);
@@ -58,6 +59,28 @@ void main() {
       expect(track.duration, const Duration(minutes: 1));
       expect(track.availability, MediaAvailability.available);
       expect(track.isPlayable, isTrue);
+      expect(track.hasCoverArt, isTrue);
+    });
+  });
+
+  group('repeatModeFrom/repeatModeToProto', () {
+    test('maps every backend repeat mode', () {
+      expect(repeatModeFrom(RepeatMode.REPEAT_OFF), MediaRepeatMode.off);
+      expect(repeatModeFrom(RepeatMode.REPEAT_QUEUE), MediaRepeatMode.queue);
+      expect(repeatModeFrom(RepeatMode.REPEAT_TRACK), MediaRepeatMode.track);
+    });
+
+    test('maps the unspecified mode to off', () {
+      expect(
+        repeatModeFrom(RepeatMode.REPEAT_MODE_UNSPECIFIED),
+        MediaRepeatMode.off,
+      );
+    });
+
+    test('round-trips every domain mode back to its proto value', () {
+      for (final mode in MediaRepeatMode.values) {
+        expect(repeatModeFrom(repeatModeToProto(mode)), mode);
+      }
     });
   });
 
@@ -111,6 +134,8 @@ void main() {
           positionMs: Int64(1000),
           durationMs: Int64(0),
           playlistId: Int64(7),
+          repeatMode: RepeatMode.REPEAT_TRACK,
+          shuffleEnabled: true,
         ),
         message: 'current player state',
       );
@@ -123,6 +148,8 @@ void main() {
       expect(update.state!.mediaPath, '/music/a.mp3');
       expect(update.state!.position, const Duration(seconds: 1));
       expect(update.state!.playlistId, 7);
+      expect(update.state!.repeatMode, MediaRepeatMode.track);
+      expect(update.state!.shuffleEnabled, isTrue);
     });
 
     test('state is null when the proto event has none set', () {

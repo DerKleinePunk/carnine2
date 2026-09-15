@@ -43,8 +43,10 @@ void main() {
   });
 
   test('alreadyExists maps to the duplicate-name error message', () async {
-    repository.nextError =
-        const MediaBackendException(MediaErrorKind.alreadyExists, 'dup');
+    repository.nextError = const MediaBackendException(
+      MediaErrorKind.alreadyExists,
+      'dup',
+    );
 
     final id = await controller.createPlaylist('Drive');
 
@@ -58,11 +60,21 @@ void main() {
       name: 'Drive',
       entries: [
         MediaPlaylistEntry(
-            id: 1, playlistId: 1, mediaId: 1, position: 0, track: _trackA),
+          id: 1,
+          playlistId: 1,
+          mediaId: 1,
+          position: 0,
+          track: _trackA,
+        ),
         // mediaId 99 is not in the cache - the repository would resolve
         // this entry's track to null.
         MediaPlaylistEntry(
-            id: 2, playlistId: 1, mediaId: 99, position: 1, track: null),
+          id: 2,
+          playlistId: 1,
+          mediaId: 99,
+          position: 1,
+          track: null,
+        ),
       ],
     );
 
@@ -72,18 +84,117 @@ void main() {
     expect(controller.openPlaylist?.entries[1].track, isNull);
   });
 
-  test('an offline failure on loadPlaylists reports and surfaces offline',
-      () async {
-    repository.nextError =
-        const MediaBackendException(MediaErrorKind.offline, 'unreachable');
-    var reported = false;
-    controller = PlaylistController(
-      repository: repository,
-      onStreamFailure: (_) => reported = true,
+  test(
+    'an offline failure on loadPlaylists reports and surfaces offline',
+    () async {
+      repository.nextError = const MediaBackendException(
+        MediaErrorKind.offline,
+        'unreachable',
+      );
+      var reported = false;
+      controller = PlaylistController(
+        repository: repository,
+        onStreamFailure: (_) => reported = true,
+      );
+
+      await controller.loadPlaylists();
+
+      expect(reported, isTrue);
+    },
+  );
+
+  test('fetchPlaylistForPlayback returns the full playlist without touching '
+      'openPlaylist/detailState - the Collections overview only has the '
+      'entries-free listPlaylists() view and must not navigate to the detail '
+      'page just to start playback', () async {
+    repository.playlistDetails[1] = const MediaPlaylist(
+      id: 1,
+      name: 'Drive',
+      entries: [
+        MediaPlaylistEntry(
+          id: 1,
+          playlistId: 1,
+          mediaId: 1,
+          position: 0,
+          track: _trackA,
+        ),
+      ],
     );
 
-    await controller.loadPlaylists();
+    final playlist = await controller.fetchPlaylistForPlayback(1);
 
-    expect(reported, isTrue);
+    expect(playlist?.entries, hasLength(1));
+    expect(controller.openPlaylist, isNull);
+  });
+
+  test('startAddingEntries seeds already-added from the playlist\'s current '
+      'entries, so a track added in a previous session reads as already '
+      'added instead of being offered again', () async {
+    const playlist = MediaPlaylist(
+      id: 1,
+      name: 'Drive',
+      entries: [
+        MediaPlaylistEntry(
+          id: 1,
+          playlistId: 1,
+          mediaId: 1,
+          position: 0,
+          track: _trackA,
+        ),
+      ],
+    );
+
+    controller.startAddingEntries(playlist);
+
+    expect(controller.addedMediaIds, contains(1));
+  });
+
+  test('addEntry rejects a track already in the playlist without calling the '
+      'backend again, and surfaces a hint', () async {
+    const playlist = MediaPlaylist(
+      id: 1,
+      name: 'Drive',
+      entries: [
+        MediaPlaylistEntry(
+          id: 1,
+          playlistId: 1,
+          mediaId: 1,
+          position: 0,
+          track: _trackA,
+        ),
+      ],
+    );
+    controller.startAddingEntries(playlist);
+
+    await controller.addEntry(playlistId: 1, mediaId: 1);
+
+    expect(repository.commands, isEmpty);
+    expect(
+      controller.addEntryHintKey,
+      AppTextKey.mediaPlaylistTrackAlreadyAdded,
+    );
+  });
+
+  test('dismissAddEntryHint clears the hint early', () async {
+    const playlist = MediaPlaylist(
+      id: 1,
+      name: 'Drive',
+      entries: [
+        MediaPlaylistEntry(
+          id: 1,
+          playlistId: 1,
+          mediaId: 1,
+          position: 0,
+          track: _trackA,
+        ),
+      ],
+    );
+    controller.startAddingEntries(playlist);
+    await controller.addEntry(playlistId: 1, mediaId: 1);
+    expect(controller.addEntryHintKey, isNotNull);
+
+    controller.dismissAddEntryHint();
+
+    expect(controller.addEntryHintKey, isNull);
   });
 }

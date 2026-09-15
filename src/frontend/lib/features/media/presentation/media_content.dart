@@ -1,4 +1,6 @@
+import 'package:carnine_frontend/features/media/presentation/audio_controller.dart';
 import 'package:carnine_frontend/features/media/presentation/media_controller.dart';
+import 'package:carnine_frontend/features/media/presentation/widgets/audio_event_banner.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/collections/collections_page.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/create/playlist_create_page.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/library/library_page.dart';
@@ -60,6 +62,7 @@ class _MediaContentState extends State<MediaContent> {
         return Column(
           children: [
             if (isOffline) MediaConnectionBanner(onRetry: _controller.retryNow),
+            if (!isOffline) _AudioEventBannerSlot(audio: _controller.audio),
             Expanded(
               child: GestureDetector(
                 behavior: HitTestBehavior.translucent,
@@ -118,5 +121,30 @@ class _MediaContentState extends State<MediaContent> {
         _controller.isQueueExpanded) {
       _controller.toggleQueueExpanded();
     }
+  }
+}
+
+/// Isolates the [AudioController] subscription to just the banner, so a
+/// volume/audio-event change doesn't rebuild the whole media screen.
+class _AudioEventBannerSlot extends StatelessWidget {
+  const _AudioEventBannerSlot({required this.audio});
+
+  final AudioController audio;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: audio,
+      builder: (context, child) {
+        final key = audio.bannerKey;
+        if (key == null) {
+          return const SizedBox.shrink();
+        }
+        return AudioEventBanner(
+          messageKey: key,
+          onDismiss: audio.dismissBanner,
+        );
+      },
+    );
   }
 }

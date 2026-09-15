@@ -1,14 +1,20 @@
+import 'package:carnine_frontend/features/media/presentation/audio_controller.dart';
 import 'package:carnine_frontend/features/media/presentation/player_controller.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/player/album_art.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/player/playback_controls.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/player/player_timeline.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/player/track_info.dart';
+import 'package:carnine_frontend/features/media/presentation/widgets/player/volume_control.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 class PlayerCore extends StatelessWidget {
-  const PlayerCore(
-      {required this.controller, required this.isQueueExpanded, super.key});
+  const PlayerCore({
+    required this.controller,
+    required this.audio,
+    required this.isQueueExpanded,
+    super.key,
+  });
 
   /// Growth applied to the player's core elements when the queue sidebar is
   /// collapsed and the extra width would otherwise sit empty. Kept modest so
@@ -16,7 +22,13 @@ class PlayerCore extends StatelessWidget {
   /// display height.
   static const double _expandedScale = 1.1;
   static const Duration _animationDuration = Duration(milliseconds: 200);
-  static const double _gap = 20;
+  static const double _gap = 16;
+
+  /// Album art base size (at scale 1.0). Deliberately smaller than a "hero"
+  /// player would use - with the volume row added below the transport
+  /// controls, the full stack (art, track info, timeline, controls, volume)
+  /// must still fit the fixed 600px height without scrolling.
+  static const double _albumArtSize = 190;
 
   /// Clamps text scaling within the player core to 1.3x. This is a
   /// deliberate, documented deviation from the feature's 200% target: the
@@ -25,6 +37,7 @@ class PlayerCore extends StatelessWidget {
   static const double _maxTextScale = 1.3;
 
   final PlayerController controller;
+  final AudioController audio;
   final bool isQueueExpanded;
 
   @override
@@ -36,7 +49,7 @@ class PlayerCore extends StatelessWidget {
     return MediaQuery.withClampedTextScaling(
       maxScaleFactor: _maxTextScale,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
         // On a smaller window or with the player's clamped text scale still
         // not leaving enough room (e.g. 800x480), the content scrolls
         // instead of overflowing - the fixed 1024x600 layout itself is
@@ -49,12 +62,17 @@ class PlayerCore extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    AlbumArt(size: 256 * scale),
+                    AlbumArt(
+                      size: _albumArtSize * scale,
+                      coverArt: controller.currentTrackCoverArt,
+                    ),
                     const SizedBox(height: _gap),
                     TrackInfo(
-                      title: track?.title ??
+                      title:
+                          track?.title ??
                           l10n.text(AppTextKey.mediaUnknownTitle),
-                      artist: track?.artist ??
+                      artist:
+                          track?.artist ??
                           l10n.text(AppTextKey.mediaUnknownArtist),
                       contextLine: _contextLine(l10n),
                       scale: scale,
@@ -64,7 +82,8 @@ class PlayerCore extends StatelessWidget {
                       duration: _animationDuration,
                       curve: Curves.easeOutCubic,
                       constraints: BoxConstraints(
-                          maxWidth: PlaybackControls.totalWidth * scale),
+                        maxWidth: PlaybackControls.totalWidth * scale,
+                      ),
                       child: PlayerTimeline(
                         position: controller.position,
                         duration: controller.duration,
@@ -74,7 +93,16 @@ class PlayerCore extends StatelessWidget {
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       child: PlaybackControls(
-                          controller: controller, scale: scale),
+                        controller: controller,
+                        scale: scale,
+                      ),
+                    ),
+                    const SizedBox(height: _gap),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: PlaybackControls.totalWidth * scale,
+                      ),
+                      child: VolumeControl(controller: audio),
                     ),
                   ],
                 ),

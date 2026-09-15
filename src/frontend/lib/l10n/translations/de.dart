@@ -44,6 +44,14 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.mediaQueueCollapseSemantic: 'Warteschlange ausblenden',
   AppTextKey.mediaShuffleSemantic: 'Zufallswiedergabe',
   AppTextKey.mediaRepeatSemantic: 'Wiederholung',
+  AppTextKey.mediaRepeatOffSemantic: 'Wiederholung: aus',
+  AppTextKey.mediaRepeatQueueSemantic: 'Wiederholung: Playlist',
+  AppTextKey.mediaRepeatTrackSemantic: 'Wiederholung: aktueller Titel',
+  AppTextKey.mediaVolumeSemantic: 'Lautstärke {percent} Prozent',
+  AppTextKey.mediaMuteSemantic: 'Stummschalten',
+  AppTextKey.mediaUnmuteSemantic: 'Stummschaltung aufheben',
+  AppTextKey.mediaAudioErrorBanner: 'Audiofehler aufgetreten',
+  AppTextKey.mediaAudioDeviceChangedBanner: 'Audioausgabegerät gewechselt',
   AppTextKey.mediaCreateAction: 'Erstellen',
   AppTextKey.mediaCreateSemantic: 'Neue Sammlung erstellen',
   AppTextKey.mediaCollectionsSemantic: 'Sammlungen öffnen',
@@ -66,7 +74,10 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.mediaBackendErrorTitle: 'Fehler',
   AppTextKey.mediaBackendErrorDescription: 'Diese Anfrage ist fehlgeschlagen.',
   AppTextKey.mediaCommandFailed: 'Befehl fehlgeschlagen',
-  AppTextKey.mediaDismiss: 'Schließen',
+  // "ss" instead of "ß": toUpperCase() has no uppercase mapping for ß, so
+  // the button (always rendered upper-case) would otherwise read
+  // "SCHLIEßEN" - inconsistent with the rest of the all-caps label.
+  AppTextKey.mediaDismiss: 'Schliessen',
   AppTextKey.mediaLibraryTitle: 'Bibliothek',
   AppTextKey.mediaSearchHint: 'Titel oder Interpret suchen',
   AppTextKey.mediaSearchSemantic: 'Bibliothek durchsuchen',
@@ -98,6 +109,8 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistCreateAction: 'Playlist erstellen',
   AppTextKey.mediaPlaylistAddEntriesTitle: 'Titel hinzufügen',
   AppTextKey.mediaPlaylistAddEntryAction: 'Titel hinzufügen',
+  AppTextKey.mediaPlaylistTrackAlreadyAdded:
+      'Titel ist bereits in der Playlist',
   AppTextKey.mediaPlaylistAddEntrySemantic: '{title} zu {playlist} hinzufügen',
   AppTextKey.mediaBackToCollectionsSemantic: 'Zurück zu Sammlungen',
   AppTextKey.settingsBackToOptions: 'Zurück zu Optionen',

@@ -54,26 +54,28 @@ class AppLocalizations {
 
   static const Map<String, Map<AppTextKey, String>> _values =
       <String, Map<AppTextKey, String>>{
-    'de': deTranslations,
-    'en': enTranslations,
-    'fr': frTranslations,
-    'es': esTranslations,
-    'it': itTranslations,
-    'zh': zhTranslations,
-    'ja': jaTranslations,
-    'nl': nlTranslations,
-    'pl': plTranslations,
-    'hu': huTranslations,
-    'tr': trTranslations,
-    'pt': ptTranslations,
-    'cs': csTranslations,
-    'sv': svTranslations,
-    'da': daTranslations,
-  };
+        'de': deTranslations,
+        'en': enTranslations,
+        'fr': frTranslations,
+        'es': esTranslations,
+        'it': itTranslations,
+        'zh': zhTranslations,
+        'ja': jaTranslations,
+        'nl': nlTranslations,
+        'pl': plTranslations,
+        'hu': huTranslations,
+        'tr': trTranslations,
+        'pt': ptTranslations,
+        'cs': csTranslations,
+        'sv': svTranslations,
+        'da': daTranslations,
+      };
 
   static AppLocalizations of(BuildContext context) {
-    final localizations =
-        Localizations.of<AppLocalizations>(context, AppLocalizations);
+    final localizations = Localizations.of<AppLocalizations>(
+      context,
+      AppLocalizations,
+    );
     if (localizations == null) {
       throw StateError('AppLocalizations is not available in this context.');
     }
@@ -90,8 +92,9 @@ class AppLocalizations {
   }
 
   String dashboardContentFor(String section) {
-    return text(AppTextKey.dashboardContentFor)
-        .replaceFirst('{section}', section);
+    return text(
+      AppTextKey.dashboardContentFor,
+    ).replaceFirst('{section}', section);
   }
 
   String grpcStatus(String status) {
@@ -99,8 +102,9 @@ class AppLocalizations {
   }
 
   String statusConnected(int count) {
-    return text(AppTextKey.statusConnected)
-        .replaceFirst('{count}', count.toString());
+    return text(
+      AppTextKey.statusConnected,
+    ).replaceFirst('{count}', count.toString());
   }
 
   String mediaQueuePositionLine({required int index, required int count}) {
@@ -109,40 +113,52 @@ class AppLocalizations {
         .replaceFirst('{count}', count.toString());
   }
 
-  String mediaScanProgressLine(
-      {required int processed, required int imported}) {
+  String mediaScanProgressLine({
+    required int processed,
+    required int imported,
+  }) {
     return text(AppTextKey.mediaScanProgressLine)
         .replaceFirst('{processed}', processed.toString())
         .replaceFirst('{imported}', imported.toString());
   }
 
   String mediaUnavailableSemantic(String title) {
-    return text(AppTextKey.mediaUnavailableSemantic)
-        .replaceFirst('{title}', title);
+    return text(
+      AppTextKey.mediaUnavailableSemantic,
+    ).replaceFirst('{title}', title);
   }
 
   String mediaPlayTrackSemantic(String title) {
-    return text(AppTextKey.mediaPlayTrackSemantic)
-        .replaceFirst('{title}', title);
+    return text(
+      AppTextKey.mediaPlayTrackSemantic,
+    ).replaceFirst('{title}', title);
   }
 
   String mediaPlaylistOpenSemantic(String name) {
-    return text(AppTextKey.mediaPlaylistOpenSemantic)
-        .replaceFirst('{name}', name);
+    return text(
+      AppTextKey.mediaPlaylistOpenSemantic,
+    ).replaceFirst('{name}', name);
   }
 
   String mediaPlaylistPlaySemantic(String name) {
-    return text(AppTextKey.mediaPlaylistPlaySemantic)
-        .replaceFirst('{name}', name);
+    return text(
+      AppTextKey.mediaPlaylistPlaySemantic,
+    ).replaceFirst('{name}', name);
+  }
+
+  String mediaVolumeSemantic(int percent) {
+    return text(
+      AppTextKey.mediaVolumeSemantic,
+    ).replaceFirst('{percent}', percent.toString());
   }
 
   String mediaPlaylistAddEntrySemantic({
     required String title,
     required String playlist,
   }) {
-    return text(AppTextKey.mediaPlaylistAddEntrySemantic)
-        .replaceFirst('{title}', title)
-        .replaceFirst('{playlist}', playlist);
+    return text(
+      AppTextKey.mediaPlaylistAddEntrySemantic,
+    ).replaceFirst('{title}', title).replaceFirst('{playlist}', playlist);
   }
 
   /// Appends [AppTextKey.mediaFeatureUnavailableHint] to an existing action
@@ -153,8 +169,9 @@ class AppLocalizations {
   }
 
   String keyboardDiacriticOptionsSemantic(String letter) {
-    return text(AppTextKey.keyboardDiacriticOptionsSemantic)
-        .replaceFirst('{letter}', letter);
+    return text(
+      AppTextKey.keyboardDiacriticOptionsSemantic,
+    ).replaceFirst('{letter}', letter);
   }
 
   String canDataLine({

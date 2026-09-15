@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:carnine_frontend/features/media/data/grpc_media_repository.dart';
 import 'package:carnine_frontend/features/media/domain/media_repository.dart';
+import 'package:carnine_frontend/features/media/presentation/audio_controller.dart';
 import 'package:carnine_frontend/features/media/presentation/library_controller.dart';
 import 'package:carnine_frontend/features/media/presentation/player_controller.dart';
 import 'package:carnine_frontend/features/media/presentation/playlist_controller.dart';
@@ -21,6 +22,7 @@ class MediaController extends ChangeNotifier {
     PlayerController? player,
     LibraryController? library,
     PlaylistController? playlists,
+    AudioController? audio,
     Logger? logger,
   }) : _repository = repository ?? GrpcMediaRepository(),
        _logger = logger ?? Logger('MediaController') {
@@ -42,9 +44,16 @@ class MediaController extends ChangeNotifier {
           repository: _repository,
           onStreamFailure: reportStreamFailure,
         );
+    audio =
+        audio ??
+        AudioController(
+          repository: _repository,
+          onStreamFailure: reportStreamFailure,
+        );
     this.player = player;
     this.library = library;
     this.playlists = playlists;
+    this.audio = audio;
   }
 
   static const _initialReconnectDelay = Duration(milliseconds: 500);
@@ -56,6 +65,7 @@ class MediaController extends ChangeNotifier {
   late final PlayerController player;
   late final LibraryController library;
   late final PlaylistController playlists;
+  late final AudioController audio;
 
   bool _isQueueExpanded = true;
   MediaLibraryAction? _openLibraryAction;
@@ -76,6 +86,7 @@ class MediaController extends ChangeNotifier {
 
     await player.start();
     await library.start();
+    await audio.start();
     unawaited(playlists.loadPlaylists());
     _connection = MediaConnectionStatus.online;
     notifyListeners();
@@ -87,6 +98,7 @@ class MediaController extends ChangeNotifier {
     player.dispose();
     library.dispose();
     playlists.dispose();
+    audio.dispose();
     unawaited(_repository.dispose());
     super.dispose();
   }
@@ -161,6 +173,7 @@ class MediaController extends ChangeNotifier {
       await _repository.reconnect();
       await player.reconnect();
       await library.reconnect();
+      await audio.reconnect();
       _connection = MediaConnectionStatus.online;
       _nextReconnectDelay = _initialReconnectDelay;
       notifyListeners();

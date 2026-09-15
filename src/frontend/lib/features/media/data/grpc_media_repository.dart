@@ -1,6 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:carnine_frontend/features/media/data/media_channel.dart';
 import 'package:carnine_frontend/features/media/data/media_error_mapper.dart';
 import 'package:carnine_frontend/features/media/data/proto_mappers.dart';
+import 'package:carnine_frontend/features/media/domain/media_backend_exception.dart';
 import 'package:carnine_frontend/features/media/domain/media_repository.dart';
 import 'package:carnine_frontend/features/media/domain/models/library_scan_event.dart';
 import 'package:carnine_frontend/features/media/domain/models/audio_event.dart';
@@ -206,6 +209,28 @@ class GrpcMediaRepository implements MediaRepository {
   }
 
   @override
+  Future<void> setRepeatMode(MediaRepeatMode mode) {
+    return _command(
+      'SetRepeatMode',
+      () => _channel.stub.setRepeatMode(
+        SetRepeatModeRequest(mode: repeatModeToProto(mode)),
+        options: CallOptions(timeout: _commandTimeout),
+      ),
+    );
+  }
+
+  @override
+  Future<void> setShuffleMode(bool enabled) {
+    return _command(
+      'SetShuffleMode',
+      () => _channel.stub.setShuffleMode(
+        SetShuffleModeRequest(enabled: enabled),
+        options: CallOptions(timeout: _commandTimeout),
+      ),
+    );
+  }
+
+  @override
   Future<void> startPlaylist(int playlistId) async {
     await _command(
       'PlayPlaylist',
@@ -251,6 +276,34 @@ class GrpcMediaRepository implements MediaRepository {
     return _channel.audioStub
         .streamAudioEvents(Empty())
         .map(audioEventFromProto);
+  }
+
+  @override
+  Future<int> getVolume() async {
+    try {
+      final response = await _channel.audioStub.getVolume(
+        Empty(),
+        options: CallOptions(timeout: _commandTimeout),
+      );
+      return response.percent;
+    } catch (error, stackTrace) {
+      _logger.severe('GetVolume failed', error, stackTrace);
+      throw mediaExceptionFrom(error);
+    }
+  }
+
+  @override
+  Future<int> setVolume(int percent) async {
+    try {
+      final response = await _channel.audioStub.setVolume(
+        SetVolumeRequest(percent: percent),
+        options: CallOptions(timeout: _commandTimeout),
+      );
+      return response.percent;
+    } catch (error, stackTrace) {
+      _logger.severe('SetVolume($percent) failed', error, stackTrace);
+      throw mediaExceptionFrom(error);
+    }
   }
 
   @override
@@ -311,6 +364,7 @@ class GrpcMediaRepository implements MediaRepository {
         id: idFrom(playlist.id),
         name: playlist.name,
         entries: entries,
+        hasCoverArt: playlist.hasCoverArt,
       );
     } catch (error, stackTrace) {
       _logger.severe('GetPlaylist($playlistId) failed', error, stackTrace);
@@ -363,6 +417,50 @@ class GrpcMediaRepository implements MediaRepository {
         stackTrace,
       );
       throw mediaExceptionFrom(error);
+    }
+  }
+
+  @override
+  Future<Uint8List?> getTrackCoverArt(int mediaId) {
+    return _coverArt(
+      'GetCoverArt(media: $mediaId)',
+      () => _channel.stub.getCoverArt(
+        GetCoverArtRequest(mediaId: Int64(mediaId)),
+        options: CallOptions(timeout: _commandTimeout),
+      ),
+    );
+  }
+
+  @override
+  Future<Uint8List?> getPlaylistCoverArt(int playlistId) {
+    return _coverArt(
+      'GetCoverArt(playlist: $playlistId)',
+      () => _channel.stub.getCoverArt(
+        GetCoverArtRequest(playlistId: Int64(playlistId)),
+        options: CallOptions(timeout: _commandTimeout),
+      ),
+    );
+  }
+
+  /// Cover art is decorative, so a failure never surfaces as an exception -
+  /// callers just keep their icon fallback. `notFound` (no cover stored) is
+  /// expected and logged quietly; anything else is a real backend problem
+  /// and logged as a warning.
+  Future<Uint8List?> _coverArt(
+    String name,
+    Future<GetCoverArtResponse> Function() call,
+  ) async {
+    try {
+      final response = await call();
+      return Uint8List.fromList(response.data);
+    } catch (error, stackTrace) {
+      final mapped = mediaExceptionFrom(error);
+      if (mapped.kind == MediaErrorKind.notFound) {
+        _logger.info('$name: no cover art available');
+      } else {
+        _logger.warning('$name failed', error, stackTrace);
+      }
+      return null;
     }
   }
 

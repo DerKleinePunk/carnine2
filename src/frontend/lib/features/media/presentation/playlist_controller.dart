@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:carnine_frontend/features/media/domain/media_backend_exception.dart';
 import 'package:carnine_frontend/features/media/domain/media_repository.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_playlist.dart';
@@ -17,7 +19,7 @@ class PlaylistController extends ChangeNotifier {
     required this._repository,
     this._onStreamFailure,
     Logger? logger,
-  })  : _logger = logger ?? Logger('PlaylistController');
+  }) : _logger = logger ?? Logger('PlaylistController');
 
   final MediaRepository _repository;
   final void Function(Object error)? _onStreamFailure;
@@ -28,12 +30,16 @@ class PlaylistController extends ChangeNotifier {
 
   MediaPlaylist? _openPlaylist;
   MediaViewState _detailState = const MediaViewState.idle();
+  Uint8List? _openPlaylistCoverArt;
 
   bool _isCreating = false;
   AppTextKey? _createErrorKey;
 
   final Set<int> _pendingAddMediaIds = {};
   final Set<int> _addedMediaIds = {};
+  AppTextKey? _addEntryHintKey;
+  Timer? _addEntryHintTimer;
+  static const _addEntryHintDuration = Duration(seconds: 3);
 
   /// Set right after [createPlaylist] succeeds, so the "create" sub-page can
   /// hand off straight to adding tracks - "Playlist anlegen + befüllen" as
@@ -45,17 +51,34 @@ class PlaylistController extends ChangeNotifier {
   List<MediaPlaylist> get playlists => _playlists;
   MediaPlaylist? get openPlaylist => _openPlaylist;
   MediaViewState get detailState => _detailState;
+  Uint8List? get openPlaylistCoverArt => _openPlaylistCoverArt;
   bool get isCreating => _isCreating;
   AppTextKey? get createErrorKey => _createErrorKey;
   Set<int> get pendingAddMediaIds => _pendingAddMediaIds;
   Set<int> get addedMediaIds => _addedMediaIds;
   MediaPlaylist? get pendingAddEntriesTarget => _pendingAddEntriesTarget;
+  AppTextKey? get addEntryHintKey => _addEntryHintKey;
 
   /// Clears [pendingAddEntriesTarget] once the caller has switched to the
   /// add-entries view for it.
   void consumePendingAddEntriesTarget() {
     _pendingAddEntriesTarget = null;
     notifyListeners();
+  }
+
+  void dismissAddEntryHint() {
+    if (_addEntryHintKey == null) {
+      return;
+    }
+    _addEntryHintTimer?.cancel();
+    _addEntryHintKey = null;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _addEntryHintTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> loadPlaylists() async {
@@ -85,6 +108,7 @@ class PlaylistController extends ChangeNotifier {
   Future<void> openPlaylistById(int playlistId) async {
     _detailState = const MediaViewState.loading();
     _openPlaylist = null;
+    _openPlaylistCoverArt = null;
     notifyListeners();
 
     try {
@@ -96,6 +120,14 @@ class PlaylistController extends ChangeNotifier {
       _detailState = playlist.entries.isEmpty
           ? const MediaViewState.empty(AppTextKey.mediaPlaylistDetailEmpty)
           : const MediaViewState.ready();
+      // `getPlaylist` is the one call that reports `hasCoverArt` accurately
+      // (`listPlaylists` always says `false`), so this is the only place a
+      // cover fetch is worth attempting.
+      if (playlist.hasCoverArt) {
+        _openPlaylistCoverArt = await _repository.getPlaylistCoverArt(
+          playlistId,
+        );
+      }
     } on MediaBackendException catch (error) {
       _logger.warning('GetPlaylist($playlistId) failed: ${error.message}');
       if (error.kind == MediaErrorKind.offline) {
@@ -111,15 +143,48 @@ class PlaylistController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Fetches [playlistId] with its entries resolved, without touching
+  /// [openPlaylist]/[detailState] - for a caller (the Collections overview's
+  /// inline Play button) that needs the track list to start playback but
+  /// must not navigate to the detail page as a side effect. `listPlaylists`
+  /// (which backs the overview) never returns entries, so this is the only
+  /// way that button can ever get playable tracks.
+  Future<MediaPlaylist?> fetchPlaylistForPlayback(int playlistId) async {
+    try {
+      await _repository.ensureLibraryLoaded();
+      return await _repository.getPlaylist(playlistId);
+    } on MediaBackendException catch (error) {
+      _logger.warning(
+        'GetPlaylist($playlistId) for inline playback failed: '
+        '${error.message}',
+      );
+      if (error.kind == MediaErrorKind.offline) {
+        _onStreamFailure?.call(error);
+      }
+      return null;
+    }
+  }
+
   /// Switches to the add-entries view for [playlist], from either the
   /// detail page or right after creation.
   void startAddingEntries(MediaPlaylist playlist) {
+    _seedAddedMediaIds(playlist);
     _pendingAddEntriesTarget = playlist;
     notifyListeners();
   }
 
+  /// Seeds [_addedMediaIds] with [playlist]'s current entries, so a track
+  /// already in the playlist (from a previous session, not just ones added
+  /// just now) reads as already-added rather than being offered again.
+  void _seedAddedMediaIds(MediaPlaylist playlist) {
+    _addedMediaIds
+      ..clear()
+      ..addAll(playlist.entries.map((entry) => entry.mediaId));
+  }
+
   void closePlaylist() {
     _openPlaylist = null;
+    _openPlaylistCoverArt = null;
     _detailState = const MediaViewState.idle();
     _addedMediaIds.clear();
     notifyListeners();
@@ -142,6 +207,7 @@ class PlaylistController extends ChangeNotifier {
     try {
       final playlist = await _repository.createPlaylist(trimmed);
       _playlists = [..._playlists, playlist];
+      _seedAddedMediaIds(playlist);
       _pendingAddEntriesTarget = playlist;
       return playlist.id;
     } on MediaBackendException catch (error) {
@@ -163,8 +229,14 @@ class PlaylistController extends ChangeNotifier {
   }
 
   Future<void> addEntry({required int playlistId, required int mediaId}) async {
-    if (_pendingAddMediaIds.contains(mediaId) ||
-        _addedMediaIds.contains(mediaId)) {
+    if (_pendingAddMediaIds.contains(mediaId)) {
+      return;
+    }
+    if (_addedMediaIds.contains(mediaId)) {
+      _addEntryHintKey = AppTextKey.mediaPlaylistTrackAlreadyAdded;
+      notifyListeners();
+      _addEntryHintTimer?.cancel();
+      _addEntryHintTimer = Timer(_addEntryHintDuration, dismissAddEntryHint);
       return;
     }
 
@@ -173,7 +245,9 @@ class PlaylistController extends ChangeNotifier {
 
     try {
       await _repository.addPlaylistEntry(
-          playlistId: playlistId, mediaId: mediaId);
+        playlistId: playlistId,
+        mediaId: mediaId,
+      );
       _addedMediaIds.add(mediaId);
     } on MediaBackendException catch (error) {
       _logger.warning(

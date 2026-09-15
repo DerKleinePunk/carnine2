@@ -4,6 +4,7 @@ import 'package:carnine_frontend/features/media/domain/models/player_event_updat
 import 'package:carnine_frontend/features/media/domain/models/player_snapshot.dart';
 import 'package:carnine_frontend/features/media/presentation/media_controller.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/player/play_pause_button.dart';
+import 'package:carnine_frontend/features/media/presentation/widgets/player/player_core.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/player/track_info.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -111,6 +112,34 @@ void main() {
       );
       expect(titleText.maxLines, 1);
       expect(titleText.data, _trackLongTitle.title.toUpperCase());
+    },
+  );
+
+  testWidgets(
+    'the player page fits the standard 1024x600 display without scrolling',
+    (tester) async {
+      final controller = MediaController(repository: repository);
+      addTearDown(controller.dispose);
+
+      await _pumpAt(
+        tester,
+        size: const Size(1024, 600),
+        textScale: 1.0,
+        controller: controller,
+      );
+
+      expect(tester.takeException(), isNull);
+
+      // Album art, track info, timeline, transport controls and the volume
+      // row must all fit without the player's scroll-safety-net kicking in
+      // - a driver shouldn't need to scroll to reach the volume slider.
+      final scrollable = tester.state<ScrollableState>(
+        find.descendant(
+          of: find.byType(PlayerCore),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      expect(scrollable.position.maxScrollExtent, 0);
     },
   );
 

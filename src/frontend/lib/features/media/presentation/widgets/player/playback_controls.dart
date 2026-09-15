@@ -1,3 +1,4 @@
+import 'package:carnine_frontend/features/media/domain/models/player_snapshot.dart';
 import 'package:carnine_frontend/features/media/presentation/player_controller.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/player/control_button.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/player/play_pause_button.dart';
@@ -7,14 +8,16 @@ import 'package:flutter/material.dart';
 /// Transport controls: shuffle, previous, rewind, play/pause, forward, next,
 /// repeat.
 ///
-/// Shuffle, repeat and the +/-30s seek buttons stay visible in their
-/// template positions but are permanently disabled - the backend contract
-/// has no shuffle field, no repeat field and no Seek RPC yet (see
-/// `docs/20-media-backend-plan.md`). Previous/next and play/pause are wired
-/// to [controller].
+/// The +/-30s seek buttons stay visible in their template positions but
+/// permanently disabled - the backend contract still has no Seek RPC
+/// (`docs/20-media-backend-plan.md` explicitly defers it). Shuffle, repeat,
+/// previous/next and play/pause are wired to [controller].
 class PlaybackControls extends StatelessWidget {
-  const PlaybackControls(
-      {required this.controller, required this.scale, super.key});
+  const PlaybackControls({
+    required this.controller,
+    required this.scale,
+    super.key,
+  });
 
   static const double sideButtonSize = 48;
   static const double centerButtonSize = 80;
@@ -32,7 +35,8 @@ class PlaybackControls extends StatelessWidget {
 
   /// Total width of this row at scale 1.0 - the timeline above it is sized
   /// to match, so the bar and time labels line up with the buttons below.
-  static const double totalWidth = sideButtonSize * _sideButtonCount +
+  static const double totalWidth =
+      sideButtonSize * _sideButtonCount +
       centerButtonSize +
       innerGap * _innerGapCount +
       outerGap * _outerGapCount;
@@ -53,13 +57,11 @@ class PlaybackControls extends StatelessWidget {
       children: [
         ControlButton(
           icon: Icons.shuffle,
-          semanticLabel: l10n
-              .mediaUnavailableActionSemantic(AppTextKey.mediaShuffleSemantic),
-          onTap: () {},
+          semanticLabel: l10n.text(AppTextKey.mediaShuffleSemantic),
+          onTap: controller.toggleShuffle,
           size: buttonSize,
           iconSize: iconSize,
-          isActive: false,
-          isEnabled: false,
+          isActive: controller.shuffleEnabled,
         ),
         outerGapBox,
         ControlButton(
@@ -73,8 +75,9 @@ class PlaybackControls extends StatelessWidget {
         innerGapBox,
         ControlButton(
           icon: Icons.replay_30,
-          semanticLabel: l10n
-              .mediaUnavailableActionSemantic(AppTextKey.mediaRewind30Semantic),
+          semanticLabel: l10n.mediaUnavailableActionSemantic(
+            AppTextKey.mediaRewind30Semantic,
+          ),
           onTap: () {},
           size: buttonSize,
           iconSize: iconSize,
@@ -91,7 +94,8 @@ class PlaybackControls extends StatelessWidget {
         ControlButton(
           icon: Icons.forward_30,
           semanticLabel: l10n.mediaUnavailableActionSemantic(
-              AppTextKey.mediaForward30Semantic),
+            AppTextKey.mediaForward30Semantic,
+          ),
           onTap: () {},
           size: buttonSize,
           iconSize: iconSize,
@@ -108,16 +112,24 @@ class PlaybackControls extends StatelessWidget {
         ),
         outerGapBox,
         ControlButton(
-          icon: Icons.repeat,
-          semanticLabel: l10n
-              .mediaUnavailableActionSemantic(AppTextKey.mediaRepeatSemantic),
-          onTap: () {},
+          icon: controller.repeatMode == MediaRepeatMode.track
+              ? Icons.repeat_one
+              : Icons.repeat,
+          semanticLabel: l10n.text(_repeatSemanticKey(controller.repeatMode)),
+          onTap: controller.cycleRepeat,
           size: buttonSize,
           iconSize: iconSize,
-          isActive: false,
-          isEnabled: false,
+          isActive: controller.repeatMode != MediaRepeatMode.off,
         ),
       ],
     );
+  }
+
+  static AppTextKey _repeatSemanticKey(MediaRepeatMode mode) {
+    return switch (mode) {
+      MediaRepeatMode.off => AppTextKey.mediaRepeatOffSemantic,
+      MediaRepeatMode.queue => AppTextKey.mediaRepeatQueueSemantic,
+      MediaRepeatMode.track => AppTextKey.mediaRepeatTrackSemantic,
+    };
   }
 }

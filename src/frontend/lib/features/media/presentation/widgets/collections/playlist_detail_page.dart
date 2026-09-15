@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:carnine_frontend/features/media/domain/models/media_library_track.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_playlist.dart';
 import 'package:carnine_frontend/features/media/presentation/format/duration_format.dart';
@@ -23,6 +25,7 @@ class PlaylistDetailPage extends StatelessWidget {
     required this.player,
     required this.onBack,
     required this.onAddEntries,
+    required this.onPlaylistStarted,
     super.key,
   });
 
@@ -30,6 +33,10 @@ class PlaylistDetailPage extends StatelessWidget {
   final PlayerController player;
   final VoidCallback onBack;
   final void Function(MediaPlaylist playlist) onAddEntries;
+
+  /// Called once playback of this playlist actually started, so the caller
+  /// can navigate back to the main player view.
+  final VoidCallback onPlaylistStarted;
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +62,10 @@ class PlaylistDetailPage extends StatelessWidget {
                     semanticLabelKey: AppTextKey.mediaBackToCollectionsSemantic,
                   ),
                   const SizedBox(width: 12),
+                  _PlaylistCoverThumbnail(
+                    coverArt: playlists.openPlaylistCoverArt,
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       playlist.name.toUpperCase(),
@@ -74,8 +85,9 @@ class PlaylistDetailPage extends StatelessWidget {
                       label: l10n
                           .text(AppTextKey.mediaPlaylistPlayAction)
                           .toUpperCase(),
-                      semanticLabel:
-                          l10n.mediaPlaylistPlaySemantic(playlist.name),
+                      semanticLabel: l10n.mediaPlaylistPlaySemantic(
+                        playlist.name,
+                      ),
                       isEnabled: playlist.entries.isNotEmpty && !player.isBusy,
                       onTap: () => _startPlaylist(playlist),
                     ),
@@ -95,7 +107,8 @@ class PlaylistDetailPage extends StatelessWidget {
                       const SizedBox(height: 8),
                   itemBuilder: (context, index) => _EntryRow(
                     entry: playlist.entries[index],
-                    isActive: player.queue.playlistId == playlist.id &&
+                    isActive:
+                        player.queue.playlistId == playlist.id &&
                         player.activeQueueIndex == index,
                   ),
                 ),
@@ -114,12 +127,15 @@ class PlaylistDetailPage extends StatelessWidget {
     );
   }
 
-  void _startPlaylist(MediaPlaylist playlist) {
+  Future<void> _startPlaylist(MediaPlaylist playlist) async {
     final tracks = playlist.entries
         .map((entry) => entry.track)
         .whereType<MediaLibraryTrack>()
         .toList();
-    player.playPlaylist(playlist, tracks);
+    final started = await player.playPlaylist(playlist, tracks);
+    if (started) {
+      onPlaylistStarted();
+    }
   }
 }
 
@@ -192,8 +208,11 @@ class _AddEntriesButton extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.playlist_add,
-                      color: AppColors.primary, size: 18),
+                  const Icon(
+                    Icons.playlist_add,
+                    color: AppColors.primary,
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     label,
@@ -208,6 +227,46 @@ class _AddEntriesButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Playlist cover in the detail header - same 40dp leading anatomy as
+/// [MediaRowTile], falling back to the queue-music icon while there is none
+/// or it hasn't loaded yet.
+class _PlaylistCoverThumbnail extends StatelessWidget {
+  const _PlaylistCoverThumbnail({required this.coverArt});
+
+  static const double _size = 40;
+
+  final Uint8List? coverArt;
+
+  @override
+  Widget build(BuildContext context) {
+    final art = coverArt;
+
+    return Container(
+      width: _size,
+      height: _size,
+      alignment: Alignment.center,
+      clipBehavior: art == null ? Clip.none : Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: art == null
+          ? const Icon(
+              Icons.queue_music,
+              color: AppColors.onSurfaceVariant,
+              size: 20,
+            )
+          : Image.memory(
+              art,
+              width: _size,
+              height: _size,
+              fit: BoxFit.cover,
+              gaplessPlayback: true,
+            ),
     );
   }
 }

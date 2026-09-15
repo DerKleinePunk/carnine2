@@ -33,9 +33,15 @@ class MediaPlaylist {
     required this.id,
     required this.name,
     required this.entries,
+    this.hasCoverArt = false,
   });
 
   final int id;
   final String name;
   final List<MediaPlaylistEntry> entries;
+
+  /// Only accurate when this instance came from `GetPlaylist` - `ListPlaylists`
+  /// always reports `false` (`main.rs` `list_playlists` skips the per-playlist
+  /// cover lookup to avoid an N+1 query over the whole collection).
+  final bool hasCoverArt;
 }

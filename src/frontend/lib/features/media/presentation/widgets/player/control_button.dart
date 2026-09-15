@@ -31,9 +31,15 @@ class ControlButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isOn = isActive == true;
+    // A toggle (isActive non-null, e.g. shuffle/repeat) reads as clearly
+    // off (outline grey) or on (primary) - a plain action button (prev,
+    // next, the disabled seek buttons) keeps the softer primaryDim it
+    // always had, since it has no on/off state to distinguish.
     final iconColor = !isEnabled
         ? AppColors.outline
-        : (isOn ? AppColors.primary : AppColors.primaryDim);
+        : isActive == null
+        ? AppColors.primaryDim
+        : (isOn ? AppColors.primary : AppColors.outline);
 
     return Semantics(
       button: true,
@@ -42,9 +48,7 @@ class ControlButton extends StatelessWidget {
       label: semanticLabel,
       child: Material(
         color: AppColors.surfaceContainerHigh,
-        shape: const CircleBorder(
-          side: BorderSide(color: AppColors.primary20),
-        ),
+        shape: const CircleBorder(side: BorderSide(color: AppColors.primary20)),
         child: InkWell(
           onTap: isEnabled ? onTap : null,
           customBorder: const CircleBorder(),
@@ -70,10 +74,7 @@ class ControlButton extends StatelessWidget {
                     size: iconSize,
                     shadows: isOn && isEnabled
                         ? const [
-                            Shadow(
-                              color: AppColors.primary40,
-                              blurRadius: 10,
-                            ),
+                            Shadow(color: AppColors.primary40, blurRadius: 10),
                           ]
                         : null,
                   ),
@@ -81,7 +82,9 @@ class ControlButton extends StatelessWidget {
                     Positioned(
                       bottom: size * 0.16,
                       child: ToggleDot(
-                          isOn: isOn && isEnabled, size: iconSize * 0.22),
+                        isOn: isOn && isEnabled,
+                        size: iconSize * 0.22,
+                      ),
                     ),
                 ],
               ),
@@ -113,9 +116,7 @@ class ToggleDot extends StatelessWidget {
         decoration: const BoxDecoration(
           shape: BoxShape.circle,
           color: AppColors.primary,
-          boxShadow: [
-            BoxShadow(color: AppColors.primary40, blurRadius: 6),
-          ],
+          boxShadow: [BoxShadow(color: AppColors.primary40, blurRadius: 6)],
         ),
       ),
     );

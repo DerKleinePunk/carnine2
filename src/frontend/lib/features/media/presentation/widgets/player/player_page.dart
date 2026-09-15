@@ -19,6 +19,7 @@ class PlayerPage extends StatelessWidget {
             Expanded(
               child: PlayerCore(
                 controller: controller.player,
+                audio: controller.audio,
                 isQueueExpanded: controller.isQueueExpanded,
               ),
             ),
