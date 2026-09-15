@@ -52,6 +52,7 @@ const PlayerEventType$json = {
     {'1': 'PLAYER_STOPPED', '2': 6},
     {'1': 'PLAYER_TRACK_CHANGED', '2': 7},
     {'1': 'PLAYER_ERROR', '2': 8},
+    {'1': 'PLAYER_QUEUE_FINISHED', '2': 9},
   ],
 };
 
@@ -61,7 +62,23 @@ final $typed_data.Uint8List playerEventTypeDescriptor = $convert.base64Decode(
     '9QTEFZRVJfU05BUFNIT1QQARIbChdQTEFZRVJfUE9TSVRJT05fQ0hBTkdFRBACEhsKF1BMQVlF'
     'Ul9QTEFZQkFDS19TVEFSVEVEEAMSEgoOUExBWUVSX1JFU1VNRUQQBBIRCg1QTEFZRVJfUEFVU0'
     'VEEAUSEgoOUExBWUVSX1NUT1BQRUQQBhIYChRQTEFZRVJfVFJBQ0tfQ0hBTkdFRBAHEhAKDFBM'
-    'QVlFUl9FUlJPUhAI');
+    'QVlFUl9FUlJPUhAIEhkKFVBMQVlFUl9RVUVVRV9GSU5JU0hFRBAJ');
+
+@$core.Deprecated('Use repeatModeDescriptor instead')
+const RepeatMode$json = {
+  '1': 'RepeatMode',
+  '2': [
+    {'1': 'REPEAT_MODE_UNSPECIFIED', '2': 0},
+    {'1': 'REPEAT_OFF', '2': 1},
+    {'1': 'REPEAT_QUEUE', '2': 2},
+    {'1': 'REPEAT_TRACK', '2': 3},
+  ],
+};
+
+/// Descriptor for `RepeatMode`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List repeatModeDescriptor = $convert.base64Decode(
+    'CgpSZXBlYXRNb2RlEhsKF1JFUEVBVF9NT0RFX1VOU1BFQ0lGSUVEEAASDgoKUkVQRUFUX09GRh'
+    'ABEhAKDFJFUEVBVF9RVUVVRRACEhAKDFJFUEVBVF9UUkFDSxAD');
 
 @$core.Deprecated('Use audioEventTypeDescriptor instead')
 const AudioEventType$json = {
@@ -344,6 +361,7 @@ const MediaItem$json = {
     {'1': 'artist', '3': 5, '4': 1, '5': 9, '10': 'artist'},
     {'1': 'duration_ms', '3': 6, '4': 1, '5': 3, '10': 'durationMs'},
     {'1': 'status', '3': 7, '4': 1, '5': 9, '10': 'status'},
+    {'1': 'has_cover_art', '3': 8, '4': 1, '5': 8, '10': 'hasCoverArt'},
   ],
 };
 
@@ -352,7 +370,7 @@ final $typed_data.Uint8List mediaItemDescriptor = $convert.base64Decode(
     'CglNZWRpYUl0ZW0SDgoCaWQYASABKARSAmlkEhsKCXNvdXJjZV9pZBgCIAEoBFIIc291cmNlSW'
     'QSEgoEcGF0aBgDIAEoCVIEcGF0aBIUCgV0aXRsZRgEIAEoCVIFdGl0bGUSFgoGYXJ0aXN0GAUg'
     'ASgJUgZhcnRpc3QSHwoLZHVyYXRpb25fbXMYBiABKANSCmR1cmF0aW9uTXMSFgoGc3RhdHVzGA'
-    'cgASgJUgZzdGF0dXM=');
+    'cgASgJUgZzdGF0dXMSIgoNaGFzX2NvdmVyX2FydBgIIAEoCFILaGFzQ292ZXJBcnQ=');
 
 @$core.Deprecated('Use playlistDescriptor instead')
 const Playlist$json = {
@@ -368,13 +386,46 @@ const Playlist$json = {
       '6': '.carnine.PlaylistEntry',
       '10': 'entries'
     },
+    {'1': 'has_cover_art', '3': 4, '4': 1, '5': 8, '10': 'hasCoverArt'},
   ],
 };
 
 /// Descriptor for `Playlist`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List playlistDescriptor = $convert.base64Decode(
     'CghQbGF5bGlzdBIOCgJpZBgBIAEoBFICaWQSEgoEbmFtZRgCIAEoCVIEbmFtZRIwCgdlbnRyaW'
-    'VzGAMgAygLMhYuY2FybmluZS5QbGF5bGlzdEVudHJ5UgdlbnRyaWVz');
+    'VzGAMgAygLMhYuY2FybmluZS5QbGF5bGlzdEVudHJ5UgdlbnRyaWVzEiIKDWhhc19jb3Zlcl9h'
+    'cnQYBCABKAhSC2hhc0NvdmVyQXJ0');
+
+@$core.Deprecated('Use getCoverArtRequestDescriptor instead')
+const GetCoverArtRequest$json = {
+  '1': 'GetCoverArtRequest',
+  '2': [
+    {'1': 'media_id', '3': 1, '4': 1, '5': 4, '9': 0, '10': 'mediaId'},
+    {'1': 'playlist_id', '3': 2, '4': 1, '5': 4, '9': 0, '10': 'playlistId'},
+  ],
+  '8': [
+    {'1': 'target'},
+  ],
+};
+
+/// Descriptor for `GetCoverArtRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getCoverArtRequestDescriptor = $convert.base64Decode(
+    'ChJHZXRDb3ZlckFydFJlcXVlc3QSGwoIbWVkaWFfaWQYASABKARIAFIHbWVkaWFJZBIhCgtwbG'
+    'F5bGlzdF9pZBgCIAEoBEgAUgpwbGF5bGlzdElkQggKBnRhcmdldA==');
+
+@$core.Deprecated('Use getCoverArtResponseDescriptor instead')
+const GetCoverArtResponse$json = {
+  '1': 'GetCoverArtResponse',
+  '2': [
+    {'1': 'data', '3': 1, '4': 1, '5': 12, '10': 'data'},
+    {'1': 'mime_type', '3': 2, '4': 1, '5': 9, '10': 'mimeType'},
+  ],
+};
+
+/// Descriptor for `GetCoverArtResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getCoverArtResponseDescriptor = $convert.base64Decode(
+    'ChNHZXRDb3ZlckFydFJlc3BvbnNlEhIKBGRhdGEYASABKAxSBGRhdGESGwoJbWltZV90eXBlGA'
+    'IgASgJUghtaW1lVHlwZQ==');
 
 @$core.Deprecated('Use playlistEntryDescriptor instead')
 const PlaylistEntry$json = {
@@ -487,6 +538,15 @@ const PlayerState$json = {
     {'1': 'position_ms', '3': 3, '4': 1, '5': 3, '10': 'positionMs'},
     {'1': 'duration_ms', '3': 4, '4': 1, '5': 3, '10': 'durationMs'},
     {'1': 'playlist_id', '3': 5, '4': 1, '5': 4, '10': 'playlistId'},
+    {
+      '1': 'repeat_mode',
+      '3': 6,
+      '4': 1,
+      '5': 14,
+      '6': '.carnine.RepeatMode',
+      '10': 'repeatMode'
+    },
+    {'1': 'shuffle_enabled', '3': 7, '4': 1, '5': 8, '10': 'shuffleEnabled'},
   ],
 };
 
@@ -495,7 +555,8 @@ final $typed_data.Uint8List playerStateDescriptor = $convert.base64Decode(
     'CgtQbGF5ZXJTdGF0ZRIWCgZzdGF0dXMYASABKAlSBnN0YXR1cxIdCgptZWRpYV9wYXRoGAIgAS'
     'gJUgltZWRpYVBhdGgSHwoLcG9zaXRpb25fbXMYAyABKANSCnBvc2l0aW9uTXMSHwoLZHVyYXRp'
     'b25fbXMYBCABKANSCmR1cmF0aW9uTXMSHwoLcGxheWxpc3RfaWQYBSABKARSCnBsYXlsaXN0SW'
-    'Q=');
+    'QSNAoLcmVwZWF0X21vZGUYBiABKA4yEy5jYXJuaW5lLlJlcGVhdE1vZGVSCnJlcGVhdE1vZGUS'
+    'JwoPc2h1ZmZsZV9lbmFibGVkGAcgASgIUg5zaHVmZmxlRW5hYmxlZA==');
 
 @$core.Deprecated('Use playerEventDescriptor instead')
 const PlayerEvent$json = {
@@ -526,6 +587,39 @@ final $typed_data.Uint8List playerEventDescriptor = $convert.base64Decode(
     'CgtQbGF5ZXJFdmVudBIuCgVldmVudBgBIAEoDjIYLmNhcm5pbmUuUGxheWVyRXZlbnRUeXBlUg'
     'VldmVudBIqCgVzdGF0ZRgCIAEoCzIULmNhcm5pbmUuUGxheWVyU3RhdGVSBXN0YXRlEhgKB21l'
     'c3NhZ2UYAyABKAlSB21lc3NhZ2U=');
+
+@$core.Deprecated('Use setRepeatModeRequestDescriptor instead')
+const SetRepeatModeRequest$json = {
+  '1': 'SetRepeatModeRequest',
+  '2': [
+    {
+      '1': 'mode',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.carnine.RepeatMode',
+      '10': 'mode'
+    },
+  ],
+};
+
+/// Descriptor for `SetRepeatModeRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setRepeatModeRequestDescriptor = $convert.base64Decode(
+    'ChRTZXRSZXBlYXRNb2RlUmVxdWVzdBInCgRtb2RlGAEgASgOMhMuY2FybmluZS5SZXBlYXRNb2'
+    'RlUgRtb2Rl');
+
+@$core.Deprecated('Use setShuffleModeRequestDescriptor instead')
+const SetShuffleModeRequest$json = {
+  '1': 'SetShuffleModeRequest',
+  '2': [
+    {'1': 'enabled', '3': 1, '4': 1, '5': 8, '10': 'enabled'},
+  ],
+};
+
+/// Descriptor for `SetShuffleModeRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setShuffleModeRequestDescriptor =
+    $convert.base64Decode(
+        'ChVTZXRTaHVmZmxlTW9kZVJlcXVlc3QSGAoHZW5hYmxlZBgBIAEoCFIHZW5hYmxlZA==');
 
 @$core.Deprecated('Use audioEventDescriptor instead')
 const AudioEvent$json = {
@@ -601,6 +695,7 @@ const Configuration$json = {
     },
     {'1': 'log_directory', '3': 12, '4': 1, '5': 9, '10': 'logDirectory'},
     {'1': 'log_level', '3': 13, '4': 1, '5': 9, '10': 'logLevel'},
+    {'1': 'cover_cache_dir', '3': 14, '4': 1, '5': 9, '10': 'coverCacheDir'},
   ],
 };
 
@@ -614,7 +709,8 @@ final $typed_data.Uint8List configurationDescriptor = $convert.base64Decode(
     'Fja2VuZBIhCgxhdWRpb19kZXZpY2UYCCABKAlSC2F1ZGlvRGV2aWNlEh8KC3NhbXBsZV9yYXRl'
     'GAkgASgNUgpzYW1wbGVSYXRlEhoKCGNoYW5uZWxzGAogASgNUghjaGFubmVscxIxChRuYXZpZ2'
     'F0aW9uX2ludGVycnVwdBgLIAEoCVITbmF2aWdhdGlvbkludGVycnVwdBIjCg1sb2dfZGlyZWN0'
-    'b3J5GAwgASgJUgxsb2dEaXJlY3RvcnkSGwoJbG9nX2xldmVsGA0gASgJUghsb2dMZXZlbA==');
+    'b3J5GAwgASgJUgxsb2dEaXJlY3RvcnkSGwoJbG9nX2xldmVsGA0gASgJUghsb2dMZXZlbBImCg'
+    '9jb3Zlcl9jYWNoZV9kaXIYDiABKAlSDWNvdmVyQ2FjaGVEaXI=');
 
 @$core.Deprecated('Use updateConfigurationRequestDescriptor instead')
 const UpdateConfigurationRequest$json = {

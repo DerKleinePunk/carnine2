@@ -1070,6 +1070,7 @@ class MediaItem extends $pb.GeneratedMessage {
     $core.String? artist,
     $fixnum.Int64? durationMs,
     $core.String? status,
+    $core.bool? hasCoverArt,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -1079,6 +1080,7 @@ class MediaItem extends $pb.GeneratedMessage {
     if (artist != null) result.artist = artist;
     if (durationMs != null) result.durationMs = durationMs;
     if (status != null) result.status = status;
+    if (hasCoverArt != null) result.hasCoverArt = hasCoverArt;
     return result;
   }
 
@@ -1105,6 +1107,7 @@ class MediaItem extends $pb.GeneratedMessage {
     ..aOS(5, _omitFieldNames ? '' : 'artist')
     ..aInt64(6, _omitFieldNames ? '' : 'durationMs')
     ..aOS(7, _omitFieldNames ? '' : 'status')
+    ..aOB(8, _omitFieldNames ? '' : 'hasCoverArt')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1187,6 +1190,15 @@ class MediaItem extends $pb.GeneratedMessage {
   $core.bool hasStatus() => $_has(6);
   @$pb.TagNumber(7)
   void clearStatus() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.bool get hasCoverArt => $_getBF(7);
+  @$pb.TagNumber(8)
+  set hasCoverArt($core.bool value) => $_setBool(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasHasCoverArt() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearHasCoverArt() => $_clearField(8);
 }
 
 class Playlist extends $pb.GeneratedMessage {
@@ -1194,11 +1206,13 @@ class Playlist extends $pb.GeneratedMessage {
     $fixnum.Int64? id,
     $core.String? name,
     $core.Iterable<PlaylistEntry>? entries,
+    $core.bool? hasCoverArt,
   }) {
     final result = create();
     if (id != null) result.id = id;
     if (name != null) result.name = name;
     if (entries != null) result.entries.addAll(entries);
+    if (hasCoverArt != null) result.hasCoverArt = hasCoverArt;
     return result;
   }
 
@@ -1220,6 +1234,7 @@ class Playlist extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'name')
     ..pPM<PlaylistEntry>(3, _omitFieldNames ? '' : 'entries',
         subBuilder: PlaylistEntry.create)
+    ..aOB(4, _omitFieldNames ? '' : 'hasCoverArt')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1260,6 +1275,168 @@ class Playlist extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(3)
   $pb.PbList<PlaylistEntry> get entries => $_getList(2);
+
+  @$pb.TagNumber(4)
+  $core.bool get hasCoverArt => $_getBF(3);
+  @$pb.TagNumber(4)
+  set hasCoverArt($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasHasCoverArt() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearHasCoverArt() => $_clearField(4);
+}
+
+enum GetCoverArtRequest_Target { mediaId, playlistId, notSet }
+
+class GetCoverArtRequest extends $pb.GeneratedMessage {
+  factory GetCoverArtRequest({
+    $fixnum.Int64? mediaId,
+    $fixnum.Int64? playlistId,
+  }) {
+    final result = create();
+    if (mediaId != null) result.mediaId = mediaId;
+    if (playlistId != null) result.playlistId = playlistId;
+    return result;
+  }
+
+  GetCoverArtRequest._();
+
+  factory GetCoverArtRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetCoverArtRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, GetCoverArtRequest_Target>
+      _GetCoverArtRequest_TargetByTag = {
+    1: GetCoverArtRequest_Target.mediaId,
+    2: GetCoverArtRequest_Target.playlistId,
+    0: GetCoverArtRequest_Target.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetCoverArtRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..oo(0, [1, 2])
+    ..a<$fixnum.Int64>(1, _omitFieldNames ? '' : 'mediaId', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(
+        2, _omitFieldNames ? '' : 'playlistId', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetCoverArtRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetCoverArtRequest copyWith(void Function(GetCoverArtRequest) updates) =>
+      super.copyWith((message) => updates(message as GetCoverArtRequest))
+          as GetCoverArtRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetCoverArtRequest create() => GetCoverArtRequest._();
+  @$core.override
+  GetCoverArtRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetCoverArtRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetCoverArtRequest>(create);
+  static GetCoverArtRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  GetCoverArtRequest_Target whichTarget() =>
+      _GetCoverArtRequest_TargetByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  void clearTarget() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get mediaId => $_getI64(0);
+  @$pb.TagNumber(1)
+  set mediaId($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasMediaId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMediaId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get playlistId => $_getI64(1);
+  @$pb.TagNumber(2)
+  set playlistId($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasPlaylistId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPlaylistId() => $_clearField(2);
+}
+
+class GetCoverArtResponse extends $pb.GeneratedMessage {
+  factory GetCoverArtResponse({
+    $core.List<$core.int>? data,
+    $core.String? mimeType,
+  }) {
+    final result = create();
+    if (data != null) result.data = data;
+    if (mimeType != null) result.mimeType = mimeType;
+    return result;
+  }
+
+  GetCoverArtResponse._();
+
+  factory GetCoverArtResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetCoverArtResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetCoverArtResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..a<$core.List<$core.int>>(
+        1, _omitFieldNames ? '' : 'data', $pb.PbFieldType.OY)
+    ..aOS(2, _omitFieldNames ? '' : 'mimeType')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetCoverArtResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetCoverArtResponse copyWith(void Function(GetCoverArtResponse) updates) =>
+      super.copyWith((message) => updates(message as GetCoverArtResponse))
+          as GetCoverArtResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetCoverArtResponse create() => GetCoverArtResponse._();
+  @$core.override
+  GetCoverArtResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetCoverArtResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetCoverArtResponse>(create);
+  static GetCoverArtResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<$core.int> get data => $_getN(0);
+  @$pb.TagNumber(1)
+  set data($core.List<$core.int> value) => $_setBytes(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasData() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearData() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get mimeType => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set mimeType($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasMimeType() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMimeType() => $_clearField(2);
 }
 
 class PlaylistEntry extends $pb.GeneratedMessage {
@@ -1707,6 +1884,8 @@ class PlayerState extends $pb.GeneratedMessage {
     $fixnum.Int64? positionMs,
     $fixnum.Int64? durationMs,
     $fixnum.Int64? playlistId,
+    RepeatMode? repeatMode,
+    $core.bool? shuffleEnabled,
   }) {
     final result = create();
     if (status != null) result.status = status;
@@ -1714,6 +1893,8 @@ class PlayerState extends $pb.GeneratedMessage {
     if (positionMs != null) result.positionMs = positionMs;
     if (durationMs != null) result.durationMs = durationMs;
     if (playlistId != null) result.playlistId = playlistId;
+    if (repeatMode != null) result.repeatMode = repeatMode;
+    if (shuffleEnabled != null) result.shuffleEnabled = shuffleEnabled;
     return result;
   }
 
@@ -1737,6 +1918,9 @@ class PlayerState extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(
         5, _omitFieldNames ? '' : 'playlistId', $pb.PbFieldType.OU6,
         defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aE<RepeatMode>(6, _omitFieldNames ? '' : 'repeatMode',
+        enumValues: RepeatMode.values)
+    ..aOB(7, _omitFieldNames ? '' : 'shuffleEnabled')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1802,6 +1986,24 @@ class PlayerState extends $pb.GeneratedMessage {
   $core.bool hasPlaylistId() => $_has(4);
   @$pb.TagNumber(5)
   void clearPlaylistId() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  RepeatMode get repeatMode => $_getN(5);
+  @$pb.TagNumber(6)
+  set repeatMode(RepeatMode value) => $_setField(6, value);
+  @$pb.TagNumber(6)
+  $core.bool hasRepeatMode() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearRepeatMode() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.bool get shuffleEnabled => $_getBF(6);
+  @$pb.TagNumber(7)
+  set shuffleEnabled($core.bool value) => $_setBool(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasShuffleEnabled() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearShuffleEnabled() => $_clearField(7);
 }
 
 class PlayerEvent extends $pb.GeneratedMessage {
@@ -1884,6 +2086,116 @@ class PlayerEvent extends $pb.GeneratedMessage {
   $core.bool hasMessage() => $_has(2);
   @$pb.TagNumber(3)
   void clearMessage() => $_clearField(3);
+}
+
+class SetRepeatModeRequest extends $pb.GeneratedMessage {
+  factory SetRepeatModeRequest({
+    RepeatMode? mode,
+  }) {
+    final result = create();
+    if (mode != null) result.mode = mode;
+    return result;
+  }
+
+  SetRepeatModeRequest._();
+
+  factory SetRepeatModeRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SetRepeatModeRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SetRepeatModeRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aE<RepeatMode>(1, _omitFieldNames ? '' : 'mode',
+        enumValues: RepeatMode.values)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetRepeatModeRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetRepeatModeRequest copyWith(void Function(SetRepeatModeRequest) updates) =>
+      super.copyWith((message) => updates(message as SetRepeatModeRequest))
+          as SetRepeatModeRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetRepeatModeRequest create() => SetRepeatModeRequest._();
+  @$core.override
+  SetRepeatModeRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SetRepeatModeRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SetRepeatModeRequest>(create);
+  static SetRepeatModeRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  RepeatMode get mode => $_getN(0);
+  @$pb.TagNumber(1)
+  set mode(RepeatMode value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasMode() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMode() => $_clearField(1);
+}
+
+class SetShuffleModeRequest extends $pb.GeneratedMessage {
+  factory SetShuffleModeRequest({
+    $core.bool? enabled,
+  }) {
+    final result = create();
+    if (enabled != null) result.enabled = enabled;
+    return result;
+  }
+
+  SetShuffleModeRequest._();
+
+  factory SetShuffleModeRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SetShuffleModeRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SetShuffleModeRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'enabled')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetShuffleModeRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetShuffleModeRequest copyWith(
+          void Function(SetShuffleModeRequest) updates) =>
+      super.copyWith((message) => updates(message as SetShuffleModeRequest))
+          as SetShuffleModeRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetShuffleModeRequest create() => SetShuffleModeRequest._();
+  @$core.override
+  SetShuffleModeRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SetShuffleModeRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SetShuffleModeRequest>(create);
+  static SetShuffleModeRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get enabled => $_getBF(0);
+  @$pb.TagNumber(1)
+  set enabled($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasEnabled() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEnabled() => $_clearField(1);
 }
 
 class AudioEvent extends $pb.GeneratedMessage {
@@ -2075,6 +2387,7 @@ class Configuration extends $pb.GeneratedMessage {
     $core.String? navigationInterrupt,
     $core.String? logDirectory,
     $core.String? logLevel,
+    $core.String? coverCacheDir,
   }) {
     final result = create();
     if (serverAddress != null) result.serverAddress = serverAddress;
@@ -2092,6 +2405,7 @@ class Configuration extends $pb.GeneratedMessage {
       result.navigationInterrupt = navigationInterrupt;
     if (logDirectory != null) result.logDirectory = logDirectory;
     if (logLevel != null) result.logLevel = logLevel;
+    if (coverCacheDir != null) result.coverCacheDir = coverCacheDir;
     return result;
   }
 
@@ -2121,6 +2435,7 @@ class Configuration extends $pb.GeneratedMessage {
     ..aOS(11, _omitFieldNames ? '' : 'navigationInterrupt')
     ..aOS(12, _omitFieldNames ? '' : 'logDirectory')
     ..aOS(13, _omitFieldNames ? '' : 'logLevel')
+    ..aOS(14, _omitFieldNames ? '' : 'coverCacheDir')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2246,6 +2561,15 @@ class Configuration extends $pb.GeneratedMessage {
   $core.bool hasLogLevel() => $_has(12);
   @$pb.TagNumber(13)
   void clearLogLevel() => $_clearField(13);
+
+  @$pb.TagNumber(14)
+  $core.String get coverCacheDir => $_getSZ(13);
+  @$pb.TagNumber(14)
+  set coverCacheDir($core.String value) => $_setString(13, value);
+  @$pb.TagNumber(14)
+  $core.bool hasCoverCacheDir() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearCoverCacheDir() => $_clearField(14);
 }
 
 class UpdateConfigurationRequest extends $pb.GeneratedMessage {

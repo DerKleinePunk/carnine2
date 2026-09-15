@@ -75,6 +75,8 @@ class PlayerEventType extends $pb.ProtobufEnum {
       PlayerEventType._(7, _omitEnumNames ? '' : 'PLAYER_TRACK_CHANGED');
   static const PlayerEventType PLAYER_ERROR =
       PlayerEventType._(8, _omitEnumNames ? '' : 'PLAYER_ERROR');
+  static const PlayerEventType PLAYER_QUEUE_FINISHED =
+      PlayerEventType._(9, _omitEnumNames ? '' : 'PLAYER_QUEUE_FINISHED');
 
   static const $core.List<PlayerEventType> values = <PlayerEventType>[
     PLAYER_EVENT_TYPE_UNSPECIFIED,
@@ -86,14 +88,40 @@ class PlayerEventType extends $pb.ProtobufEnum {
     PLAYER_STOPPED,
     PLAYER_TRACK_CHANGED,
     PLAYER_ERROR,
+    PLAYER_QUEUE_FINISHED,
   ];
 
   static final $core.List<PlayerEventType?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 8);
+      $pb.ProtobufEnum.$_initByValueList(values, 9);
   static PlayerEventType? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 
   const PlayerEventType._(super.value, super.name);
+}
+
+class RepeatMode extends $pb.ProtobufEnum {
+  static const RepeatMode REPEAT_MODE_UNSPECIFIED =
+      RepeatMode._(0, _omitEnumNames ? '' : 'REPEAT_MODE_UNSPECIFIED');
+  static const RepeatMode REPEAT_OFF =
+      RepeatMode._(1, _omitEnumNames ? '' : 'REPEAT_OFF');
+  static const RepeatMode REPEAT_QUEUE =
+      RepeatMode._(2, _omitEnumNames ? '' : 'REPEAT_QUEUE');
+  static const RepeatMode REPEAT_TRACK =
+      RepeatMode._(3, _omitEnumNames ? '' : 'REPEAT_TRACK');
+
+  static const $core.List<RepeatMode> values = <RepeatMode>[
+    REPEAT_MODE_UNSPECIFIED,
+    REPEAT_OFF,
+    REPEAT_QUEUE,
+    REPEAT_TRACK,
+  ];
+
+  static final $core.List<RepeatMode?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static RepeatMode? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const RepeatMode._(super.value, super.name);
 }
 
 class AudioEventType extends $pb.ProtobufEnum {

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TARGET="${1:?Usage: ./deploy_pi.sh <user@pi-host>}"
+TARGET="${1:-pi@carnine-pc}"
 BACKEND_PACKAGE="$ROOT_DIR/resources/debos/carnine-backend.deb"
 FRONTEND_PACKAGE="$ROOT_DIR/resources/debos/carnine-frontend.deb"
 RUNTIME_CONFIG="$ROOT_DIR/resources/config/carnine.toml"

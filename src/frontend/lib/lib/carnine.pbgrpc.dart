@@ -224,6 +224,27 @@ class MediaServiceClient extends $grpc.Client {
         options: options);
   }
 
+  $grpc.ResponseFuture<$0.GetCoverArtResponse> getCoverArt(
+    $0.GetCoverArtRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getCoverArt, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.CommandResponse> setRepeatMode(
+    $0.SetRepeatModeRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setRepeatMode, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.CommandResponse> setShuffleMode(
+    $0.SetShuffleModeRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setShuffleMode, request, options: options);
+  }
+
   // method descriptors
 
   static final _$getServiceVersion =
@@ -315,6 +336,21 @@ class MediaServiceClient extends $grpc.Client {
           '/carnine.MediaService/StreamPlayerEvents',
           ($0.Empty value) => value.writeToBuffer(),
           $0.PlayerEvent.fromBuffer);
+  static final _$getCoverArt =
+      $grpc.ClientMethod<$0.GetCoverArtRequest, $0.GetCoverArtResponse>(
+          '/carnine.MediaService/GetCoverArt',
+          ($0.GetCoverArtRequest value) => value.writeToBuffer(),
+          $0.GetCoverArtResponse.fromBuffer);
+  static final _$setRepeatMode =
+      $grpc.ClientMethod<$0.SetRepeatModeRequest, $0.CommandResponse>(
+          '/carnine.MediaService/SetRepeatMode',
+          ($0.SetRepeatModeRequest value) => value.writeToBuffer(),
+          $0.CommandResponse.fromBuffer);
+  static final _$setShuffleMode =
+      $grpc.ClientMethod<$0.SetShuffleModeRequest, $0.CommandResponse>(
+          '/carnine.MediaService/SetShuffleMode',
+          ($0.SetShuffleModeRequest value) => value.writeToBuffer(),
+          $0.CommandResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('carnine.MediaService')
@@ -467,6 +503,32 @@ abstract class MediaServiceBase extends $grpc.Service {
         true,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($0.PlayerEvent value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.GetCoverArtRequest, $0.GetCoverArtResponse>(
+            'GetCoverArt',
+            getCoverArt_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.GetCoverArtRequest.fromBuffer(value),
+            ($0.GetCoverArtResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.SetRepeatModeRequest, $0.CommandResponse>(
+        'SetRepeatMode',
+        setRepeatMode_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.SetRepeatModeRequest.fromBuffer(value),
+        ($0.CommandResponse value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.SetShuffleModeRequest, $0.CommandResponse>(
+            'SetShuffleMode',
+            setShuffleMode_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.SetShuffleModeRequest.fromBuffer(value),
+            ($0.CommandResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.ServiceVersion> getServiceVersion_Pre(
@@ -620,6 +682,30 @@ abstract class MediaServiceBase extends $grpc.Service {
 
   $async.Stream<$0.PlayerEvent> streamPlayerEvents(
       $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.GetCoverArtResponse> getCoverArt_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.GetCoverArtRequest> $request) async {
+    return getCoverArt($call, await $request);
+  }
+
+  $async.Future<$0.GetCoverArtResponse> getCoverArt(
+      $grpc.ServiceCall call, $0.GetCoverArtRequest request);
+
+  $async.Future<$0.CommandResponse> setRepeatMode_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.SetRepeatModeRequest> $request) async {
+    return setRepeatMode($call, await $request);
+  }
+
+  $async.Future<$0.CommandResponse> setRepeatMode(
+      $grpc.ServiceCall call, $0.SetRepeatModeRequest request);
+
+  $async.Future<$0.CommandResponse> setShuffleMode_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.SetShuffleModeRequest> $request) async {
+    return setShuffleMode($call, await $request);
+  }
+
+  $async.Future<$0.CommandResponse> setShuffleMode(
+      $grpc.ServiceCall call, $0.SetShuffleModeRequest request);
 }
 
 @$pb.GrpcServiceName('carnine.AudioService')
