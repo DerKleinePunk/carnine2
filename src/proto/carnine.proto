@@ -275,10 +275,6 @@ message Configuration {
   repeated string supported_formats = 4;
   bool rescan_on_start = 5;
   string resume_mode = 6;
-  string audio_backend = 7;
-  string audio_device = 8;
-  uint32 sample_rate = 9;
-  uint32 channels = 10;
   string navigation_interrupt = 11;
   string log_directory = 12;
   string log_level = 13;

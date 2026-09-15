@@ -19,36 +19,21 @@ The protobuf schema is shared across frontend and backend at `../proto/carnine.p
 - `cargo test`
 - `cargo deb`
 
-### cpal-Testpfad
+### Audio-Ausgang
 
-Der Testbranch kann den neuen persistenten cpal-Ausgang verwenden, ohne den
-Default-Audiopfad fuer andere Builds umzuschalten:
-
-```bash
-CARNINE_AUDIO_ENGINE=cpal cargo run
-```
-
-Auf dem Raspberry Pi wird der Testpfad fuer einen laufenden systemd-Dienst so
-aktiviert:
-
-```bash
-sudo systemctl set-environment CARNINE_AUDIO_ENGINE=cpal
-sudo systemctl restart carnine-backend
-```
-
-Zuruecksetzen:
-
-```bash
-sudo systemctl unset-environment CARNINE_AUDIO_ENGINE
-sudo systemctl restart carnine-backend
-```
+Die Wiedergabe laeuft ausschliesslich ueber `cpal`: beim Start oeffnet das
+Backend einen einzigen dauerhaften Ausgabestream auf dem vom Betriebssystem
+gemeldeten Standard-Ausgabegeraet. Es gibt keinen Umschalter und keinen
+Software-/Dummy-Fallback mehr — existiert kein Standardgeraet (z. B. WSL
+ohne WSLg-Audio, Container, CI), scheitert der Start mit einer Fehlermeldung.
 
 Der cpal-Pfad verwendet die ALSA-Laufzeitbibliothek. Das Image installiert
-`libasound2t64` explizit; `alsa-utils` bleibt fuer Diagnose und Hardwaretests
-enthalten. Die Pakete `libasound2-dev`, `libavcodec-dev`, `libavformat-dev`,
-`libavutil-dev`, `libavdevice-dev`, `libavfilter-dev`, `libswscale-dev`,
-`libswresample-dev` und `libpostproc-dev` sind nur fuer lokale beziehungsweise
-CI-Cross-Builds erforderlich und gehoeren nicht ins Runtime-Image.
+`libasound2t64` explizit; `alsa-utils` bleibt fuer Diagnose, Hardwaretests
+und die Lautstaerkeregelung (`amixer`) enthalten. Die Pakete `libasound2-dev`,
+`libavcodec-dev`, `libavformat-dev`, `libavutil-dev`, `libavdevice-dev`,
+`libavfilter-dev`, `libswscale-dev`, `libswresample-dev` und
+`libpostproc-dev` sind nur fuer lokale beziehungsweise CI-Cross-Builds
+erforderlich und gehoeren nicht ins Runtime-Image.
 
 Der lokale ARM64-Sysroot fuer Cross-Builds liegt persistent unter
 `build/sysroots/carnine-pi-arm64/`. Dieser Ordner ist absichtlich ignoriert
@@ -82,15 +67,14 @@ writable temporary paths:
 ```bash
 CARNINE_LOG_DIRECTORY=/tmp/carnine-log \\
 CARNINE_DATABASE_PATH=/tmp/carnine-media.sqlite3 \\
-CARNINE_AUDIO_BACKEND=pulse \\
-CARNINE_AUDIO_DEVICE=default \\
 cargo run
 ```
 
-On WSL, the repository configuration's ALSA device `plughw:1,0` is not
-available. PulseAudio is provided by WSLg, so use the overrides above for
-local playback. The installed Raspberry Pi service keeps its ALSA
-configuration.
+`cpal` opens the operating system's default output device at startup and
+has no configurable backend/device override. On environments without a
+usable default output device (e.g. WSL without WSLg audio, containers, CI),
+the backend fails to start with an error naming the missing device — there
+is no software or dummy fallback.
 
 If startup still fails, the error names the exact path and explains whether a
 log directory or the database path needs to be changed. Do not solve local

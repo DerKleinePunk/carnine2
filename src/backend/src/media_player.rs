@@ -7,11 +7,11 @@ use rand::seq::SliceRandom;
 use rand::thread_rng;
 use tokio::sync::broadcast;
 
-use crate::audio_engine::{self, AudioEngine, Playback};
+use crate::audio_engine::{AudioEngine, Playback};
 use crate::carnine::{
     AudioEvent, AudioEventType, PlayerEvent, PlayerEventType, PlayerState, RepeatMode,
 };
-use crate::config::AudioConfig;
+use crate::cpal_audio_engine::CpalAudioEngine;
 
 #[derive(Debug, Clone, Copy, Default)]
 enum PlaybackState {
@@ -40,12 +40,12 @@ pub struct MediaPlayer {
     audio_events: broadcast::Sender<AudioEvent>,
 }
 
-impl Default for MediaPlayer {
-    fn default() -> Self {
+impl MediaPlayer {
+    fn with_state(engine: Box<dyn AudioEngine>) -> Self {
         let (events, _) = broadcast::channel(32);
         let (audio_events, _) = broadcast::channel(32);
         Self {
-            engine: Box::new(audio_engine::ExternalProcessAudioEngine::default()),
+            engine,
             playback: Mutex::new(None),
             state: Mutex::new(PlaybackState::default()),
             queue: Mutex::new(Vec::new()),
@@ -63,23 +63,15 @@ impl Default for MediaPlayer {
             audio_events,
         }
     }
-}
 
-impl MediaPlayer {
-    pub fn from_audio_config(config: &AudioConfig) -> Self {
-        Self {
-            engine: Box::new(audio_engine::ExternalProcessAudioEngine::from_config(
-                config,
-            )),
-            ..Self::default()
-        }
+    /// Builds the sole production player, backed by `cpal`. Fallible because
+    /// `cpal` opens the system's default output device eagerly.
+    pub fn new() -> Result<Self> {
+        Ok(Self::with_state(Box::new(CpalAudioEngine::new()?)))
     }
 
     pub(crate) fn with_engine(engine: Box<dyn AudioEngine>) -> Self {
-        Self {
-            engine,
-            ..Self::default()
-        }
+        Self::with_state(engine)
     }
 
     pub fn execute(&self, command: &str, parameters: &str) -> Result<String> {
@@ -745,17 +737,10 @@ mod tests {
     use super::MediaPlayer;
     use crate::audio_engine::{AudioEngine, Playback};
     use crate::carnine::{PlayerEventType, RepeatMode};
-    use crate::config::AudioConfig;
     use anyhow::Result;
 
     fn player() -> MediaPlayer {
-        MediaPlayer::from_audio_config(&AudioConfig {
-            backend: "alsa".to_string(),
-            device: "default".to_string(),
-            sample_rate: 44_100,
-            channels: 2,
-            navigation_interrupt: "pause_music".to_string(),
-        })
+        player_with_finish_control().0
     }
 
     struct FakePlayback {

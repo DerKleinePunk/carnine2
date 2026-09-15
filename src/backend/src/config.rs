@@ -30,10 +30,6 @@ pub struct MediaConfig {
 
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
 pub struct AudioConfig {
-    pub backend: String,
-    pub device: String,
-    pub sample_rate: u32,
-    pub channels: u16,
     pub navigation_interrupt: String,
 }
 
@@ -59,18 +55,6 @@ impl Config {
             || self.logging.directory.as_os_str().is_empty()
         {
             anyhow::bail!("configuration contains an empty path");
-        }
-        if !matches!(self.audio.backend.as_str(), "alsa" | "pulse") {
-            anyhow::bail!("unsupported audio backend: {}", self.audio.backend);
-        }
-        if self.audio.device.trim().is_empty() {
-            anyhow::bail!("audio device must not be empty");
-        }
-        if !(8_000..=192_000).contains(&self.audio.sample_rate) {
-            anyhow::bail!("audio sample rate must be between 8000 and 192000 Hz");
-        }
-        if !(1..=8).contains(&self.audio.channels) {
-            anyhow::bail!("audio channels must be between 1 and 8");
         }
         if !matches!(
             self.logging.level.trim().to_ascii_lowercase().as_str(),
@@ -99,12 +83,6 @@ impl Config {
         if let Some(database_path) = env::var_os("CARNINE_DATABASE_PATH") {
             config.media.database_path = PathBuf::from(database_path);
         }
-        if let Some(audio_backend) = env::var_os("CARNINE_AUDIO_BACKEND") {
-            config.audio.backend = audio_backend.to_string_lossy().into_owned();
-        }
-        if let Some(audio_device) = env::var_os("CARNINE_AUDIO_DEVICE") {
-            config.audio.device = audio_device.to_string_lossy().into_owned();
-        }
         config.validate()?;
         Ok((config, path))
     }
@@ -119,7 +97,7 @@ mod tests {
         let (config, path) = Config::load().expect("repository config should load");
         assert!(path.ends_with("resources/config/carnine.toml"));
         assert_eq!(config.server.address, "[::1]:50051");
-        assert_eq!(config.audio.device, "plughw:0,0");
+        assert_eq!(config.audio.navigation_interrupt, "pause_music");
     }
 
     #[test]
@@ -127,18 +105,6 @@ mod tests {
         let (mut config, _) = Config::load().expect("repository config should load");
 
         config.server.address = "not-an-address".to_string();
-        assert!(config.validate().is_err());
-
-        let (mut config, _) = Config::load().expect("repository config should load");
-        config.audio.backend = "jack".to_string();
-        assert!(config.validate().is_err());
-
-        let (mut config, _) = Config::load().expect("repository config should load");
-        config.audio.sample_rate = 7_999;
-        assert!(config.validate().is_err());
-
-        let (mut config, _) = Config::load().expect("repository config should load");
-        config.audio.channels = 0;
         assert!(config.validate().is_err());
 
         let (mut config, _) = Config::load().expect("repository config should load");

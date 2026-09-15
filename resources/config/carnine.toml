@@ -13,10 +13,6 @@ resume_mode = "restore_paused"
 cover_cache_dir = "/var/lib/carnine/covers"
 
 [audio]
-backend = "alsa"
-device = "plughw:0,0"
-sample_rate = 44100
-channels = 2
 navigation_interrupt = "pause_music"
 
 [logging]

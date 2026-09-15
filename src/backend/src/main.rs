@@ -79,7 +79,6 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
     }
 }
 
-use cpal_audio_engine::CpalAudioEngine;
 use database::ResumeState;
 use media_player::MediaPlayer;
 
@@ -142,38 +141,15 @@ impl MediaServiceImpl {
         }
     }
 
-    fn new(
-        audio_config: &config::AudioConfig,
-        database_path: PathBuf,
-        media_folders: Vec<PathBuf>,
-        supported_formats: Vec<String>,
-        resume_mode: String,
-        cover_cache_dir: PathBuf,
-    ) -> Self {
-        Self::from_player(
-            MediaPlayer::from_audio_config(audio_config),
-            database_path,
-            media_folders,
-            supported_formats,
-            resume_mode,
-            cover_cache_dir,
-        )
-    }
-
     fn new_runtime(
-        audio_config: &config::AudioConfig,
         database_path: PathBuf,
         media_folders: Vec<PathBuf>,
         supported_formats: Vec<String>,
         resume_mode: String,
         cover_cache_dir: PathBuf,
     ) -> Result<Self> {
-        let player = match std::env::var("CARNINE_AUDIO_ENGINE").as_deref() {
-            Ok("cpal") => MediaPlayer::with_engine(Box::new(CpalAudioEngine::new()?)),
-            _ => MediaPlayer::from_audio_config(audio_config),
-        };
         Ok(Self::from_player(
-            player,
+            MediaPlayer::new()?,
             database_path,
             media_folders,
             supported_formats,
@@ -408,16 +384,13 @@ impl ConfigService for ConfigServiceImpl {
 
 pub struct AudioServiceImpl {
     events: broadcast::Sender<AudioEvent>,
-    backend: String,
-    device: String,
     volume: Arc<audio_volume::AudioVolume>,
 }
 
 impl AudioServiceImpl {
-    fn new(configuration: &config::AudioConfig) -> Self {
+    fn new() -> Self {
         let (events, _) = broadcast::channel(32);
         Self::with_events(
-            configuration,
             events,
             Arc::new(audio_volume::AudioVolume::new(PathBuf::from(
                 "/var/lib/carnine/audio-volume",
@@ -426,16 +399,10 @@ impl AudioServiceImpl {
     }
 
     fn with_events(
-        configuration: &config::AudioConfig,
         events: broadcast::Sender<AudioEvent>,
         volume: Arc<audio_volume::AudioVolume>,
     ) -> Self {
-        Self {
-            events,
-            backend: configuration.backend.clone(),
-            device: configuration.device.clone(),
-            volume,
-        }
+        Self { events, volume }
     }
 
     pub fn publish(&self, event: AudioEventType, message: impl Into<String>) {
@@ -861,7 +828,7 @@ impl AudioService for AudioServiceImpl {
     ) -> Result<Response<Self::StreamAudioEventsStream>, Status> {
         let snapshot = tokio_stream::once(Ok(AudioEvent {
             event: AudioEventType::AudioReady as i32,
-            message: format!("audio backend {} on {}", self.backend, self.device),
+            message: "audio ready".to_string(),
         }));
         let updates = tokio_stream::wrappers::BroadcastStream::new(self.events.subscribe())
             .filter_map(|event| async move { event.ok().map(Ok) });
@@ -906,10 +873,6 @@ fn configuration_to_proto(configuration: &config::Config) -> Configuration {
         supported_formats: configuration.media.supported_formats.clone(),
         rescan_on_start: configuration.media.rescan_on_start,
         resume_mode: configuration.media.resume_mode.clone(),
-        audio_backend: configuration.audio.backend.clone(),
-        audio_device: configuration.audio.device.clone(),
-        sample_rate: configuration.audio.sample_rate,
-        channels: u32::from(configuration.audio.channels),
         navigation_interrupt: configuration.audio.navigation_interrupt.clone(),
         log_directory: configuration.logging.directory.display().to_string(),
         log_level: configuration.logging.level.clone(),
@@ -920,16 +883,10 @@ fn configuration_to_proto(configuration: &config::Config) -> Configuration {
 fn configuration_from_proto(configuration: &Configuration) -> Result<config::Config> {
     if configuration.server_address.trim().is_empty()
         || configuration.database_path.trim().is_empty()
-        || configuration.audio_backend.trim().is_empty()
-        || configuration.audio_device.trim().is_empty()
-        || configuration.sample_rate == 0
-        || configuration.channels == 0
     {
         bail!("configuration contains an empty or invalid required value");
     }
 
-    let channels = u16::try_from(configuration.channels)
-        .context("audio channels exceed the supported range")?;
     let configuration = config::Config {
         server: config::ServerConfig {
             address: configuration.server_address.clone(),
@@ -947,10 +904,6 @@ fn configuration_from_proto(configuration: &Configuration) -> Result<config::Con
             cover_cache_dir: PathBuf::from(&configuration.cover_cache_dir),
         },
         audio: config::AudioConfig {
-            backend: configuration.audio_backend.clone(),
-            device: configuration.audio_device.clone(),
-            sample_rate: configuration.sample_rate,
-            channels,
             navigation_interrupt: configuration.navigation_interrupt.clone(),
         },
         logging: config::LoggingConfig {
@@ -1026,7 +979,6 @@ async fn main() -> Result<()> {
     let carnine_service = CarnineServiceImpl::default();
     let system_service = SystemServiceImpl;
     let media_service = MediaServiceImpl::new_runtime(
-        &configuration.audio,
         configuration.media.database_path.clone(),
         configuration.media.folders.clone(),
         configuration.media.supported_formats.clone(),
@@ -1049,7 +1001,6 @@ async fn main() -> Result<()> {
         .add_service(CarnineServiceServer::new(carnine_service))
         .add_service(MediaServiceServer::new(media_service.clone()))
         .add_service(AudioServiceServer::new(AudioServiceImpl::with_events(
-            &configuration.audio,
             media_service.player.audio_event_sender(),
             Arc::clone(&audio_volume),
         )))
@@ -1171,10 +1122,6 @@ mod tests {
                 cover_cache_dir: PathBuf::from("/tmp/carnine-covers"),
             },
             audio: config::AudioConfig {
-                backend: "alsa".to_string(),
-                device: "plughw:0,0".to_string(),
-                sample_rate: 44_100,
-                channels: 2,
                 navigation_interrupt: "pause_music".to_string(),
             },
             logging: config::LoggingConfig {
@@ -1196,15 +1143,15 @@ mod tests {
     #[tokio::test]
     async fn media_and_audio_service_versions_match_central_version() {
         let configuration = test_configuration();
-        let media = MediaServiceImpl::new(
-            &configuration.audio,
+        let media = MediaServiceImpl::with_player(
+            MediaPlayer::with_engine(Box::new(FakeAudioEngine)),
             configuration.media.database_path.clone(),
             configuration.media.folders.clone(),
             configuration.media.supported_formats.clone(),
             configuration.media.resume_mode.clone(),
             configuration.media.cover_cache_dir.clone(),
         );
-        let audio = AudioServiceImpl::new(&configuration.audio);
+        let audio = AudioServiceImpl::new();
 
         let media_version = MediaService::get_service_version(&media, Request::new(Empty {}))
             .await
@@ -1247,10 +1194,6 @@ mod tests {
             restored.media.cover_cache_dir,
             original.media.cover_cache_dir
         );
-        assert_eq!(restored.audio.backend, original.audio.backend);
-        assert_eq!(restored.audio.device, original.audio.device);
-        assert_eq!(restored.audio.sample_rate, original.audio.sample_rate);
-        assert_eq!(restored.audio.channels, original.audio.channels);
         assert_eq!(
             restored.audio.navigation_interrupt,
             original.audio.navigation_interrupt
@@ -1262,7 +1205,7 @@ mod tests {
     #[test]
     fn configuration_from_proto_rejects_invalid_required_values() {
         let mut configuration = configuration_to_proto(&test_configuration());
-        configuration.sample_rate = 0;
+        configuration.database_path = String::new();
 
         assert!(configuration_from_proto(&configuration).is_err());
     }
@@ -1288,7 +1231,10 @@ mod tests {
         let saved = std::fs::read_to_string(&path).expect("configuration should be saved");
         let saved_configuration: config::Config =
             toml::from_str(&saved).expect("saved configuration should be valid TOML");
-        assert_eq!(saved_configuration.audio.device, "plughw:0,0");
+        assert_eq!(
+            saved_configuration.audio.navigation_interrupt,
+            "pause_music"
+        );
         let _ = std::fs::remove_file(path);
     }
 
@@ -1303,14 +1249,8 @@ mod tests {
         let media_path = folder.join("service-song.mp3");
         std::fs::write(&media_path, b"test").expect("media file should be created");
         let database_path = folder.join("media.sqlite3");
-        let service = MediaServiceImpl::new(
-            &config::AudioConfig {
-                backend: "alsa".to_string(),
-                device: "default".to_string(),
-                sample_rate: 44_100,
-                channels: 2,
-                navigation_interrupt: "pause_music".to_string(),
-            },
+        let service = MediaServiceImpl::with_player(
+            MediaPlayer::with_engine(Box::new(FakeAudioEngine)),
             database_path,
             vec![folder.clone()],
             vec!["mp3".to_string()],
@@ -1344,14 +1284,8 @@ mod tests {
     async fn player_event_stream_starts_with_snapshot() {
         use tokio_stream::StreamExt;
 
-        let service = MediaServiceImpl::new(
-            &config::AudioConfig {
-                backend: "alsa".to_string(),
-                device: "default".to_string(),
-                sample_rate: 44_100,
-                channels: 2,
-                navigation_interrupt: "pause_music".to_string(),
-            },
+        let service = MediaServiceImpl::with_player(
+            MediaPlayer::with_engine(Box::new(FakeAudioEngine)),
             std::env::temp_dir().join(format!(
                 "carnine-player-events-{}.sqlite3",
                 std::process::id()
@@ -1451,8 +1385,8 @@ mod tests {
 
     #[tokio::test]
     async fn player_event_stream_supports_multiple_subscribers() {
-        let service = MediaServiceImpl::new(
-            &test_configuration().audio,
+        let service = MediaServiceImpl::with_player(
+            MediaPlayer::with_engine(Box::new(FakeAudioEngine)),
             std::env::temp_dir().join(format!(
                 "carnine-multiple-player-events-{}.sqlite3",
                 std::process::id()
@@ -1519,8 +1453,8 @@ mod tests {
 
     #[tokio::test]
     async fn lagging_player_event_stream_reports_resource_exhausted() {
-        let service = MediaServiceImpl::new(
-            &test_configuration().audio,
+        let service = MediaServiceImpl::with_player(
+            MediaPlayer::with_engine(Box::new(FakeAudioEngine)),
             std::env::temp_dir().join(format!(
                 "carnine-lagging-player-events-{}.sqlite3",
                 std::process::id()
@@ -1701,8 +1635,8 @@ mod tests {
             std::env::temp_dir().join(format!("carnine-library-events-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&folder);
         std::fs::create_dir_all(&folder).expect("media folder should be created");
-        let service = MediaServiceImpl::new(
-            &test_configuration().audio,
+        let service = MediaServiceImpl::with_player(
+            MediaPlayer::with_engine(Box::new(FakeAudioEngine)),
             folder.join("media.sqlite3"),
             vec![folder.clone()],
             vec!["mp3".to_string()],
@@ -1731,7 +1665,7 @@ mod tests {
 
     #[tokio::test]
     async fn audio_event_stream_starts_with_status_and_receives_updates() {
-        let service = AudioServiceImpl::new(&test_configuration().audio);
+        let service = AudioServiceImpl::new();
         let mut events = service
             .stream_audio_events(Request::new(Empty {}))
             .await
@@ -1744,7 +1678,7 @@ mod tests {
             .expect("audio snapshot should arrive")
             .expect("audio snapshot should be valid");
         assert_eq!(snapshot.event, AudioEventType::AudioReady as i32);
-        assert!(snapshot.message.contains("plughw:0,0"));
+        assert_eq!(snapshot.message, "audio ready");
 
         service.publish(AudioEventType::AudioDeviceChanged, "audio device changed");
         let event = events
@@ -1785,15 +1719,8 @@ mod tests {
             .add_playlist_entry(playlist_id, media_id)
             .expect("playlist entry should save");
         drop(database);
-        let audio_config = config::AudioConfig {
-            backend: "alsa".to_string(),
-            device: "default".to_string(),
-            sample_rate: 44_100,
-            channels: 2,
-            navigation_interrupt: "pause_music".to_string(),
-        };
-        let service = MediaServiceImpl::new(
-            &audio_config,
+        let service = MediaServiceImpl::with_player(
+            MediaPlayer::with_engine(Box::new(FakeAudioEngine)),
             database_path.clone(),
             Vec::new(),
             Vec::new(),
@@ -1814,8 +1741,8 @@ mod tests {
             .save_resume_state()
             .expect("resume context should save");
 
-        let restored_service = MediaServiceImpl::new(
-            &audio_config,
+        let restored_service = MediaServiceImpl::with_player(
+            MediaPlayer::with_engine(Box::new(FakeAudioEngine)),
             database_path.clone(),
             Vec::new(),
             Vec::new(),
@@ -1837,8 +1764,8 @@ mod tests {
     }
 
     fn playlist_test_service(database_path: PathBuf, cover_cache_dir: PathBuf) -> MediaServiceImpl {
-        MediaServiceImpl::new(
-            &test_configuration().audio,
+        MediaServiceImpl::with_player(
+            MediaPlayer::with_engine(Box::new(FakeAudioEngine)),
             database_path,
             Vec::new(),
             Vec::new(),
