@@ -38,8 +38,9 @@ use carnine::{
     GetCoverArtRequest, GetCoverArtResponse, GetPlaylistRequest, ImportMusicVolumeRequest,
     LibraryEvent, LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest,
     PlayQueueEntryRequest, PlayRequest, PlayerEvent, PlayerState, Playlist, PlaylistEntry,
-    RescanMediaRequest, SearchMediaRequest, SearchMediaResponse, ServiceVersion, SetVolumeRequest,
-    UpdateConfigurationRequest, VolumeResponse,
+    RescanMediaRequest, SearchMediaRequest, SearchMediaResponse, ServiceVersion,
+    SetRepeatModeRequest, SetShuffleModeRequest, SetVolumeRequest, UpdateConfigurationRequest,
+    VolumeResponse,
 };
 
 #[derive(Debug, Default)]
@@ -562,13 +563,7 @@ impl MediaService for MediaServiceImpl {
         &self,
         _request: Request<Empty>,
     ) -> Result<Response<PlayerState>, Status> {
-        Ok(Response::new(PlayerState {
-            status: self.player.state().to_string(),
-            media_path: self.player.media_path(),
-            position_ms: self.player.position_ms(),
-            duration_ms: 0,
-            playlist_id: self.player.playlist_id().unwrap_or_default() as u64,
-        }))
+        Ok(Response::new(self.player.player_state()))
     }
 
     async fn search_media(
@@ -771,6 +766,30 @@ impl MediaService for MediaServiceImpl {
         }
         .to_string();
         Ok(Response::new(GetCoverArtResponse { data, mime_type }))
+    }
+
+    async fn set_repeat_mode(
+        &self,
+        request: Request<SetRepeatModeRequest>,
+    ) -> Result<Response<CommandResponse>, Status> {
+        let mode = request.into_inner().mode();
+        self.player.set_repeat_mode(mode);
+        Ok(Response::new(CommandResponse {
+            success: true,
+            message: format!("repeat mode set to {}", mode.as_str_name()),
+        }))
+    }
+
+    async fn set_shuffle_mode(
+        &self,
+        request: Request<SetShuffleModeRequest>,
+    ) -> Result<Response<CommandResponse>, Status> {
+        let enabled = request.into_inner().enabled;
+        self.player.set_shuffle_mode(enabled);
+        Ok(Response::new(CommandResponse {
+            success: true,
+            message: format!("shuffle mode set to {enabled}"),
+        }))
     }
 
     async fn stream_player_events(
@@ -1021,6 +1040,7 @@ async fn main() -> Result<()> {
     media_service.restore_resume_state()?;
     storage_events::spawn(Arc::new(media_service.clone()));
     let media_player = Arc::clone(&media_service.player);
+    MediaPlayer::spawn_completion_watcher(Arc::clone(&media_player));
     let config_service = ConfigServiceImpl::new(configuration.clone(), configuration_path);
 
     info!("Starting gRPC server on {}", addr);
@@ -1101,7 +1121,8 @@ mod tests {
         get_cover_art_request::Target as CoverArtTarget, media_service_server::MediaService,
         system_service_server::SystemService, AddPlaylistEntryRequest, AudioEventType,
         CreatePlaylistRequest, Empty, GetCoverArtRequest, GetPlaylistRequest, LibraryEventType,
-        PlayerEventType, RescanMediaRequest,
+        PlayerEventType, RepeatMode, RescanMediaRequest, SetRepeatModeRequest,
+        SetShuffleModeRequest,
     };
     use crate::config;
     use crate::database;
@@ -1824,6 +1845,56 @@ mod tests {
             "restore_paused".to_string(),
             cover_cache_dir,
         )
+    }
+
+    #[tokio::test]
+    async fn set_repeat_mode_updates_player_state() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-repeat-mode-{}.sqlite3",
+            std::process::id()
+        ));
+        let service =
+            playlist_test_service(database_path.clone(), PathBuf::from("/tmp/carnine-covers"));
+
+        let response = service
+            .set_repeat_mode(Request::new(SetRepeatModeRequest {
+                mode: RepeatMode::RepeatQueue as i32,
+            }))
+            .await
+            .expect("repeat mode should be accepted")
+            .into_inner();
+        assert!(response.success);
+
+        let state = service
+            .get_player_state(Request::new(Empty {}))
+            .await
+            .expect("player state should load")
+            .into_inner();
+        assert_eq!(state.repeat_mode(), RepeatMode::RepeatQueue);
+    }
+
+    #[tokio::test]
+    async fn set_shuffle_mode_updates_player_state() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-shuffle-mode-{}.sqlite3",
+            std::process::id()
+        ));
+        let service =
+            playlist_test_service(database_path.clone(), PathBuf::from("/tmp/carnine-covers"));
+
+        let response = service
+            .set_shuffle_mode(Request::new(SetShuffleModeRequest { enabled: true }))
+            .await
+            .expect("shuffle mode should be accepted")
+            .into_inner();
+        assert!(response.success);
+
+        let state = service
+            .get_player_state(Request::new(Empty {}))
+            .await
+            .expect("player state should load")
+            .into_inner();
+        assert!(state.shuffle_enabled);
     }
 
     #[tokio::test]

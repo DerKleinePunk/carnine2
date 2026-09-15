@@ -27,6 +27,8 @@ service MediaService {
   rpc GetPlaylist (GetPlaylistRequest) returns (Playlist);
   rpc StreamPlayerEvents (Empty) returns (stream PlayerEvent);
   rpc GetCoverArt (GetCoverArtRequest) returns (GetCoverArtResponse);
+  rpc SetRepeatMode (SetRepeatModeRequest) returns (CommandResponse);
+  rpc SetShuffleMode (SetShuffleModeRequest) returns (CommandResponse);
 }
 
 service AudioService {
@@ -202,6 +204,8 @@ message PlayerState {
   int64 position_ms = 3;
   int64 duration_ms = 4;
   uint64 playlist_id = 5;
+  RepeatMode repeat_mode = 6;
+  bool shuffle_enabled = 7;
 }
 
 message PlayerEvent {
@@ -220,6 +224,22 @@ enum PlayerEventType {
   PLAYER_STOPPED = 6;
   PLAYER_TRACK_CHANGED = 7;
   PLAYER_ERROR = 8;
+  PLAYER_QUEUE_FINISHED = 9;
+}
+
+enum RepeatMode {
+  REPEAT_MODE_UNSPECIFIED = 0;
+  REPEAT_OFF = 1;
+  REPEAT_QUEUE = 2;
+  REPEAT_TRACK = 3;
+}
+
+message SetRepeatModeRequest {
+  RepeatMode mode = 1;
+}
+
+message SetShuffleModeRequest {
+  bool enabled = 1;
 }
 
 enum AudioEventType {

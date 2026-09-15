@@ -177,6 +177,13 @@ impl Playback for CpalPlayback {
         info!(source_id = ?self.source_id, "cpal audio source removed");
         Ok(())
     }
+
+    fn is_finished(&self) -> bool {
+        self.source
+            .as_ref()
+            .map(|source| source.is_finished())
+            .unwrap_or(false)
+    }
 }
 
 fn build_stream(

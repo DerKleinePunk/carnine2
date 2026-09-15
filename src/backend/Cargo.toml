@@ -64,6 +64,7 @@ tonic = "0.12"
 prost = "0.13"
 ringbuf = "0.4"
 ffmpeg-next = { version = "8", optional = true }
+rand = "0.8"
 
 [build-dependencies]
 tonic-build = "0.12"

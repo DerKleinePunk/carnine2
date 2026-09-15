@@ -18,6 +18,7 @@ const READ_BUFFER_BYTES: usize = 16 * 1024;
 #[derive(Debug)]
 pub struct ExternalPcmSource {
     stop_requested: Arc<AtomicBool>,
+    finished: Arc<AtomicBool>,
     child: Arc<Mutex<Option<Child>>>,
     decoder_thread: Option<JoinHandle<Result<u64>>>,
 }
@@ -55,15 +56,18 @@ impl ExternalPcmSource {
         let mut decoded_pcm = child.stdout.take().context("ffmpeg stdout was not piped")?;
         let child_control = Arc::new(Mutex::new(Some(child)));
         let stop_requested = Arc::new(AtomicBool::new(false));
+        let finished = Arc::new(AtomicBool::new(false));
         let ring = HeapRb::<f32>::new(capacity_frames * SOURCE_CHANNELS);
         let (mut producer, consumer) = ring.split();
         let thread_stop = Arc::clone(&stop_requested);
+        let thread_finished = Arc::clone(&finished);
         let thread_child = Arc::clone(&child_control);
         let decoder_thread = thread::spawn(move || {
             let result = decode_into_ring(
                 &mut decoded_pcm,
                 &mut producer,
                 &thread_stop,
+                &thread_finished,
                 SOURCE_CHANNELS,
             );
             if let Some(mut child) = thread_child
@@ -78,11 +82,16 @@ impl ExternalPcmSource {
         Ok((
             Self {
                 stop_requested,
+                finished,
                 child: child_control,
                 decoder_thread: Some(decoder_thread),
             },
             consumer,
         ))
+    }
+
+    pub fn is_finished(&self) -> bool {
+        self.finished.load(Ordering::Acquire)
     }
 
     pub fn stop(mut self) -> Result<u64> {
@@ -125,6 +134,7 @@ fn decode_into_ring(
     decoded_pcm: &mut impl Read,
     producer: &mut HeapProd<f32>,
     stop_requested: &AtomicBool,
+    finished: &AtomicBool,
     channels: usize,
 ) -> Result<u64> {
     let mut buffer = [0_u8; READ_BUFFER_BYTES];
@@ -136,6 +146,7 @@ fn decode_into_ring(
         }
         let bytes_read = decoded_pcm.read(&mut buffer)?;
         if bytes_read == 0 {
+            finished.store(true, Ordering::Release);
             break;
         }
         pending.extend_from_slice(&buffer[..bytes_read]);
@@ -180,11 +191,18 @@ mod tests {
         let (mut producer, mut consumer) = ring.split();
 
         let stop_requested = AtomicBool::new(false);
-        let sample_count =
-            decode_into_ring(&mut Cursor::new(pcm), &mut producer, &stop_requested, 2)
-                .expect("PCM decoding should succeed");
+        let finished = AtomicBool::new(false);
+        let sample_count = decode_into_ring(
+            &mut Cursor::new(pcm),
+            &mut producer,
+            &stop_requested,
+            &finished,
+            2,
+        )
+        .expect("PCM decoding should succeed");
 
         assert_eq!(sample_count, 4);
+        assert!(finished.load(std::sync::atomic::Ordering::Acquire));
         let samples: Vec<f32> = (0..4).map(|_| consumer.try_pop().unwrap()).collect();
         assert!(samples
             .iter()

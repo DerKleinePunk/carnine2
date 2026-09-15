@@ -343,6 +343,7 @@ dependencies = [
  "ffmpeg-next",
  "futures-util",
  "prost",
+ "rand",
  "ringbuf",
  "rusqlite",
  "serde",

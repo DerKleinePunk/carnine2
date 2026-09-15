@@ -1,12 +1,16 @@
 use std::path::Path;
-use std::sync::Mutex;
-use std::time::Instant;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, bail, Context, Result};
+use rand::seq::SliceRandom;
+use rand::thread_rng;
 use tokio::sync::broadcast;
 
 use crate::audio_engine::{self, AudioEngine, Playback};
-use crate::carnine::{AudioEvent, AudioEventType, PlayerEvent, PlayerEventType, PlayerState};
+use crate::carnine::{
+    AudioEvent, AudioEventType, PlayerEvent, PlayerEventType, PlayerState, RepeatMode,
+};
 use crate::config::AudioConfig;
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -28,6 +32,10 @@ pub struct MediaPlayer {
     media_path: Mutex<Option<String>>,
     position_ms: Mutex<i64>,
     started_at: Mutex<Option<Instant>>,
+    repeat_mode: Mutex<RepeatMode>,
+    shuffle_enabled: Mutex<bool>,
+    shuffle_order: Mutex<Vec<usize>>,
+    shuffle_position: Mutex<usize>,
     events: broadcast::Sender<PlayerEvent>,
     audio_events: broadcast::Sender<AudioEvent>,
 }
@@ -47,6 +55,10 @@ impl Default for MediaPlayer {
             media_path: Mutex::new(None),
             position_ms: Mutex::new(0),
             started_at: Mutex::new(None),
+            repeat_mode: Mutex::new(RepeatMode::RepeatOff),
+            shuffle_enabled: Mutex::new(false),
+            shuffle_order: Mutex::new(Vec::new()),
+            shuffle_position: Mutex::new(0),
             events,
             audio_events,
         }
@@ -170,14 +182,68 @@ impl MediaPlayer {
             .unwrap_or_default()
     }
 
-    fn player_state(&self) -> PlayerState {
+    pub fn player_state(&self) -> PlayerState {
         PlayerState {
             status: self.state().to_string(),
             media_path: self.media_path(),
             position_ms: self.position_ms(),
             duration_ms: 0,
             playlist_id: self.playlist_id().unwrap_or_default() as u64,
+            repeat_mode: self.repeat_mode() as i32,
+            shuffle_enabled: self.shuffle_enabled(),
         }
+    }
+
+    fn repeat_mode(&self) -> RepeatMode {
+        *self
+            .repeat_mode
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn shuffle_enabled(&self) -> bool {
+        *self
+            .shuffle_enabled
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    pub fn set_repeat_mode(&self, mode: RepeatMode) {
+        *self
+            .repeat_mode
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = mode;
+    }
+
+    pub fn set_shuffle_mode(&self, enabled: bool) {
+        *self
+            .shuffle_enabled
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = enabled;
+        if enabled {
+            self.reshuffle_from_current();
+        }
+    }
+
+    fn reshuffle_from_current(&self) {
+        let queue_len = self
+            .queue
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .len();
+        let current_index = *self
+            .queue_index
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        *self
+            .shuffle_order
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) =
+            shuffled_order(queue_len, current_index);
+        *self
+            .shuffle_position
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = 0;
     }
 
     fn publish(&self, event: PlayerEventType, message: impl Into<String>) {
@@ -277,6 +343,9 @@ impl MediaPlayer {
             .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = PlaybackState::Paused;
+        if self.shuffle_enabled() {
+            self.reshuffle_from_current();
+        }
         if resume_mode == "auto-play" {
             self.start_current_path()?;
         }
@@ -390,48 +459,50 @@ impl MediaPlayer {
     }
 
     fn switch_track(&self, direction: isize) -> Result<String> {
-        let index = self
-            .queue_index
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .context("no active queue")?;
-        let queue = self
-            .queue
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let next_index = index as isize + direction;
-        if next_index < 0 || next_index >= queue.len() as isize {
-            bail!("no adjacent track in queue");
-        }
-        drop(queue);
-        self.switch_to_index(next_index as usize)
+        let target_index = self
+            .resolve_next_index(direction)
+            .context("no adjacent track in queue")?;
+        self.switch_to_index(target_index)
     }
 
     fn switch_to_index(&self, target_index: usize) -> Result<String> {
-        let mut index = self
-            .queue_index
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let queue = self
+        let queue_len = self
             .queue
             .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if target_index >= queue.len() {
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .len();
+        if target_index >= queue_len {
             bail!("queue index out of range: {target_index}");
         }
-        let next_path = queue[target_index].clone();
-        drop(queue);
-        let mut playback = self
+        let active_playback = self
             .playback
             .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let Some(active_playback) = playback.take() else {
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take();
+        let Some(active_playback) = active_playback else {
             bail!("no active playback");
         };
         active_playback.stop()?;
+        self.start_at_index(target_index)
+    }
+
+    fn start_at_index(&self, target_index: usize) -> Result<String> {
+        let next_path = self
+            .queue
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .get(target_index)
+            .cloned()
+            .with_context(|| format!("queue index out of range: {target_index}"))?;
         let started_playback = self.engine.start(&next_path)?;
-        *playback = Some(started_playback);
-        *index = Some(target_index);
+        *self
+            .playback
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(started_playback);
+        *self
+            .queue_index
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(target_index);
         *self
             .media_path
             .lock()
@@ -450,6 +521,127 @@ impl MediaPlayer {
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(Instant::now());
         self.publish(PlayerEventType::PlayerTrackChanged, "playback switched");
         Ok("playback switched".to_string())
+    }
+
+    /// Resolves the queue index to move to from the current position,
+    /// honoring repeat/shuffle. `None` means there is nowhere to go (e.g.
+    /// past the end of the queue with repeat off).
+    fn resolve_next_index(&self, direction: isize) -> Option<usize> {
+        let queue_len = self
+            .queue
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .len();
+        if queue_len == 0 {
+            return None;
+        }
+        let repeat_mode = self.repeat_mode();
+        let current_index = *self
+            .queue_index
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if repeat_mode == RepeatMode::RepeatTrack {
+            return current_index;
+        }
+        if self.shuffle_enabled() {
+            return self.resolve_next_shuffled_index(direction, queue_len, repeat_mode);
+        }
+        let current_index = current_index?;
+        let raw_next = current_index as isize + direction;
+        if raw_next < 0 {
+            return (repeat_mode == RepeatMode::RepeatQueue).then(|| queue_len - 1);
+        }
+        if raw_next as usize >= queue_len {
+            return (repeat_mode == RepeatMode::RepeatQueue).then_some(0);
+        }
+        Some(raw_next as usize)
+    }
+
+    fn resolve_next_shuffled_index(
+        &self,
+        direction: isize,
+        queue_len: usize,
+        repeat_mode: RepeatMode,
+    ) -> Option<usize> {
+        let mut order = self
+            .shuffle_order
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if order.len() != queue_len {
+            *order = shuffled_order(queue_len, None);
+        }
+        let mut position = self
+            .shuffle_position
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let raw_next = *position as isize + direction;
+        if raw_next < 0 {
+            return None;
+        }
+        if raw_next as usize >= order.len() {
+            if repeat_mode != RepeatMode::RepeatQueue {
+                return None;
+            }
+            *order = shuffled_order(queue_len, None);
+            *position = 0;
+            return order.first().copied();
+        }
+        *position = raw_next as usize;
+        order.get(*position).copied()
+    }
+
+    fn is_active_track_finished(&self) -> bool {
+        let playing = matches!(
+            *self
+                .state
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner()),
+            PlaybackState::Playing
+        );
+        if !playing {
+            return false;
+        }
+        self.playback
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .as_ref()
+            .is_some_and(|playback| playback.is_finished())
+    }
+
+    fn handle_track_finished(&self) {
+        let active_playback = self
+            .playback
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take();
+        if let Some(active_playback) = active_playback {
+            if let Err(error) = active_playback.stop() {
+                self.publish(PlayerEventType::PlayerError, error.to_string());
+                return;
+            }
+        }
+        match self.resolve_next_index(1) {
+            Some(next_index) => {
+                if let Err(error) = self.start_at_index(next_index) {
+                    self.publish(PlayerEventType::PlayerError, error.to_string());
+                }
+            }
+            None => {
+                *self
+                    .position_ms
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner()) = 0;
+                *self
+                    .started_at
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
+                *self
+                    .state
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner()) = PlaybackState::Stopped;
+                self.publish(PlayerEventType::PlayerQueueFinished, "playlist finished");
+            }
+        }
     }
 
     fn pause(&self) -> Result<String> {
@@ -513,13 +705,48 @@ impl MediaPlayer {
         self.publish(PlayerEventType::PlayerStopped, "playback stopped");
         Ok("playback stopped".to_string())
     }
+
+    /// Spawns a background task that polls for natural track completion
+    /// and auto-advances (honoring repeat/shuffle), independent of whether
+    /// any gRPC client is subscribed to the player event stream.
+    pub fn spawn_completion_watcher(player: Arc<MediaPlayer>) {
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_millis(250));
+            loop {
+                interval.tick().await;
+                if player.is_active_track_finished() {
+                    let player = Arc::clone(&player);
+                    let _ =
+                        tokio::task::spawn_blocking(move || player.handle_track_finished()).await;
+                }
+            }
+        });
+    }
+}
+
+fn shuffled_order(len: usize, pinned_first: Option<usize>) -> Vec<usize> {
+    let mut order: Vec<usize> = (0..len).collect();
+    match pinned_first.filter(|index| *index < len) {
+        Some(pinned) => {
+            order.retain(|&index| index != pinned);
+            order.shuffle(&mut thread_rng());
+            order.insert(0, pinned);
+        }
+        None => order.shuffle(&mut thread_rng()),
+    }
+    order
 }
 
 #[cfg(test)]
 mod tests {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+
     use super::MediaPlayer;
-    use crate::carnine::PlayerEventType;
+    use crate::audio_engine::{AudioEngine, Playback};
+    use crate::carnine::{PlayerEventType, RepeatMode};
     use crate::config::AudioConfig;
+    use anyhow::Result;
 
     fn player() -> MediaPlayer {
         MediaPlayer::from_audio_config(&AudioConfig {
@@ -529,6 +756,49 @@ mod tests {
             channels: 2,
             navigation_interrupt: "pause_music".to_string(),
         })
+    }
+
+    struct FakePlayback {
+        finished: Arc<AtomicBool>,
+    }
+
+    impl Playback for FakePlayback {
+        fn pause(&self) -> Result<()> {
+            Ok(())
+        }
+        fn resume(&self) -> Result<()> {
+            Ok(())
+        }
+        fn stop(self: Box<Self>) -> Result<()> {
+            Ok(())
+        }
+        fn is_finished(&self) -> bool {
+            self.finished.load(Ordering::Acquire)
+        }
+    }
+
+    struct FakeAudioEngine {
+        finished: Arc<AtomicBool>,
+    }
+
+    impl AudioEngine for FakeAudioEngine {
+        fn start(&self, _input_path: &str) -> Result<Box<dyn Playback>> {
+            self.finished.store(false, Ordering::Release);
+            Ok(Box::new(FakePlayback {
+                finished: Arc::clone(&self.finished),
+            }))
+        }
+    }
+
+    /// A player whose active track's "finished" state can be toggled from
+    /// the test, to deterministically simulate a natural track end without
+    /// real audio/ffmpeg.
+    fn player_with_finish_control() -> (MediaPlayer, Arc<AtomicBool>) {
+        let finished = Arc::new(AtomicBool::new(false));
+        let engine = FakeAudioEngine {
+            finished: Arc::clone(&finished),
+        };
+        (MediaPlayer::with_engine(Box::new(engine)), finished)
     }
 
     #[test]
@@ -598,5 +868,164 @@ mod tests {
         player.stop().expect("playback should stop");
 
         assert_eq!(player.position_ms(), 12_345);
+    }
+
+    #[test]
+    fn auto_advance_moves_to_next_track_when_current_finishes() {
+        let (player, finished) = player_with_finish_control();
+        player
+            .play_playlist(
+                1,
+                vec![
+                    (11, "/music/a.mp3".to_string()),
+                    (12, "/music/b.mp3".to_string()),
+                ],
+                Some(11),
+                0,
+                "auto-play",
+            )
+            .expect("playlist should start");
+        assert_eq!(player.media_path(), "/music/a.mp3");
+
+        finished.store(true, Ordering::Release);
+        player.handle_track_finished();
+
+        assert_eq!(player.media_path(), "/music/b.mp3");
+        assert_eq!(player.state(), "playing");
+    }
+
+    #[test]
+    fn auto_advance_stops_and_publishes_queue_finished_at_end_with_repeat_off() {
+        let (player, finished) = player_with_finish_control();
+        let mut events = player.subscribe_events();
+        player
+            .play_playlist(
+                1,
+                vec![(11, "/music/a.mp3".to_string())],
+                Some(11),
+                0,
+                "auto-play",
+            )
+            .expect("playlist should start");
+
+        finished.store(true, Ordering::Release);
+        player.handle_track_finished();
+
+        assert_eq!(player.state(), "stopped");
+        let mut saw_queue_finished = false;
+        while let Ok(event) = events.try_recv() {
+            saw_queue_finished |= event.event == PlayerEventType::PlayerQueueFinished as i32;
+        }
+        assert!(saw_queue_finished);
+    }
+
+    #[test]
+    fn repeat_queue_wraps_to_first_track_when_auto_advancing_past_the_end() {
+        let (player, finished) = player_with_finish_control();
+        player
+            .play_playlist(
+                1,
+                vec![
+                    (11, "/music/a.mp3".to_string()),
+                    (12, "/music/b.mp3".to_string()),
+                ],
+                Some(12),
+                0,
+                "auto-play",
+            )
+            .expect("playlist should start");
+        player.set_repeat_mode(RepeatMode::RepeatQueue);
+
+        finished.store(true, Ordering::Release);
+        player.handle_track_finished();
+
+        assert_eq!(player.media_path(), "/music/a.mp3");
+        assert_eq!(player.state(), "playing");
+    }
+
+    #[test]
+    fn repeat_track_replays_the_same_track_when_it_finishes() {
+        let (player, finished) = player_with_finish_control();
+        player
+            .play_playlist(
+                1,
+                vec![(11, "/music/a.mp3".to_string())],
+                Some(11),
+                0,
+                "auto-play",
+            )
+            .expect("playlist should start");
+        player.set_repeat_mode(RepeatMode::RepeatTrack);
+
+        finished.store(true, Ordering::Release);
+        player.handle_track_finished();
+
+        assert_eq!(player.media_path(), "/music/a.mp3");
+        assert_eq!(player.state(), "playing");
+    }
+
+    #[test]
+    fn shuffle_visits_every_track_exactly_once_before_a_track_repeats() {
+        let (player, finished) = player_with_finish_control();
+        player
+            .play_playlist(
+                1,
+                vec![
+                    (11, "a".to_string()),
+                    (12, "b".to_string()),
+                    (13, "c".to_string()),
+                ],
+                Some(11),
+                0,
+                "auto-play",
+            )
+            .expect("playlist should start");
+        player.set_shuffle_mode(true);
+        player.set_repeat_mode(RepeatMode::RepeatQueue);
+
+        let mut visited = vec![player.media_path()];
+        for _ in 0..2 {
+            finished.store(true, Ordering::Release);
+            player.handle_track_finished();
+            visited.push(player.media_path());
+        }
+        let mut sorted = visited.clone();
+        sorted.sort();
+        assert_eq!(sorted, ["a", "b", "c"]);
+
+        // The bag refills once exhausted instead of erroring out.
+        finished.store(true, Ordering::Release);
+        player.handle_track_finished();
+        assert!(["a", "b", "c"].contains(&player.media_path().as_str()));
+    }
+
+    #[test]
+    fn manual_next_wraps_with_repeat_queue_but_errors_with_repeat_off() {
+        let (player, _finished) = player_with_finish_control();
+        player
+            .play_playlist(
+                1,
+                vec![
+                    (11, "/music/a.mp3".to_string()),
+                    (12, "/music/b.mp3".to_string()),
+                ],
+                Some(12),
+                0,
+                "auto-play",
+            )
+            .expect("playlist should start");
+
+        assert!(player.execute("next", "").is_err());
+
+        player.set_repeat_mode(RepeatMode::RepeatQueue);
+        player
+            .execute("next", "")
+            .expect("next should wrap to the first track");
+        assert_eq!(player.media_path(), "/music/a.mp3");
+
+        player
+            .execute("previous", "")
+            .expect("previous should wrap to the last track with repeat=queue");
+        assert_eq!(player.media_path(), "/music/b.mp3");
     }
 }

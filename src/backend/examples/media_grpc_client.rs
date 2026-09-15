@@ -13,8 +13,8 @@ use carnine::{
     audio_service_client::AudioServiceClient, get_cover_art_request::Target as CoverArtTarget,
     media_service_client::MediaServiceClient, AddPlaylistEntryRequest, CreatePlaylistRequest,
     Empty, GetCoverArtRequest, GetPlaylistRequest, ImportMusicVolumeRequest, LibraryEventType,
-    PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, RescanMediaRequest,
-    SearchMediaRequest,
+    PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, RepeatMode, RescanMediaRequest,
+    SearchMediaRequest, SetRepeatModeRequest, SetShuffleModeRequest,
 };
 
 #[tokio::main]
@@ -62,6 +62,8 @@ async fn main() -> Result<()> {
         "add-playlist-entry" => add_playlist_entry(&mut client).await?,
         "get-playlist" => get_playlist(&mut client).await?,
         "cover-art" => get_cover_art(&mut client).await?,
+        "repeat" => set_repeat_mode(&mut client).await?,
+        "shuffle" => set_shuffle_mode(&mut client).await?,
         unknown => bail!("unknown command: {unknown}"),
     }
     Ok(())
@@ -363,9 +365,50 @@ async fn send_stop(client: &mut MediaServiceClient<Channel>) -> Result<()> {
 async fn print_state(client: &mut MediaServiceClient<Channel>) -> Result<()> {
     let state = client.get_player_state(Empty {}).await?.into_inner();
     println!(
-        "state={} media={} position_ms={} duration_ms={} playlist_id={}",
-        state.status, state.media_path, state.position_ms, state.duration_ms, state.playlist_id
+        "state={} media={} position_ms={} duration_ms={} playlist_id={} repeat_mode={:?} shuffle_enabled={}",
+        state.status,
+        state.media_path,
+        state.position_ms,
+        state.duration_ms,
+        state.playlist_id,
+        state.repeat_mode(),
+        state.shuffle_enabled
     );
+    Ok(())
+}
+
+async fn set_repeat_mode(client: &mut MediaServiceClient<Channel>) -> Result<()> {
+    let mode = env::args()
+        .nth(3)
+        .context("repeat requires a mode: off|queue|track")?;
+    let mode = match mode.as_str() {
+        "off" => RepeatMode::RepeatOff,
+        "queue" => RepeatMode::RepeatQueue,
+        "track" => RepeatMode::RepeatTrack,
+        other => bail!("unknown repeat mode: {other} (expected off|queue|track)"),
+    };
+    let response = client
+        .set_repeat_mode(SetRepeatModeRequest { mode: mode as i32 })
+        .await?
+        .into_inner();
+    println!("{}: {}", response.success, response.message);
+    Ok(())
+}
+
+async fn set_shuffle_mode(client: &mut MediaServiceClient<Channel>) -> Result<()> {
+    let enabled = env::args()
+        .nth(3)
+        .context("shuffle requires a state: on|off")?;
+    let enabled = match enabled.as_str() {
+        "on" => true,
+        "off" => false,
+        other => bail!("unknown shuffle state: {other} (expected on|off)"),
+    };
+    let response = client
+        .set_shuffle_mode(SetShuffleModeRequest { enabled })
+        .await?
+        .into_inner();
+    println!("{}: {}", response.success, response.message);
     Ok(())
 }
 

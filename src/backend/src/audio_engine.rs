@@ -33,6 +33,13 @@ pub trait Playback: Send {
     fn pause(&self) -> Result<()>;
     fn resume(&self) -> Result<()>;
     fn stop(self: Box<Self>) -> Result<()>;
+
+    // True only once playback reached the track's natural end on its own,
+    // never as a result of an explicit stop() — the auto-advance watcher
+    // polls this to tell "track ended" apart from "user stopped it".
+    fn is_finished(&self) -> bool {
+        false
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -86,6 +93,7 @@ struct ProcessPlayback {
     copy_thread: Option<JoinHandle<Result<u64>>>,
     target_gain: Arc<AtomicU32>,
     stop_requested: Arc<AtomicBool>,
+    finished: Arc<AtomicBool>,
 }
 
 impl ProcessPlayback {
@@ -129,8 +137,10 @@ impl ProcessPlayback {
             .context("audio input was not piped")?;
         let target_gain = Arc::new(AtomicU32::new(1_000_000));
         let stop_requested = Arc::new(AtomicBool::new(false));
+        let finished = Arc::new(AtomicBool::new(false));
         let target_gain_for_copy = Arc::clone(&target_gain);
         let stop_requested_for_copy = Arc::clone(&stop_requested);
+        let finished_for_copy = Arc::clone(&finished);
         let sample_rate = engine.sample_rate.parse::<u32>()?;
         let channels = engine.channels.parse::<u16>()?;
         let copy_thread = thread::spawn(move || -> Result<u64> {
@@ -147,6 +157,7 @@ impl ProcessPlayback {
                 let target_gain = target_gain_for_copy.load(Ordering::Acquire);
                 let bytes_read = decoded_pcm.read(&mut buffer)?;
                 if bytes_read == 0 {
+                    finished_for_copy.store(true, Ordering::Release);
                     break;
                 }
                 pending_pcm.extend_from_slice(&buffer[..bytes_read]);
@@ -183,6 +194,7 @@ impl ProcessPlayback {
             copy_thread: Some(copy_thread),
             target_gain,
             stop_requested,
+            finished,
         })
     }
 
@@ -226,6 +238,10 @@ impl Playback for ProcessPlayback {
         let _ = self.audio_output.wait();
         info!("audio stream stopped; decoder and output processes exited");
         Ok(())
+    }
+
+    fn is_finished(&self) -> bool {
+        self.finished.load(Ordering::Acquire)
     }
 }
 
