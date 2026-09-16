@@ -105,6 +105,13 @@ impl AudioMixer {
                     continue;
                 };
                 advance_gain(source);
+                if source.gain == 0.0 && source.fade_frames_remaining == 0 {
+                    // Fully muted and not mid-fade (e.g. paused): stop pulling
+                    // samples so a stream source's decoder sees real
+                    // backpressure instead of having its ring buffer drained
+                    // silently while "paused".
+                    continue;
+                }
                 let (left, right) = if let Some(samples) = source.samples.as_ref() {
                     if source.position + CHANNELS > samples.len() {
                         continue;
