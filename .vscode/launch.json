@@ -13,7 +13,15 @@
             "args": [
                 "-d",
                 "linux"
-            ]
+            ],
+            // Must match the backend's CARNINE_SOCKET_PATH below - both
+            // sides need to agree on where the dev Unix socket lives, since
+            // a plain dev user can't create the production default
+            // (/run/carnine, root-owned). See src/backend/README.md
+            // ("gRPC-Testclient") and docs/07-deployment.md §7.4.
+            "env": {
+                "CARNINE_SOCKET_PATH": "/tmp/carnine-dev.sock"
+            }
         },
         {
             "name": "Rust: Debug Backend",
@@ -36,6 +44,7 @@
                 "CARNINE_CONFIG=/tmp/carnine-config.toml",
                 "CARNINE_LOG_DIRECTORY=/tmp/carnine-log",
                 "CARNINE_DATABASE_PATH=/tmp/carnine-media.sqlite3",
+                "CARNINE_SOCKET_PATH=/tmp/carnine-dev.sock",
                 "CARNINE_AUDIO_BACKEND=pulse",
                 "CARNINE_AUDIO_DEVICE=default"
             ]

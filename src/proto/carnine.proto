@@ -269,7 +269,7 @@ message VolumeResponse {
 }
 
 message Configuration {
-  string server_address = 1;
+  string socket_path = 1;
   string database_path = 2;
   repeated string media_folders = 3;
   repeated string supported_formats = 4;
@@ -279,6 +279,9 @@ message Configuration {
   string log_directory = 12;
   string log_level = 13;
   string cover_cache_dir = 14;
+  // Optional TCP loopback fallback (ADR-002); empty means unset. Must stay
+  // unset in production - see docs/07-deployment.md §7.4.
+  string tcp_address = 15;
 }
 
 message UpdateConfigurationRequest {

@@ -2,7 +2,17 @@
 # Installed target path: /etc/carnine/config.toml
 
 [server]
-address = "[::1]:50051"
+# Primary transport (ADR-002). Created by systemd's RuntimeDirectory in
+# production (see carnine-backend.service); for local `cargo run`
+# development, override with the CARNINE_SOCKET_PATH env var since a plain
+# user account cannot create /run/carnine itself.
+socket_path = "/run/carnine/carnine.sock"
+# Optional TCP loopback fallback, left unset here on purpose - see
+# docs/07-deployment.md §7.4. Enable only for local debugging where client
+# and server do not share a kernel/socket namespace (e.g. a Windows-hosted
+# Flutter debug build against a backend running inside WSL2), either via
+# CARNINE_TCP_ADDRESS or a local, uncommitted copy of this file:
+# tcp_address = "[::1]:50051"
 
 [media]
 database_path = "/var/lib/carnine/media.sqlite3"

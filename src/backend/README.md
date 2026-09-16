@@ -102,8 +102,21 @@ uses `/etc/carnine/config.toml`, `/var/lib/carnine`, and `/var/log/carnine`.
 ### gRPC-Testclient
 
 Der generierte gRPC-Testclient `media_grpc_client` prueft den laufenden
-Backend-Service ohne Flutter. Der Endpoint wird als erstes Argument uebergeben;
-der Standard-Endpoint im Client ist `http://[::1]:50051`.
+Backend-Service ohne Flutter, aber nur ueber TCP. Der Backend-Standardtransport
+ist inzwischen ein Unix-Domain-Socket (ADR-002); fuer diesen Testclient muss
+der optionale TCP-Fallback lokal aktiviert werden:
+
+```bash
+CARNINE_SOCKET_PATH=/tmp/carnine-dev.sock \\
+CARNINE_TCP_ADDRESS=127.0.0.1:50051 \\
+cargo run
+```
+
+(`CARNINE_SOCKET_PATH` ist noetig, weil `/run/carnine` root-owned tmpfs ist
+und ein normaler Dev-User es nicht selbst anlegen kann - siehe
+docs/07-deployment.md §7.4.) Der Endpoint wird als erstes Argument uebergeben;
+der im Client fest einkompilierte Default ist `http://[::1]:50051` - mit
+obigem Setup stattdessen `http://127.0.0.1:50051` verwenden (siehe unten).
 
 Allgemeines Format:
 
@@ -128,15 +141,15 @@ cargo run --example media_grpc_client -- <endpoint> <command> [argument]
 Beispiele:
 
 ```bash
-cargo run --example media_grpc_client -- http://[::1]:50051 version
-cargo run --example media_grpc_client -- http://[::1]:50051 state
-cargo run --example media_grpc_client -- http://[::1]:50051 play /path/to/audio.mp3
-cargo run --example media_grpc_client -- http://[::1]:50051 pause
-cargo run --example media_grpc_client -- http://[::1]:50051 resume
-cargo run --example media_grpc_client -- http://[::1]:50051 stop
-cargo run --example media_grpc_client -- http://[::1]:50051 playlist 1
-cargo run --example media_grpc_client -- http://[::1]:50051 queue-entry 2
-cargo run --example media_grpc_client -- http://[::1]:50051 rescan
+cargo run --example media_grpc_client -- http://127.0.0.1:50051 version
+cargo run --example media_grpc_client -- http://127.0.0.1:50051 state
+cargo run --example media_grpc_client -- http://127.0.0.1:50051 play /path/to/audio.mp3
+cargo run --example media_grpc_client -- http://127.0.0.1:50051 pause
+cargo run --example media_grpc_client -- http://127.0.0.1:50051 resume
+cargo run --example media_grpc_client -- http://127.0.0.1:50051 stop
+cargo run --example media_grpc_client -- http://127.0.0.1:50051 playlist 1
+cargo run --example media_grpc_client -- http://127.0.0.1:50051 queue-entry 2
+cargo run --example media_grpc_client -- http://127.0.0.1:50051 rescan
 ```
 
 `queue-entry` setzt voraus, dass zuvor eine Playlist geladen oder ein Titel
@@ -159,10 +172,10 @@ waehrend laufender Wiedergabe folgt ungefaehr einmal pro Sekunde ein
 Beispiele:
 
 ```bash
-cargo run --example media_grpc_client -- http://[::1]:50051 player-events [count]
-cargo run --example media_grpc_client -- http://[::1]:50051 library-events [count]
-cargo run --example media_grpc_client -- http://[::1]:50051 audio-events [count]
-cargo run --example media_grpc_client -- http://[::1]:50051 player-events 5
+cargo run --example media_grpc_client -- http://127.0.0.1:50051 player-events [count]
+cargo run --example media_grpc_client -- http://127.0.0.1:50051 library-events [count]
+cargo run --example media_grpc_client -- http://127.0.0.1:50051 audio-events [count]
+cargo run --example media_grpc_client -- http://127.0.0.1:50051 player-events 5
 ```
 
 #### Smoke-Tests
@@ -176,9 +189,9 @@ cargo run --example media_grpc_client -- http://[::1]:50051 player-events 5
 Beispiele:
 
 ```bash
-cargo run --example media_grpc_client -- http://[::1]:50051 smoke /path/to/audio.mp3
-cargo run --example media_grpc_client -- http://[::1]:50051 event-smoke /path/to/audio.mp3
-cargo run --example media_grpc_client -- http://[::1]:50051 library-smoke
+cargo run --example media_grpc_client -- http://127.0.0.1:50051 smoke /path/to/audio.mp3
+cargo run --example media_grpc_client -- http://127.0.0.1:50051 event-smoke /path/to/audio.mp3
+cargo run --example media_grpc_client -- http://127.0.0.1:50051 library-smoke
 ```
 
 Die Pfade muessen fuer den Backend-Prozess erreichbar sein. Der `play`-Befehl

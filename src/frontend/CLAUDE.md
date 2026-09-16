@@ -16,7 +16,7 @@ Lieber eine gezielte Rückfrage stellen, als eine falsche Annahme umzusetzen, di
 
 ## Projektkontext
 
-Carnine (CarPC) ist ein selbstgebautes In-Vehicle-Infotainment-System auf einem Raspberry Pi 4. Das Flutter-Frontend läuft als Linux-Fenster auf einem Touchscreen im Fahrzeug und ist **reine Präsentationsschicht**: UI-Widgets (Navigation, Media Player, Telemetrie, Einstellungen, Rückfahrkamera) + State Management + gRPC-Client. Sämtliche Business-Logik, Datenhaltung und CAN-Bus-Kommunikation liegt im Rust-Backend, nicht im Frontend (`docs/05-building-block.md`, ADR-013 in `docs/09-architecture-decisions.md`). Kommunikation läuft ausschließlich über gRPC via lokalen Unix-Domain-Socket.
+Carnine (CarPC) ist ein selbstgebautes In-Vehicle-Infotainment-System auf einem Raspberry Pi 4. Das Flutter-Frontend läuft als Linux-Fenster auf einem Touchscreen im Fahrzeug und ist **reine Präsentationsschicht**: UI-Widgets (Navigation, Media Player, Telemetrie, Einstellungen, Rückfahrkamera) + State Management + gRPC-Client. Sämtliche Business-Logik, Datenhaltung und CAN-Bus-Kommunikation liegt im Rust-Backend, nicht im Frontend (`docs/05-building-block.md`, ADR-013 in `docs/09-architecture-decisions.md`). Kommunikation läuft in Produktion ausschließlich über gRPC via lokalen Unix-Domain-Socket (ADR-002); Transport-Wahl sitzt zentral in `lib/core/platform/grpc_endpoint.dart`. Für lokale Entwicklung, wenn Flutter und Backend nicht denselben Kernel-/Socket-Namespace teilen (z. B. Flutter als natives Windows-Debug-Target gegen ein Backend in WSL2), gibt es einen expliziten, per Env-Var aktivierten TCP-Loopback-Fallback (`docs/07-deployment.md` §7.4) – das ändert nichts am Sicherheitsmodell in Produktion.
 
 ## Relevante Rahmenbedingungen aus docs/ (arc42)
 

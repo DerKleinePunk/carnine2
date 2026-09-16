@@ -209,42 +209,76 @@ sudo apt-get update && sudo apt-get install -y \
 
 ## 7.4 Backend Connectivity and Debugging
 
-The installed backend binds its gRPC server to the IPv6 loopback address
-`[::1]:50051` by default. This keeps the control API local to the Raspberry Pi
-and is the required production configuration. The image recipe must not change
-this to `0.0.0.0` or `[::]`.
+The installed backend's primary and only production transport is a Unix
+domain socket at `/run/carnine/carnine.sock` (ADR-002), created on start by
+systemd's `RuntimeDirectory=carnine` and owned by the `carnine` user with
+mode `0600`. Frontend and backend run as the same user on the same machine,
+so this needs no separate auth layer - only filesystem permissions - and,
+unlike a TCP port, is not reachable over the network even by mistake. The
+image recipe must not add a network-facing `tcp_address` to
+`/etc/carnine/config.toml`.
 
 Verify the service directly on the Pi:
 
 ```bash
 sudo systemctl is-active carnine-backend.service
-sudo ss -ltnp | grep 50051
+ls -l /run/carnine/carnine.sock
+sudo -u carnine grpcurl -plaintext -unix /run/carnine/carnine.sock carnine.SystemService/GetServiceVersion
 ```
 
-The socket listing should show `[::1]:50051`. The generated gRPC smoke client
-can then test the API locally on the Pi:
+(`grpcurl` supports Unix sockets via `-unix`; install it separately, it does
+not ship with the image.)
+
+For debugging from a development machine against a Pi in the field, forward
+the remote Unix socket to a local one over SSH instead of exposing the
+backend on the network - OpenSSH (6.7+) forwards Unix sockets the same way
+it forwards TCP ports:
 
 ```bash
-cargo run --example media_grpc_client -- http://[::1]:50051 version
+ssh -N -L /tmp/carnine-debug.sock:/run/carnine/carnine.sock pi@<pi-ip>
 ```
 
-For debugging from a development machine, use an SSH tunnel instead of
-exposing the backend port on the LAN:
+In a second terminal, point any Unix-socket-aware gRPC client at the local
+end of the tunnel, e.g.:
 
 ```bash
-ssh -N -L 50052:localhost:50051 pi@<pi-ip>
+grpcurl -plaintext -unix /tmp/carnine-debug.sock carnine.SystemService/GetServiceVersion
 ```
 
-In a second terminal, run the client through the local end of the tunnel:
+### Local development (WSL2/desktop): TCP loopback fallback
+
+`media_grpc_client` (`cargo run --example media_grpc_client`) only speaks
+TCP, so local smoke-testing still needs the optional fallback transport from
+ADR-002. Enable it for a `cargo run` session with:
+
+```bash
+CARNINE_SOCKET_PATH=/tmp/carnine-dev.sock \
+CARNINE_TCP_ADDRESS=127.0.0.1:50051 \
+cargo run
+```
+
+(`CARNINE_SOCKET_PATH` is also required in this setup: `/run/carnine` is
+root-owned tmpfs and a plain dev user cannot create it, unlike the installed
+service which gets it from `RuntimeDirectory=carnine`.) Then:
 
 ```bash
 cargo run --example media_grpc_client -- http://127.0.0.1:50052 version
 ```
 
-Changing `/etc/carnine/config.toml` to a network bind address is a temporary
-debugging exception only. Restore `[::1]:50051` and restart the service after
-the test. The versioned configuration in `resources/config/carnine.toml` and
-the generated image must remain loopback-only.
+Use `127.0.0.1`, not `[::1]`, for this fallback: WSL2's localhost port
+forwarding between Windows and the WSL2 VM has historically been unreliable
+for IPv6-only loopback listeners, which is what caused the frontend's
+original "not connected" symptom when both were mismatched. This TCP
+fallback is also the path for a Flutter debug build running as a native
+Windows process (VS Code's default "Windows" run target) against a backend
+inside WSL2, since the two do not share a kernel/socket namespace and
+Unix domain sockets cannot cross it - only Flutter runs from *within* WSL2
+(e.g. `flutter run -d linux`) can use the Unix socket directly, matching the
+production transport on the Pi.
+
+Never enable `tcp_address` (or `CARNINE_TCP_ADDRESS`) in the versioned
+configuration (`resources/config/carnine.toml`) or the generated image - it
+must stay unset there, as a purely local, opt-in development convenience.
 
 ---
 

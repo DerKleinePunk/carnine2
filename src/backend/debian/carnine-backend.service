@@ -10,6 +10,8 @@ Type=simple
 User=carnine
 Group=carnine
 SupplementaryGroups=audio
+RuntimeDirectory=carnine
+RuntimeDirectoryMode=0700
 ExecStart=/usr/bin/carnine-backend
 Environment=CARNINE_CONFIG=/etc/carnine/config.toml
 Restart=on-failure

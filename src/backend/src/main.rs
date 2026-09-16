@@ -25,6 +25,7 @@ mod config;
 mod cpal_audio_engine;
 mod database;
 mod media_player;
+mod server_transport;
 mod storage_events;
 
 use carnine::get_cover_art_request::Target as CoverArtTarget;
@@ -878,7 +879,7 @@ impl AudioService for AudioServiceImpl {
 
 fn configuration_to_proto(configuration: &config::Config) -> Configuration {
     Configuration {
-        server_address: configuration.server.address.clone(),
+        socket_path: configuration.server.socket_path.display().to_string(),
         database_path: configuration.media.database_path.display().to_string(),
         media_folders: configuration
             .media
@@ -893,19 +894,21 @@ fn configuration_to_proto(configuration: &config::Config) -> Configuration {
         log_directory: configuration.logging.directory.display().to_string(),
         log_level: configuration.logging.level.clone(),
         cover_cache_dir: configuration.media.cover_cache_dir.display().to_string(),
+        tcp_address: configuration.server.tcp_address.clone().unwrap_or_default(),
     }
 }
 
 fn configuration_from_proto(configuration: &Configuration) -> Result<config::Config> {
-    if configuration.server_address.trim().is_empty()
-        || configuration.database_path.trim().is_empty()
+    if configuration.socket_path.trim().is_empty() || configuration.database_path.trim().is_empty()
     {
         bail!("configuration contains an empty or invalid required value");
     }
 
+    let tcp_address = configuration.tcp_address.trim();
     let configuration = config::Config {
         server: config::ServerConfig {
-            address: configuration.server_address.clone(),
+            socket_path: PathBuf::from(&configuration.socket_path),
+            tcp_address: (!tcp_address.is_empty()).then(|| tcp_address.to_string()),
         },
         media: config::MediaConfig {
             database_path: PathBuf::from(&configuration.database_path),
@@ -991,7 +994,12 @@ async fn main() -> Result<()> {
                 configuration.media.database_path.display()
             )
         })?;
-    let addr = configuration.server.address.parse()?;
+    let tcp_fallback = configuration
+        .server
+        .tcp_address
+        .as_ref()
+        .map(|address| address.parse())
+        .transpose()?;
     let carnine_service = CarnineServiceImpl::default();
     let system_service = SystemServiceImpl;
     let media_service = MediaServiceImpl::new_runtime(
@@ -1011,7 +1019,12 @@ async fn main() -> Result<()> {
     MediaPlayer::spawn_completion_watcher(Arc::clone(&media_player));
     let config_service = ConfigServiceImpl::new(configuration.clone(), configuration_path);
 
-    info!("Starting gRPC server on {}", addr);
+    info!(
+        socket_path = %configuration.server.socket_path.display(),
+        tcp_fallback = ?tcp_fallback,
+        "Starting gRPC server"
+    );
+    let incoming = server_transport::bind(&configuration.server.socket_path, tcp_fallback).await?;
     let (shutdown_sender, shutdown_receiver) = oneshot::channel();
     let server = Server::builder()
         .add_service(CarnineServiceServer::new(carnine_service))
@@ -1024,7 +1037,7 @@ async fn main() -> Result<()> {
         .add_service(carnine::system_service_server::SystemServiceServer::new(
             system_service,
         ))
-        .serve_with_shutdown(addr, async move {
+        .serve_with_incoming_shutdown(incoming, async move {
             let _ = shutdown_receiver.await;
         });
     tokio::pin!(server);
@@ -1127,7 +1140,8 @@ mod tests {
     fn test_configuration() -> config::Config {
         config::Config {
             server: config::ServerConfig {
-                address: "[::1]:50051".to_string(),
+                socket_path: PathBuf::from("/tmp/carnine-test.sock"),
+                tcp_address: Some("[::1]:50051".to_string()),
             },
             media: config::MediaConfig {
                 database_path: PathBuf::from("/tmp/media.sqlite3"),
@@ -1194,7 +1208,8 @@ mod tests {
         let proto = configuration_to_proto(&original);
         let restored = configuration_from_proto(&proto).expect("configuration should be valid");
 
-        assert_eq!(restored.server.address, original.server.address);
+        assert_eq!(restored.server.socket_path, original.server.socket_path);
+        assert_eq!(restored.server.tcp_address, original.server.tcp_address);
         assert_eq!(restored.media.database_path, original.media.database_path);
         assert_eq!(restored.media.folders, original.media.folders);
         assert_eq!(

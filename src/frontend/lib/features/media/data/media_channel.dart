@@ -1,4 +1,5 @@
 import 'package:carnine_frontend/lib/carnine.pbgrpc.dart';
+import 'package:carnine_frontend/core/platform/grpc_endpoint.dart';
 import 'package:grpc/grpc.dart';
 import 'package:logging/logging.dart';
 
@@ -78,9 +79,7 @@ class MediaChannel {
   }
 
   static ClientChannel _createDefaultChannel() {
-    return ClientChannel(
-      'localhost',
-      port: 50051,
+    return GrpcEndpoint.createChannel(
       options: const ChannelOptions(
         credentials: ChannelCredentials.insecure(),
         connectTimeout: Duration(milliseconds: 400),

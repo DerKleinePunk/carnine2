@@ -15,7 +15,17 @@ pub struct Config {
 
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
 pub struct ServerConfig {
-    pub address: String,
+    /// Primary gRPC transport (ADR-002): a Unix domain socket local to this
+    /// machine. Frontend and backend run as the same user in production, so
+    /// this needs no separate auth layer - only filesystem permissions.
+    pub socket_path: PathBuf,
+    /// Optional TCP loopback fallback, off by default. Only needed in
+    /// development setups where client and server do not share a
+    /// kernel/socket namespace, e.g. a Windows-hosted Flutter debug build
+    /// talking to a backend running inside WSL2. Must stay unset in the
+    /// versioned configuration and the generated image (docs/07-deployment.md).
+    #[serde(default)]
+    pub tcp_address: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
@@ -41,10 +51,14 @@ pub struct LoggingConfig {
 
 impl Config {
     pub fn validate(&self) -> Result<()> {
-        self.server
-            .address
-            .parse::<std::net::SocketAddr>()
-            .with_context(|| format!("invalid server address {}", self.server.address))?;
+        if self.server.socket_path.as_os_str().is_empty() {
+            anyhow::bail!("server.socket_path must not be empty");
+        }
+        if let Some(tcp_address) = &self.server.tcp_address {
+            tcp_address
+                .parse::<std::net::SocketAddr>()
+                .with_context(|| format!("invalid server tcp_address {tcp_address}"))?;
+        }
         if self.media.database_path.as_os_str().is_empty()
             || self
                 .media
@@ -83,6 +97,14 @@ impl Config {
         if let Some(database_path) = env::var_os("CARNINE_DATABASE_PATH") {
             config.media.database_path = PathBuf::from(database_path);
         }
+        if let Some(socket_path) = env::var_os("CARNINE_SOCKET_PATH") {
+            config.server.socket_path = PathBuf::from(socket_path);
+        }
+        if let Some(tcp_address) = env::var_os("CARNINE_TCP_ADDRESS") {
+            config.server.tcp_address = Some(tcp_address.into_string().map_err(|value| {
+                anyhow::anyhow!("CARNINE_TCP_ADDRESS is not valid UTF-8: {value:?}")
+            })?);
+        }
         config.validate()?;
         Ok((config, path))
     }
@@ -96,7 +118,11 @@ mod tests {
     fn loads_repository_configuration() {
         let (config, path) = Config::load().expect("repository config should load");
         assert!(path.ends_with("resources/config/carnine.toml"));
-        assert_eq!(config.server.address, "[::1]:50051");
+        assert_eq!(
+            config.server.socket_path,
+            std::path::PathBuf::from("/run/carnine/carnine.sock")
+        );
+        assert_eq!(config.server.tcp_address, None);
         assert_eq!(config.audio.navigation_interrupt, "pause_music");
     }
 
@@ -104,7 +130,11 @@ mod tests {
     fn rejects_invalid_runtime_values() {
         let (mut config, _) = Config::load().expect("repository config should load");
 
-        config.server.address = "not-an-address".to_string();
+        config.server.socket_path = std::path::PathBuf::new();
+        assert!(config.validate().is_err());
+
+        let (mut config, _) = Config::load().expect("repository config should load");
+        config.server.tcp_address = Some("not-an-address".to_string());
         assert!(config.validate().is_err());
 
         let (mut config, _) = Config::load().expect("repository config should load");

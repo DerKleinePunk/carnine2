@@ -2374,7 +2374,7 @@ class VolumeResponse extends $pb.GeneratedMessage {
 
 class Configuration extends $pb.GeneratedMessage {
   factory Configuration({
-    $core.String? serverAddress,
+    $core.String? socketPath,
     $core.String? databasePath,
     $core.Iterable<$core.String>? mediaFolders,
     $core.Iterable<$core.String>? supportedFormats,
@@ -2384,9 +2384,10 @@ class Configuration extends $pb.GeneratedMessage {
     $core.String? logDirectory,
     $core.String? logLevel,
     $core.String? coverCacheDir,
+    $core.String? tcpAddress,
   }) {
     final result = create();
-    if (serverAddress != null) result.serverAddress = serverAddress;
+    if (socketPath != null) result.socketPath = socketPath;
     if (databasePath != null) result.databasePath = databasePath;
     if (mediaFolders != null) result.mediaFolders.addAll(mediaFolders);
     if (supportedFormats != null)
@@ -2398,6 +2399,7 @@ class Configuration extends $pb.GeneratedMessage {
     if (logDirectory != null) result.logDirectory = logDirectory;
     if (logLevel != null) result.logLevel = logLevel;
     if (coverCacheDir != null) result.coverCacheDir = coverCacheDir;
+    if (tcpAddress != null) result.tcpAddress = tcpAddress;
     return result;
   }
 
@@ -2414,7 +2416,7 @@ class Configuration extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'Configuration',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
       createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'serverAddress')
+    ..aOS(1, _omitFieldNames ? '' : 'socketPath')
     ..aOS(2, _omitFieldNames ? '' : 'databasePath')
     ..pPS(3, _omitFieldNames ? '' : 'mediaFolders')
     ..pPS(4, _omitFieldNames ? '' : 'supportedFormats')
@@ -2424,6 +2426,7 @@ class Configuration extends $pb.GeneratedMessage {
     ..aOS(12, _omitFieldNames ? '' : 'logDirectory')
     ..aOS(13, _omitFieldNames ? '' : 'logLevel')
     ..aOS(14, _omitFieldNames ? '' : 'coverCacheDir')
+    ..aOS(15, _omitFieldNames ? '' : 'tcpAddress')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2446,13 +2449,13 @@ class Configuration extends $pb.GeneratedMessage {
   static Configuration? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.String get serverAddress => $_getSZ(0);
+  $core.String get socketPath => $_getSZ(0);
   @$pb.TagNumber(1)
-  set serverAddress($core.String value) => $_setString(0, value);
+  set socketPath($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
-  $core.bool hasServerAddress() => $_has(0);
+  $core.bool hasSocketPath() => $_has(0);
   @$pb.TagNumber(1)
-  void clearServerAddress() => $_clearField(1);
+  void clearSocketPath() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get databasePath => $_getSZ(1);
@@ -2522,6 +2525,17 @@ class Configuration extends $pb.GeneratedMessage {
   $core.bool hasCoverCacheDir() => $_has(9);
   @$pb.TagNumber(14)
   void clearCoverCacheDir() => $_clearField(14);
+
+  /// Optional TCP loopback fallback (ADR-002); empty means unset. Must stay
+  /// unset in production - see docs/07-deployment.md §7.4.
+  @$pb.TagNumber(15)
+  $core.String get tcpAddress => $_getSZ(10);
+  @$pb.TagNumber(15)
+  set tcpAddress($core.String value) => $_setString(10, value);
+  @$pb.TagNumber(15)
+  $core.bool hasTcpAddress() => $_has(10);
+  @$pb.TagNumber(15)
+  void clearTcpAddress() => $_clearField(15);
 }
 
 class UpdateConfigurationRequest extends $pb.GeneratedMessage {

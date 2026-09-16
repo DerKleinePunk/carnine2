@@ -670,7 +670,7 @@ final $typed_data.Uint8List volumeResponseDescriptor = $convert
 const Configuration$json = {
   '1': 'Configuration',
   '2': [
-    {'1': 'server_address', '3': 1, '4': 1, '5': 9, '10': 'serverAddress'},
+    {'1': 'socket_path', '3': 1, '4': 1, '5': 9, '10': 'socketPath'},
     {'1': 'database_path', '3': 2, '4': 1, '5': 9, '10': 'databasePath'},
     {'1': 'media_folders', '3': 3, '4': 3, '5': 9, '10': 'mediaFolders'},
     {
@@ -692,19 +692,20 @@ const Configuration$json = {
     {'1': 'log_directory', '3': 12, '4': 1, '5': 9, '10': 'logDirectory'},
     {'1': 'log_level', '3': 13, '4': 1, '5': 9, '10': 'logLevel'},
     {'1': 'cover_cache_dir', '3': 14, '4': 1, '5': 9, '10': 'coverCacheDir'},
+    {'1': 'tcp_address', '3': 15, '4': 1, '5': 9, '10': 'tcpAddress'},
   ],
 };
 
 /// Descriptor for `Configuration`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List configurationDescriptor = $convert.base64Decode(
-    'Cg1Db25maWd1cmF0aW9uEiUKDnNlcnZlcl9hZGRyZXNzGAEgASgJUg1zZXJ2ZXJBZGRyZXNzEi'
-    'MKDWRhdGFiYXNlX3BhdGgYAiABKAlSDGRhdGFiYXNlUGF0aBIjCg1tZWRpYV9mb2xkZXJzGAMg'
-    'AygJUgxtZWRpYUZvbGRlcnMSKwoRc3VwcG9ydGVkX2Zvcm1hdHMYBCADKAlSEHN1cHBvcnRlZE'
-    'Zvcm1hdHMSJgoPcmVzY2FuX29uX3N0YXJ0GAUgASgIUg1yZXNjYW5PblN0YXJ0Eh8KC3Jlc3Vt'
-    'ZV9tb2RlGAYgASgJUgpyZXN1bWVNb2RlEjEKFG5hdmlnYXRpb25faW50ZXJydXB0GAsgASgJUh'
-    'NuYXZpZ2F0aW9uSW50ZXJydXB0EiMKDWxvZ19kaXJlY3RvcnkYDCABKAlSDGxvZ0RpcmVjdG9y'
-    'eRIbCglsb2dfbGV2ZWwYDSABKAlSCGxvZ0xldmVsEiYKD2NvdmVyX2NhY2hlX2RpchgOIAEoCV'
-    'INY292ZXJDYWNoZURpcg==');
+    'Cg1Db25maWd1cmF0aW9uEh8KC3NvY2tldF9wYXRoGAEgASgJUgpzb2NrZXRQYXRoEiMKDWRhdG'
+    'FiYXNlX3BhdGgYAiABKAlSDGRhdGFiYXNlUGF0aBIjCg1tZWRpYV9mb2xkZXJzGAMgAygJUgxt'
+    'ZWRpYUZvbGRlcnMSKwoRc3VwcG9ydGVkX2Zvcm1hdHMYBCADKAlSEHN1cHBvcnRlZEZvcm1hdH'
+    'MSJgoPcmVzY2FuX29uX3N0YXJ0GAUgASgIUg1yZXNjYW5PblN0YXJ0Eh8KC3Jlc3VtZV9tb2Rl'
+    'GAYgASgJUgpyZXN1bWVNb2RlEjEKFG5hdmlnYXRpb25faW50ZXJydXB0GAsgASgJUhNuYXZpZ2'
+    'F0aW9uSW50ZXJydXB0EiMKDWxvZ19kaXJlY3RvcnkYDCABKAlSDGxvZ0RpcmVjdG9yeRIbCgls'
+    'b2dfbGV2ZWwYDSABKAlSCGxvZ0xldmVsEiYKD2NvdmVyX2NhY2hlX2RpchgOIAEoCVINY292ZX'
+    'JDYWNoZURpchIfCgt0Y3BfYWRkcmVzcxgPIAEoCVIKdGNwQWRkcmVzcw==');
 
 @$core.Deprecated('Use updateConfigurationRequestDescriptor instead')
 const UpdateConfigurationRequest$json = {

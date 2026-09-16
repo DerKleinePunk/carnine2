@@ -1,3 +1,4 @@
+import 'package:carnine_frontend/core/platform/grpc_endpoint.dart';
 import 'package:carnine_frontend/lib/carnine.pbgrpc.dart';
 import 'package:grpc/grpc.dart';
 import 'package:logging/logging.dart';
@@ -6,9 +7,8 @@ typedef ClientChannelFactory = ClientChannel Function();
 
 /// Thin gRPC client for backend requests used by the frontend.
 ///
-/// The current bootstrap channel targets localhost TCP for development. The
-/// service keeps transport creation isolated so Unix domain sockets can replace
-/// it without changing dashboard widgets.
+/// The service keeps transport creation isolated in [GrpcEndpoint] so
+/// dashboard widgets don't need to know which transport is active.
 class CarnineGrpcService {
   CarnineGrpcService({Logger? logger, ClientChannelFactory? channelFactory})
     : _logger = logger ?? Logger('CarnineGrpcService'),
@@ -66,9 +66,7 @@ class CarnineGrpcService {
   }
 
   static ClientChannel _createDefaultChannel() {
-    return ClientChannel(
-      'localhost',
-      port: 50051,
+    return GrpcEndpoint.createChannel(
       options: const ChannelOptions(credentials: ChannelCredentials.insecure()),
     );
   }
