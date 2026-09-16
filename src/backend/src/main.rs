@@ -629,6 +629,12 @@ impl MediaService for MediaServiceImpl {
         let id = database
             .create_playlist(&name)
             .map_err(|error| Status::already_exists(error.to_string()))?;
+        let _ = self.library_events.send(LibraryEvent {
+            event: LibraryEventType::PlaylistCreated as i32,
+            playlist_id: id as u64,
+            playlist_name: name.clone(),
+            ..Default::default()
+        });
         Ok(Response::new(Playlist {
             id: id as u64,
             name,
@@ -674,12 +680,18 @@ impl MediaService for MediaServiceImpl {
             .into_iter()
             .find(|entry| entry.id == id)
             .ok_or_else(|| Status::internal("created playlist entry was not found"))?;
-        Ok(Response::new(PlaylistEntry {
+        let entry_proto = PlaylistEntry {
             id: entry.id as u64,
             playlist_id: entry.playlist_id as u64,
             media_id: entry.media_id as u64,
             position: entry.position as u64,
-        }))
+        };
+        let _ = self.library_events.send(LibraryEvent {
+            event: LibraryEventType::PlaylistEntryAdded as i32,
+            playlist_id: entry_proto.playlist_id,
+            ..Default::default()
+        });
+        Ok(Response::new(entry_proto))
     }
 
     async fn get_playlist(
@@ -1880,6 +1892,34 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn create_playlist_emits_playlist_created_event() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-playlist-create-event-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&database_path);
+        let service =
+            playlist_test_service(database_path.clone(), PathBuf::from("/tmp/carnine-covers"));
+        let mut events = service.library_events.subscribe();
+
+        let playlist = service
+            .create_playlist(Request::new(CreatePlaylistRequest {
+                name: "Favorites".to_string(),
+            }))
+            .await
+            .expect("playlist should be created")
+            .into_inner();
+
+        let event = events
+            .try_recv()
+            .expect("a playlist_created event should have been broadcast");
+        assert_eq!(event.event, LibraryEventType::PlaylistCreated as i32);
+        assert_eq!(event.playlist_id, playlist.id);
+        assert_eq!(event.playlist_name, "Favorites");
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    #[tokio::test]
     async fn create_playlist_rejects_empty_name() {
         let database_path = std::env::temp_dir().join(format!(
             "carnine-playlist-empty-name-{}.sqlite3",
@@ -2012,6 +2052,57 @@ mod tests {
         assert_eq!(entry.playlist_id, playlist.id);
         assert_eq!(entry.media_id, media_id as u64);
         assert_eq!(entry.position, 0);
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    #[tokio::test]
+    async fn add_playlist_entry_emits_playlist_entry_added_event() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-playlist-add-entry-event-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&database_path);
+        let database = database::Database::open(&database_path).expect("database should open");
+        let source_id = database
+            .upsert_source("/music", "AVAILABLE")
+            .expect("source should be stored");
+        let media_id = database
+            .upsert_media(&database::MediaRecord {
+                id: 0,
+                source_id,
+                path: "/music/song.mp3".to_string(),
+                title: "Song".to_string(),
+                artist: "Artist".to_string(),
+                duration_ms: 1000,
+                status: "AVAILABLE".to_string(),
+                cover_path: None,
+            })
+            .expect("media should be stored");
+        drop(database);
+        let service =
+            playlist_test_service(database_path.clone(), PathBuf::from("/tmp/carnine-covers"));
+        let playlist = service
+            .create_playlist(Request::new(CreatePlaylistRequest {
+                name: "Favorites".to_string(),
+            }))
+            .await
+            .expect("playlist should be created")
+            .into_inner();
+        let mut events = service.library_events.subscribe();
+
+        service
+            .add_playlist_entry(Request::new(AddPlaylistEntryRequest {
+                playlist_id: playlist.id,
+                media_id: media_id as u64,
+            }))
+            .await
+            .expect("playlist entry should be added");
+
+        let event = events
+            .try_recv()
+            .expect("a playlist_entry_added event should have been broadcast");
+        assert_eq!(event.event, LibraryEventType::PlaylistEntryAdded as i32);
+        assert_eq!(event.playlist_id, playlist.id);
         let _ = std::fs::remove_file(database_path);
     }
 

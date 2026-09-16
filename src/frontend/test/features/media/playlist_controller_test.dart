@@ -1,4 +1,5 @@
 import 'package:carnine_frontend/features/media/domain/media_backend_exception.dart';
+import 'package:carnine_frontend/features/media/domain/models/library_scan_event.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_availability.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_library_track.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_playlist.dart';
@@ -173,6 +174,115 @@ void main() {
       controller.addEntryHintKey,
       AppTextKey.mediaPlaylistTrackAlreadyAdded,
     );
+  });
+
+  test('a playlist_created event from another session appends the new '
+      'playlist without a restart', () async {
+    await controller.start();
+    expect(controller.playlists, isEmpty);
+
+    repository.libraryEventsController.add(
+      const LibraryScanEvent(
+        kind: LibraryScanEventKind.playlistCreated,
+        scanId: 0,
+        processed: 0,
+        imported: 0,
+        path: '',
+        message: '',
+        playlistId: 7,
+        playlistName: 'Road Trip',
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(controller.playlists, hasLength(1));
+    expect(controller.playlists.single.name, 'Road Trip');
+  });
+
+  test(
+    'a playlist_created event for a playlist this controller already '
+    'knows about (its own optimistic create) is not appended twice',
+    () async {
+      await controller.start();
+      final id = await controller.createPlaylist('Drive');
+      expect(controller.playlists, hasLength(1));
+
+      repository.libraryEventsController.add(
+        LibraryScanEvent(
+          kind: LibraryScanEventKind.playlistCreated,
+          scanId: 0,
+          processed: 0,
+          imported: 0,
+          path: '',
+          message: '',
+          playlistId: id!,
+          playlistName: 'Drive',
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.playlists, hasLength(1));
+    },
+  );
+
+  test('a playlist_entry_added event for the open playlist refreshes its '
+      'entries without the caller re-opening it', () async {
+    repository.playlistDetails[1] = const MediaPlaylist(
+      id: 1,
+      name: 'Drive',
+      entries: [],
+    );
+    await controller.start();
+    await controller.openPlaylistById(1);
+    expect(controller.openPlaylist?.entries, isEmpty);
+
+    repository.playlistDetails[1] = const MediaPlaylist(
+      id: 1,
+      name: 'Drive',
+      entries: [
+        MediaPlaylistEntry(
+          id: 1,
+          playlistId: 1,
+          mediaId: 1,
+          position: 0,
+          track: _trackA,
+        ),
+      ],
+    );
+    repository.libraryEventsController.add(
+      const LibraryScanEvent(
+        kind: LibraryScanEventKind.playlistEntryAdded,
+        scanId: 0,
+        processed: 0,
+        imported: 0,
+        path: '',
+        message: '',
+        playlistId: 1,
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(controller.openPlaylist?.entries, hasLength(1));
+  });
+
+  test('a playlist_entry_added event for a playlist that is not open is '
+      'ignored', () async {
+    await controller.start();
+
+    repository.libraryEventsController.add(
+      const LibraryScanEvent(
+        kind: LibraryScanEventKind.playlistEntryAdded,
+        scanId: 0,
+        processed: 0,
+        imported: 0,
+        path: '',
+        message: '',
+        playlistId: 42,
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(controller.openPlaylist, isNull);
   });
 
   test('dismissAddEntryHint clears the hint early', () async {

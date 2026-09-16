@@ -34,6 +34,10 @@ class LibraryEventType extends $pb.ProtobufEnum {
       LibraryEventType._(7, _omitEnumNames ? '' : 'LIBRARY_IMPORT_PROGRESS');
   static const LibraryEventType LIBRARY_IMPORT_COMPLETED =
       LibraryEventType._(8, _omitEnumNames ? '' : 'LIBRARY_IMPORT_COMPLETED');
+  static const LibraryEventType PLAYLIST_CREATED =
+      LibraryEventType._(9, _omitEnumNames ? '' : 'PLAYLIST_CREATED');
+  static const LibraryEventType PLAYLIST_ENTRY_ADDED =
+      LibraryEventType._(10, _omitEnumNames ? '' : 'PLAYLIST_ENTRY_ADDED');
 
   static const $core.List<LibraryEventType> values = <LibraryEventType>[
     LIBRARY_EVENT_TYPE_UNSPECIFIED,
@@ -45,10 +49,12 @@ class LibraryEventType extends $pb.ProtobufEnum {
     LIBRARY_IMPORT_STARTED,
     LIBRARY_IMPORT_PROGRESS,
     LIBRARY_IMPORT_COMPLETED,
+    PLAYLIST_CREATED,
+    PLAYLIST_ENTRY_ADDED,
   ];
 
   static final $core.List<LibraryEventType?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 8);
+      $pb.ProtobufEnum.$_initByValueList(values, 10);
   static LibraryEventType? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

@@ -28,6 +28,8 @@ const LibraryEventType$json = {
     {'1': 'LIBRARY_IMPORT_STARTED', '2': 6},
     {'1': 'LIBRARY_IMPORT_PROGRESS', '2': 7},
     {'1': 'LIBRARY_IMPORT_COMPLETED', '2': 8},
+    {'1': 'PLAYLIST_CREATED', '2': 9},
+    {'1': 'PLAYLIST_ENTRY_ADDED', '2': 10},
   ],
 };
 
@@ -37,7 +39,8 @@ final $typed_data.Uint8List libraryEventTypeDescriptor = $convert.base64Decode(
     'gKFExJQlJBUllfU0NBTl9TVEFSVEVEEAESFAoQTElCUkFSWV9QUk9HUkVTUxACEhEKDUxJQlJB'
     'UllfRVJST1IQAxIaChZMSUJSQVJZX1NDQU5fQ09NUExFVEVEEAQSFwoTTElCUkFSWV9NVVNJQ1'
     '9GT1VORBAFEhoKFkxJQlJBUllfSU1QT1JUX1NUQVJURUQQBhIbChdMSUJSQVJZX0lNUE9SVF9Q'
-    'Uk9HUkVTUxAHEhwKGExJQlJBUllfSU1QT1JUX0NPTVBMRVRFRBAI');
+    'Uk9HUkVTUxAHEhwKGExJQlJBUllfSU1QT1JUX0NPTVBMRVRFRBAIEhQKEFBMQVlMSVNUX0NSRU'
+    'FURUQQCRIYChRQTEFZTElTVF9FTlRSWV9BRERFRBAK');
 
 @$core.Deprecated('Use playerEventTypeDescriptor instead')
 const PlayerEventType$json = {
@@ -338,6 +341,8 @@ const LibraryEvent$json = {
     {'1': 'source_label', '3': 7, '4': 1, '5': 9, '10': 'sourceLabel'},
     {'1': 'source_path', '3': 8, '4': 1, '5': 9, '10': 'sourcePath'},
     {'1': 'matching_files', '3': 9, '4': 1, '5': 4, '10': 'matchingFiles'},
+    {'1': 'playlist_id', '3': 10, '4': 1, '5': 4, '10': 'playlistId'},
+    {'1': 'playlist_name', '3': 11, '4': 1, '5': 9, '10': 'playlistName'},
   ],
 };
 
@@ -348,7 +353,8 @@ final $typed_data.Uint8List libraryEventDescriptor = $convert.base64Decode(
     'b2Nlc3NlZBIaCghpbXBvcnRlZBgEIAEoBFIIaW1wb3J0ZWQSEgoEcGF0aBgFIAEoCVIEcGF0aB'
     'IYCgdtZXNzYWdlGAYgASgJUgdtZXNzYWdlEiEKDHNvdXJjZV9sYWJlbBgHIAEoCVILc291cmNl'
     'TGFiZWwSHwoLc291cmNlX3BhdGgYCCABKAlSCnNvdXJjZVBhdGgSJQoObWF0Y2hpbmdfZmlsZX'
-    'MYCSABKARSDW1hdGNoaW5nRmlsZXM=');
+    'MYCSABKARSDW1hdGNoaW5nRmlsZXMSHwoLcGxheWxpc3RfaWQYCiABKARSCnBsYXlsaXN0SWQS'
+    'IwoNcGxheWxpc3RfbmFtZRgLIAEoCVIMcGxheWxpc3ROYW1l');
 
 @$core.Deprecated('Use mediaItemDescriptor instead')
 const MediaItem$json = {

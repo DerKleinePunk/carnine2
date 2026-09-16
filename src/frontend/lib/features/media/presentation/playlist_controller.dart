@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:carnine_frontend/features/media/domain/media_backend_exception.dart';
 import 'package:carnine_frontend/features/media/domain/media_repository.dart';
+import 'package:carnine_frontend/features/media/domain/models/library_scan_event.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_playlist.dart';
 import 'package:carnine_frontend/features/media/presentation/models/media_view_state.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
@@ -14,6 +15,10 @@ import 'package:logging/logging.dart';
 /// `MediaService.ListPlaylists` never returns entries - only `GetPlaylist`
 /// does - so the overview must never show a track count, and opening a
 /// playlist always issues a fresh `GetPlaylist` call.
+///
+/// Subscribes to `StreamLibraryEvents` for as long as the media section is
+/// visible (mirroring `LibraryController`), so a playlist created or a track
+/// added from another session/device shows up without a restart.
 class PlaylistController extends ChangeNotifier {
   PlaylistController({
     required this._repository,
@@ -24,6 +29,8 @@ class PlaylistController extends ChangeNotifier {
   final MediaRepository _repository;
   final void Function(Object error)? _onStreamFailure;
   final Logger _logger;
+
+  StreamSubscription<LibraryScanEvent>? _libraryEvents;
 
   MediaViewState _listState = const MediaViewState.loading();
   List<MediaPlaylist> _playlists = const [];
@@ -78,7 +85,55 @@ class PlaylistController extends ChangeNotifier {
   @override
   void dispose() {
     _addEntryHintTimer?.cancel();
+    _libraryEvents?.cancel();
     super.dispose();
+  }
+
+  /// Subscribes to the library event stream and loads the playlists. Safe to
+  /// call again after [reconnect] tore the previous subscription down.
+  Future<void> start() async {
+    await _libraryEvents?.cancel();
+    _libraryEvents = _repository.libraryEvents().listen(
+      _onLibraryEvent,
+      onError: _onStreamError,
+    );
+    await loadPlaylists();
+  }
+
+  /// Re-subscribes to the library event stream and reloads the playlists
+  /// after the underlying transport was rebuilt.
+  Future<void> reconnect() => start();
+
+  void _onStreamError(Object error) {
+    _logger.warning('Playlist event stream failed: $error');
+    _onStreamFailure?.call(error);
+  }
+
+  void _onLibraryEvent(LibraryScanEvent event) {
+    switch (event.kind) {
+      case LibraryScanEventKind.playlistCreated:
+        if (_playlists.any((playlist) => playlist.id == event.playlistId)) {
+          return;
+        }
+        _playlists = [
+          ..._playlists,
+          MediaPlaylist(
+            id: event.playlistId,
+            name: event.playlistName,
+            entries: const [],
+          ),
+        ];
+        _listState = const MediaViewState.ready();
+        notifyListeners();
+      case LibraryScanEventKind.playlistEntryAdded:
+        // `ListPlaylists` never carries entries, so only the open detail
+        // view (if it's the affected playlist) has anything to refresh.
+        if (_openPlaylist?.id == event.playlistId) {
+          unawaited(openPlaylistById(event.playlistId));
+        }
+      default:
+        break;
+    }
   }
 
   Future<void> loadPlaylists() async {

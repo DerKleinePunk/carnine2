@@ -235,8 +235,16 @@ async fn stream_library_events(client: &mut MediaServiceClient<Channel>) -> Resu
     let mut stream = client.stream_library_events(Empty {}).await?.into_inner();
     read_events(&mut stream, count, |event| {
         println!(
-            "library event={} scan_id={} processed={} imported={} path={} message={}",
-            event.event, event.scan_id, event.processed, event.imported, event.path, event.message
+            "library event={} scan_id={} processed={} imported={} path={} message={} \
+             playlist_id={} playlist_name={}",
+            event.event,
+            event.scan_id,
+            event.processed,
+            event.imported,
+            event.path,
+            event.message,
+            event.playlist_id,
+            event.playlist_name
         );
     })
     .await

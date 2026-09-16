@@ -84,6 +84,8 @@ LibraryScanEvent scanEventFromProto(LibraryEvent event) {
     sourceLabel: event.sourceLabel,
     sourcePath: event.sourcePath,
     matchingFiles: idFrom(event.matchingFiles),
+    playlistId: idFrom(event.playlistId),
+    playlistName: event.playlistName,
   );
 }
 

@@ -122,6 +122,8 @@ enum LibraryEventType {
   LIBRARY_IMPORT_STARTED = 6;
   LIBRARY_IMPORT_PROGRESS = 7;
   LIBRARY_IMPORT_COMPLETED = 8;
+  PLAYLIST_CREATED = 9;
+  PLAYLIST_ENTRY_ADDED = 10;
 }
 
 message LibraryEvent {
@@ -134,6 +136,8 @@ message LibraryEvent {
   string source_label = 7;
   string source_path = 8;
   uint64 matching_files = 9;
+  uint64 playlist_id = 10;
+  string playlist_name = 11;
 }
 
 message MediaItem {

@@ -11,6 +11,8 @@ enum LibraryScanEventKind {
   importStarted,
   importProgress,
   importCompleted,
+  playlistCreated,
+  playlistEntryAdded,
   unknown,
 }
 
@@ -29,6 +31,9 @@ LibraryScanEventKind libraryScanEventKindFrom(LibraryEventType raw) {
       LibraryScanEventKind.importProgress,
     LibraryEventType.LIBRARY_IMPORT_COMPLETED =>
       LibraryScanEventKind.importCompleted,
+    LibraryEventType.PLAYLIST_CREATED => LibraryScanEventKind.playlistCreated,
+    LibraryEventType.PLAYLIST_ENTRY_ADDED =>
+      LibraryScanEventKind.playlistEntryAdded,
     _ => LibraryScanEventKind.unknown,
   };
 }
@@ -45,6 +50,8 @@ class LibraryScanEvent {
     this.sourceLabel = '',
     this.sourcePath = '',
     this.matchingFiles = 0,
+    this.playlistId = 0,
+    this.playlistName = '',
   });
 
   final LibraryScanEventKind kind;
@@ -56,4 +63,6 @@ class LibraryScanEvent {
   final String sourceLabel;
   final String sourcePath;
   final int matchingFiles;
+  final int playlistId;
+  final String playlistName;
 }

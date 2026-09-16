@@ -914,6 +914,8 @@ class LibraryEvent extends $pb.GeneratedMessage {
     $core.String? sourceLabel,
     $core.String? sourcePath,
     $fixnum.Int64? matchingFiles,
+    $fixnum.Int64? playlistId,
+    $core.String? playlistName,
   }) {
     final result = create();
     if (event != null) result.event = event;
@@ -925,6 +927,8 @@ class LibraryEvent extends $pb.GeneratedMessage {
     if (sourceLabel != null) result.sourceLabel = sourceLabel;
     if (sourcePath != null) result.sourcePath = sourcePath;
     if (matchingFiles != null) result.matchingFiles = matchingFiles;
+    if (playlistId != null) result.playlistId = playlistId;
+    if (playlistName != null) result.playlistName = playlistName;
     return result;
   }
 
@@ -958,6 +962,10 @@ class LibraryEvent extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(
         9, _omitFieldNames ? '' : 'matchingFiles', $pb.PbFieldType.OU6,
         defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(
+        10, _omitFieldNames ? '' : 'playlistId', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOS(11, _omitFieldNames ? '' : 'playlistName')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1059,6 +1067,24 @@ class LibraryEvent extends $pb.GeneratedMessage {
   $core.bool hasMatchingFiles() => $_has(8);
   @$pb.TagNumber(9)
   void clearMatchingFiles() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  $fixnum.Int64 get playlistId => $_getI64(9);
+  @$pb.TagNumber(10)
+  set playlistId($fixnum.Int64 value) => $_setInt64(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasPlaylistId() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearPlaylistId() => $_clearField(10);
+
+  @$pb.TagNumber(11)
+  $core.String get playlistName => $_getSZ(10);
+  @$pb.TagNumber(11)
+  set playlistName($core.String value) => $_setString(10, value);
+  @$pb.TagNumber(11)
+  $core.bool hasPlaylistName() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearPlaylistName() => $_clearField(11);
 }
 
 class MediaItem extends $pb.GeneratedMessage {
