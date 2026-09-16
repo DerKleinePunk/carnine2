@@ -32,16 +32,22 @@ Der cpal-Pfad verwendet die ALSA-Laufzeitbibliothek. Das Image installiert
 und die Lautstaerkeregelung (`amixer`) enthalten.
 
 Die Lautstaerkeregelung (`AudioService.GetVolume`/`SetVolume`, `audio_volume.rs`)
-laeuft ausschliesslich ueber `amixer -c 0 ...` gegen eine echte ALSA-Hardwarekarte.
-In WSL2 gibt es dafuer kein Ziel: der Kernel bringt dort gar kein ALSA-Kartensystem
-mit (`/proc/asound` existiert nicht), WSLg stellt Audio nur ueber die PulseAudio-
-Bridge auf Userspace-Ebene bereit. Ein `SetVolume`-Aufruf schlaegt dort serverseitig
-fehl (sichtbar im Log als `amixer exited with ...` bzw. `failed to start amixer`);
-das Regler-Verschieben und Stummschalten im Frontend bleibt entsprechend ohne
-hoerbaren Effekt. Das ist keine Frontend- oder RPC-Verdrahtungsluecke, sondern eine
-WSL2-Umgebungseinschraenkung, die auch das Nachinstallieren von `alsa-utils` nicht
-behebt — auf echter Pi-Hardware mit realer ALSA-Karte funktioniert der Pfad
-unveraendert. Die Pakete `libasound2-dev`,
+erkennt beim Start des Backends einmalig, welches Werkzeug tatsächlich einen
+Mixer/Sink erreicht, und legt das für die gesamte Laufzeit des Prozesses fest
+(keine Neupruefung pro Aufruf, kein Config-Schalter):
+
+1. `amixer -c 0 get PCM` gegen eine echte ALSA-Hardwarekarte (Raspberry Pi).
+2. Falls das fehlschlaegt, `pactl get-sink-volume @DEFAULT_SINK@` gegen einen
+   PulseAudio-Sink (z. B. WSLg).
+3. Ist auch das nicht erreichbar, bleibt die Lautstaerkeregelung wirkungslos
+   (kein Prozessaufruf mehr pro `SetVolume`, nur eine einmalige Warnung beim Start).
+
+Auf der Pi-Hardware faellt die Wahl weiterhin unveraendert auf `amixer`. In WSL2
+gibt es dagegen kein ALSA-Kartensystem (`/proc/asound` existiert nicht) — WSLg
+stellt Audio nur ueber die PulseAudio-Bridge auf Userspace-Ebene bereit
+(`PULSE_SERVER=unix:/mnt/wslg/PulseServer`). Dort greift automatisch der
+`pactl`-Pfad, sodass Regler-Verschieben und Stummschalten im Frontend auch in der
+lokalen WSL-Entwicklung hoerbar wirken. Die Pakete `libasound2-dev`,
 `libavcodec-dev`, `libavformat-dev`, `libavutil-dev`, `libavdevice-dev`,
 `libavfilter-dev`, `libswscale-dev`, `libswresample-dev` und
 `libpostproc-dev` sind nur fuer lokale beziehungsweise CI-Cross-Builds
