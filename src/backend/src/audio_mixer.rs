@@ -219,4 +219,43 @@ mod tests {
         assert!(mixer.add_source(vec![0.5], 1.0).is_err());
         assert!(mixer.render(&mut [0.0]).is_err());
     }
+
+    // Regression test for issue #23: pause() only sets gain to 0.0, but render()
+    // keeps calling try_pop() on the source's ring buffer regardless of gain.
+    // That lets the decoder thread keep filling the (endlessly drained) buffer
+    // while "paused", so resume audibly skips ahead by however long the pause
+    // lasted. A muted stream source must stop being drained, not just muted.
+    #[test]
+    fn stream_source_is_not_drained_once_fully_muted() {
+        use ringbuf::{
+            traits::{Observer, Producer, Split},
+            HeapRb,
+        };
+
+        // fade_frames = max(sample_rate * fade_ms / 1000, 1) = 1, so a single
+        // render() call is enough to settle the gain fade all the way to 0.0.
+        let mut mixer = AudioMixer::new(1, 1);
+        let ring = HeapRb::<f32>::new(8);
+        let (mut producer, consumer) = ring.split();
+        for sample in [0.5_f32; 6] {
+            producer.try_push(sample).unwrap();
+        }
+        let source_id = mixer.add_stream_source(consumer, 1.0).unwrap();
+        mixer.set_gain(source_id, 0.0).unwrap();
+
+        let mut output = [0.0; CHANNELS];
+        // Settles the fade to gain == 0.0 (mirrors CpalPlayback::pause()).
+        mixer.render(&mut output).unwrap();
+        let occupied_once_muted = producer.occupied_len();
+
+        // Real time passing while "paused": nothing should be pulled from the
+        // source's ring buffer anymore now that it is fully muted.
+        mixer.render(&mut output).unwrap();
+
+        assert_eq!(
+            producer.occupied_len(),
+            occupied_once_muted,
+            "a fully muted source must stop draining its ring buffer, not just its audible output"
+        );
+    }
 }
