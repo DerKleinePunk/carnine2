@@ -173,6 +173,29 @@ class PlaylistController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Inserts [playlist] at its correctly sorted position instead of
+  /// appending - `listPlaylists` orders `ORDER BY name COLLATE NOCASE, id`
+  /// (`database.rs`), so a plain append would put a newly created playlist
+  /// in the wrong spot (and easily scrolled out of view) until the next
+  /// full reload.
+  void _insertPlaylistSorted(MediaPlaylist playlist) {
+    final name = playlist.name.toLowerCase();
+    var index = _playlists.length;
+    for (var i = 0; i < _playlists.length; i++) {
+      final existingName = _playlists[i].name.toLowerCase();
+      if (existingName.compareTo(name) > 0 ||
+          (existingName == name && _playlists[i].id > playlist.id)) {
+        index = i;
+        break;
+      }
+    }
+    _playlists = [
+      ..._playlists.sublist(0, index),
+      playlist,
+      ..._playlists.sublist(index),
+    ];
+  }
+
   /// Seeds [_addedMediaIds] with [playlist]'s current entries, so a track
   /// already in the playlist (from a previous session, not just ones added
   /// just now) reads as already-added rather than being offered again.
@@ -206,7 +229,7 @@ class PlaylistController extends ChangeNotifier {
 
     try {
       final playlist = await _repository.createPlaylist(trimmed);
-      _playlists = [..._playlists, playlist];
+      _insertPlaylistSorted(playlist);
       _seedAddedMediaIds(playlist);
       _pendingAddEntriesTarget = playlist;
       return playlist.id;
@@ -228,6 +251,25 @@ class PlaylistController extends ChangeNotifier {
     }
   }
 
+  /// Reflects a just-added [entry] in [openPlaylist] immediately, if it's
+  /// the playlist currently shown on the detail page - otherwise a track
+  /// added from "Titel hinzufügen" only shows up there after fully leaving
+  /// and re-opening the playlist, since [openPlaylistById] is the only
+  /// other thing that ever populates `entries`.
+  void _appendEntryIfPlaylistOpen(int playlistId, MediaPlaylistEntry entry) {
+    final current = _openPlaylist;
+    if (current == null || current.id != playlistId) {
+      return;
+    }
+    _openPlaylist = MediaPlaylist(
+      id: current.id,
+      name: current.name,
+      entries: [...current.entries, entry],
+      hasCoverArt: current.hasCoverArt,
+    );
+    _detailState = const MediaViewState.ready();
+  }
+
   Future<void> addEntry({required int playlistId, required int mediaId}) async {
     if (_pendingAddMediaIds.contains(mediaId)) {
       return;
@@ -244,11 +286,12 @@ class PlaylistController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _repository.addPlaylistEntry(
+      final entry = await _repository.addPlaylistEntry(
         playlistId: playlistId,
         mediaId: mediaId,
       );
       _addedMediaIds.add(mediaId);
+      _appendEntryIfPlaylistOpen(playlistId, entry);
     } on MediaBackendException catch (error) {
       _logger.warning(
         'AddPlaylistEntry(playlist: $playlistId, media: $mediaId) failed: '
