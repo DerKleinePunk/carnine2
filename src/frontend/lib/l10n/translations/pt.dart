@@ -86,6 +86,10 @@ const Map<AppTextKey, String> ptTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchNoResults: 'Nenhum resultado para esta busca',
   AppTextKey.mediaRescanAction: 'Nova varredura',
   AppTextKey.mediaRescanSemantic: 'Repetir varredura da biblioteca',
+  AppTextKey.mediaUsbImportBanner:
+      'Pen USB "{label}" encontrado - importar {count} faixa(s)?',
+  AppTextKey.mediaUsbImportAction: 'Importar',
+  AppTextKey.mediaUsbImportSemantic: 'Importar {count} faixa(s) de {label}',
   AppTextKey.mediaScanRunning: 'Varredura em andamento...',
   AppTextKey.mediaScanProgressLine:
       '{processed} processados, {imported} importados',

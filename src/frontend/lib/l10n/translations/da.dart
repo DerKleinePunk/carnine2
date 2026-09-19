@@ -84,6 +84,11 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchNoResults: 'Ingen resultater for denne søgning',
   AppTextKey.mediaRescanAction: 'Genscan',
   AppTextKey.mediaRescanSemantic: 'Genscan biblioteket',
+  AppTextKey.mediaUsbImportBanner:
+      'USB-drev "{label}" fundet - importer {count} nummer/numre?',
+  AppTextKey.mediaUsbImportAction: 'Importer',
+  AppTextKey.mediaUsbImportSemantic:
+      'Importer {count} nummer/numre fra {label}',
   AppTextKey.mediaScanRunning: 'Scanner...',
   AppTextKey.mediaScanProgressLine:
       '{processed} behandlet, {imported} importeret',

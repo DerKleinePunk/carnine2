@@ -46,25 +46,31 @@ void main() {
     expect(controller.state.status, MediaViewStatus.empty);
   });
 
-  test('an offline failure surfaces the offline state and reports it',
-      () async {
-    repository.nextError =
-        const MediaBackendException(MediaErrorKind.offline, 'unreachable');
-    var reported = false;
-    controller = LibraryController(
-      repository: repository,
-      onStreamFailure: (_) => reported = true,
-    );
+  test(
+    'an offline failure surfaces the offline state and reports it',
+    () async {
+      repository.nextError = const MediaBackendException(
+        MediaErrorKind.offline,
+        'unreachable',
+      );
+      var reported = false;
+      controller = LibraryController(
+        repository: repository,
+        onStreamFailure: (_) => reported = true,
+      );
 
-    await controller.start();
+      await controller.start();
 
-    expect(controller.state.status, MediaViewStatus.offline);
-    expect(reported, isTrue);
-  });
+      expect(controller.state.status, MediaViewStatus.offline);
+      expect(reported, isTrue);
+    },
+  );
 
   test('retry recovers after the backend comes back', () async {
-    repository.nextError =
-        const MediaBackendException(MediaErrorKind.offline, 'unreachable');
+    repository.nextError = const MediaBackendException(
+      MediaErrorKind.offline,
+      'unreachable',
+    );
     await controller.start();
     expect(controller.state.status, MediaViewStatus.offline);
 
@@ -87,27 +93,29 @@ void main() {
     expect(controller.results, [_trackA]);
   });
 
-  test('scan_completed on the library stream re-runs the current query',
-      () async {
-    await controller.start();
-    expect(controller.results, isEmpty);
+  test(
+    'scan_completed on the library stream re-runs the current query',
+    () async {
+      await controller.start();
+      expect(controller.results, isEmpty);
 
-    repository.library = const [_trackA];
-    repository.libraryEventsController.add(
-      const LibraryScanEvent(
-        kind: LibraryScanEventKind.scanCompleted,
-        scanId: 1,
-        processed: 1,
-        imported: 1,
-        path: '',
-        message: '',
-      ),
-    );
-    await Future<void>.delayed(Duration.zero);
+      repository.library = const [_trackA];
+      repository.libraryEventsController.add(
+        const LibraryScanEvent(
+          kind: LibraryScanEventKind.scanCompleted,
+          scanId: 1,
+          processed: 1,
+          imported: 1,
+          path: '',
+          message: '',
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
 
-    expect(controller.results, [_trackA]);
-    expect(controller.isScanning, isFalse);
-  });
+      expect(controller.results, [_trackA]);
+      expect(controller.isScanning, isFalse);
+    },
+  );
 
   test('rescan shows the scanning state before the future resolves', () async {
     await controller.start();
@@ -119,5 +127,108 @@ void main() {
     await future;
 
     expect(controller.isScanning, isFalse);
+  });
+
+  test('musicFound with matching files stages a pending import', () async {
+    await controller.start();
+
+    repository.libraryEventsController.add(
+      const LibraryScanEvent(
+        kind: LibraryScanEventKind.musicFound,
+        scanId: 0,
+        processed: 0,
+        imported: 0,
+        path: '',
+        message: '',
+        sourceLabel: 'MUSIK',
+        sourcePath: '/media/usb0',
+        matchingFiles: 3,
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(controller.pendingImport?.sourceLabel, 'MUSIK');
+    expect(controller.pendingImport?.matchingFiles, 3);
+  });
+
+  test(
+    'musicFound with no matching files never asks for confirmation',
+    () async {
+      await controller.start();
+
+      repository.libraryEventsController.add(
+        const LibraryScanEvent(
+          kind: LibraryScanEventKind.musicFound,
+          scanId: 0,
+          processed: 0,
+          imported: 0,
+          path: '',
+          message: '',
+          sourceLabel: 'MUSIK',
+          sourcePath: '/media/usb0',
+          matchingFiles: 0,
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.pendingImport, isNull);
+    },
+  );
+
+  test('dismissPendingImport clears it without importing anything', () async {
+    await controller.start();
+    repository.libraryEventsController.add(
+      const LibraryScanEvent(
+        kind: LibraryScanEventKind.musicFound,
+        scanId: 0,
+        processed: 0,
+        imported: 0,
+        path: '',
+        message: '',
+        sourceLabel: 'MUSIK',
+        sourcePath: '/media/usb0',
+        matchingFiles: 3,
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    controller.dismissPendingImport();
+
+    expect(controller.pendingImport, isNull);
+    expect(repository.commands, isEmpty);
+  });
+
+  test('acceptPendingImport imports the volume, then chains the mandatory '
+      'rescan (the import alone never touches the media database)', () async {
+    await controller.start();
+    repository.libraryEventsController.add(
+      const LibraryScanEvent(
+        kind: LibraryScanEventKind.musicFound,
+        scanId: 0,
+        processed: 0,
+        imported: 0,
+        path: '',
+        message: '',
+        sourceLabel: 'MUSIK',
+        sourcePath: '/media/usb0',
+        matchingFiles: 3,
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    final future = controller.acceptPendingImport();
+    expect(controller.pendingImport, isNull);
+    expect(controller.isScanning, isTrue);
+
+    // The import's own stream finishes - acceptPendingImport() then
+    // chains straight into rescan() internally.
+    await repository.importController.close();
+    await Future<void>.delayed(Duration.zero);
+    repository.library = const [_trackA];
+    await repository.rescanController.close();
+    await future;
+
+    expect(controller.isScanning, isFalse);
+    expect(controller.results, [_trackA]);
   });
 }

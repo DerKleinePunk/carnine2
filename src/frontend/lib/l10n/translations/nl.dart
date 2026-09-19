@@ -84,6 +84,11 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchNoResults: 'Geen resultaten voor deze zoekopdracht',
   AppTextKey.mediaRescanAction: 'Rescan',
   AppTextKey.mediaRescanSemantic: 'Bibliotheek opnieuw scannen',
+  AppTextKey.mediaUsbImportBanner:
+      'USB-stick "{label}" gevonden - {count} nummer(s) overnemen?',
+  AppTextKey.mediaUsbImportAction: 'Overnemen',
+  AppTextKey.mediaUsbImportSemantic:
+      '{count} nummer(s) van {label} overnemen',
   AppTextKey.mediaScanRunning: 'Scannen...',
   AppTextKey.mediaScanProgressLine:
       '{processed} verwerkt, {imported} geïmporteerd',

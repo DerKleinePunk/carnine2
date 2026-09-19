@@ -85,6 +85,11 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchNoResults: 'Bu arama için sonuç yok',
   AppTextKey.mediaRescanAction: 'Yeniden tara',
   AppTextKey.mediaRescanSemantic: 'Kitaplığı yeniden tara',
+  AppTextKey.mediaUsbImportBanner:
+      '"{label}" USB bellek bulundu - {count} parça içe aktarılsın mı?',
+  AppTextKey.mediaUsbImportAction: 'İçe aktar',
+  AppTextKey.mediaUsbImportSemantic:
+      '{label} konumundan {count} parça içe aktar',
   AppTextKey.mediaScanRunning: 'Taranıyor...',
   AppTextKey.mediaScanProgressLine:
       '{processed} işlendi, {imported} içe aktarıldı',

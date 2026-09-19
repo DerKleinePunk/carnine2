@@ -86,6 +86,10 @@ const Map<AppTextKey, String> itTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchNoResults: 'Nessun risultato per questa ricerca',
   AppTextKey.mediaRescanAction: 'Riscansiona',
   AppTextKey.mediaRescanSemantic: 'Riscansiona la libreria',
+  AppTextKey.mediaUsbImportBanner:
+      'Chiavetta USB "{label}" trovata - importare {count} brano/i?',
+  AppTextKey.mediaUsbImportAction: 'Importa',
+  AppTextKey.mediaUsbImportSemantic: 'Importa {count} brano/i da {label}',
   AppTextKey.mediaScanRunning: 'Scansione in corso...',
   AppTextKey.mediaScanProgressLine:
       '{processed} elaborati, {imported} importati',

@@ -1,4 +1,5 @@
 import 'package:carnine_frontend/core/keyboard/on_screen_text_field.dart';
+import 'package:carnine_frontend/features/media/domain/models/library_scan_event.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_availability.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_library_track.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_playlist.dart';
@@ -353,5 +354,70 @@ void main() {
     await tester.tap(find.text('ERNEUT VERSUCHEN'));
     await tester.pump();
     expect(repository.reconnectCallCount, greaterThan(0));
+  });
+
+  testWidgets('a detected USB volume shows the import banner, and Übernehmen '
+      'triggers the import', (tester) async {
+    setUpMediaView(tester);
+    await tester.pumpWidget(mediaHarness(controller));
+    await tester.pump();
+
+    repository.libraryEventsController.add(
+      const LibraryScanEvent(
+        kind: LibraryScanEventKind.musicFound,
+        scanId: 0,
+        processed: 0,
+        imported: 0,
+        path: '',
+        message: '',
+        sourceLabel: 'MUSIK',
+        sourcePath: '/media/usb0',
+        matchingFiles: 3,
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byIcon(Icons.usb), findsOneWidget);
+    expect(find.textContaining('MUSIK'), findsOneWidget);
+
+    await tester.tap(find.text('ÜBERNEHMEN'));
+    await tester.pump();
+
+    // The banner is gone immediately - acceptPendingImport() clears the
+    // prompt before it even calls the backend.
+    expect(find.byIcon(Icons.usb), findsNothing);
+
+    await repository.importController.close();
+    await repository.rescanController.close();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('dismissing the USB import banner imports nothing', (
+    tester,
+  ) async {
+    setUpMediaView(tester);
+    await tester.pumpWidget(mediaHarness(controller));
+    await tester.pump();
+
+    repository.libraryEventsController.add(
+      const LibraryScanEvent(
+        kind: LibraryScanEventKind.musicFound,
+        scanId: 0,
+        processed: 0,
+        imported: 0,
+        path: '',
+        message: '',
+        sourceLabel: 'MUSIK',
+        sourcePath: '/media/usb0',
+        matchingFiles: 3,
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.text('SCHLIESSEN'));
+    await tester.pump();
+
+    expect(find.byIcon(Icons.usb), findsNothing);
+    expect(repository.commands, isEmpty);
   });
 }

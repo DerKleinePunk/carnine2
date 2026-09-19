@@ -88,6 +88,10 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchNoResults: 'Keine Treffer für diese Suche',
   AppTextKey.mediaRescanAction: 'Rescan',
   AppTextKey.mediaRescanSemantic: 'Bibliothek neu einlesen',
+  AppTextKey.mediaUsbImportBanner:
+      'USB-Stick "{label}" gefunden – {count} Titel übernehmen?',
+  AppTextKey.mediaUsbImportAction: 'Übernehmen',
+  AppTextKey.mediaUsbImportSemantic: '{count} Titel von {label} übernehmen',
   AppTextKey.mediaScanRunning: 'Scan läuft...',
   AppTextKey.mediaScanProgressLine:
       '{processed} verarbeitet, {imported} importiert',
