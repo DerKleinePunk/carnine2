@@ -699,6 +699,7 @@ const Configuration$json = {
     {'1': 'log_level', '3': 13, '4': 1, '5': 9, '10': 'logLevel'},
     {'1': 'cover_cache_dir', '3': 14, '4': 1, '5': 9, '10': 'coverCacheDir'},
     {'1': 'tcp_address', '3': 15, '4': 1, '5': 9, '10': 'tcpAddress'},
+    {'1': 'socket_mode', '3': 19, '4': 1, '5': 9, '10': 'socketMode'},
     {
       '1': 'metrics_interval_seconds',
       '3': 16,
@@ -726,10 +727,11 @@ final $typed_data.Uint8List configurationDescriptor = $convert.base64Decode(
     'GAYgASgJUgpyZXN1bWVNb2RlEjEKFG5hdmlnYXRpb25faW50ZXJydXB0GAsgASgJUhNuYXZpZ2'
     'F0aW9uSW50ZXJydXB0EiMKDWxvZ19kaXJlY3RvcnkYDCABKAlSDGxvZ0RpcmVjdG9yeRIbCgls'
     'b2dfbGV2ZWwYDSABKAlSCGxvZ0xldmVsEiYKD2NvdmVyX2NhY2hlX2RpchgOIAEoCVINY292ZX'
-    'JDYWNoZURpchIfCgt0Y3BfYWRkcmVzcxgPIAEoCVIKdGNwQWRkcmVzcxI4ChhtZXRyaWNzX2lu'
-    'dGVydmFsX3NlY29uZHMYECABKARSFm1ldHJpY3NJbnRlcnZhbFNlY29uZHMSQQodZGlza19tZX'
-    'RyaWNzX2ludGVydmFsX3NlY29uZHMYESABKARSGmRpc2tNZXRyaWNzSW50ZXJ2YWxTZWNvbmRz'
-    'Eh0KCmRpc2tfcGF0aHMYEiADKAlSCWRpc2tQYXRocw==');
+    'JDYWNoZURpchIfCgt0Y3BfYWRkcmVzcxgPIAEoCVIKdGNwQWRkcmVzcxIfCgtzb2NrZXRfbW9k'
+    'ZRgTIAEoCVIKc29ja2V0TW9kZRI4ChhtZXRyaWNzX2ludGVydmFsX3NlY29uZHMYECABKARSFm'
+    '1ldHJpY3NJbnRlcnZhbFNlY29uZHMSQQodZGlza19tZXRyaWNzX2ludGVydmFsX3NlY29uZHMY'
+    'ESABKARSGmRpc2tNZXRyaWNzSW50ZXJ2YWxTZWNvbmRzEh0KCmRpc2tfcGF0aHMYEiADKAlSCW'
+    'Rpc2tQYXRocw==');
 
 @$core.Deprecated('Use updateConfigurationRequestDescriptor instead')
 const UpdateConfigurationRequest$json = {

@@ -13,6 +13,11 @@ socket_path = "/run/carnine/carnine.sock"
 # Flutter debug build against a backend running inside WSL2), either via
 # CARNINE_TCP_ADDRESS or a local, uncommitted copy of this file:
 # tcp_address = "[::1]:50051"
+# Socket permissions, octal. Unset means 0600 - only the carnine user itself.
+# "0660" opens it to the carnine group; see docs/07-deployment.md §7.4 before
+# using it, and prefer CARNINE_SOCKET_MODE via a systemd drop-in on a test
+# device, since a deployment overwrites this file.
+# socket_mode = "0660"
 
 [media]
 database_path = "/var/lib/carnine/media.sqlite3"

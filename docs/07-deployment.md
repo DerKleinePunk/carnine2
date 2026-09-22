@@ -220,6 +220,28 @@ unlike a TCP port, is not reachable over the network even by mistake. The
 image recipe must not add a network-facing `tcp_address` to
 `/etc/carnine/config.toml`.
 
+`0600` is the default, not a hard-coded value: `server.socket_mode` (or the
+`CARNINE_SOCKET_MODE` environment variable) accepts an octal mode, and modes
+granting world access are rejected. Widening it to `0660` lets every member of
+the `carnine` group reach the service — convenient on a test device where a
+second login needs to run a gRPC client, and a deliberate weakening anywhere
+else. The backend logs a warning at startup whenever the mode is not `0600`.
+Both the socket and the `RuntimeDirectory=carnine` directory have to be
+widened; the directory's `0700` alone already blocks a second account.
+
+On the test device this is set through a systemd drop-in rather than
+`/etc/carnine/config.toml`, because `deploy_pi.sh` overwrites that file from
+the repository on every deployment:
+
+```ini
+# /etc/systemd/system/carnine-backend.service.d/testing-group-access.conf
+[Service]
+Environment=CARNINE_SOCKET_MODE=0660
+RuntimeDirectoryMode=0750
+```
+
+plus `sudo usermod -aG carnine pi`. The generated image must not ship either.
+
 Verify the service directly on the Pi:
 
 ```bash

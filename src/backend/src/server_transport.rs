@@ -76,12 +76,17 @@ impl Connected for ServerStream {
 /// Binds the primary Unix domain socket and, if `tcp_fallback` is set, an
 /// additional TCP loopback listener, merging both into a single incoming
 /// connection stream for `Server::serve_with_incoming_shutdown`.
+///
+/// `socket_mode` is the permission mode for the socket file. Production uses
+/// `0600` (docs/07-deployment.md); a test device can widen it to `0660` so a
+/// second account in the `carnine` group can talk to the service.
 pub async fn bind(
     socket_path: &Path,
     tcp_fallback: Option<SocketAddr>,
+    socket_mode: u32,
 ) -> Result<impl Stream<Item = io::Result<ServerStream>>> {
     let mut incoming: Vec<BoxStream<'static, io::Result<ServerStream>>> =
-        vec![bind_unix_socket(socket_path)?];
+        vec![bind_unix_socket(socket_path, socket_mode)?];
 
     if let Some(addr) = tcp_fallback {
         let listener = TcpListener::bind(addr)
@@ -95,7 +100,10 @@ pub async fn bind(
     Ok(select_all(incoming))
 }
 
-fn bind_unix_socket(socket_path: &Path) -> Result<BoxStream<'static, io::Result<ServerStream>>> {
+fn bind_unix_socket(
+    socket_path: &Path,
+    socket_mode: u32,
+) -> Result<BoxStream<'static, io::Result<ServerStream>>> {
     if let Some(parent) = socket_path.parent() {
         std::fs::create_dir_all(parent).with_context(|| {
             format!(
@@ -110,10 +118,40 @@ fn bind_unix_socket(socket_path: &Path) -> Result<BoxStream<'static, io::Result<
     }
     let listener = UnixListener::bind(socket_path)
         .with_context(|| format!("cannot bind unix socket {}", socket_path.display()))?;
-    std::fs::set_permissions(socket_path, std::fs::Permissions::from_mode(0o600))
+    std::fs::set_permissions(socket_path, std::fs::Permissions::from_mode(socket_mode))
         .with_context(|| format!("cannot set permissions on socket {}", socket_path.display()))?;
 
     Ok(Box::pin(
         UnixListenerStream::new(listener).map(|result| result.map(ServerStream::Unix)),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn mode_of(path: &Path) -> u32 {
+        std::fs::metadata(path)
+            .expect("socket should exist")
+            .permissions()
+            .mode()
+            & 0o777
+    }
+
+    #[tokio::test]
+    async fn applies_the_requested_socket_mode() {
+        let directory =
+            std::env::temp_dir().join(format!("carnine-socket-test-{}", std::process::id()));
+        let socket_path = directory.join("carnine.sock");
+
+        let _incoming = bind_unix_socket(&socket_path, 0o600).expect("socket should bind");
+        assert_eq!(mode_of(&socket_path), 0o600);
+
+        // Rebinding replaces the stale socket file, so the widened mode has to
+        // be applied to the new one rather than inherited from the old.
+        let _incoming = bind_unix_socket(&socket_path, 0o660).expect("socket should rebind");
+        assert_eq!(mode_of(&socket_path), 0o660);
+
+        std::fs::remove_dir_all(&directory).ok();
+    }
 }

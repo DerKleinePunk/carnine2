@@ -292,6 +292,9 @@ message Configuration {
   // Optional TCP loopback fallback (ADR-002); empty means unset. Must stay
   // unset in production - see docs/07-deployment.md §7.4.
   string tcp_address = 15;
+  // Octal socket permissions such as "0660"; empty means the production
+  // default 0600. See docs/07-deployment.md §7.4.
+  string socket_mode = 19;
   // Health sampling, see SystemService.GetSystemMetrics.
   uint64 metrics_interval_seconds = 16;
   uint64 disk_metrics_interval_seconds = 17;

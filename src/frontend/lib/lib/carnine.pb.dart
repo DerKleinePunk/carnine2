@@ -2414,6 +2414,7 @@ class Configuration extends $pb.GeneratedMessage {
     $fixnum.Int64? metricsIntervalSeconds,
     $fixnum.Int64? diskMetricsIntervalSeconds,
     $core.Iterable<$core.String>? diskPaths,
+    $core.String? socketMode,
   }) {
     final result = create();
     if (socketPath != null) result.socketPath = socketPath;
@@ -2434,6 +2435,7 @@ class Configuration extends $pb.GeneratedMessage {
     if (diskMetricsIntervalSeconds != null)
       result.diskMetricsIntervalSeconds = diskMetricsIntervalSeconds;
     if (diskPaths != null) result.diskPaths.addAll(diskPaths);
+    if (socketMode != null) result.socketMode = socketMode;
     return result;
   }
 
@@ -2468,6 +2470,7 @@ class Configuration extends $pb.GeneratedMessage {
         $pb.PbFieldType.OU6,
         defaultOrMaker: $fixnum.Int64.ZERO)
     ..pPS(18, _omitFieldNames ? '' : 'diskPaths')
+    ..aOS(19, _omitFieldNames ? '' : 'socketMode')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2600,6 +2603,17 @@ class Configuration extends $pb.GeneratedMessage {
   /// Empty means the default: root filesystem plus every media folder.
   @$pb.TagNumber(18)
   $pb.PbList<$core.String> get diskPaths => $_getList(13);
+
+  /// Octal socket permissions such as "0660"; empty means the production
+  /// default 0600. See docs/07-deployment.md §7.4.
+  @$pb.TagNumber(19)
+  $core.String get socketMode => $_getSZ(14);
+  @$pb.TagNumber(19)
+  set socketMode($core.String value) => $_setString(14, value);
+  @$pb.TagNumber(19)
+  $core.bool hasSocketMode() => $_has(14);
+  @$pb.TagNumber(19)
+  void clearSocketMode() => $_clearField(19);
 }
 
 class UpdateConfigurationRequest extends $pb.GeneratedMessage {

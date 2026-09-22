@@ -939,6 +939,7 @@ fn configuration_to_proto(configuration: &config::Config) -> Configuration {
         log_level: configuration.logging.level.clone(),
         cover_cache_dir: configuration.media.cover_cache_dir.display().to_string(),
         tcp_address: configuration.server.tcp_address.clone().unwrap_or_default(),
+        socket_mode: configuration.server.socket_mode.clone().unwrap_or_default(),
         metrics_interval_seconds: configuration.system.metrics_interval_seconds,
         disk_metrics_interval_seconds: configuration.system.disk_metrics_interval_seconds,
         disk_paths: configuration
@@ -969,6 +970,10 @@ fn configuration_from_proto(configuration: &Configuration) -> Result<config::Con
         server: config::ServerConfig {
             socket_path: PathBuf::from(&configuration.socket_path),
             tcp_address: (!tcp_address.is_empty()).then(|| tcp_address.to_string()),
+            socket_mode: {
+                let socket_mode = configuration.socket_mode.trim();
+                (!socket_mode.is_empty()).then(|| socket_mode.to_string())
+            },
         },
         media: config::MediaConfig {
             database_path: PathBuf::from(&configuration.database_path),
@@ -1101,12 +1106,24 @@ async fn main() -> Result<()> {
     MediaPlayer::spawn_completion_watcher(Arc::clone(&media_player));
     let config_service = ConfigServiceImpl::new(configuration.clone(), configuration_path);
 
+    let socket_mode = configuration.server.socket_permissions()?;
+    if socket_mode != config::DEFAULT_SOCKET_MODE {
+        // Loud on purpose: this is a deliberate weakening of the only thing
+        // guarding the socket, and a reader of the log should see it.
+        warn!(
+            socket_mode = format!("{socket_mode:04o}"),
+            "socket permissions widened beyond the production default 0600"
+        );
+    }
     info!(
         socket_path = %configuration.server.socket_path.display(),
+        socket_mode = format!("{socket_mode:04o}"),
         tcp_fallback = ?tcp_fallback,
         "Starting gRPC server"
     );
-    let incoming = server_transport::bind(&configuration.server.socket_path, tcp_fallback).await?;
+    let incoming =
+        server_transport::bind(&configuration.server.socket_path, tcp_fallback, socket_mode)
+            .await?;
     let (shutdown_sender, shutdown_receiver) = oneshot::channel();
     let server = Server::builder()
         .add_service(CarnineServiceServer::new(carnine_service))
@@ -1225,6 +1242,7 @@ mod tests {
             server: config::ServerConfig {
                 socket_path: PathBuf::from("/tmp/carnine-test.sock"),
                 tcp_address: Some("[::1]:50051".to_string()),
+                socket_mode: None,
             },
             media: config::MediaConfig {
                 database_path: PathBuf::from("/tmp/media.sqlite3"),

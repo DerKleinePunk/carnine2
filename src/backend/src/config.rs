@@ -30,6 +30,37 @@ pub struct ServerConfig {
     /// versioned configuration and the generated image (docs/07-deployment.md).
     #[serde(default)]
     pub tcp_address: Option<String>,
+    /// Permissions for the socket file, as an octal string such as `"0660"`.
+    /// Unset means `0600`: only the `carnine` user itself, which is what
+    /// production runs (docs/07-deployment.md §7.4). Widening this to `0660`
+    /// lets every member of the `carnine` group connect - useful on a test
+    /// device where a second login needs to reach the service, and a
+    /// deliberate weakening everywhere else. Overridable through
+    /// `CARNINE_SOCKET_MODE`, which is how the test Pi sets it: a systemd
+    /// drop-in survives a deployment, this file does not.
+    #[serde(default)]
+    pub socket_mode: Option<String>,
+}
+
+/// Permissions the socket gets when `socket_mode` says nothing.
+pub const DEFAULT_SOCKET_MODE: u32 = 0o600;
+
+impl ServerConfig {
+    /// Parsed `socket_mode`, or the default when unset.
+    pub fn socket_permissions(&self) -> Result<u32> {
+        let Some(mode) = &self.socket_mode else {
+            return Ok(DEFAULT_SOCKET_MODE);
+        };
+        let parsed = u32::from_str_radix(mode.trim(), 8)
+            .with_context(|| format!("server.socket_mode {mode} is not an octal file mode"))?;
+        if parsed > 0o777 {
+            anyhow::bail!("server.socket_mode {mode} sets bits outside the permission bits");
+        }
+        if parsed & 0o007 != 0 {
+            anyhow::bail!("server.socket_mode {mode} would expose the socket to every account");
+        }
+        Ok(parsed)
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
@@ -113,6 +144,7 @@ impl Config {
         ) {
             anyhow::bail!("invalid log level: {}", self.logging.level);
         }
+        self.server.socket_permissions()?;
         if self.system.metrics_interval_seconds == 0
             || self.system.disk_metrics_interval_seconds == 0
         {
@@ -161,6 +193,11 @@ impl Config {
         if let Some(socket_path) = env::var_os("CARNINE_SOCKET_PATH") {
             config.server.socket_path = PathBuf::from(socket_path);
         }
+        if let Some(socket_mode) = env::var_os("CARNINE_SOCKET_MODE") {
+            config.server.socket_mode = Some(socket_mode.into_string().map_err(|value| {
+                anyhow::anyhow!("CARNINE_SOCKET_MODE is not valid UTF-8: {value:?}")
+            })?);
+        }
         if let Some(tcp_address) = env::var_os("CARNINE_TCP_ADDRESS") {
             config.server.tcp_address = Some(tcp_address.into_string().map_err(|value| {
                 anyhow::anyhow!("CARNINE_TCP_ADDRESS is not valid UTF-8: {value:?}")
@@ -184,6 +221,14 @@ mod tests {
             std::path::PathBuf::from("/run/carnine/carnine.sock")
         );
         assert_eq!(config.server.tcp_address, None);
+        assert_eq!(config.server.socket_mode, None);
+        assert_eq!(
+            config
+                .server
+                .socket_permissions()
+                .expect("default mode should parse"),
+            0o600
+        );
         assert_eq!(config.audio.navigation_interrupt, "pause_music");
         assert_eq!(config.system.metrics_interval_seconds, 30);
         assert_eq!(config.system.disk_metrics_interval_seconds, 300);
@@ -233,5 +278,23 @@ mod tests {
         let (mut config, _) = Config::load().expect("repository config should load");
         config.system.metrics_interval_seconds = 0;
         assert!(config.validate().is_err());
+
+        let (mut config, _) = Config::load().expect("repository config should load");
+        config.server.socket_mode = Some("not-a-mode".to_string());
+        assert!(config.validate().is_err());
+
+        // World access would defeat the point of a filesystem-guarded socket.
+        config.server.socket_mode = Some("0666".to_string());
+        assert!(config.validate().is_err());
+
+        config.server.socket_mode = Some("0660".to_string());
+        assert!(config.validate().is_ok());
+        assert_eq!(
+            config
+                .server
+                .socket_permissions()
+                .expect("0660 should parse"),
+            0o660
+        );
     }
 }
