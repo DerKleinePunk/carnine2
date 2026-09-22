@@ -38,6 +38,22 @@
 - A stop operation is not complete until the decoder, source buffer, and output
 	ownership have been released or an explicit failure has been logged.
 
+## Audio Threading
+- Never busy-wait anywhere in the audio path. A full source ring buffer is the
+	normal state, not an exception: FFmpeg decodes far faster than realtime, so
+	a decoder that spins on a full buffer spins for the entire track. On the Pi
+	this starves the cpal output callback, which runs as an ordinary
+	`SCHED_OTHER` thread with a 25 ms deadline and no realtime priority.
+	Wait by sleeping or blocking, never with `thread::yield_now()` in a loop.
+- Cover waiting behavior by measuring the thread's own CPU time
+	(`CLOCK_THREAD_CPUTIME_ID`), not wall-clock time - wall clock cannot tell a
+	sleeping thread from a spinning one. See
+	`decoder_sleeps_instead_of_spinning_while_the_ring_is_full`.
+- cpal handles ALSA `EPIPE` silently and never invokes the error callback, so
+	underruns leave no trace in the log. Verify on hardware through the PCM
+	status instead: `trigger_time` must stay constant and `hw_ptr` must rise
+	monotonically (`resources/debos/debug-pi-audio.sh`).
+
 ## Development Process Guidelines
 - Don't run the graphical application unless absolutely necessary. Prefer writing tests to answer your questions instead if possible
 - Prefer `cargo check` as a first layer of validating your code

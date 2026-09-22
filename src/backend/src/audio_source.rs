@@ -4,6 +4,7 @@ use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
+use std::time::Duration;
 
 use anyhow::{Context, Result};
 use ringbuf::{
@@ -14,6 +15,13 @@ use ringbuf::{
 const SOURCE_CHANNELS: usize = 2;
 const BYTES_PER_SAMPLE: usize = 2;
 const READ_BUFFER_BYTES: usize = 16 * 1024;
+/// How long the decoder waits when the ring buffer is full. Sleeping rather
+/// than spinning matters a lot here: the ring holds two seconds and FFmpeg
+/// decodes far faster than realtime, so the buffer is full almost all the
+/// time. A busy wait therefore burns a whole core for the entire track - and
+/// on the Raspberry Pi that core is contended by the cpal output callback,
+/// which runs as an ordinary SCHED_OTHER thread with a 25 ms deadline.
+const RING_FULL_WAIT: Duration = Duration::from_millis(5);
 
 #[derive(Debug)]
 pub struct ExternalPcmSource {
@@ -139,6 +147,7 @@ fn decode_into_ring(
 ) -> Result<u64> {
     let mut buffer = [0_u8; READ_BUFFER_BYTES];
     let mut pending = Vec::with_capacity(channels * BYTES_PER_SAMPLE);
+    let mut decoded = Vec::with_capacity(READ_BUFFER_BYTES / BYTES_PER_SAMPLE);
     let mut sample_count = 0_u64;
     loop {
         if stop_requested.load(Ordering::Acquire) {
@@ -152,17 +161,25 @@ fn decode_into_ring(
         pending.extend_from_slice(&buffer[..bytes_read]);
         let frame_bytes = channels * BYTES_PER_SAMPLE;
         let complete_bytes = pending.len() / frame_bytes * frame_bytes;
-        let complete_pcm = pending.drain(..complete_bytes).collect::<Vec<_>>();
-        for frame in complete_pcm.chunks_exact(frame_bytes) {
-            for sample in frame.chunks_exact(BYTES_PER_SAMPLE) {
-                let value = i16::from_le_bytes([sample[0], sample[1]]) as f32 / i16::MAX as f32;
-                while producer.try_push(value).is_err() {
-                    if stop_requested.load(Ordering::Acquire) {
-                        return Ok(sample_count);
-                    }
-                    thread::yield_now();
+        // frame_bytes is a multiple of BYTES_PER_SAMPLE, so walking the whole
+        // range sample by sample keeps the interleaved channel order intact.
+        decoded.clear();
+        decoded.extend(
+            pending[..complete_bytes]
+                .chunks_exact(BYTES_PER_SAMPLE)
+                .map(|sample| i16::from_le_bytes([sample[0], sample[1]]) as f32 / i16::MAX as f32),
+        );
+        pending.drain(..complete_bytes);
+        let mut offset = 0;
+        while offset < decoded.len() {
+            let pushed = producer.push_slice(&decoded[offset..]);
+            offset += pushed;
+            sample_count += pushed as u64;
+            if offset < decoded.len() {
+                if stop_requested.load(Ordering::Acquire) {
+                    return Ok(sample_count);
                 }
-                sample_count += 1;
+                thread::sleep(RING_FULL_WAIT);
             }
         }
     }
@@ -172,7 +189,10 @@ fn decode_into_ring(
 #[cfg(test)]
 mod tests {
     use std::io::Cursor;
-    use std::sync::atomic::AtomicBool;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+    use std::thread;
+    use std::time::Duration;
 
     use ringbuf::{
         traits::{Consumer, Split},
@@ -208,5 +228,63 @@ mod tests {
             .iter()
             .zip([0.5, 0.25, 0.125, 0.0625])
             .all(|(actual, expected)| (actual - expected).abs() < 0.0001));
+    }
+
+    // Regression test for the busy wait measured on the Raspberry Pi on
+    // 2026-09-22: the decoder thread sat at 99.9% CPU for the whole track
+    // because it spun on thread::yield_now() whenever the ring was full.
+    // FFmpeg decodes far faster than realtime, so a full ring is the normal
+    // state, not an exception - the spin burned a core for minutes on end and
+    // starved the cpal output callback, which runs without realtime priority
+    // on the Pi. Measuring the thread's own CPU time is what tells a sleeping
+    // wait apart from a spinning one; wall-clock time cannot.
+    #[test]
+    fn decoder_sleeps_instead_of_spinning_while_the_ring_is_full() {
+        const MEASURED_WAIT: Duration = Duration::from_millis(300);
+
+        // Four samples of capacity against a far larger source, and nothing
+        // ever drains it: after the first push the decoder can only wait.
+        let pcm = vec![0_u8; 64 * 1024];
+        let ring = HeapRb::<f32>::new(4);
+        let (mut producer, _consumer) = ring.split();
+        let stop_requested = Arc::new(AtomicBool::new(false));
+        let finished = Arc::new(AtomicBool::new(false));
+        let thread_stop = Arc::clone(&stop_requested);
+        let thread_finished = Arc::clone(&finished);
+
+        let decoder = thread::spawn(move || {
+            let before = thread_cpu_time();
+            let _ = decode_into_ring(
+                &mut Cursor::new(pcm),
+                &mut producer,
+                &thread_stop,
+                &thread_finished,
+                2,
+            );
+            thread_cpu_time() - before
+        });
+
+        thread::sleep(MEASURED_WAIT);
+        stop_requested.store(true, Ordering::Release);
+        let burned = decoder.join().expect("decoder thread should not panic");
+
+        assert!(
+            burned < MEASURED_WAIT / 5,
+            "decoder burned {burned:?} of CPU while waiting {MEASURED_WAIT:?} on a full ring, \
+             so it is busy waiting instead of sleeping"
+        );
+    }
+
+    /// CPU time consumed by the calling thread. `Instant` measures wall clock
+    /// and so cannot distinguish a thread that sleeps from one that spins.
+    fn thread_cpu_time() -> Duration {
+        let mut spec = libc::timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        };
+        // SAFETY: writes into a timespec this call owns, with a constant clock id.
+        let result = unsafe { libc::clock_gettime(libc::CLOCK_THREAD_CPUTIME_ID, &mut spec) };
+        assert_eq!(result, 0, "clock_gettime(CLOCK_THREAD_CPUTIME_ID) failed");
+        Duration::new(spec.tv_sec as u64, spec.tv_nsec as u32)
     }
 }
