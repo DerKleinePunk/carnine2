@@ -7,6 +7,14 @@ FRONTEND_DIR="$ROOT_DIR/src/frontend"
 PROTO_DIR="$ROOT_DIR/src/proto"
 LOG_DIR="$ROOT_DIR/build-logs"
 SYSROOT="${CARNINE_ARM64_SYSROOT:-$ROOT_DIR/build/sysroots/carnine-pi-arm64}"
+FRONTEND_BUILD_MODE="${CARNINE_FRONTEND_BUILD_MODE:-release}"
+case "$FRONTEND_BUILD_MODE" in
+  release|profile|debug) ;;
+  *)
+    echo "[pi] ERROR: Invalid CARNINE_FRONTEND_BUILD_MODE: $FRONTEND_BUILD_MODE (expected release, profile or debug)"
+    exit 1
+    ;;
+esac
 
 mkdir -p "$LOG_DIR"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
@@ -108,20 +116,29 @@ echo "[pi] Generating shared protobuf Dart stubs..."
   protoc -I "$PROTO_DIR" --dart_out=grpc:lib/lib "$PROTO_DIR/carnine.proto"
 )
 
-echo "[pi] Building Flutter-Pi bundle (arm64 / pi4)..."
+echo "[pi] Building Flutter-Pi bundle (arm64 / pi4, $FRONTEND_BUILD_MODE)..."
 (
   cd "$FRONTEND_DIR"
-  flutterpi_tool build --arch=arm64 --cpu=pi4 \
+  flutterpi_tool build --arch=arm64 --cpu=pi4 --"$FRONTEND_BUILD_MODE" \
     --dart-define="CARNINE_VERSION=$VERSION" \
     --dart-define="CARNINE_BUILD_VERSION=$BUILD_VERSION"
 )
 
-FRONTEND_BUNDLE="$FRONTEND_DIR/build/flutter-pi/aarch64-generic"
+# flutterpi_tool doesn't support CPU-tuned (non-generic) targets in debug mode
+# (JIT doesn't need CPU tuning) and silently falls back to the generic aarch64
+# variant in that case; release/profile builds use the pi4-tuned target and
+# land in a differently named directory.
+if [[ "$FRONTEND_BUILD_MODE" == "debug" ]]; then
+  FRONTEND_BUNDLE="$FRONTEND_DIR/build/flutter-pi/aarch64-generic"
+else
+  FRONTEND_BUNDLE="$FRONTEND_DIR/build/flutter-pi/pi4-64"
+fi
 FRONTEND_PACKAGE="$ROOT_DIR/resources/debos/carnine-frontend.deb"
 if [[ ! -x "$FRONTEND_BUNDLE/flutter-pi" ]]; then
   echo "[pi] ERROR: Flutter-Pi runtime not found in $FRONTEND_BUNDLE"
   exit 1
 fi
+echo -n "$FRONTEND_BUILD_MODE" > "$FRONTEND_BUNDLE/.carnine-build-mode"
 "$FRONTEND_DIR/package-deb.sh" "$FRONTEND_BUNDLE" "$FRONTEND_PACKAGE" "$BUILD_VERSION"
 if [[ "$(dpkg-deb -f "$FRONTEND_PACKAGE" Architecture)" != "arm64" ]]; then
   echo "[pi] ERROR: Frontend package is not arm64: $FRONTEND_PACKAGE"

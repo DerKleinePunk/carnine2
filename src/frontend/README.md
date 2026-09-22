@@ -33,14 +33,21 @@ Build the Raspberry Pi bundle and package it together with the `flutter-pi`
 runtime:
 
 ```bash
-flutterpi_tool build --arch=arm64 --cpu=pi4 \
+flutterpi_tool build --arch=arm64 --cpu=pi4 --release \
 	--dart-define="CARNINE_VERSION=$(cat ../../VERSION)"
-bash package-deb.sh build/flutter-pi/aarch64-generic carnine-frontend.deb "$(cat ../../VERSION)"
+bash package-deb.sh build/flutter-pi/pi4-64 carnine-frontend.deb "$(cat ../../VERSION)"
 ```
 
 The package installs the application under `/opt/carnine/frontend` and
 provides `carnine-frontend.service`. It uses DRM/KMS directly, so no X11 or
 Wayland session is required.
+
+`--release` produces a CPU-tuned, AOT-compiled build in `build/flutter-pi/pi4-64`
+(much faster app startup). For a debug build (JIT, Dart VM service enabled for
+live debugging on the device), drop `--release`/use `--debug` instead; that
+build lands in `build/flutter-pi/aarch64-generic` instead, since debug mode
+doesn't support CPU-tuned targets. `build_pi.sh` (via `CARNINE_FRONTEND_BUILD_MODE`)
+handles this distinction automatically.
 
 The Carnine Dart application does not use Vulkan, GStreamer, or Flutter audio.
 The bundled `flutter-pi` binary must nevertheless be built without those
