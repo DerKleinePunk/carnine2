@@ -25,7 +25,9 @@ The deployment architecture emphasizes reliability, minimal resource consumption
   - Connection: HDMI video + USB for touch input
   - Resolution: 1024×600 (native)
    - Audio: HDMI audio with separate headphone and speaker outputs; each speaker channel has a 2.6 W PA amplifier
-  - Requires correct HDMI modes in `/boot/config.txt`
+  - The panel ships a cloned EDID whose timings the vc4 driver rejects; an
+    EDID override keeps it on full KMS at its native mode, see
+    [22 – Waveshare 1024x600 Display under Full KMS](22-waveshare-display-1024x600.md)
 - **CAN Interface**:
   • Adapter: MCP2515 (SPI) or isolated CAN HAT (e.g. PiCAN 2, Kvaser)
   • Protocol: CAN 2.0B, 500 kbps or 1 Mbps (vehicle‑specific)

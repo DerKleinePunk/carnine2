@@ -29,6 +29,7 @@ This directory contains the Arc42 template for documenting the architecture of t
 20. [19 – ivi-homescreen Evaluation](19-ivi-homescreen-evaluation.md)
 21. [20 – Media Backend Plan](20-media-backend-plan.md)
 22. [21 – Protobuf Event Contract](21-protobuf-event-contract.md)
+23. [22 – Waveshare 1024x600 Display under Full KMS](22-waveshare-display-1024x600.md)
 
 ## Code
 
