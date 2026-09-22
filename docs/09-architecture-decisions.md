@@ -841,7 +841,7 @@ wake_word = ""               # Optional wake word (e.g., "Hey Carnine")
 
 ## ADR-017: UI Readiness and Plymouth Handoff
 
-**Status:** Accepted
+**Status:** Superseded by ADR-019 (September 2026)
 
 **Context:**
 The DRM/KMS frontend must replace the Plymouth splash without briefly exposing
@@ -872,6 +872,13 @@ ordered after it.
 - Future power-management events can use the same `SystemService` boundary;
   shutdown execution should remain in a dedicated privileged systemd unit.
 
+**Why superseded:** on the Waveshare panel (`vc4-fkms-v3d`, firmware KMS) only
+one process can hold DRM master at a time. Ordering `plymouth-quit.service`
+after the frontend's readiness signal created a deadlock, not just a race:
+Plymouth would not release the display until Flutter reported a rendered
+frame, but flutter-pi cannot actually present a frame while Plymouth still
+holds DRM master. See ADR-019.
+
 ---
 
 ## ADR-018: Single Release Version Source
@@ -893,6 +900,82 @@ its template token from the Debos `version` parameter.
 - Flutter's technical build number remains independent from the release
   version and can be added separately when needed.
 - Build scripts can reject malformed versions before producing artifacts.
+
+---
+
+## ADR-019: Decouple Plymouth Handoff from UI Readiness
+
+**Status:** Accepted (September 2026)
+
+**Context:**
+ADR-017's design ordered `plymouth-quit.service` after the frontend's
+`READY=1` signal, so the boot splash would only disappear once Flutter
+reported a rendered frame. On the Waveshare panel, the display runs on
+`vc4-fkms-v3d` (firmware KMS), where only one process can hold DRM master at
+a time. This turned the intended safeguard into a deadlock: Plymouth kept DRM
+master until Flutter reported readiness, but flutter-pi cannot actually
+present a frame — and therefore never legitimately becomes ready — while
+Plymouth still holds the display. In practice the frontend's readiness signal
+fires from `WidgetsBinding.addPostFrameCallback`/`SchedulerBinding`
+timing callbacks regardless of whether flutter-pi's native DRM commit
+actually succeeded (flutter-pi logs "Commit requested, but drmdev is paused
+right now." and drops the frame silently; it does not retry and does not
+surface the failure to the engine). Depending on exact timing this either
+raced to a working frame or left the screen permanently black after boot,
+confirmed via repeated reboots and live testing on the physical device.
+
+**Decision:**
+Remove the ordering between `plymouth-quit.service`/`plymouth-quit-wait.service`
+and `carnine-frontend.service` entirely. Plymouth now quits on its own,
+independent default timing, releasing DRM master early and unconditionally
+during boot — well before the frontend attempts its first render. Hiding the
+`getty` login console until the UI is actually usable is handled by a
+separate, unrelated mechanism (ADR still tracked here as part of this change):
+`carnine-frontend.service` declares `Before=getty@tty1.service` and
+`Conflicts=getty@tty1.service`, so `getty@tty1` can never run while the
+frontend is starting or active. When the frontend stops (crash or deliberate
+stop), `ExecStopPost` arms an independent 5-second transient timer
+(`systemd-run --on-active=5s --unit=carnine-getty-fallback`) that starts
+`getty@tty1` as a fallback console; `ExecStartPre` cancels that timer on the
+next successful start. Five seconds is chosen to comfortably exceed the
+frontend's own `RestartSec=3` auto-recovery window, so a transient crash
+recovers without ever flashing the console.
+
+Separately, `src/frontend/lib/main.dart` no longer reports UI readiness from
+a single `addPostFrameCallback`. It now forces additional frames for up to
+5 seconds (`SchedulerBinding.scheduleFrame()` every 100 ms) and waits for
+multiple `SchedulerBinding.addTimingsCallback` reports before reporting
+ready. This does not verify on-screen presentation (flutter-pi does not
+expose that), but it gives the commit path repeated chances to succeed
+instead of one, compensating in practice for flutter-pi's missing retry.
+
+**Rationale:**
+- A splash screen that quits on a fixed, independent schedule is a
+  well-understood, safe default; the console-hiding guarantee the project
+  actually needs is provided by the `getty@tty1` conflict/ordering
+  mechanism, not by gating Plymouth on the frontend.
+- Removing the circular dependency removes the deadlock's root cause, not
+  just its symptom; verified clean (zero failed DRM commits) across multiple
+  consecutive physical reboots after the change, versus consistent failures
+  before it.
+- A real fix for flutter-pi's silent, non-retried commit failures would
+  require forking flutter-pi (it is consumed as a prebuilt binary via
+  `flutterpi_tool`, not vendored in this repository) — out of scope here;
+  tracked as an open risk in `resources/debos/TODO.md` and as an explicit
+  question for the ivi-homescreen spike in
+  `docs/19-ivi-homescreen-evaluation.md`.
+
+**Consequences:**
+- Between Plymouth quitting and the frontend's first successful frame, the
+  physical display can briefly show a blank/black screen during boot (no
+  login prompt, since `getty@tty1` remains blocked) — an accepted trade-off
+  versus the previous risk of a permanently black screen.
+- `carnine-frontend.service` now depends on `systemd-run` at runtime (part of
+  `systemd`, already a base dependency) for the deferred fallback-console
+  timer.
+- If flutter-pi is ever forked/patched to retry commits and surface real
+  presentation feedback, the Dart-side frame-forcing mitigation in
+  `main.dart` can be simplified back to a single verified callback.
 
 ---
 
