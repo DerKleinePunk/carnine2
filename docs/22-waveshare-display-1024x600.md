@@ -1,7 +1,10 @@
 # 22 – Waveshare 1024x600 Display under Full KMS
 
 **Status:** verified on hardware, 2026-09-22 (Raspberry Pi 4 Model B, Debian 13,
-kernel 6.18, Waveshare 7" HDMI LCD (H)).
+kernel 6.18.50, Waveshare 7" HDMI LCD (H)). Re-verified the same day over a cold
+boot with the running carnine stack (Plymouth + flutter-pi): no EDID or mode
+errors in `dmesg`, `fb0` and the flutter-pi scanout plane both at 1024x600,
+touch working.
 
 **Result:** the panel runs at its native 1024x600 with `dtoverlay=vc4-kms-v3d`.
 Neither `vc4-fkms-v3d` nor the `hdmi_cvt` / `hdmi_mode` lines are needed.
@@ -92,9 +95,37 @@ silently ignored by current kernels — the only hint is
 `drm_kms_helper: unknown parameter 'edid_firmware' ignored` in `dmesg`. It now
 lives under `drm.edid_firmware`.
 
-The blob is read from `/lib/firmware/edid/`. This works on an image with
-`auto_initramfs=1` and vc4 built as a module; that combination was the one
-verified.
+**Keep `disable_fw_kms_setup=1`.** pi-gen's `config.txt` ships that line, and
+the fkms variant of the recipe used to delete it. Without it the VideoCore
+firmware prepends its own `video=HDMI-A-1:...` to the kernel command line — on
+this panel `720x576M@50`. The connector still ends up at 1024x600 once
+flutter-pi sets its mode, but `fb0` and with it the Plymouth splash stay at the
+firmware's mode for the whole boot.
+
+### The blob has to be in the initramfs, not just in the rootfs
+
+`/lib/firmware/edid/` alone is **not** enough. Dracut pulls `vc4.ko` into the
+initramfs for the Plymouth splash, so the driver probes and asks for the EDID
+while the initramfs is still the root filesystem:
+
+```
+vc4-drm gpu: Direct firmware load for edid/waveshare-1024x600.bin failed with error -2
+vc4-drm gpu: [drm] *ERROR* [CONNECTOR:35:HDMI-A-1] Requesting EDID firmware
+             "edid/waveshare-1024x600.bin" failed (err=-2)
+```
+
+The override then only takes effect on a later re-probe, after the real root is
+mounted — the panel runs the whole early boot in the fallback mode, and the
+result depends on something re-detecting the connector. The recipe therefore
+also puts the blob into the initramfs:
+
+```
+# /etc/dracut.conf.d/carnine-edid.conf
+install_items+=" /usr/lib/firmware/edid/waveshare-1024x600.bin "
+```
+
+followed by `dracut --regenerate-all --force`. Check with
+`lsinitrd /boot/firmware/initramfs8 | grep edid`.
 
 ## Verification after boot
 
@@ -102,6 +133,23 @@ verified.
 head -1 /sys/class/drm/card1-HDMI-A-1/modes   # -> 1024x600
 cat /sys/class/graphics/fb0/virtual_size      # -> 1024,600
 dmesg | grep "not supported"                  # -> no output
+dmesg | grep "Requesting EDID firmware"       # -> no output (blob in initramfs)
+dmesg | grep -m1 "Kernel command line"        # -> no firmware-injected video=
+```
+
+`fb0` at 1024x600 is the tell-tale for the two mistakes above: it stays at the
+firmware's mode when `disable_fw_kms_setup=1` is missing, and it starts in the
+fallback mode when the blob is missing from the initramfs — in both cases the
+connector may still report 1024x600 because flutter-pi sets that mode itself.
+
+Under the running frontend, `/sys/kernel/debug/dri/1/state` shows the scanout
+plane at the native size:
+
+```
+plane[91]: plane-3
+	crtc=pixelvalve-2
+		allocated by = io.flutter.rast
+		size=1024x600
 ```
 
 ivi-homescreen then reports `mode=1024x600@60Hz` and
@@ -110,8 +158,8 @@ name stays `LEN L1950wD`, because only the timings were corrected.
 
 ## Touch input
 
-The touch controller needs no configuration. It enumerates over USB as
-`STMicroelectronics 7H Custom Human interface` (USB ID `0484:5750`) with
-`INPUT_PROP_DIRECT`, multitouch axes and `BTN_TOUCH`. libinput picks it up
-through udev seat0 without any extra rule. At the native mode, touch and image
-coordinates map one to one.
+The touch controller needs no configuration. On the test unit it enumerates
+over USB as `WaveShare WS170120` (USB ID `0eef:0005`, eGalax) with
+`INPUT_PROP_DIRECT` (`PROP=2` in `/proc/bus/input/devices`). flutter-pi opens
+the event node itself through its libinput/udev seat0 path, without any extra
+rule. At the native mode, touch and image coordinates map one to one.

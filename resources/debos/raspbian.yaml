@@ -215,6 +215,18 @@ actions:
     source: edid/waveshare-1024x600.bin
     destination: /lib/firmware/edid/waveshare-1024x600.bin
 
+  # Dracut zieht vc4.ko in die Initramfs (fuer den Plymouth-Splash), also
+  # fordert der Treiber das EDID schon dort an - lange bevor das Rootfs
+  # gemountet ist. Ohne diesen Eintrag schlaegt der Firmware-Load mit -ENOENT
+  # fehl und das Panel laeuft bis zum Rootfs-Switch im Fallback-Modus.
+  - action: run
+    description: Ship the EDID inside the initramfs as well
+    chroot: true
+    command: |
+      install -d /etc/dracut.conf.d
+      printf '%s\n' 'install_items+=" /usr/lib/firmware/edid/waveshare-1024x600.bin "' \
+        > /etc/dracut.conf.d/carnine-edid.conf
+
   - action: run
     description: Set up cmdline.txt
     chroot: true

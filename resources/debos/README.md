@@ -53,8 +53,9 @@ Das Waveshare-Profil läuft unter **Full KMS** (`vc4-kms-v3d`). Das Panel bringt
 ein geklontes EDID mit ungeraden Timings mit, die der vc4-Treiber ablehnt — er
 fällt dann auf 1920x1080 zurück und das Panel skaliert selbst herunter. Das
 Rezept schiebt deshalb ein korrigiertes EDID aus `edid/waveshare-1024x600.bin`
-per `drm.edid_firmware` unter. Begründung, Gegenproben und wie der Blob neu
-erzeugt wird, stehen in
+per `drm.edid_firmware` unter — im Rootfs *und* über
+`/etc/dracut.conf.d/carnine-edid.conf` in der Initramfs, weil vc4 dort schon
+lädt. Begründung, Gegenproben und wie der Blob neu erzeugt wird, stehen in
 [docs/22-waveshare-display-1024x600.md](../../docs/22-waveshare-display-1024x600.md).
 
 Hinweis zur YAML-Pruefung:
