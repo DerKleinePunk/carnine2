@@ -11,6 +11,10 @@ pub struct Config {
     pub media: MediaConfig,
     pub audio: AudioConfig,
     pub logging: LoggingConfig,
+    /// Optional: configurations written before health sampling existed stay
+    /// valid and get the defaults below.
+    #[serde(default)]
+    pub system: SystemConfig,
 }
 
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
@@ -41,6 +45,39 @@ pub struct MediaConfig {
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
 pub struct AudioConfig {
     pub navigation_interrupt: String,
+}
+
+#[derive(Debug, Clone, Deserialize, serde::Serialize)]
+pub struct SystemConfig {
+    /// Cadence for CPU temperature and load.
+    #[serde(default = "default_metrics_interval_seconds")]
+    pub metrics_interval_seconds: u64,
+    /// Cadence for disk usage. Each sample costs a `statvfs` per filesystem and
+    /// the value barely moves, so this is deliberately much slower.
+    #[serde(default = "default_disk_metrics_interval_seconds")]
+    pub disk_metrics_interval_seconds: u64,
+    /// Filesystems to report. Empty means the default: the root filesystem
+    /// plus every `media.folders` entry, deduplicated per filesystem.
+    #[serde(default)]
+    pub disk_paths: Vec<PathBuf>,
+}
+
+fn default_metrics_interval_seconds() -> u64 {
+    30
+}
+
+fn default_disk_metrics_interval_seconds() -> u64 {
+    300
+}
+
+impl Default for SystemConfig {
+    fn default() -> Self {
+        Self {
+            metrics_interval_seconds: default_metrics_interval_seconds(),
+            disk_metrics_interval_seconds: default_disk_metrics_interval_seconds(),
+            disk_paths: Vec::new(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
@@ -76,7 +113,31 @@ impl Config {
         ) {
             anyhow::bail!("invalid log level: {}", self.logging.level);
         }
+        if self.system.metrics_interval_seconds == 0
+            || self.system.disk_metrics_interval_seconds == 0
+        {
+            anyhow::bail!("system metric intervals must be greater than zero");
+        }
+        if self
+            .system
+            .disk_paths
+            .iter()
+            .any(|path| path.as_os_str().is_empty())
+        {
+            anyhow::bail!("system.disk_paths contains an empty path");
+        }
         Ok(())
+    }
+
+    /// Filesystems the disk sampler probes: what `system.disk_paths` says, or
+    /// the root filesystem plus the media folders when it says nothing.
+    pub fn disk_metric_paths(&self) -> Vec<PathBuf> {
+        if !self.system.disk_paths.is_empty() {
+            return self.system.disk_paths.clone();
+        }
+        let mut paths = vec![PathBuf::from("/")];
+        paths.extend(self.media.folders.iter().cloned());
+        paths
     }
 
     pub fn load() -> Result<(Self, PathBuf)> {
@@ -124,6 +185,34 @@ mod tests {
         );
         assert_eq!(config.server.tcp_address, None);
         assert_eq!(config.audio.navigation_interrupt, "pause_music");
+        assert_eq!(config.system.metrics_interval_seconds, 30);
+        assert_eq!(config.system.disk_metrics_interval_seconds, 300);
+    }
+
+    #[test]
+    fn falls_back_to_root_and_media_folders_for_disk_metrics() {
+        let (mut config, _) = Config::load().expect("repository config should load");
+        config.system.disk_paths.clear();
+        let paths = config.disk_metric_paths();
+        assert_eq!(paths.first(), Some(&std::path::PathBuf::from("/")));
+        assert_eq!(paths.len(), 1 + config.media.folders.len());
+
+        config.system.disk_paths = vec![std::path::PathBuf::from("/srv")];
+        assert_eq!(
+            config.disk_metric_paths(),
+            vec![std::path::PathBuf::from("/srv")]
+        );
+    }
+
+    #[test]
+    fn accepts_a_configuration_without_a_system_section() {
+        let config: Config = toml::from_str(
+            &std::fs::read_to_string("../../resources/config/carnine.toml")
+                .expect("repository config should be readable")
+                .replace("[system]", "[unused_section]"),
+        )
+        .expect("a config without [system] must stay valid");
+        assert_eq!(config.system.metrics_interval_seconds, 30);
     }
 
     #[test]
@@ -139,6 +228,10 @@ mod tests {
 
         let (mut config, _) = Config::load().expect("repository config should load");
         config.logging.level = "not a filter".to_string();
+        assert!(config.validate().is_err());
+
+        let (mut config, _) = Config::load().expect("repository config should load");
+        config.system.metrics_interval_seconds = 0;
         assert!(config.validate().is_err());
     }
 }

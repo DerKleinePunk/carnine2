@@ -342,6 +342,7 @@ dependencies = [
  "cpal",
  "ffmpeg-next",
  "futures-util",
+ "libc",
  "prost",
  "rand",
  "ringbuf",

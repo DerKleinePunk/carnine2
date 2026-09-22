@@ -27,6 +27,7 @@ mod database;
 mod media_player;
 mod server_transport;
 mod storage_events;
+mod system_metrics;
 
 use carnine::get_cover_art_request::Target as CoverArtTarget;
 use carnine::{
@@ -40,12 +41,20 @@ use carnine::{
     LibraryEvent, LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest,
     PlayQueueEntryRequest, PlayRequest, PlayerEvent, PlayerState, Playlist, PlaylistEntry,
     RescanMediaRequest, SearchMediaRequest, SearchMediaResponse, ServiceVersion,
-    SetRepeatModeRequest, SetShuffleModeRequest, SetVolumeRequest, UpdateConfigurationRequest,
-    VolumeResponse,
+    SetRepeatModeRequest, SetShuffleModeRequest, SetVolumeRequest, SystemMetrics,
+    UpdateConfigurationRequest, VolumeResponse,
 };
 
 #[derive(Debug, Default)]
-pub struct SystemServiceImpl;
+pub struct SystemServiceImpl {
+    metrics: Arc<system_metrics::SystemMetricsHandle>,
+}
+
+impl SystemServiceImpl {
+    pub fn with_metrics(metrics: Arc<system_metrics::SystemMetricsHandle>) -> Self {
+        Self { metrics }
+    }
+}
 
 fn service_version() -> ServiceVersion {
     let parts: Vec<u32> = env!("CARNINE_VERSION")
@@ -68,6 +77,9 @@ fn service_version() -> ServiceVersion {
 
 #[tonic::async_trait]
 impl carnine::system_service_server::SystemService for SystemServiceImpl {
+    type StreamSystemMetricsStream =
+        Pin<Box<dyn tokio_stream::Stream<Item = Result<SystemMetrics, Status>> + Send + 'static>>;
+
     async fn report_ui_ready(
         &self,
         _request: Request<Empty>,
@@ -77,6 +89,26 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
             success: true,
             message: "UI ready".to_string(),
         }))
+    }
+
+    async fn get_system_metrics(
+        &self,
+        _request: Request<Empty>,
+    ) -> Result<Response<SystemMetrics>, Status> {
+        Ok(Response::new(self.metrics.latest()))
+    }
+
+    async fn stream_system_metrics(
+        &self,
+        _request: Request<Empty>,
+    ) -> Result<Response<Self::StreamSystemMetricsStream>, Status> {
+        info!("system metrics stream opened");
+        // Open with the cached snapshot so a client does not have to wait a
+        // whole sampling interval for its first value.
+        let snapshot = tokio_stream::once(Ok(self.metrics.latest()));
+        let updates = tokio_stream::wrappers::BroadcastStream::new(self.metrics.subscribe())
+            .filter_map(|metrics| async move { metrics.ok().map(Ok) });
+        Ok(Response::new(Box::pin(snapshot.chain(updates))))
     }
 }
 
@@ -907,6 +939,22 @@ fn configuration_to_proto(configuration: &config::Config) -> Configuration {
         log_level: configuration.logging.level.clone(),
         cover_cache_dir: configuration.media.cover_cache_dir.display().to_string(),
         tcp_address: configuration.server.tcp_address.clone().unwrap_or_default(),
+        metrics_interval_seconds: configuration.system.metrics_interval_seconds,
+        disk_metrics_interval_seconds: configuration.system.disk_metrics_interval_seconds,
+        disk_paths: configuration
+            .system
+            .disk_paths
+            .iter()
+            .map(|path| path.display().to_string())
+            .collect(),
+    }
+}
+
+fn nonzero_or_default(value: u64, fallback: u64) -> u64 {
+    if value == 0 {
+        fallback
+    } else {
+        value
     }
 }
 
@@ -940,6 +988,19 @@ fn configuration_from_proto(configuration: &Configuration) -> Result<config::Con
         logging: config::LoggingConfig {
             directory: PathBuf::from(&configuration.log_directory),
             level: configuration.log_level.clone(),
+        },
+        system: config::SystemConfig {
+            // A client that does not know these fields sends zeros; keep the
+            // defaults rather than failing validation on its behalf.
+            metrics_interval_seconds: nonzero_or_default(
+                configuration.metrics_interval_seconds,
+                config::SystemConfig::default().metrics_interval_seconds,
+            ),
+            disk_metrics_interval_seconds: nonzero_or_default(
+                configuration.disk_metrics_interval_seconds,
+                config::SystemConfig::default().disk_metrics_interval_seconds,
+            ),
+            disk_paths: configuration.disk_paths.iter().map(PathBuf::from).collect(),
         },
     };
     configuration.validate()?;
@@ -1013,7 +1074,16 @@ async fn main() -> Result<()> {
         .map(|address| address.parse())
         .transpose()?;
     let carnine_service = CarnineServiceImpl::default();
-    let system_service = SystemServiceImpl;
+    let system_metrics = Arc::new(system_metrics::SystemMetricsHandle::new());
+    system_metrics::spawn(
+        Arc::clone(&system_metrics),
+        system_metrics::SamplerSettings {
+            cpu_interval: Duration::from_secs(configuration.system.metrics_interval_seconds),
+            disk_interval: Duration::from_secs(configuration.system.disk_metrics_interval_seconds),
+            disk_paths: configuration.disk_metric_paths(),
+        },
+    );
+    let system_service = SystemServiceImpl::with_metrics(Arc::clone(&system_metrics));
     let media_service = MediaServiceImpl::new_runtime(
         configuration.media.database_path.clone(),
         configuration.media.folders.clone(),
@@ -1106,7 +1176,7 @@ async fn shutdown_signal() {
 #[cfg(test)]
 mod tests {
     use super::{configuration_from_proto, configuration_to_proto, ConfigServiceImpl};
-    use super::{AudioServiceImpl, MediaServiceImpl, SystemServiceImpl};
+    use super::{system_metrics, AudioServiceImpl, MediaServiceImpl, SystemServiceImpl};
     use crate::audio_engine::{AudioEngine, Playback};
     use crate::carnine::{
         audio_service_server::AudioService, config_service_server::ConfigService,
@@ -1114,13 +1184,14 @@ mod tests {
         system_service_server::SystemService, AddPlaylistEntryRequest, AudioEventType,
         CreatePlaylistRequest, Empty, GetCoverArtRequest, GetPlaylistRequest, LibraryEventType,
         PlayerEventType, RepeatMode, RescanMediaRequest, SetRepeatModeRequest,
-        SetShuffleModeRequest,
+        SetShuffleModeRequest, SystemMetrics,
     };
     use crate::config;
     use crate::database;
     use crate::media_player::MediaPlayer;
     use anyhow::Result;
     use std::path::PathBuf;
+    use std::sync::Arc;
     use std::time::Duration;
     use tokio_stream::StreamExt;
     use tonic::Request;
@@ -1170,16 +1241,64 @@ mod tests {
                 directory: PathBuf::from("/tmp/carnine-logs"),
                 level: "info".to_string(),
             },
+            system: config::SystemConfig::default(),
         }
     }
 
     #[tokio::test]
     async fn system_service_acknowledges_ui_readiness() {
-        let response = SystemService::report_ui_ready(&SystemServiceImpl, Request::new(Empty {}))
-            .await
-            .expect("UI readiness should be acknowledged");
+        let response =
+            SystemService::report_ui_ready(&SystemServiceImpl::default(), Request::new(Empty {}))
+                .await
+                .expect("UI readiness should be acknowledged");
 
         assert!(response.into_inner().success);
+    }
+
+    #[tokio::test]
+    async fn system_service_serves_the_sampled_metrics() {
+        let metrics = Arc::new(system_metrics::SystemMetricsHandle::new());
+        let service = SystemServiceImpl::with_metrics(Arc::clone(&metrics));
+
+        // Before the first sample the snapshot is empty but still answerable,
+        // so a client that connects during startup does not get an error.
+        let empty = SystemService::get_system_metrics(&service, Request::new(Empty {}))
+            .await
+            .expect("metrics should be answerable before the first sample")
+            .into_inner();
+        assert_eq!(empty.sampled_at_unix_ms, 0);
+
+        let mut stream = SystemService::stream_system_metrics(&service, Request::new(Empty {}))
+            .await
+            .expect("metrics stream should open")
+            .into_inner();
+        let snapshot = stream
+            .next()
+            .await
+            .expect("stream should open with a snapshot")
+            .expect("snapshot should be valid");
+        assert_eq!(snapshot.sampled_at_unix_ms, 0);
+
+        metrics.publish_for_test(SystemMetrics {
+            cpu_temperature_celsius: Some(41.5),
+            load_average_1m: 0.75,
+            sampled_at_unix_ms: 1_700_000_000_000,
+            ..SystemMetrics::default()
+        });
+
+        let pushed = stream
+            .next()
+            .await
+            .expect("stream should push the new sample")
+            .expect("sample should be valid");
+        assert_eq!(pushed.cpu_temperature_celsius, Some(41.5));
+        assert_eq!(pushed.sampled_at_unix_ms, 1_700_000_000_000);
+
+        let latest = SystemService::get_system_metrics(&service, Request::new(Empty {}))
+            .await
+            .expect("metrics should be answerable")
+            .into_inner();
+        assert_eq!(latest.load_average_1m, 0.75);
     }
 
     #[tokio::test]

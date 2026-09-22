@@ -31,6 +31,7 @@ The Rust Backend is a headless service executing the core logic.
 - **gRPC Server**: Provides APIs for the frontend and processes requests.
 - **Media Processor**: Manages audio/video decoding and playback.
 - **I²C Relay Controller**: Manages 8 relays connected via I²C bus to switch power consumers (e.g., lights, fans, or other vehicle accessories).
+- **System Metrics Sampler**: Reads CPU temperature, CPU utilisation and load average from `/sys` and `/proc` on a short cadence, and disk usage per filesystem on a slower one. Holds the latest snapshot for `SystemService.GetSystemMetrics` and pushes it to `StreamSystemMetrics` subscribers.
 
 Relationships: All components communicate internally; gRPC server connects to the frontend; CAN-Bus Handler and Network Manager access hardware/external systems; Power Management interacts with the RS232-connected power supply and system shutdown APIs; I²C Relay Controller interacts with I²C hardware and receives commands via gRPC Server.
 

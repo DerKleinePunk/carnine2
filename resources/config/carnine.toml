@@ -28,3 +28,14 @@ navigation_interrupt = "pause_music"
 [logging]
 directory = "/var/log/carnine"
 level = "info"
+
+[system]
+# Health sampling (CPU temperature, CPU utilisation, load average). Read from
+# /sys and /proc, so a short cadence is cheap.
+metrics_interval_seconds = 30
+# Disk usage costs a statvfs per filesystem and moves slowly - keep it rare.
+disk_metrics_interval_seconds = 300
+# Filesystems to report. Left empty on purpose: the backend then probes the
+# root filesystem plus every media folder above, deduplicated per filesystem,
+# so a mounted MUSIK volume is picked up without touching this file.
+disk_paths = []
