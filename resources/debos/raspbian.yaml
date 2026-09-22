@@ -290,11 +290,9 @@ actions:
       - carnine-frontend.deb
 
   - action: run
-    description: Reserve tty1 for Flutter DRM frontend
+    description: Enable a permanent debug console on tty2
     chroot: true
-    command: |
-      systemctl disable getty@tty1.service
-      systemctl enable getty@tty2.service
+    command: systemctl enable getty@tty2.service
 
   - action: run
     description: Wait for UI readiness before leaving Plymouth

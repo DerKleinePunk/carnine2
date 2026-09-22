@@ -42,7 +42,11 @@ restart_services() {
 trap restart_services ERR
 
 sudo systemctl stop carnine-frontend.service carnine-backend.service
-sudo dpkg -i "$REMOTE_DIR/carnine-backend.deb" "$REMOTE_DIR/carnine-frontend.deb"
+# --force-confnew: git is the source of truth for unit files. Without this,
+# dpkg silently keeps a locally-modified conffile (e.g. from live debugging on
+# the device) instead of installing the packaged version, which can leave the
+# service running with stale/incompatible systemd unit settings.
+sudo dpkg --force-confnew -i "$REMOTE_DIR/carnine-backend.deb" "$REMOTE_DIR/carnine-frontend.deb"
 sudo install -o root -g carnine -m 0660 "$REMOTE_DIR/carnine.toml" /etc/carnine/config.toml
 sudo rm -f /etc/asound.conf
 sudo systemctl daemon-reload
