@@ -1,4 +1,5 @@
 use std::env;
+use std::ffi::OsString;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -173,7 +174,15 @@ impl Config {
     }
 
     pub fn load() -> Result<(Self, PathBuf)> {
-        let path = env::var_os("CARNINE_CONFIG")
+        Self::load_with_env(|key| env::var_os(key))
+    }
+
+    /// The whole of [`Config::load`], with the environment injected instead of
+    /// read from the process. Tests pass `|_| None` so that they see the file
+    /// as it is on disk; a developer shell that exports `CARNINE_SOCKET_PATH`
+    /// or `CARNINE_TCP_ADDRESS` would otherwise make them fail for no reason.
+    fn load_with_env(lookup: impl Fn(&str) -> Option<OsString>) -> Result<(Self, PathBuf)> {
+        let path = lookup("CARNINE_CONFIG")
             .map(PathBuf::from)
             .or_else(|| {
                 let system_path = Path::new("/etc/carnine/config.toml");
@@ -184,21 +193,21 @@ impl Config {
             .with_context(|| format!("failed to read configuration {}", path.display()))?;
         let mut config: Config = toml::from_str(&content)
             .with_context(|| format!("failed to parse configuration {}", path.display()))?;
-        if let Some(log_directory) = env::var_os("CARNINE_LOG_DIRECTORY") {
+        if let Some(log_directory) = lookup("CARNINE_LOG_DIRECTORY") {
             config.logging.directory = PathBuf::from(log_directory);
         }
-        if let Some(database_path) = env::var_os("CARNINE_DATABASE_PATH") {
+        if let Some(database_path) = lookup("CARNINE_DATABASE_PATH") {
             config.media.database_path = PathBuf::from(database_path);
         }
-        if let Some(socket_path) = env::var_os("CARNINE_SOCKET_PATH") {
+        if let Some(socket_path) = lookup("CARNINE_SOCKET_PATH") {
             config.server.socket_path = PathBuf::from(socket_path);
         }
-        if let Some(socket_mode) = env::var_os("CARNINE_SOCKET_MODE") {
+        if let Some(socket_mode) = lookup("CARNINE_SOCKET_MODE") {
             config.server.socket_mode = Some(socket_mode.into_string().map_err(|value| {
                 anyhow::anyhow!("CARNINE_SOCKET_MODE is not valid UTF-8: {value:?}")
             })?);
         }
-        if let Some(tcp_address) = env::var_os("CARNINE_TCP_ADDRESS") {
+        if let Some(tcp_address) = lookup("CARNINE_TCP_ADDRESS") {
             config.server.tcp_address = Some(tcp_address.into_string().map_err(|value| {
                 anyhow::anyhow!("CARNINE_TCP_ADDRESS is not valid UTF-8: {value:?}")
             })?);
@@ -211,10 +220,12 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::Config;
+    use std::ffi::OsString;
 
     #[test]
     fn loads_repository_configuration() {
-        let (config, path) = Config::load().expect("repository config should load");
+        let (config, path) =
+            Config::load_with_env(|_| None).expect("repository config should load");
         assert!(path.ends_with("resources/config/carnine.toml"));
         assert_eq!(
             config.server.socket_path,
@@ -235,8 +246,35 @@ mod tests {
     }
 
     #[test]
+    fn environment_overrides_replace_the_file_values() {
+        let (config, _) = Config::load_with_env(|key| match key {
+            "CARNINE_SOCKET_PATH" => Some(OsString::from("/tmp/carnine-dev.sock")),
+            "CARNINE_SOCKET_MODE" => Some(OsString::from("0660")),
+            "CARNINE_TCP_ADDRESS" => Some(OsString::from("127.0.0.1:50051")),
+            _ => None,
+        })
+        .expect("overridden config should load");
+        assert_eq!(
+            config.server.socket_path,
+            std::path::PathBuf::from("/tmp/carnine-dev.sock")
+        );
+        assert_eq!(
+            config
+                .server
+                .socket_permissions()
+                .expect("overridden mode should parse"),
+            0o660
+        );
+        assert_eq!(
+            config.server.tcp_address.as_deref(),
+            Some("127.0.0.1:50051")
+        );
+    }
+
+    #[test]
     fn falls_back_to_root_and_media_folders_for_disk_metrics() {
-        let (mut config, _) = Config::load().expect("repository config should load");
+        let (mut config, _) =
+            Config::load_with_env(|_| None).expect("repository config should load");
         config.system.disk_paths.clear();
         let paths = config.disk_metric_paths();
         assert_eq!(paths.first(), Some(&std::path::PathBuf::from("/")));
@@ -262,24 +300,29 @@ mod tests {
 
     #[test]
     fn rejects_invalid_runtime_values() {
-        let (mut config, _) = Config::load().expect("repository config should load");
+        let (mut config, _) =
+            Config::load_with_env(|_| None).expect("repository config should load");
 
         config.server.socket_path = std::path::PathBuf::new();
         assert!(config.validate().is_err());
 
-        let (mut config, _) = Config::load().expect("repository config should load");
+        let (mut config, _) =
+            Config::load_with_env(|_| None).expect("repository config should load");
         config.server.tcp_address = Some("not-an-address".to_string());
         assert!(config.validate().is_err());
 
-        let (mut config, _) = Config::load().expect("repository config should load");
+        let (mut config, _) =
+            Config::load_with_env(|_| None).expect("repository config should load");
         config.logging.level = "not a filter".to_string();
         assert!(config.validate().is_err());
 
-        let (mut config, _) = Config::load().expect("repository config should load");
+        let (mut config, _) =
+            Config::load_with_env(|_| None).expect("repository config should load");
         config.system.metrics_interval_seconds = 0;
         assert!(config.validate().is_err());
 
-        let (mut config, _) = Config::load().expect("repository config should load");
+        let (mut config, _) =
+            Config::load_with_env(|_| None).expect("repository config should load");
         config.server.socket_mode = Some("not-a-mode".to_string());
         assert!(config.validate().is_err());
 
