@@ -1,5 +1,7 @@
 [package]
 name = "carnine-backend"
+# Placeholder. The release version lives in /VERSION and reaches the binary
+# through build.rs and the package through `cargo deb --deb-version`.
 version = "0.1.0"
 edition = "2021"
 description = "Backend service for Carnine"

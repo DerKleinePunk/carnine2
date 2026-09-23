@@ -1,6 +1,8 @@
 name: carnine_frontend
 description: Minimal Flutter bootstrap frontend for Carnine.
 publish_to: "none"
+# Placeholder. The release version lives in /VERSION and reaches the bundle
+# through build_pi.sh (--dart-define) and the package through package-deb.sh.
 version: 0.1.0+1
 
 environment:
