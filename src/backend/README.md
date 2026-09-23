@@ -19,6 +19,19 @@ The protobuf schema is shared across frontend and backend at `../proto/carnine.p
 - `cargo test`
 - `cargo deb`
 
+### Kommandozeile
+
+Ohne Argumente startet das Binary den Dienst - so ruft systemd es auf. Zwei
+Flags fragen es nur aus, ohne dass ein Socket geoeffnet oder das Audiogeraet
+angefasst wird:
+
+```bash
+carnine-backend --version   # Release-Version und Build-Id
+carnine-backend --help      # Aufrufarten und alle Environment-Overrides
+```
+
+Ein unbekanntes Argument bricht mit Exit-Code 2 ab, statt den Dienst zu starten.
+
 ### Audio-Ausgang
 
 Die Wiedergabe laeuft ausschliesslich ueber `cpal`: beim Start oeffnet das

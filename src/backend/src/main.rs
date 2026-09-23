@@ -1018,8 +1018,72 @@ fn configuration_from_proto(configuration: &Configuration) -> Result<config::Con
     Ok(configuration)
 }
 
+/// Usage text for `--help`. It names the environment overrides as well: they
+/// decide where the service reads its configuration and where it listens, and
+/// nothing else tells an operator that they exist.
+const USAGE: &str = "\
+carnine-backend - the Carnine gRPC backend service
+
+Usage:
+  carnine-backend            Run the service (how systemd starts it)
+  carnine-backend --version  Print the release version and build id
+  carnine-backend --help     Print this text
+
+Environment overrides (each one wins over the configuration file):
+  CARNINE_CONFIG          Path to the configuration file
+  CARNINE_LOG_DIRECTORY   Directory for backend.log
+  CARNINE_DATABASE_PATH   Path to the SQLite media database
+  CARNINE_SOCKET_PATH     Unix domain socket to listen on
+  CARNINE_SOCKET_MODE     Octal permissions for that socket, e.g. 0660
+  CARNINE_TCP_ADDRESS     Optional TCP fallback address, e.g. 127.0.0.1:50051
+";
+
+/// What the command line asked for. No arguments means "run the service",
+/// which is how systemd starts it.
+#[derive(Debug, PartialEq, Eq)]
+enum Invocation {
+    Run,
+    ShowVersion,
+    ShowHelp,
+    Unknown(String),
+}
+
+fn parse_invocation(arguments: impl IntoIterator<Item = String>) -> Invocation {
+    match arguments.into_iter().next() {
+        None => Invocation::Run,
+        Some(argument) => match argument.as_str() {
+            "--version" | "-V" => Invocation::ShowVersion,
+            "--help" | "-h" => Invocation::ShowHelp,
+            other => Invocation::Unknown(other.to_owned()),
+        },
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Before anything else: asking the binary what it is must never start a
+    // service, open a socket or touch the audio device.
+    match parse_invocation(std::env::args().skip(1)) {
+        Invocation::Run => {}
+        Invocation::ShowVersion => {
+            println!(
+                "carnine-backend {} (build {})",
+                env!("CARNINE_VERSION"),
+                env!("CARNINE_BUILD_ID")
+            );
+            return Ok(());
+        }
+        Invocation::ShowHelp => {
+            print!("{USAGE}");
+            return Ok(());
+        }
+        Invocation::Unknown(argument) => {
+            eprintln!("carnine-backend: unknown argument: {argument}");
+            eprint!("{USAGE}");
+            std::process::exit(2);
+        }
+    }
+
     let (configuration, configuration_path) = config::Config::load()?;
     std::fs::create_dir_all(&configuration.logging.directory).with_context(|| {
         format!(
@@ -1198,8 +1262,6 @@ async fn shutdown_signal() {
 
 #[cfg(test)]
 mod tests {
-    use super::{configuration_from_proto, configuration_to_proto, ConfigServiceImpl};
-    use super::{system_metrics, AudioServiceImpl, MediaServiceImpl, SystemServiceImpl};
     use crate::audio_engine::{AudioEngine, Playback};
     use crate::carnine::{
         audio_service_server::AudioService, config_service_server::ConfigService,
@@ -1212,12 +1274,58 @@ mod tests {
     use crate::config;
     use crate::database;
     use crate::media_player::MediaPlayer;
+    use crate::{parse_invocation, Invocation, USAGE};
     use anyhow::Result;
     use std::path::PathBuf;
     use std::sync::Arc;
     use std::time::Duration;
     use tokio_stream::StreamExt;
     use tonic::Request;
+
+    #[test]
+    fn no_arguments_run_the_service() {
+        assert_eq!(parse_invocation(Vec::<String>::new()), Invocation::Run);
+    }
+
+    #[test]
+    fn version_and_help_are_recognised_in_both_spellings() {
+        for argument in ["--version", "-V"] {
+            assert_eq!(
+                parse_invocation([argument.to_owned()]),
+                Invocation::ShowVersion
+            );
+        }
+        for argument in ["--help", "-h"] {
+            assert_eq!(
+                parse_invocation([argument.to_owned()]),
+                Invocation::ShowHelp
+            );
+        }
+    }
+
+    #[test]
+    fn an_unrecognised_argument_is_reported_rather_than_ignored() {
+        assert_eq!(
+            parse_invocation(["--nonsense".to_owned()]),
+            Invocation::Unknown("--nonsense".to_owned())
+        );
+    }
+
+    #[test]
+    fn the_usage_text_names_every_environment_override() {
+        for variable in [
+            "CARNINE_CONFIG",
+            "CARNINE_LOG_DIRECTORY",
+            "CARNINE_DATABASE_PATH",
+            "CARNINE_SOCKET_PATH",
+            "CARNINE_SOCKET_MODE",
+            "CARNINE_TCP_ADDRESS",
+        ] {
+            assert!(USAGE.contains(variable), "usage text is missing {variable}");
+        }
+    }
+    use super::{configuration_from_proto, configuration_to_proto, ConfigServiceImpl};
+    use super::{system_metrics, AudioServiceImpl, MediaServiceImpl, SystemServiceImpl};
 
     struct FakePlayback;
 
