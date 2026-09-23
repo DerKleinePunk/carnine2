@@ -86,6 +86,10 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchNoResults: 'No hay resultados para esta búsqueda',
   AppTextKey.mediaRescanAction: 'Reescanear',
   AppTextKey.mediaRescanSemantic: 'Reescanear biblioteca',
+  AppTextKey.mediaUsbImportBanner:
+      'USB "{label}" detectado - ¿importar {count} pista(s)?',
+  AppTextKey.mediaUsbImportAction: 'Importar',
+  AppTextKey.mediaUsbImportSemantic: 'Importar {count} pista(s) de {label}',
   AppTextKey.mediaScanRunning: 'Escaneo en curso...',
   AppTextKey.mediaScanProgressLine:
       '{processed} procesados, {imported} importados',

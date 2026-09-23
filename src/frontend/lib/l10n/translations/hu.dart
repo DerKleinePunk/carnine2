@@ -84,6 +84,10 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchNoResults: 'Nincs találat erre a keresésre',
   AppTextKey.mediaRescanAction: 'Újraszkennelés',
   AppTextKey.mediaRescanSemantic: 'Könyvtár újraszkennelése',
+  AppTextKey.mediaUsbImportBanner:
+      'USB-meghajtó "{label}" megtalálva - importálod a(z) {count} számot?',
+  AppTextKey.mediaUsbImportAction: 'Importálás',
+  AppTextKey.mediaUsbImportSemantic: '{count} szám importálása innen: {label}',
   AppTextKey.mediaScanRunning: 'Szkennelés...',
   AppTextKey.mediaScanProgressLine:
       '{processed} feldolgozva, {imported} importálva',

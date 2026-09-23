@@ -9,13 +9,15 @@ import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 
-/// Presentation controller for the media library: search, results and
-/// rescan progress.
+/// Presentation controller for the media library: search, results, rescan
+/// progress and the USB import confirmation.
 ///
 /// Subscribes to `StreamLibraryEvents` for as long as the media section is
-/// visible, so an automatic rescan triggered by a USB storage event (see
-/// `src/backend/src/storage_events.rs`) refreshes the visible list without
-/// user action.
+/// visible. A detected `MUSIK`-labelled USB volume (see
+/// `src/backend/src/storage_events.rs`) never gets imported automatically -
+/// `docs/20-media-backend-plan.md` ("Verbindlicher Ablauf") requires an
+/// explicit "Übernehmen" confirmation before the backend copies anything,
+/// tracked here as [pendingImport].
 class LibraryController extends ChangeNotifier {
   LibraryController({
     required this._repository,
@@ -40,6 +42,7 @@ class LibraryController extends ChangeNotifier {
   int _scanImported = 0;
   String? _scanFailedPath;
   Timer? _scanWatchdog;
+  LibraryScanEvent? _pendingImport;
 
   StreamSubscription<LibraryScanEvent>? _libraryEvents;
 
@@ -50,6 +53,10 @@ class LibraryController extends ChangeNotifier {
   int get scanProcessed => _scanProcessed;
   int get scanImported => _scanImported;
   String? get scanFailedPath => _scanFailedPath;
+
+  /// A detected USB volume awaiting the user's "Übernehmen" confirmation
+  /// before anything gets imported - `null` when there is none pending.
+  LibraryScanEvent? get pendingImport => _pendingImport;
 
   /// Subscribes to the library event stream and loads the library. Safe to
   /// call again after [reconnect] tore the previous subscription down.
@@ -81,6 +88,58 @@ class LibraryController extends ChangeNotifier {
   }
 
   Future<void> retry() => _load();
+
+  void dismissPendingImport() {
+    if (_pendingImport == null) {
+      return;
+    }
+    _pendingImport = null;
+    notifyListeners();
+  }
+
+  /// Imports [pendingImport] into internal storage, then runs the mandatory
+  /// follow-up rescan - the import alone never touches the SQLite database
+  /// (`docs/20-media-backend-plan.md` "Verbindlicher Ablauf" steps 6/7), so
+  /// skipping it would leave the copied files invisible in the library.
+  Future<void> acceptPendingImport() async {
+    final prompt = _pendingImport;
+    if (prompt == null || _isScanning) {
+      return;
+    }
+
+    _pendingImport = null;
+    // The backend performs the whole copy synchronously and only reports
+    // progress once it is entirely done (`main.rs` `import_music_volume`),
+    // same as `rescan()` below - show the busy state optimistically, before
+    // awaiting, or the UI would look frozen for the whole copy.
+    _isScanning = true;
+    _scanProcessed = 0;
+    _scanImported = 0;
+    _scanFailedPath = null;
+    _armScanWatchdog();
+    notifyListeners();
+
+    var succeeded = false;
+    try {
+      await _repository.importMusicVolume(prompt.sourcePath).drain<void>();
+      succeeded = true;
+    } on MediaBackendException catch (error) {
+      _logger.warning(
+        'ImportMusicVolume(${prompt.sourcePath}) failed: ${error.message}',
+      );
+      if (error.kind == MediaErrorKind.offline) {
+        _onStreamFailure?.call(error);
+      }
+    } finally {
+      _isScanning = false;
+      _scanWatchdog?.cancel();
+      notifyListeners();
+    }
+
+    if (succeeded) {
+      await rescan();
+    }
+  }
 
   Future<void> rescan() async {
     if (_isScanning) {
@@ -196,13 +255,27 @@ class LibraryController extends ChangeNotifier {
         _armScanWatchdog();
         notifyListeners();
       case LibraryScanEventKind.scanCompleted:
-      case LibraryScanEventKind.importCompleted:
         _isScanning = false;
         _scanWatchdog?.cancel();
         notifyListeners();
         unawaited(_search());
+      case LibraryScanEventKind.importCompleted:
+        // No `_search()` here: the import alone never writes to the SQLite
+        // database, so nothing new would show up yet anyway -
+        // [acceptPendingImport] already chains the mandatory follow-up
+        // `rescan()`, which searches once that actually lands.
+        _isScanning = false;
+        _scanWatchdog?.cancel();
+        notifyListeners();
       case LibraryScanEventKind.musicFound:
-        unawaited(_search());
+        // Never auto-imports - only announces that a volume is ready, so
+        // the UI can ask for the explicit "Übernehmen" confirmation
+        // required by docs/20-media-backend-plan.md. A 0-file volume (e.g.
+        // an empty or non-music MUSIK-labelled stick) has nothing to offer.
+        if (event.matchingFiles > 0) {
+          _pendingImport = event;
+          notifyListeners();
+        }
       case LibraryScanEventKind.playlistCreated:
       case LibraryScanEventKind.playlistEntryAdded:
         // Handled by PlaylistController, not the library search results.

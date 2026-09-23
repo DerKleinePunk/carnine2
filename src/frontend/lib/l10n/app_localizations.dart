@@ -146,6 +146,18 @@ class AppLocalizations {
     ).replaceFirst('{name}', name);
   }
 
+  String mediaUsbImportBanner({required String label, required int count}) {
+    return text(
+      AppTextKey.mediaUsbImportBanner,
+    ).replaceFirst('{label}', label).replaceFirst('{count}', count.toString());
+  }
+
+  String mediaUsbImportSemantic({required String label, required int count}) {
+    return text(
+      AppTextKey.mediaUsbImportSemantic,
+    ).replaceFirst('{label}', label).replaceFirst('{count}', count.toString());
+  }
+
   String mediaVolumeSemantic(int percent) {
     return text(
       AppTextKey.mediaVolumeSemantic,

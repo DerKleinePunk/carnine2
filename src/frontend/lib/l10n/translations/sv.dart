@@ -83,6 +83,10 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchNoResults: 'Inga resultat för denna sökning',
   AppTextKey.mediaRescanAction: 'Skanna om',
   AppTextKey.mediaRescanSemantic: 'Skanna om biblioteket',
+  AppTextKey.mediaUsbImportBanner:
+      'USB-enhet "{label}" hittad - importera {count} låt(ar)?',
+  AppTextKey.mediaUsbImportAction: 'Importera',
+  AppTextKey.mediaUsbImportSemantic: 'Importera {count} låt(ar) från {label}',
   AppTextKey.mediaScanRunning: 'Skannar...',
   AppTextKey.mediaScanProgressLine:
       '{processed} bearbetade, {imported} importerade',

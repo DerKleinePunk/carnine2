@@ -80,6 +80,10 @@ const Map<AppTextKey, String> jaTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchNoResults: 'この検索結果はありません',
   AppTextKey.mediaRescanAction: '再スキャン',
   AppTextKey.mediaRescanSemantic: 'ライブラリを再スキャン',
+  AppTextKey.mediaUsbImportBanner:
+      'USBドライブ「{label}」が見つかりました - {count}曲を取り込みますか？',
+  AppTextKey.mediaUsbImportAction: '取り込む',
+  AppTextKey.mediaUsbImportSemantic: '{label}から{count}曲を取り込む',
   AppTextKey.mediaScanRunning: 'スキャン中...',
   AppTextKey.mediaScanProgressLine: '{processed} 件処理、{imported} 件インポート',
   AppTextKey.mediaScanFailed: 'スキャンに失敗しました',

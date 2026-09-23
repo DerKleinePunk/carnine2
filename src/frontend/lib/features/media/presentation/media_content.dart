@@ -1,4 +1,5 @@
 import 'package:carnine_frontend/features/media/presentation/audio_controller.dart';
+import 'package:carnine_frontend/features/media/presentation/library_controller.dart';
 import 'package:carnine_frontend/features/media/presentation/media_controller.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/audio_event_banner.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/collections/collections_page.dart';
@@ -6,6 +7,7 @@ import 'package:carnine_frontend/features/media/presentation/widgets/create/play
 import 'package:carnine_frontend/features/media/presentation/widgets/library/library_page.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/media_connection_banner.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/player/player_page.dart';
+import 'package:carnine_frontend/features/media/presentation/widgets/usb_import_banner.dart';
 import 'package:flutter/material.dart';
 
 /// Media player screen based on the 1024x600 Stitch media player template.
@@ -63,6 +65,7 @@ class _MediaContentState extends State<MediaContent> {
           children: [
             if (isOffline) MediaConnectionBanner(onRetry: _controller.retryNow),
             if (!isOffline) _AudioEventBannerSlot(audio: _controller.audio),
+            if (!isOffline) _UsbImportBannerSlot(library: _controller.library),
             Expanded(
               child: GestureDetector(
                 behavior: HitTestBehavior.translucent,
@@ -143,6 +146,33 @@ class _AudioEventBannerSlot extends StatelessWidget {
         return AudioEventBanner(
           messageKey: key,
           onDismiss: audio.dismissBanner,
+        );
+      },
+    );
+  }
+}
+
+/// Isolates the [LibraryController] subscription to just the banner, so a
+/// search/rescan update elsewhere doesn't rebuild the whole media screen.
+class _UsbImportBannerSlot extends StatelessWidget {
+  const _UsbImportBannerSlot({required this.library});
+
+  final LibraryController library;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: library,
+      builder: (context, child) {
+        final prompt = library.pendingImport;
+        if (prompt == null) {
+          return const SizedBox.shrink();
+        }
+        return UsbImportBanner(
+          sourceLabel: prompt.sourceLabel,
+          matchingFiles: prompt.matchingFiles,
+          onAccept: library.acceptPendingImport,
+          onDismiss: library.dismissPendingImport,
         );
       },
     );

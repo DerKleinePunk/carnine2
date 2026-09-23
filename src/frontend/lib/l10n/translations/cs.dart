@@ -85,6 +85,10 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchNoResults: 'Pro toto hledání nejsou žádné výsledky',
   AppTextKey.mediaRescanAction: 'Skenovat znovu',
   AppTextKey.mediaRescanSemantic: 'Znovu skenovat knihovnu',
+  AppTextKey.mediaUsbImportBanner:
+      'Nalezen USB disk "{label}" - importovat {count} skladeb?',
+  AppTextKey.mediaUsbImportAction: 'Importovat',
+  AppTextKey.mediaUsbImportSemantic: 'Importovat {count} skladeb z {label}',
   AppTextKey.mediaScanRunning: 'Probíhá skenování...',
   AppTextKey.mediaScanProgressLine:
       'Zpracováno {processed}, importováno {imported}',

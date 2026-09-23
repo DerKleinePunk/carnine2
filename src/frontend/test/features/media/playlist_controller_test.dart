@@ -19,12 +19,22 @@ const _trackA = MediaLibraryTrack(
   availability: MediaAvailability.available,
 );
 
+const _trackB = MediaLibraryTrack(
+  id: 2,
+  sourceId: 1,
+  path: '/music/b.mp3',
+  title: 'B',
+  artist: 'Artist B',
+  duration: Duration(minutes: 3),
+  availability: MediaAvailability.available,
+);
+
 void main() {
   late FakeMediaRepository repository;
   late PlaylistController controller;
 
   setUp(() {
-    repository = FakeMediaRepository()..library = const [_trackA];
+    repository = FakeMediaRepository()..library = const [_trackA, _trackB];
     controller = PlaylistController(repository: repository);
   });
 
@@ -307,4 +317,64 @@ void main() {
 
     expect(controller.addEntryHintKey, isNull);
   });
+
+  test('createPlaylist inserts the new playlist at its sorted position, not '
+      'appended at the end where it could scroll out of view', () async {
+    repository.playlists = const [
+      MediaPlaylist(id: 1, name: 'Alpha', entries: []),
+      MediaPlaylist(id: 2, name: 'Zulu', entries: []),
+    ];
+    await controller.loadPlaylists();
+
+    await controller.createPlaylist('Middle');
+
+    expect(controller.playlists.map((playlist) => playlist.name), [
+      'Alpha',
+      'Middle',
+      'Zulu',
+    ]);
+  });
+
+  test('addEntry reflects the new entry in the currently open playlist '
+      'immediately, instead of only after fully re-opening it', () async {
+    repository.playlistDetails[1] = const MediaPlaylist(
+      id: 1,
+      name: 'Drive',
+      entries: [
+        MediaPlaylistEntry(
+          id: 1,
+          playlistId: 1,
+          mediaId: 1,
+          position: 0,
+          track: _trackA,
+        ),
+      ],
+    );
+    await controller.openPlaylistById(1);
+    expect(controller.openPlaylist?.entries, hasLength(1));
+
+    await controller.addEntry(playlistId: 1, mediaId: 2);
+
+    expect(controller.openPlaylist?.entries, hasLength(2));
+    expect(controller.openPlaylist?.entries.last.mediaId, 2);
+  });
+
+  test(
+    'addEntry does not touch openPlaylist when a different playlist is open',
+    () async {
+      repository.playlistDetails[1] = const MediaPlaylist(
+        id: 1,
+        name: 'Drive',
+        entries: [],
+      );
+      await controller.openPlaylistById(1);
+
+      // Adding to a *different* playlist (e.g. via the add-entries flow
+      // reached from the Collections overview for another playlist) must
+      // not bleed into the one currently open on the detail page.
+      await controller.addEntry(playlistId: 2, mediaId: 1);
+
+      expect(controller.openPlaylist?.entries, isEmpty);
+    },
+  );
 }
