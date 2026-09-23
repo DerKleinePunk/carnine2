@@ -2202,7 +2202,7 @@ mod tests {
             .discover_music_volume("MUSIK".to_string(), directory.clone())
             .expect("discovery should succeed");
 
-        service.forget_absent_music_volumes(&[directory.clone()]);
+        service.forget_absent_music_volumes(std::slice::from_ref(&directory));
 
         assert!(
             service.take_pending_music_volume().is_some(),
