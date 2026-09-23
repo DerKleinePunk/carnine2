@@ -103,7 +103,7 @@ impl AudioMixer {
             bail!("output must contain complete stereo frames");
         }
         output.fill(0.0);
-        for frame in output.chunks_exact_mut(CHANNELS) {
+        for frame in output.as_chunks_mut::<CHANNELS>().0 {
             for source in &mut self.sources {
                 let Some(source) = source else {
                     continue;

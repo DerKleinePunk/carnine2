@@ -166,8 +166,10 @@ fn decode_into_ring(
         decoded.clear();
         decoded.extend(
             pending[..complete_bytes]
-                .chunks_exact(BYTES_PER_SAMPLE)
-                .map(|sample| i16::from_le_bytes([sample[0], sample[1]]) as f32 / i16::MAX as f32),
+                .as_chunks::<BYTES_PER_SAMPLE>()
+                .0
+                .iter()
+                .map(|sample| i16::from_le_bytes(*sample) as f32 / i16::MAX as f32),
         );
         pending.drain(..complete_bytes);
         let mut offset = 0;

@@ -14,6 +14,7 @@ use ringbuf::{
 const SAMPLE_RATE: u32 = 44_100;
 const SOURCE_CHANNELS: usize = 2;
 const BYTES_PER_SAMPLE: usize = 2;
+const FRAME_BYTES: usize = SOURCE_CHANNELS * BYTES_PER_SAMPLE;
 const BUFFER_FRAMES: usize = SAMPLE_RATE as usize * 2;
 const TEST_SECONDS: u64 = 20;
 const NOTIFICATION_START_SECONDS: u64 = 10;
@@ -129,9 +130,9 @@ fn decode_to_ring(
         .read_to_end(&mut pcm)?;
     let _ = decoder.kill();
     let _ = decoder.wait();
-    for frame in pcm.chunks_exact(SOURCE_CHANNELS * BYTES_PER_SAMPLE) {
-        for sample in frame.chunks_exact(BYTES_PER_SAMPLE) {
-            let value = i16::from_le_bytes([sample[0], sample[1]]) as f32 / i16::MAX as f32;
+    for frame in pcm.as_chunks::<FRAME_BYTES>().0 {
+        for sample in frame.as_chunks::<BYTES_PER_SAMPLE>().0 {
+            let value = i16::from_le_bytes(*sample) as f32 / i16::MAX as f32;
             while producer.try_push(value).is_err() {
                 thread::sleep(Duration::from_millis(1));
             }

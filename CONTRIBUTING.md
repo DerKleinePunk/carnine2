@@ -31,6 +31,10 @@ cd src/frontend && flutter analyze && flutter test
 The workflow additionally builds the backend in release mode on a native arm64
 runner, which is the architecture the Raspberry Pi target runs.
 
+CI installs the current Rust `stable`, and clippy gains lints with every
+release. Run `rustup update stable` before you trust a local clippy run - an
+older toolchain reports a clean tree that CI then rejects.
+
 Two things deliberately stay out of CI: the Debos image build, which needs
 privileged podman and KVM, and everything that needs real hardware - the
 display panel, the audio sink and USB media. Those are verified on the test Pi.

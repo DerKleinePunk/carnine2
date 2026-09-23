@@ -1,3 +1,8 @@
+// Every gRPC handler returns tonic's `Status`, which is 176 bytes, so clippy's
+// result_large_err fires across the whole service surface. Boxing it would only
+// move the size into each call site, and the type is the API's, not ours.
+#![allow(clippy::result_large_err)]
+
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -852,9 +857,6 @@ impl MediaService for MediaServiceImpl {
 }
 
 impl MediaServiceImpl {
-    // tonic's Status is 176 bytes and is what the gRPC API returns; boxing it
-    // here would only move the size into every call site.
-    #[allow(clippy::result_large_err)]
     fn command(
         &self,
         command: &str,

@@ -1,3 +1,7 @@
+// The gRPC calls return tonic's `Status`, which clippy counts as a large
+// `Err`; it is the API's type, not ours.
+#![allow(clippy::result_large_err)]
+
 use std::env;
 use std::time::Duration;
 
