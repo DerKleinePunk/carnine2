@@ -130,7 +130,13 @@ void main() {
       await openKeyboard(tester);
       expect(keyboard.isOpen, isTrue);
 
-      await tester.tap(find.byKey(const ValueKey('elsewhere')));
+      // The box only supplies the coordinates. The tap itself is meant to
+      // land on the overlay's outside-tap region - which is what closes the
+      // keyboard - so a hit-test "miss" on the box is the expected outcome.
+      await tester.tap(
+        find.byKey(const ValueKey('elsewhere')),
+        warnIfMissed: false,
+      );
       await tester.pumpAndSettle();
 
       expect(keyboard.isOpen, isFalse);
