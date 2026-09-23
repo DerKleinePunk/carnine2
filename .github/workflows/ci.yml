@@ -29,11 +29,14 @@ jobs:
       - uses: actions/checkout@v4
 
       # protoc for tonic-build, ALSA headers for cpal. The default feature set
-      # does not pull in ffmpeg-next, so no FFmpeg headers are needed here.
+      # does not pull in ffmpeg-next, so no FFmpeg headers are needed - but the
+      # metadata and cover-art tests shell out to the ffmpeg and ffprobe
+      # binaries, which the runner image does not ship.
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y protobuf-compiler libasound2-dev
+          sudo apt-get install --no-install-recommends -y \
+            protobuf-compiler libasound2-dev ffmpeg
 
       - uses: dtolnay/rust-toolchain@stable
         with:
