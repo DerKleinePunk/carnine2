@@ -1,0 +1,120 @@
+name: CI
+
+# carnine2 is a public repository, so every job here runs on GitHub-hosted
+# standard runners at no cost - including the native arm64 runner. Keep it that
+# way: no self-hosted runners on a public repository, and no image build (debos
+# needs privileged podman and KVM) or hardware test (panel, car radio, USB) in
+# CI. Those stay on the developer machine and on the test Pi.
+
+on:
+  push:
+    branches: [main, "feature/**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+# A new push to the same branch makes the running job pointless - cancel it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  backend:
+    name: Backend (format, clippy, tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # protoc for tonic-build, ALSA headers for cpal. The default feature set
+      # does not pull in ffmpeg-next, so no FFmpeg headers are needed here.
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y protobuf-compiler libasound2-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src/backend
+
+      - name: cargo fmt
+        working-directory: src/backend
+        run: cargo fmt --check
+
+      # Not blocking yet: the tree currently has about 30 clippy warnings, most
+      # of them dead-code reports from the cpal spike examples. Clean those up,
+      # then drop continue-on-error so a new warning fails the build.
+      - name: cargo clippy
+        working-directory: src/backend
+        continue-on-error: true
+        run: cargo clippy --all-targets -- -D warnings
+
+      # Config::load_with_env keeps these hermetic, but an empty environment
+      # documents the intent for anyone reading the log.
+      - name: cargo test
+        working-directory: src/backend
+        run: cargo test
+
+  frontend:
+    name: Frontend (analyze, tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pinned to the version the project is developed against, so a new
+      # Flutter release cannot turn CI red on its own.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.9
+          channel: stable
+          cache: true
+
+      - name: flutter pub get
+        working-directory: src/frontend
+        run: flutter pub get
+
+      - name: flutter analyze
+        working-directory: src/frontend
+        run: flutter analyze
+
+      - name: flutter test
+        working-directory: src/frontend
+        run: flutter test
+
+  backend-arm64:
+    name: Backend release build (arm64, Raspberry Pi target)
+    # Native arm64 runner, free for public repositories - no cross toolchain
+    # and no QEMU. This is the architecture the Pi actually runs.
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y protobuf-compiler libasound2-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src/backend
+          key: arm64
+
+      - name: cargo build --release
+        working-directory: src/backend
+        run: cargo build --release
+
+      - name: Upload backend binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: carnine-backend-arm64
+          path: src/backend/target/release/carnine-backend
+          # Short retention: this is a build check, not a release channel.
+          retention-days: 7

@@ -8,7 +8,8 @@ These are the next concrete work items after the current backend and image integ
 2. Investigate audio pause latency and intermittent dropouts. The stop click/pop is resolved: it comes from the HDMI sink losing its IEC958 carrier when the PCM stream closes, not from the backend (see [20 – Media Backend Plan](20-media-backend-plan.md#audio-regressionsmessungen)).
 3. Standardize frontend error states and recovery actions, then verify the 1024x600 layout on the Raspberry Pi.
 4. Verify the complete image boot path after power cycles, including service recovery and graceful `SIGTERM` shutdown.
-5. Establish a first CI pipeline for formatting, tests, and cross-build checks.
+5. Clean up the remaining clippy warnings, then make the clippy step in CI
+   blocking (`.github/workflows/ci.yml` runs it with `continue-on-error`).
 
 ## Feature Ideas
 
