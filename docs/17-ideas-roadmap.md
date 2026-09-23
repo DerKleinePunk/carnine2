@@ -5,7 +5,7 @@
 These are the next concrete work items after the current backend and image integration:
 
 1. Validate UDisks2 add/remove and mount events with a real USB device on the Raspberry Pi.
-2. Investigate audio pause latency and intermittent dropouts. The stop click/pop is resolved: it comes from the HDMI sink losing its IEC958 carrier when the PCM stream closes, not from the backend (see [20 – Media Backend Plan](20-media-backend-plan.md#audio-regressionsmessungen)).
+2. ~~Investigate audio pause latency and intermittent dropouts.~~ Closed on 2026-09-23 after listening on the target hardware: with the decoder no longer burning a core on a full ring buffer, playback and pause behave. Closed on listening, not on a measurement - reopen if it returns. The stop click/pop was resolved separately: it comes from the HDMI sink losing its IEC958 carrier when the PCM stream closes, not from the backend (see [20 – Media Backend Plan](20-media-backend-plan.md#audio-regressionsmessungen)).
 3. Standardize frontend error states and recovery actions, then verify the 1024x600 layout on the Raspberry Pi.
 4. Verify the complete image boot path after power cycles, including service recovery and graceful `SIGTERM` shutdown.
 5. Establish a first CI pipeline for formatting, tests, and cross-build checks. Done: [`ci.yml`](../.github/workflows/ci.yml) runs fmt, clippy (blocking), tests and a native arm64 release build.
@@ -27,7 +27,7 @@ These are the next concrete work items after the current backend and image integ
 	- [x] Validate external FFmpeg process from an isolated Rust example
 	- [x] Exercise process-level play, pause, and stop commands
 	- [x] Validate direct ffmpeg-next library decoding and PCM output
-	- [ ] Investigate pause latency and intermittent audio dropouts
+	- [x] Investigate pause latency and intermittent audio dropouts — gone once the decoder stopped spinning on a full ring buffer; judged by ear on the Pi, not measured
 	- [x] Investigate residual click/pop at the end of `stop` — reproduced with plain `aplay` on digital silence at both 44.1 and 48 kHz, so it is the HDMI sink, not our signal path
 	- [ ] Compare with a fully buffered audio implementation
 	- [x] Verify Debian package availability and planned backend packaging

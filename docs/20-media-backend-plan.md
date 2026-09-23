@@ -541,8 +541,13 @@ Noch offen:
 - vollstaendiger Vergleich externer Prozess gegen FFmpeg-Library fuer Live-
   Ausgabe, Pause/Resume und Langzeitverhalten; der reine Decoder-Vergleich ist
   abgeschlossen
-- Rust-PCM-Pipe und Prozess-Signalsteuerung auf Audioaussetzer und
-  Pause-Latenz untersuchen; Decoder und PulseAudio-Einzeltests sind unauffaellig
+- ~~Rust-PCM-Pipe und Prozess-Signalsteuerung auf Audioaussetzer und
+  Pause-Latenz untersuchen~~ — am 2026-09-23 geschlossen. Nachdem der
+  Decoderthread nicht mehr auf dem vollen Ringpuffer spinnt (siehe
+  "Der Decoderthread hat einen Kern verbrannt"), sind auf der Zielhardware
+  weder Aussetzer noch eine traege Pause aufgefallen. **Nach Gehoer
+  geschlossen, nicht gemessen** — bei erneutem Auftreten wieder oeffnen und
+  dann mit `resources/debos/debug-pi-audio.sh` gegenmessen
 - WSLg/PulseAudio-Ausgabe bleibt fuer subjektive Audioqualitaet eine bekannte
   Testeinschraenkung; lokale Starts verwenden `CARNINE_AUDIO_BACKEND=pulse` und
   `CARNINE_AUDIO_DEVICE=default`, der Raspberry Pi weiterhin ALSA
