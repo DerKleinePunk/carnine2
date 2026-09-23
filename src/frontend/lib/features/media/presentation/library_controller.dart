@@ -276,6 +276,10 @@ class LibraryController extends ChangeNotifier {
           _pendingImport = event;
           notifyListeners();
         }
+      case LibraryScanEventKind.playlistCreated:
+      case LibraryScanEventKind.playlistEntryAdded:
+        // Handled by PlaylistController, not the library search results.
+        break;
       case LibraryScanEventKind.unknown:
         _logger.info('Ignoring unknown library event: ${event.message}');
     }
