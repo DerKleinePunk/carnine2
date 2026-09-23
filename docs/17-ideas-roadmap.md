@@ -4,7 +4,7 @@
 
 These are the next concrete work items after the current backend and image integration:
 
-1. Validate UDisks2 add/remove and mount events with a real USB device on the Raspberry Pi.
+1. ~~Validate UDisks2 add/remove and mount events with a real USB device on the Raspberry Pi.~~ Done on 2026-09-23 with a MUSIK-labelled stick on the test Pi. It uncovered two defects that had made the feature unusable: the NUL terminator in the UDisks2 mount path, so no volume was ever seen as existing, and a library event stream without a snapshot, so the offer was broadcast before the UI had subscribed. Follow-ups: debouncing the UDisks2 event storm (#25) and a global notification area, because the banner only exists on the media page (#24).
 2. ~~Investigate audio pause latency and intermittent dropouts.~~ Closed on 2026-09-23 after listening on the target hardware: with the decoder no longer burning a core on a full ring buffer, playback and pause behave. Closed on listening, not on a measurement - reopen if it returns. The stop click/pop was resolved separately: it comes from the HDMI sink losing its IEC958 carrier when the PCM stream closes, not from the backend (see [20 – Media Backend Plan](20-media-backend-plan.md#audio-regressionsmessungen)).
 3. Standardize frontend error states and recovery actions, then verify the 1024x600 layout on the Raspberry Pi.
 4. Verify the complete image boot path after power cycles, including service recovery and graceful `SIGTERM` shutdown.
@@ -53,7 +53,7 @@ These are the next concrete work items after the current backend and image integ
 - [ ] USB medium plugin/service and automatic mount or insertion detection
 - [x] Define and document systemd/D-Bus storage-event integration (selected `udisks2` API) before implementation
 - [x] Implement the systemd-managed storage event listener for block-device add/remove and mount-state changes, then notify the media service
-- [ ] Validate UDisks2 add/remove and mount events with a real USB device on the Raspberry Pi
+- [x] Validate UDisks2 add/remove and mount events with a real USB device on the Raspberry Pi
 - [ ] Settings UI for media folders and playlist resume mode
 - [ ] Queue editing, seek RPC (#8), shuffle (#9), and advanced queue operations
 - [ ] M3U import/export
