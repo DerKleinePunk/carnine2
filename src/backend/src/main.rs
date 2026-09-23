@@ -437,6 +437,7 @@ pub struct AudioServiceImpl {
 }
 
 impl AudioServiceImpl {
+    #[cfg(test)]
     fn new() -> Self {
         let (events, _) = broadcast::channel(32);
         Self::with_events(
@@ -851,6 +852,9 @@ impl MediaService for MediaServiceImpl {
 }
 
 impl MediaServiceImpl {
+    // tonic's Status is 176 bytes and is what the gRPC API returns; boxing it
+    // here would only move the size into every call site.
+    #[allow(clippy::result_large_err)]
     fn command(
         &self,
         command: &str,
@@ -1078,7 +1082,7 @@ async fn main() -> Result<()> {
         .as_ref()
         .map(|address| address.parse())
         .transpose()?;
-    let carnine_service = CarnineServiceImpl::default();
+    let carnine_service = CarnineServiceImpl;
     let system_metrics = Arc::new(system_metrics::SystemMetricsHandle::new());
     system_metrics::spawn(
         Arc::clone(&system_metrics),

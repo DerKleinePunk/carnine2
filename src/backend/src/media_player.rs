@@ -70,6 +70,8 @@ impl MediaPlayer {
         Ok(Self::with_state(Box::new(CpalAudioEngine::new()?)))
     }
 
+    /// Injects a fake engine; the tests are the only callers.
+    #[cfg(test)]
     pub(crate) fn with_engine(engine: Box<dyn AudioEngine>) -> Self {
         Self::with_state(engine)
     }
@@ -93,10 +95,6 @@ impl MediaPlayer {
 
     pub fn subscribe_events(&self) -> broadcast::Receiver<PlayerEvent> {
         self.events.subscribe()
-    }
-
-    pub fn subscribe_audio_events(&self) -> broadcast::Receiver<AudioEvent> {
-        self.audio_events.subscribe()
     }
 
     pub fn audio_event_sender(&self) -> broadcast::Sender<AudioEvent> {

@@ -72,11 +72,11 @@ fn main() -> Result<()> {
 }
 
 fn select_output_device(host: &cpal::Host, requested: Option<&str>) -> Result<cpal::Device> {
-    let mut devices = host
+    let devices = host
         .output_devices()
         .context("failed to enumerate output devices")?;
     let mut first_device = None;
-    while let Some(device) = devices.next() {
+    for device in devices {
         let name = device.name().unwrap_or_else(|_| "<unnamed>".to_string());
         println!("cpal output device: {name}");
         if first_device.is_none() {

@@ -363,9 +363,9 @@ fn now_unix_ms() -> i64 {
     chrono::Utc::now().timestamp_millis()
 }
 
-/// One `statvfs` per distinct filesystem. Paths that resolve to the same device
-/// - on the Pi `/` and `/var/lib/carnine/media` usually do - are reported once,
-/// under the first configured path that reached it.
+/// One `statvfs` per distinct filesystem. Paths that resolve to the same
+/// device (on the Pi `/` and `/var/lib/carnine/media` usually do) are
+/// reported once, under the first configured path that reached it.
 fn collect_disk_usage(paths: &[PathBuf]) -> Vec<DiskUsage> {
     let mount_points = read_mount_points();
     let mut seen_devices: HashSet<u64> = HashSet::new();
@@ -429,11 +429,8 @@ fn statvfs_bytes(path: &Path) -> Result<(u64, u64)> {
     }
     // SAFETY: statvfs returned 0, so it initialised the struct.
     let stat = unsafe { stat.assume_init() };
-    let block_size = stat.f_frsize as u64;
-    Ok((
-        stat.f_blocks as u64 * block_size,
-        stat.f_bavail as u64 * block_size,
-    ))
+    let block_size = stat.f_frsize;
+    Ok((stat.f_blocks * block_size, stat.f_bavail * block_size))
 }
 
 fn read_mount_points() -> Vec<PathBuf> {
@@ -474,7 +471,10 @@ mod tests {
     fn parses_aggregate_cpu_line() {
         let times = parse_cpu_times("cpu  100 2 30 400 5 0 1 0 0 0\ncpu0 1 0 1 1 0 0 0 0 0 0\n")
             .expect("cpu line should parse");
-        assert_eq!(times.total, 100 + 2 + 30 + 400 + 5 + 0 + 1 + 0);
+        // The zeroes mirror the columns of the /proc/stat line above.
+        #[allow(clippy::identity_op)]
+        let expected_total = 100 + 2 + 30 + 400 + 5 + 0 + 1 + 0;
+        assert_eq!(times.total, expected_total);
         assert_eq!(times.idle, 405);
     }
 

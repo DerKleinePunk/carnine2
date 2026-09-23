@@ -1,3 +1,7 @@
+// A spike: it pulls whole backend modules in through #[path], so most of
+// what they export has no caller here.
+#![allow(dead_code)]
+
 use std::env;
 use std::thread;
 use std::time::Duration;

@@ -50,12 +50,8 @@ jobs:
         working-directory: src/backend
         run: cargo fmt --check
 
-      # Not blocking yet: the tree currently has about 30 clippy warnings, most
-      # of them dead-code reports from the cpal spike examples. Clean those up,
-      # then drop continue-on-error so a new warning fails the build.
       - name: cargo clippy
         working-directory: src/backend
-        continue-on-error: true
         run: cargo clippy --all-targets -- -D warnings
 
       # Config::load_with_env keeps these hermetic, but an empty environment
