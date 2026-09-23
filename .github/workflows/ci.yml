@@ -8,7 +8,9 @@ name: CI
 
 on:
   push:
-    branches: [main, "feature/**"]
+    # Every branch, not just the long-lived ones: a branch that falls outside
+    # the pattern gets no CI at all, and nothing tells you that it did not run.
+    branches: ["**"]
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
