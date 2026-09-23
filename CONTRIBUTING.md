@@ -8,11 +8,38 @@ We love your input! We want to make contributing to Carnine as easy and transpar
 - Proposing new features
 - Becoming a maintainer
 
+## Branches
+
+Three branches are permanent:
+
+- `main` - the integration point. CI runs on it and the release tags live here.
+- `feature/backend` - the Rust backend.
+- `feature/frontend` - the Flutter frontend.
+
+The two feature branches are long-lived and belong to the person working on
+that half. They are kept level with `main` by merging `main` into them, not by
+replacing them, and nothing already pushed to them is rewritten.
+
+**Run the checks after resolving a merge conflict, before you push.** Keeping
+one side of a conflicting hunk silently drops what the other side had in the
+same hunk. That is how `library_controller.dart` lost two `switch` cases in
+September 2026: the resolution looked right, but the enum was no longer matched
+exhaustively and the frontend stopped building. `flutter analyze` finds it in
+two seconds, CI a minute later.
+
+To check how someone resolved a merge, rebuild it and compare:
+
+```bash
+git merge-tree --write-tree <parent1> <parent2>   # prints a tree hash
+git diff <that tree> <merge commit>^{tree}        # what the resolution changed
+```
+
 ## Development Process
 
 We use GitHub to host code, to track issues and feature requests, as well as accept pull requests.
 
-1. Fork the repo and create your branch from `main`.
+1. Fork the repo and create your branch from `main`, or work on the long-lived
+   branch for your half of the project.
 2. If you've added code that should be tested, add tests.
 3. Ensure the test suite passes.
 4. Make sure your code lints.
