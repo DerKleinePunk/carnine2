@@ -24,9 +24,9 @@ env:
 jobs:
   backend:
     name: Backend (format, clippy, tests)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # protoc for tonic-build, ALSA headers for cpal. The default feature set
       # does not pull in ffmpeg-next, so no FFmpeg headers are needed - but the
@@ -62,9 +62,9 @@ jobs:
 
   frontend:
     name: Frontend (analyze, tests)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Pinned to the version the project is developed against, so a new
       # Flutter release cannot turn CI red on its own.
@@ -92,7 +92,7 @@ jobs:
     # and no QEMU. This is the architecture the Pi actually runs.
     runs-on: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install build dependencies
         run: |
@@ -111,7 +111,7 @@ jobs:
         run: cargo build --release
 
       - name: Upload backend binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: carnine-backend-arm64
           path: src/backend/target/release/carnine-backend
