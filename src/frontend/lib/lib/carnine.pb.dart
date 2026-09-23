@@ -914,6 +914,8 @@ class LibraryEvent extends $pb.GeneratedMessage {
     $core.String? sourceLabel,
     $core.String? sourcePath,
     $fixnum.Int64? matchingFiles,
+    $fixnum.Int64? playlistId,
+    $core.String? playlistName,
   }) {
     final result = create();
     if (event != null) result.event = event;
@@ -925,6 +927,8 @@ class LibraryEvent extends $pb.GeneratedMessage {
     if (sourceLabel != null) result.sourceLabel = sourceLabel;
     if (sourcePath != null) result.sourcePath = sourcePath;
     if (matchingFiles != null) result.matchingFiles = matchingFiles;
+    if (playlistId != null) result.playlistId = playlistId;
+    if (playlistName != null) result.playlistName = playlistName;
     return result;
   }
 
@@ -958,6 +962,10 @@ class LibraryEvent extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(
         9, _omitFieldNames ? '' : 'matchingFiles', $pb.PbFieldType.OU6,
         defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(
+        10, _omitFieldNames ? '' : 'playlistId', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOS(11, _omitFieldNames ? '' : 'playlistName')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1059,6 +1067,24 @@ class LibraryEvent extends $pb.GeneratedMessage {
   $core.bool hasMatchingFiles() => $_has(8);
   @$pb.TagNumber(9)
   void clearMatchingFiles() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  $fixnum.Int64 get playlistId => $_getI64(9);
+  @$pb.TagNumber(10)
+  set playlistId($fixnum.Int64 value) => $_setInt64(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasPlaylistId() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearPlaylistId() => $_clearField(10);
+
+  @$pb.TagNumber(11)
+  $core.String get playlistName => $_getSZ(10);
+  @$pb.TagNumber(11)
+  set playlistName($core.String value) => $_setString(10, value);
+  @$pb.TagNumber(11)
+  $core.bool hasPlaylistName() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearPlaylistName() => $_clearField(11);
 }
 
 class MediaItem extends $pb.GeneratedMessage {
@@ -2385,6 +2411,10 @@ class Configuration extends $pb.GeneratedMessage {
     $core.String? logLevel,
     $core.String? coverCacheDir,
     $core.String? tcpAddress,
+    $fixnum.Int64? metricsIntervalSeconds,
+    $fixnum.Int64? diskMetricsIntervalSeconds,
+    $core.Iterable<$core.String>? diskPaths,
+    $core.String? socketMode,
   }) {
     final result = create();
     if (socketPath != null) result.socketPath = socketPath;
@@ -2400,6 +2430,12 @@ class Configuration extends $pb.GeneratedMessage {
     if (logLevel != null) result.logLevel = logLevel;
     if (coverCacheDir != null) result.coverCacheDir = coverCacheDir;
     if (tcpAddress != null) result.tcpAddress = tcpAddress;
+    if (metricsIntervalSeconds != null)
+      result.metricsIntervalSeconds = metricsIntervalSeconds;
+    if (diskMetricsIntervalSeconds != null)
+      result.diskMetricsIntervalSeconds = diskMetricsIntervalSeconds;
+    if (diskPaths != null) result.diskPaths.addAll(diskPaths);
+    if (socketMode != null) result.socketMode = socketMode;
     return result;
   }
 
@@ -2427,6 +2463,14 @@ class Configuration extends $pb.GeneratedMessage {
     ..aOS(13, _omitFieldNames ? '' : 'logLevel')
     ..aOS(14, _omitFieldNames ? '' : 'coverCacheDir')
     ..aOS(15, _omitFieldNames ? '' : 'tcpAddress')
+    ..a<$fixnum.Int64>(16, _omitFieldNames ? '' : 'metricsIntervalSeconds',
+        $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(17, _omitFieldNames ? '' : 'diskMetricsIntervalSeconds',
+        $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..pPS(18, _omitFieldNames ? '' : 'diskPaths')
+    ..aOS(19, _omitFieldNames ? '' : 'socketMode')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2536,6 +2580,40 @@ class Configuration extends $pb.GeneratedMessage {
   $core.bool hasTcpAddress() => $_has(10);
   @$pb.TagNumber(15)
   void clearTcpAddress() => $_clearField(15);
+
+  /// Health sampling, see SystemService.GetSystemMetrics.
+  @$pb.TagNumber(16)
+  $fixnum.Int64 get metricsIntervalSeconds => $_getI64(11);
+  @$pb.TagNumber(16)
+  set metricsIntervalSeconds($fixnum.Int64 value) => $_setInt64(11, value);
+  @$pb.TagNumber(16)
+  $core.bool hasMetricsIntervalSeconds() => $_has(11);
+  @$pb.TagNumber(16)
+  void clearMetricsIntervalSeconds() => $_clearField(16);
+
+  @$pb.TagNumber(17)
+  $fixnum.Int64 get diskMetricsIntervalSeconds => $_getI64(12);
+  @$pb.TagNumber(17)
+  set diskMetricsIntervalSeconds($fixnum.Int64 value) => $_setInt64(12, value);
+  @$pb.TagNumber(17)
+  $core.bool hasDiskMetricsIntervalSeconds() => $_has(12);
+  @$pb.TagNumber(17)
+  void clearDiskMetricsIntervalSeconds() => $_clearField(17);
+
+  /// Empty means the default: root filesystem plus every media folder.
+  @$pb.TagNumber(18)
+  $pb.PbList<$core.String> get diskPaths => $_getList(13);
+
+  /// Octal socket permissions such as "0660"; empty means the production
+  /// default 0600. See docs/07-deployment.md §7.4.
+  @$pb.TagNumber(19)
+  $core.String get socketMode => $_getSZ(14);
+  @$pb.TagNumber(19)
+  set socketMode($core.String value) => $_setString(14, value);
+  @$pb.TagNumber(19)
+  $core.bool hasSocketMode() => $_has(14);
+  @$pb.TagNumber(19)
+  void clearSocketMode() => $_clearField(19);
 }
 
 class UpdateConfigurationRequest extends $pb.GeneratedMessage {
@@ -2689,6 +2767,284 @@ class ConfigurationResponse extends $pb.GeneratedMessage {
   $core.bool hasRestartRequired() => $_has(3);
   @$pb.TagNumber(4)
   void clearRestartRequired() => $_clearField(4);
+}
+
+class DiskUsage extends $pb.GeneratedMessage {
+  factory DiskUsage({
+    $core.String? path,
+    $core.String? mountPoint,
+    $fixnum.Int64? totalBytes,
+    $fixnum.Int64? availableBytes,
+    $core.double? usedPercent,
+  }) {
+    final result = create();
+    if (path != null) result.path = path;
+    if (mountPoint != null) result.mountPoint = mountPoint;
+    if (totalBytes != null) result.totalBytes = totalBytes;
+    if (availableBytes != null) result.availableBytes = availableBytes;
+    if (usedPercent != null) result.usedPercent = usedPercent;
+    return result;
+  }
+
+  DiskUsage._();
+
+  factory DiskUsage.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory DiskUsage.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DiskUsage',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'path')
+    ..aOS(2, _omitFieldNames ? '' : 'mountPoint')
+    ..a<$fixnum.Int64>(
+        3, _omitFieldNames ? '' : 'totalBytes', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(
+        4, _omitFieldNames ? '' : 'availableBytes', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aD(5, _omitFieldNames ? '' : 'usedPercent')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DiskUsage clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DiskUsage copyWith(void Function(DiskUsage) updates) =>
+      super.copyWith((message) => updates(message as DiskUsage)) as DiskUsage;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DiskUsage create() => DiskUsage._();
+  @$core.override
+  DiskUsage createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static DiskUsage getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DiskUsage>(create);
+  static DiskUsage? _defaultInstance;
+
+  /// Path that was probed, as configured in system.disk_paths.
+  @$pb.TagNumber(1)
+  $core.String get path => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set path($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPath() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPath() => $_clearField(1);
+
+  /// Mount point the path resolves to; several configured paths can share one.
+  @$pb.TagNumber(2)
+  $core.String get mountPoint => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set mountPoint($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasMountPoint() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMountPoint() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get totalBytes => $_getI64(2);
+  @$pb.TagNumber(3)
+  set totalBytes($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasTotalBytes() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTotalBytes() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get availableBytes => $_getI64(3);
+  @$pb.TagNumber(4)
+  set availableBytes($fixnum.Int64 value) => $_setInt64(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasAvailableBytes() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearAvailableBytes() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.double get usedPercent => $_getN(4);
+  @$pb.TagNumber(5)
+  set usedPercent($core.double value) => $_setDouble(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasUsedPercent() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearUsedPercent() => $_clearField(5);
+}
+
+class SystemMetrics extends $pb.GeneratedMessage {
+  factory SystemMetrics({
+    $core.double? cpuTemperatureCelsius,
+    $core.double? cpuUsagePercent,
+    $core.double? loadAverage1m,
+    $core.double? loadAverage5m,
+    $core.double? loadAverage15m,
+    $core.int? cpuCount,
+    $fixnum.Int64? uptimeSeconds,
+    $fixnum.Int64? sampledAtUnixMs,
+    $core.Iterable<DiskUsage>? disks,
+    $fixnum.Int64? disksSampledAtUnixMs,
+  }) {
+    final result = create();
+    if (cpuTemperatureCelsius != null)
+      result.cpuTemperatureCelsius = cpuTemperatureCelsius;
+    if (cpuUsagePercent != null) result.cpuUsagePercent = cpuUsagePercent;
+    if (loadAverage1m != null) result.loadAverage1m = loadAverage1m;
+    if (loadAverage5m != null) result.loadAverage5m = loadAverage5m;
+    if (loadAverage15m != null) result.loadAverage15m = loadAverage15m;
+    if (cpuCount != null) result.cpuCount = cpuCount;
+    if (uptimeSeconds != null) result.uptimeSeconds = uptimeSeconds;
+    if (sampledAtUnixMs != null) result.sampledAtUnixMs = sampledAtUnixMs;
+    if (disks != null) result.disks.addAll(disks);
+    if (disksSampledAtUnixMs != null)
+      result.disksSampledAtUnixMs = disksSampledAtUnixMs;
+    return result;
+  }
+
+  SystemMetrics._();
+
+  factory SystemMetrics.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SystemMetrics.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SystemMetrics',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aD(1, _omitFieldNames ? '' : 'cpuTemperatureCelsius')
+    ..aD(2, _omitFieldNames ? '' : 'cpuUsagePercent')
+    ..aD(3, _omitFieldNames ? '' : 'loadAverage1m',
+        protoName: 'load_average_1m')
+    ..aD(4, _omitFieldNames ? '' : 'loadAverage5m',
+        protoName: 'load_average_5m')
+    ..aD(5, _omitFieldNames ? '' : 'loadAverage15m',
+        protoName: 'load_average_15m')
+    ..aI(6, _omitFieldNames ? '' : 'cpuCount', fieldType: $pb.PbFieldType.OU3)
+    ..a<$fixnum.Int64>(
+        7, _omitFieldNames ? '' : 'uptimeSeconds', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aInt64(8, _omitFieldNames ? '' : 'sampledAtUnixMs')
+    ..pPM<DiskUsage>(9, _omitFieldNames ? '' : 'disks',
+        subBuilder: DiskUsage.create)
+    ..aInt64(10, _omitFieldNames ? '' : 'disksSampledAtUnixMs')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SystemMetrics clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SystemMetrics copyWith(void Function(SystemMetrics) updates) =>
+      super.copyWith((message) => updates(message as SystemMetrics))
+          as SystemMetrics;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SystemMetrics create() => SystemMetrics._();
+  @$core.override
+  SystemMetrics createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SystemMetrics getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SystemMetrics>(create);
+  static SystemMetrics? _defaultInstance;
+
+  /// CPU package temperature. Absent when the board exposes no thermal zone.
+  @$pb.TagNumber(1)
+  $core.double get cpuTemperatureCelsius => $_getN(0);
+  @$pb.TagNumber(1)
+  set cpuTemperatureCelsius($core.double value) => $_setDouble(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasCpuTemperatureCelsius() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCpuTemperatureCelsius() => $_clearField(1);
+
+  /// CPU utilisation across all cores between the last two samples, 0..100.
+  /// Absent for the very first sample, which has no predecessor to diff.
+  @$pb.TagNumber(2)
+  $core.double get cpuUsagePercent => $_getN(1);
+  @$pb.TagNumber(2)
+  set cpuUsagePercent($core.double value) => $_setDouble(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasCpuUsagePercent() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearCpuUsagePercent() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.double get loadAverage1m => $_getN(2);
+  @$pb.TagNumber(3)
+  set loadAverage1m($core.double value) => $_setDouble(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasLoadAverage1m() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLoadAverage1m() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.double get loadAverage5m => $_getN(3);
+  @$pb.TagNumber(4)
+  set loadAverage5m($core.double value) => $_setDouble(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasLoadAverage5m() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearLoadAverage5m() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.double get loadAverage15m => $_getN(4);
+  @$pb.TagNumber(5)
+  set loadAverage15m($core.double value) => $_setDouble(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasLoadAverage15m() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearLoadAverage15m() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.int get cpuCount => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set cpuCount($core.int value) => $_setUnsignedInt32(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasCpuCount() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearCpuCount() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $fixnum.Int64 get uptimeSeconds => $_getI64(6);
+  @$pb.TagNumber(7)
+  set uptimeSeconds($fixnum.Int64 value) => $_setInt64(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasUptimeSeconds() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearUptimeSeconds() => $_clearField(7);
+
+  /// When the CPU values above were sampled.
+  @$pb.TagNumber(8)
+  $fixnum.Int64 get sampledAtUnixMs => $_getI64(7);
+  @$pb.TagNumber(8)
+  set sampledAtUnixMs($fixnum.Int64 value) => $_setInt64(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasSampledAtUnixMs() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearSampledAtUnixMs() => $_clearField(8);
+
+  /// Disk usage is sampled on its own, slower cadence
+  /// (system.disk_metrics_interval_seconds), so it carries its own timestamp
+  /// and repeats unchanged across several CPU samples.
+  @$pb.TagNumber(9)
+  $pb.PbList<DiskUsage> get disks => $_getList(8);
+
+  @$pb.TagNumber(10)
+  $fixnum.Int64 get disksSampledAtUnixMs => $_getI64(9);
+  @$pb.TagNumber(10)
+  set disksSampledAtUnixMs($fixnum.Int64 value) => $_setInt64(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasDisksSampledAtUnixMs() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearDisksSampledAtUnixMs() => $_clearField(10);
 }
 
 const $core.bool _omitFieldNames =

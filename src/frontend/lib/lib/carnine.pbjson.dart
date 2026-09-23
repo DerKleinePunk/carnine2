@@ -28,6 +28,8 @@ const LibraryEventType$json = {
     {'1': 'LIBRARY_IMPORT_STARTED', '2': 6},
     {'1': 'LIBRARY_IMPORT_PROGRESS', '2': 7},
     {'1': 'LIBRARY_IMPORT_COMPLETED', '2': 8},
+    {'1': 'PLAYLIST_CREATED', '2': 9},
+    {'1': 'PLAYLIST_ENTRY_ADDED', '2': 10},
   ],
 };
 
@@ -37,7 +39,8 @@ final $typed_data.Uint8List libraryEventTypeDescriptor = $convert.base64Decode(
     'gKFExJQlJBUllfU0NBTl9TVEFSVEVEEAESFAoQTElCUkFSWV9QUk9HUkVTUxACEhEKDUxJQlJB'
     'UllfRVJST1IQAxIaChZMSUJSQVJZX1NDQU5fQ09NUExFVEVEEAQSFwoTTElCUkFSWV9NVVNJQ1'
     '9GT1VORBAFEhoKFkxJQlJBUllfSU1QT1JUX1NUQVJURUQQBhIbChdMSUJSQVJZX0lNUE9SVF9Q'
-    'Uk9HUkVTUxAHEhwKGExJQlJBUllfSU1QT1JUX0NPTVBMRVRFRBAI');
+    'Uk9HUkVTUxAHEhwKGExJQlJBUllfSU1QT1JUX0NPTVBMRVRFRBAIEhQKEFBMQVlMSVNUX0NSRU'
+    'FURUQQCRIYChRQTEFZTElTVF9FTlRSWV9BRERFRBAK');
 
 @$core.Deprecated('Use playerEventTypeDescriptor instead')
 const PlayerEventType$json = {
@@ -338,6 +341,8 @@ const LibraryEvent$json = {
     {'1': 'source_label', '3': 7, '4': 1, '5': 9, '10': 'sourceLabel'},
     {'1': 'source_path', '3': 8, '4': 1, '5': 9, '10': 'sourcePath'},
     {'1': 'matching_files', '3': 9, '4': 1, '5': 4, '10': 'matchingFiles'},
+    {'1': 'playlist_id', '3': 10, '4': 1, '5': 4, '10': 'playlistId'},
+    {'1': 'playlist_name', '3': 11, '4': 1, '5': 9, '10': 'playlistName'},
   ],
 };
 
@@ -348,7 +353,8 @@ final $typed_data.Uint8List libraryEventDescriptor = $convert.base64Decode(
     'b2Nlc3NlZBIaCghpbXBvcnRlZBgEIAEoBFIIaW1wb3J0ZWQSEgoEcGF0aBgFIAEoCVIEcGF0aB'
     'IYCgdtZXNzYWdlGAYgASgJUgdtZXNzYWdlEiEKDHNvdXJjZV9sYWJlbBgHIAEoCVILc291cmNl'
     'TGFiZWwSHwoLc291cmNlX3BhdGgYCCABKAlSCnNvdXJjZVBhdGgSJQoObWF0Y2hpbmdfZmlsZX'
-    'MYCSABKARSDW1hdGNoaW5nRmlsZXM=');
+    'MYCSABKARSDW1hdGNoaW5nRmlsZXMSHwoLcGxheWxpc3RfaWQYCiABKARSCnBsYXlsaXN0SWQS'
+    'IwoNcGxheWxpc3RfbmFtZRgLIAEoCVIMcGxheWxpc3ROYW1l');
 
 @$core.Deprecated('Use mediaItemDescriptor instead')
 const MediaItem$json = {
@@ -693,6 +699,22 @@ const Configuration$json = {
     {'1': 'log_level', '3': 13, '4': 1, '5': 9, '10': 'logLevel'},
     {'1': 'cover_cache_dir', '3': 14, '4': 1, '5': 9, '10': 'coverCacheDir'},
     {'1': 'tcp_address', '3': 15, '4': 1, '5': 9, '10': 'tcpAddress'},
+    {'1': 'socket_mode', '3': 19, '4': 1, '5': 9, '10': 'socketMode'},
+    {
+      '1': 'metrics_interval_seconds',
+      '3': 16,
+      '4': 1,
+      '5': 4,
+      '10': 'metricsIntervalSeconds'
+    },
+    {
+      '1': 'disk_metrics_interval_seconds',
+      '3': 17,
+      '4': 1,
+      '5': 4,
+      '10': 'diskMetricsIntervalSeconds'
+    },
+    {'1': 'disk_paths', '3': 18, '4': 3, '5': 9, '10': 'diskPaths'},
   ],
 };
 
@@ -705,7 +727,11 @@ final $typed_data.Uint8List configurationDescriptor = $convert.base64Decode(
     'GAYgASgJUgpyZXN1bWVNb2RlEjEKFG5hdmlnYXRpb25faW50ZXJydXB0GAsgASgJUhNuYXZpZ2'
     'F0aW9uSW50ZXJydXB0EiMKDWxvZ19kaXJlY3RvcnkYDCABKAlSDGxvZ0RpcmVjdG9yeRIbCgls'
     'b2dfbGV2ZWwYDSABKAlSCGxvZ0xldmVsEiYKD2NvdmVyX2NhY2hlX2RpchgOIAEoCVINY292ZX'
-    'JDYWNoZURpchIfCgt0Y3BfYWRkcmVzcxgPIAEoCVIKdGNwQWRkcmVzcw==');
+    'JDYWNoZURpchIfCgt0Y3BfYWRkcmVzcxgPIAEoCVIKdGNwQWRkcmVzcxIfCgtzb2NrZXRfbW9k'
+    'ZRgTIAEoCVIKc29ja2V0TW9kZRI4ChhtZXRyaWNzX2ludGVydmFsX3NlY29uZHMYECABKARSFm'
+    '1ldHJpY3NJbnRlcnZhbFNlY29uZHMSQQodZGlza19tZXRyaWNzX2ludGVydmFsX3NlY29uZHMY'
+    'ESABKARSGmRpc2tNZXRyaWNzSW50ZXJ2YWxTZWNvbmRzEh0KCmRpc2tfcGF0aHMYEiADKAlSCW'
+    'Rpc2tQYXRocw==');
 
 @$core.Deprecated('Use updateConfigurationRequestDescriptor instead')
 const UpdateConfigurationRequest$json = {
@@ -752,3 +778,91 @@ final $typed_data.Uint8List configurationResponseDescriptor = $convert.base64Dec
     'NzYWdlGAIgASgJUgdtZXNzYWdlEjwKDWNvbmZpZ3VyYXRpb24YAyABKAsyFi5jYXJuaW5lLkNv'
     'bmZpZ3VyYXRpb25SDWNvbmZpZ3VyYXRpb24SKQoQcmVzdGFydF9yZXF1aXJlZBgEIAEoCFIPcm'
     'VzdGFydFJlcXVpcmVk');
+
+@$core.Deprecated('Use diskUsageDescriptor instead')
+const DiskUsage$json = {
+  '1': 'DiskUsage',
+  '2': [
+    {'1': 'path', '3': 1, '4': 1, '5': 9, '10': 'path'},
+    {'1': 'mount_point', '3': 2, '4': 1, '5': 9, '10': 'mountPoint'},
+    {'1': 'total_bytes', '3': 3, '4': 1, '5': 4, '10': 'totalBytes'},
+    {'1': 'available_bytes', '3': 4, '4': 1, '5': 4, '10': 'availableBytes'},
+    {'1': 'used_percent', '3': 5, '4': 1, '5': 1, '10': 'usedPercent'},
+  ],
+};
+
+/// Descriptor for `DiskUsage`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List diskUsageDescriptor = $convert.base64Decode(
+    'CglEaXNrVXNhZ2USEgoEcGF0aBgBIAEoCVIEcGF0aBIfCgttb3VudF9wb2ludBgCIAEoCVIKbW'
+    '91bnRQb2ludBIfCgt0b3RhbF9ieXRlcxgDIAEoBFIKdG90YWxCeXRlcxInCg9hdmFpbGFibGVf'
+    'Ynl0ZXMYBCABKARSDmF2YWlsYWJsZUJ5dGVzEiEKDHVzZWRfcGVyY2VudBgFIAEoAVILdXNlZF'
+    'BlcmNlbnQ=');
+
+@$core.Deprecated('Use systemMetricsDescriptor instead')
+const SystemMetrics$json = {
+  '1': 'SystemMetrics',
+  '2': [
+    {
+      '1': 'cpu_temperature_celsius',
+      '3': 1,
+      '4': 1,
+      '5': 1,
+      '9': 0,
+      '10': 'cpuTemperatureCelsius',
+      '17': true
+    },
+    {
+      '1': 'cpu_usage_percent',
+      '3': 2,
+      '4': 1,
+      '5': 1,
+      '9': 1,
+      '10': 'cpuUsagePercent',
+      '17': true
+    },
+    {'1': 'load_average_1m', '3': 3, '4': 1, '5': 1, '10': 'loadAverage1m'},
+    {'1': 'load_average_5m', '3': 4, '4': 1, '5': 1, '10': 'loadAverage5m'},
+    {'1': 'load_average_15m', '3': 5, '4': 1, '5': 1, '10': 'loadAverage15m'},
+    {'1': 'cpu_count', '3': 6, '4': 1, '5': 13, '10': 'cpuCount'},
+    {'1': 'uptime_seconds', '3': 7, '4': 1, '5': 4, '10': 'uptimeSeconds'},
+    {
+      '1': 'sampled_at_unix_ms',
+      '3': 8,
+      '4': 1,
+      '5': 3,
+      '10': 'sampledAtUnixMs'
+    },
+    {
+      '1': 'disks',
+      '3': 9,
+      '4': 3,
+      '5': 11,
+      '6': '.carnine.DiskUsage',
+      '10': 'disks'
+    },
+    {
+      '1': 'disks_sampled_at_unix_ms',
+      '3': 10,
+      '4': 1,
+      '5': 3,
+      '10': 'disksSampledAtUnixMs'
+    },
+  ],
+  '8': [
+    {'1': '_cpu_temperature_celsius'},
+    {'1': '_cpu_usage_percent'},
+  ],
+};
+
+/// Descriptor for `SystemMetrics`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List systemMetricsDescriptor = $convert.base64Decode(
+    'Cg1TeXN0ZW1NZXRyaWNzEjsKF2NwdV90ZW1wZXJhdHVyZV9jZWxzaXVzGAEgASgBSABSFWNwdV'
+    'RlbXBlcmF0dXJlQ2Vsc2l1c4gBARIvChFjcHVfdXNhZ2VfcGVyY2VudBgCIAEoAUgBUg9jcHVV'
+    'c2FnZVBlcmNlbnSIAQESJgoPbG9hZF9hdmVyYWdlXzFtGAMgASgBUg1sb2FkQXZlcmFnZTFtEi'
+    'YKD2xvYWRfYXZlcmFnZV81bRgEIAEoAVINbG9hZEF2ZXJhZ2U1bRIoChBsb2FkX2F2ZXJhZ2Vf'
+    'MTVtGAUgASgBUg5sb2FkQXZlcmFnZTE1bRIbCgljcHVfY291bnQYBiABKA1SCGNwdUNvdW50Ei'
+    'UKDnVwdGltZV9zZWNvbmRzGAcgASgEUg11cHRpbWVTZWNvbmRzEisKEnNhbXBsZWRfYXRfdW5p'
+    'eF9tcxgIIAEoA1IPc2FtcGxlZEF0VW5peE1zEigKBWRpc2tzGAkgAygLMhIuY2FybmluZS5EaX'
+    'NrVXNhZ2VSBWRpc2tzEjYKGGRpc2tzX3NhbXBsZWRfYXRfdW5peF9tcxgKIAEoA1IUZGlza3NT'
+    'YW1wbGVkQXRVbml4TXNCGgoYX2NwdV90ZW1wZXJhdHVyZV9jZWxzaXVzQhQKEl9jcHVfdXNhZ2'
+    'VfcGVyY2VudA==');

@@ -202,22 +202,30 @@ actions:
       sed -i '/^[[:space:]]*#\?[[:space:]]*dtparam=i2c_arm=/d' /boot/firmware/config.txt
       printf '%s\n' 'dtparam=i2c_arm=on' >> /boot/firmware/config.txt
 
+  # Das Waveshare-Panel laeuft unter Full KMS (vc4-kms-v3d aus der
+  # pi-gen-config.txt). Sein EDID ist geklont und traegt ungerade
+  # 1024x600-Timings (hsync_start 1029), die der vc4-Treiber ablehnt - er
+  # faellt dann auf 1920x1080 aus dem CEA-Block zurueck und das Panel skaliert
+  # selbst herunter. Statt auf fkms auszuweichen schieben wir ein korrigiertes
+  # EDID unter (Kernel-Parameter in cmdline.txt weiter unten).
+  # Begruendung und Gegenproben: docs/22-waveshare-display-1024x600.md
+  - action: overlay
+    description: Install corrected EDID for the Waveshare 1024x600 panel
+    origin: recipe
+    source: edid/waveshare-1024x600.bin
+    destination: /lib/firmware/edid/waveshare-1024x600.bin
+
+  # Dracut zieht vc4.ko in die Initramfs (fuer den Plymouth-Splash), also
+  # fordert der Treiber das EDID schon dort an - lange bevor das Rootfs
+  # gemountet ist. Ohne diesen Eintrag schlaegt der Firmware-Load mit -ENOENT
+  # fehl und das Panel laeuft bis zum Rootfs-Switch im Fallback-Modus.
   - action: run
-    description: Configure Waveshare 1024x600 display mode
+    description: Ship the EDID inside the initramfs as well
     chroot: true
     command: |
-      {{ if eq $display "waveshare-1024x600" -}}
-      sed -i 's/^dtoverlay=vc4-kms-v3d$/dtoverlay=vc4-fkms-v3d/' /boot/firmware/config.txt
-      sed -i '/^disable_fw_kms_setup=/d' /boot/firmware/config.txt
-      cat >> /boot/firmware/config.txt << __EOF__
-      hdmi_force_hotplug=1
-      hdmi_group=2
-      hdmi_mode=87
-      hdmi_cvt=1024 600 60 6 0 0 0
-      __EOF__
-      {{- else }}
-      true
-      {{- end }}
+      install -d /etc/dracut.conf.d
+      printf '%s\n' 'install_items+=" /usr/lib/firmware/edid/waveshare-1024x600.bin "' \
+        > /etc/dracut.conf.d/carnine-edid.conf
 
   - action: run
     description: Set up cmdline.txt
@@ -225,7 +233,7 @@ actions:
     command: |
       printf '%s' 'root=LABEL=ROOTFS quiet splash logo.nologo' > /boot/firmware/cmdline.txt
       {{ if eq $display "waveshare-1024x600" -}}
-      printf '%s' ' video=HDMI-A-1:1024x600M@60' >> /boot/firmware/cmdline.txt
+      printf '%s' ' drm.edid_firmware=HDMI-A-1:edid/waveshare-1024x600.bin' >> /boot/firmware/cmdline.txt
       {{- end }}
       printf '%s\n' ' vt.global_cursor_default=1' >> /boot/firmware/cmdline.txt
 
@@ -290,22 +298,9 @@ actions:
       - carnine-frontend.deb
 
   - action: run
-    description: Reserve tty1 for Flutter DRM frontend
+    description: Enable a permanent debug console on tty2
     chroot: true
-    command: |
-      systemctl disable getty@tty1.service
-      systemctl enable getty@tty2.service
-
-  - action: run
-    description: Wait for UI readiness before leaving Plymouth
-    chroot: true
-    command: |
-      install -d /etc/systemd/system/plymouth-quit.service.d
-      printf '%s\n' \
-        '[Unit]' \
-        'After=carnine-frontend.service' \
-        'Wants=carnine-frontend.service' \
-        > /etc/systemd/system/plymouth-quit.service.d/carnine.conf
+    command: systemctl enable getty@tty2.service
 
   - action: overlay
     description: Install Bootimage

@@ -103,6 +103,25 @@ User toggles a relay (e.g., interior light) via UI:
 3. Controller sends I²C command to activate/deactivate the specific relay.
 4. Physical relay switches the power consumer on/off.
 
+### Scenario 6: System Health Sampling
+
+Runs for the whole lifetime of the backend, independent of any client:
+
+1. At startup the backend spawns the metrics sampler with the cadences from
+   the `[system]` configuration section.
+2. Every `metrics_interval_seconds` (default 30) it reads CPU temperature from
+   the thermal zone, the `/proc/stat` counters and `/proc/loadavg`. CPU
+   utilisation is the difference between the last two `/proc/stat` readings, so
+   the first sample after startup reports no utilisation.
+3. Every `disk_metrics_interval_seconds` (default 300) it additionally runs one
+   `statvfs` per monitored filesystem — by default the root filesystem plus the
+   media folders, deduplicated per filesystem, skipping paths that are not
+   mounted. This slower tick also writes the `system health` line to the log.
+4. Each sample replaces the cached snapshot and is pushed to every
+   `StreamSystemMetrics` subscriber. `GetSystemMetrics` answers from that cache
+   and never touches `/proc` or `/sys` itself.
+5. A CPU above 75 °C or a filesystem above 90 % is logged as a warning.
+
 ## Diagrams
 
 ### Sequence Diagram: System Startup

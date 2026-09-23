@@ -73,6 +73,10 @@ ausfuehren. Decoder und Steuerlogik laufen ausserhalb des Callbacks.
 - Der cpal-Ausgang bleibt waehrend der Backend-Laufzeit geoeffnet.
 - Fade-out, Quellenentfernung und Titelwechsel sind auf dem Pi knacksfrei.
 - Keine ALSA-Underruns waehrend Pause, Resume oder Quellenwechsel.
+- Kein Busy-Wait: Der Decoderthread verbraucht im eingeschwungenen Zustand
+  praktisch keine CPU. Der Ringpuffer ist fast immer voll, weil FFmpeg weit
+  schneller als Echtzeit dekodiert - das ist der Normalfall und darf nicht
+  aktiv abgewartet werden.
 - Musik, Navigation und Sprache koennen spaeter unabhaengig geduckt und
   gemischt werden.
 - Der Protobuf-Vertrag bleibt waehrend des Spikes unveraendert.
@@ -542,7 +546,82 @@ Noch offen:
 - WSLg/PulseAudio-Ausgabe bleibt fuer subjektive Audioqualitaet eine bekannte
   Testeinschraenkung; lokale Starts verwenden `CARNINE_AUDIO_BACKEND=pulse` und
   `CARNINE_AUDIO_DEVICE=default`, der Raspberry Pi weiterhin ALSA
-- verbleibendes Knacken am Ende von `stop`; vollstaendig gepufferte Audioausgabe
-  als spaetere Referenzimplementierung pruefen
+- vollstaendig gepufferte Audioausgabe als spaetere Referenzimplementierung
+  pruefen (das frueher hier vermutete Knacken am Ende von `stop` ist geklaert,
+  siehe unten)
 - konkrete Laufzeituebernahme aenderbarer Audio- und Medienkonfiguration ohne
   Neustart
+
+## Audio-Regressionsmessungen
+
+Zwei Befunde vom 2026-09-22 auf dem Test-Pi. Beide waren lange unklar, beide
+sind jetzt gemessen statt vermutet - und beide bekommen eine feste Pruefung,
+damit sie nicht erneut unbemerkt zurueckkommen.
+
+### Der Plopp kommt von der HDMI-Senke, nicht aus dem Backend
+
+Der lange gesuchte Plopp entsteht **beim Schliessen des HDMI-PCM-Streams**,
+nicht beim Oeffnen und nicht beim `stop`-Kommando. Belege:
+
+- Ueber einen vollstaendigen `stop` bleibt `trigger_time` konstant und `hw_ptr`
+  laeuft lueckenlos monoton: kein XRUN, kein Recover, kein Stream-Neustart.
+- Der Plopp tritt mit reinem
+  `aplay -D plughw:CARD=vc4hdmi0,DEV=0 -f S16_LE -c 2 /dev/zero` auf, also
+  **ohne Backend-Code und bei digitaler Stille**. Es ist kein Signalsprung und
+  kein Fade-Problem.
+- Er tritt bei **44100 Hz und 48000 Hz gleichermassen** auf; beide Raten laufen
+  nativ auf der Hardware. Die frueher vermutete Ursache "das Display will
+  48 kHz" ist damit widerlegt. Das Display (LEN L1950wD) meldet per ELD
+  `sad0_rates 32000 44100 48000`.
+
+Ursache: Solange der Stream offen ist, sendet der Pi einen gueltigen
+IEC958-Traeger. Beim Schliessen reisst der schlagartig ab, die Senke verliert
+den Lock, ihr DAC springt auf Ruhepegel. Beim Oeffnen bleibt sie waehrend des
+Locks gemutet - deshalb ploppt nur die eine Richtung.
+
+Die naheliegende Gegenmassnahme, den Stream durch einen zweiten Prozess offen
+zu halten, **geht auf dieser Hardware nicht**: `dmix` scheitert an
+`requested or auto-format is not available`, weil der vc4-Treiber nur
+`IEC958_SUBFRAME_LE` akzeptiert und `dmix` lineares PCM braucht. `vc4hdmi0`
+hat zudem nur ein Subdevice ohne Hardware-Mixing. Verbleibende Wege, falls der
+Plopp jemals stoeren sollte: `snd-aloop` mit `alsaloop` als Dauerbruecke, ein
+dauerhafter PipeWire-/PulseAudio-Daemon, oder akzeptieren - im Betrieb ist er
+praktisch nur beim Herunterfahren und bei jedem Deployment hoerbar.
+
+### Der Decoderthread hat einen Kern verbrannt
+
+Gemessen auf dem Pi waehrend normaler Wiedergabe: **99,9 % CPU** auf dem
+Decoderthread, 10,8 s CPU-Zeit in 11 s Spielzeit. Ursache war ein
+`while producer.try_push(value).is_err() { thread::yield_now() }` in
+`audio_source.rs`. Da der Ringpuffer zwei Sekunden fasst und FFmpeg weit
+schneller als Echtzeit dekodiert, ist "Ring voll" der Normalzustand - der Spin
+lief also praktisch ununterbrochen, bei Pause ebenfalls. Auf dem Pi gegen-
+gemessen: derselbe Thread liegt mit dem Fix bei 0,7 % statt 99,9 %. Auf dem Pi steht er
+damit in direkter Konkurrenz zum cpal-Callback, der als gewoehnlicher
+`SCHED_OTHER`-Thread mit 25 ms Deadline laeuft (`Max realtime priority: 0`,
+kein RtKit installiert, und cpal 0.16 kennt das Feature `audio_thread_priority`
+gar nicht). Behoben durch blockweises `push_slice` mit kurzem Schlafen statt
+Spinnen.
+
+### Was automatisch geprueft wird
+
+`decoder_sleeps_instead_of_spinning_while_the_ring_is_full` in
+`src/audio_source.rs` laeuft bei jedem `cargo test`. Der Test misst die
+**CPU-Zeit des Decoderthreads selbst** ueber `CLOCK_THREAD_CPUTIME_ID`,
+waehrend der Ring voll ist und niemand ihn leert. Wall-Clock-Zeit kann einen
+schlafenden nicht von einem spinnenden Thread unterscheiden, Thread-CPU-Zeit
+schon. Gegen den alten Code meldet der Test 100,02 % und schlaegt fehl; mit
+dem Fix liegt er nahe null.
+
+### Was auf dem Pi regelmaessig nachgemessen wird
+
+Nach jedem Audio-Eingriff und vor jedem Release auf der echten Hardware
+pruefen - `resources/debos/debug-pi-audio.sh` gibt beides mit aus:
+
+- **CPU pro Thread waehrend der Wiedergabe.** Kein Thread des Backends darf
+  dauerhaft nennenswert CPU ziehen; der cpal-Callback liegt im niedrigen
+  einstelligen Prozentbereich.
+- **PCM-Status ueber einen Stop hinweg.** `trigger_time` muss konstant bleiben
+  und `hw_ptr` monoton weiterlaufen. Springt eines von beiden, wurde der Stream
+  neu aufgesetzt - das ist ein XRUN und der ist sonst unsichtbar, weil cpal
+  `EPIPE` still behandelt und den Error-Callback nicht ruft.

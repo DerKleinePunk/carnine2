@@ -1,5 +1,6 @@
 systemctl cat carnine-frontend.service
 sudo systemctl edit --full carnine-frontend.service
+sudo systemctl edit --full plymouth.service
 systemd-analyze time
 systemd-analyze blame
 systemd-analyze plot > start.svg

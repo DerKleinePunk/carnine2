@@ -35,6 +35,35 @@ ps -eo pid,ppid,stat,wchan:32,etime,cmd | \
 printf '\n%s\n' '--- listening ports ---'
 ss -ltn 2>/dev/null | grep -E '50051|LISTEN' || true
 
+printf '\n%s\n' '--- per-thread CPU (busy-wait check) ---'
+# No backend thread may sit at a high percentage while a track plays. A
+# decoder thread near 100% means it is spinning on a full ring buffer instead
+# of sleeping - see docs/20-media-backend-plan.md.
+CARNINE_PID="$(pgrep -f /usr/bin/carnine-backend | head -n 1)"
+if [ -n "${CARNINE_PID:-}" ]; then
+  top -b -n 2 -d 3 -H -p "$CARNINE_PID" 2>&1 | tail -n 16 || true
+else
+  printf '%s\n' 'carnine-backend is not running'
+fi
+
+printf '\n%s\n' '--- PCM stream state (XRUN check) ---'
+# cpal handles EPIPE silently and never calls its error callback, so underruns
+# leave no trace in the journal. A restarted stream is visible here instead:
+# trigger_time must stay constant and hw_ptr must keep rising monotonically.
+for card in /proc/asound/card*/pcm0p/sub0; do
+  [ -r "$card/hw_params" ] || continue
+  printf '%s\n' "$card"
+  cat "$card/hw_params" 2>&1 || true
+  for _ in 1 2 3; do
+    grep -E 'trigger_time|hw_ptr' "$card/status" 2>/dev/null | tr '\n' ' '
+    printf '\n'
+    sleep 0.5
+  done
+done
+
+printf '\n%s\n' '--- HDMI sink audio capabilities (ELD) ---'
+cat /proc/asound/card*/eld* 2>/dev/null || true
+
 printf '\n%s\n' '--- ALSA devices ---'
 aplay -l 2>&1 || true
 aplay -L 2>&1 | head -n 80 || true

@@ -1,7 +1,8 @@
 [Unit]
 Description=Carnine Flutter Frontend
 After=systemd-udev-settle.service carnine-backend.service plymouth-start.service
-Before=plymouth-quit.service plymouth-quit-wait.service
+Before=getty@tty1.service
+Conflicts=getty@tty1.service
 Wants=carnine-backend.service
 
 [Service]
@@ -13,7 +14,11 @@ Group=carnine
 SupplementaryGroups=render video input
 Environment=CARNINE_FLUTTER_PI=1
 Environment=CARNINE_LOG_PATH=/var/log/carnine/frontend.log
+CacheDirectory=carnine-frontend
+Environment=HOME=/var/cache/carnine-frontend
+ExecStartPre=-+/usr/bin/systemctl stop carnine-getty-fallback.timer
 ExecStart=/usr/bin/carnine-frontend
+ExecStopPost=-+/usr/bin/systemd-run --on-active=5s --unit=carnine-getty-fallback -- /usr/bin/systemctl start getty@tty1.service
 Restart=on-failure
 RestartSec=3
 

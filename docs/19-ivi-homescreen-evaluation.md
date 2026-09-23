@@ -18,6 +18,36 @@ Dieser Leitfaden definiert ein messbares Spike-Protokoll zur Bewertung, ob die i
 
 ---
 
+## 0. Bekanntes Risiko im aktuellen Stack: zu prüfende Frage für den Spike
+
+Im aktuellen Stack (flutter-pi) wurde ein struktureller Bug im Presentation-Pfad
+gefunden (September 2026): Ein fehlgeschlagener DRM/KMS-Commit (z. B. weil
+Plymouth das Display beim Boot noch hält) wird von flutter-pi nur geloggt
+("Commit requested, but drmdev is paused right now."), aber **nicht an die
+Flutter-Engine zurückgemeldet** — weder `addPostFrameCallback` noch
+`SchedulerBinding.addTimingsCallback`/`onReportTimings` können das von Dart aus
+unterscheiden. Zusätzlich **wiederholt flutter-pi einen fehlgeschlagenen Commit
+nicht selbst** (`frame_scheduler_present_frame` in `src/frame_scheduler.c` ist
+ein nicht implementierter Stub) — bleibt die UI danach im Leerlauf (keine neue
+Animation/kein neuer Input), bleibt der Bildschirm dauerhaft schwarz, obwohl
+der Prozess/Service als "aktiv" gilt.
+
+Mitigiert wurde das vorerst nur Dart-seitig in `src/frontend/lib/main.dart`
+(`_scheduleUiReadyDetection`): mehrere Frames werden aktiv erzwungen und erst
+nach mehreren Timing-Reports (oder einem Timeout) wird UI-Ready gemeldet — das
+verkleinert das Zeitfenster, behebt es aber nicht grundsätzlich, da flutter-pi
+selbst nicht retried und Commit-Fehler nicht nach oben durchreicht.
+
+**Für den ivi-homescreen-Spike explizit mitprüfen:**
+- Meldet ivi-homescreen einen fehlgeschlagenen DRM/KMS-Commit-Präsentationsfehler
+  überhaupt nach oben (an die Engine bzw. eine App-seitige Callback-/Plugin-API)?
+- Wiederholt ivi-homescreen einen fehlgeschlagenen Commit automatisch beim
+  nächsten Vsync, oder hat es dieselbe "stumme Stille" wie flutter-pi?
+- Falls ja: gleiche Kategorie Risiko, sollte in Kriterium 8 (Wartbarkeit) bzw.
+  als eigenes Stop-Kriterium einfließen, nicht nur in Kriterium 3 (Startzeit).
+
+---
+
 ## 1. Baseline: Aktueller Stack (Flutter Linux Runner)
 
 ### 1.1 Geschätzte Baseline-Werte

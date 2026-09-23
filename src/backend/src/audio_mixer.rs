@@ -31,8 +31,12 @@ impl AudioMixer {
         }
     }
 
+    /// Mixes a ready buffer instead of a live stream. Production feeds the
+    /// mixer through `add_stream_source`; this one serves the tests and the
+    /// `cpal_mixer_spike` example, which is why the binary never calls it.
+    #[allow(dead_code)]
     pub fn add_source(&mut self, samples: Vec<f32>, gain: f32) -> Result<SourceId> {
-        if samples.is_empty() || samples.len() % CHANNELS != 0 {
+        if samples.is_empty() || !samples.len().is_multiple_of(CHANNELS) {
             bail!("audio source must contain non-empty stereo frames");
         }
         if !(0.0..=1.0).contains(&gain) {
@@ -95,11 +99,11 @@ impl AudioMixer {
     }
 
     pub fn render(&mut self, output: &mut [f32]) -> Result<()> {
-        if output.len() % CHANNELS != 0 {
+        if !output.len().is_multiple_of(CHANNELS) {
             bail!("output must contain complete stereo frames");
         }
         output.fill(0.0);
-        for frame in output.chunks_exact_mut(CHANNELS) {
+        for frame in output.as_chunks_mut::<CHANNELS>().0 {
             for source in &mut self.sources {
                 let Some(source) = source else {
                     continue;

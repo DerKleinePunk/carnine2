@@ -941,6 +941,26 @@ class SystemServiceClient extends $grpc.Client {
     return $createUnaryCall(_$reportUiReady, request, options: options);
   }
 
+  /// Latest sampled health snapshot. Answered from the sampler's cache, so
+  /// calling this never triggers a read of /proc or /sys.
+  $grpc.ResponseFuture<$0.SystemMetrics> getSystemMetrics(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getSystemMetrics, request, options: options);
+  }
+
+  /// Pushes a snapshot on every CPU sample (system.metrics_interval_seconds),
+  /// starting with the current one.
+  $grpc.ResponseStream<$0.SystemMetrics> streamSystemMetrics(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$streamSystemMetrics, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
   // method descriptors
 
   static final _$reportUiReady =
@@ -948,6 +968,16 @@ class SystemServiceClient extends $grpc.Client {
           '/carnine.SystemService/ReportUiReady',
           ($0.Empty value) => value.writeToBuffer(),
           $0.CommandResponse.fromBuffer);
+  static final _$getSystemMetrics =
+      $grpc.ClientMethod<$0.Empty, $0.SystemMetrics>(
+          '/carnine.SystemService/GetSystemMetrics',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.SystemMetrics.fromBuffer);
+  static final _$streamSystemMetrics =
+      $grpc.ClientMethod<$0.Empty, $0.SystemMetrics>(
+          '/carnine.SystemService/StreamSystemMetrics',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.SystemMetrics.fromBuffer);
 }
 
 @$pb.GrpcServiceName('carnine.SystemService')
@@ -962,6 +992,20 @@ abstract class SystemServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($0.CommandResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.SystemMetrics>(
+        'GetSystemMetrics',
+        getSystemMetrics_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.SystemMetrics value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.SystemMetrics>(
+        'StreamSystemMetrics',
+        streamSystemMetrics_Pre,
+        false,
+        true,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.SystemMetrics value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.CommandResponse> reportUiReady_Pre(
@@ -970,5 +1014,21 @@ abstract class SystemServiceBase extends $grpc.Service {
   }
 
   $async.Future<$0.CommandResponse> reportUiReady(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.SystemMetrics> getSystemMetrics_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return getSystemMetrics($call, await $request);
+  }
+
+  $async.Future<$0.SystemMetrics> getSystemMetrics(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Stream<$0.SystemMetrics> streamSystemMetrics_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async* {
+    yield* streamSystemMetrics($call, await $request);
+  }
+
+  $async.Stream<$0.SystemMetrics> streamSystemMetrics(
       $grpc.ServiceCall call, $0.Empty request);
 }

@@ -2,4 +2,14 @@
 set -eu
 
 export CARNINE_FLUTTER_PI=1
-exec /opt/carnine/frontend/flutter-pi /opt/carnine/frontend
+
+BUILD_MODE=""
+if [ -f /opt/carnine/frontend/.carnine-build-mode ]; then
+  BUILD_MODE="$(cat /opt/carnine/frontend/.carnine-build-mode)"
+fi
+
+case "$BUILD_MODE" in
+  release) exec /opt/carnine/frontend/flutter-pi --release /opt/carnine/frontend ;;
+  profile) exec /opt/carnine/frontend/flutter-pi --profile /opt/carnine/frontend ;;
+  *) exec /opt/carnine/frontend/flutter-pi /opt/carnine/frontend ;;
+esac

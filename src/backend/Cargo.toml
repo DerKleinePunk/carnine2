@@ -50,6 +50,8 @@ anyhow = "1.0"
 chrono = "0.4"
 cpal = "0.16"
 futures-util = "0.3"
+# statvfs for the disk usage in system_metrics; std exposes no free-space API.
+libc = "0.2"
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.8"
 serde_json = "1.0"
@@ -65,6 +67,11 @@ prost = "0.13"
 ringbuf = "0.4"
 ffmpeg-next = { version = "8", optional = true }
 rand = "0.8"
+
+[dev-dependencies]
+# test-util gives the metrics sampler tests a paused clock, so they cover the
+# tick scheduling without sleeping for real.
+tokio = { version = "1.38", features = ["macros", "rt-multi-thread", "test-util"] }
 
 [build-dependencies]
 tonic-build = "0.12"

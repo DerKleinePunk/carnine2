@@ -18,6 +18,27 @@ We use GitHub to host code, to track issues and feature requests, as well as acc
 4. Make sure your code lints.
 5. Issue that pull request!
 
+## Continuous Integration
+
+Every push and pull request runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+on GitHub-hosted runners. You can run the same checks locally before pushing:
+
+```bash
+cd src/backend  && cargo fmt --check && cargo clippy --all-targets && cargo test
+cd src/frontend && flutter analyze && flutter test
+```
+
+The workflow additionally builds the backend in release mode on a native arm64
+runner, which is the architecture the Raspberry Pi target runs.
+
+CI installs the current Rust `stable`, and clippy gains lints with every
+release. Run `rustup update stable` before you trust a local clippy run - an
+older toolchain reports a clean tree that CI then rejects.
+
+Two things deliberately stay out of CI: the Debos image build, which needs
+privileged podman and KVM, and everything that needs real hardware - the
+display panel, the audio sink and USB media. Those are verified on the test Pi.
+
 ## Pull Request Process
 
 1. Update the README.md with details of changes to the interface, if applicable.

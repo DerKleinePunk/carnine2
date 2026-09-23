@@ -29,6 +29,20 @@ Der Debos-Build soll optionale Profile für den Entwicklungs-Pi unterstützen:
 - Einen SSH-Public-Key ausschließlich beim Build übergeben und für den Benutzer `pi` installieren, damit der Entwicklungs-Pi ohne Passwort erreichbar ist.
 - Private Schlüssel und sonstige Zugangsdaten dürfen weder im Repository noch im Image-Rezept hinterlegt werden. Das Standardprofil bleibt ohne zusätzlichen SSH-Key.
 
+Noch offen: flutter-pi meldet fehlgeschlagene DRM-Commits nicht zurück
+
+Ein fehlgeschlagener DRM/KMS-Commit in flutter-pi (z. B. weil Plymouth das
+Display beim Boot noch hält) wird nur geloggt, aber weder an die Flutter-Engine
+zurückgemeldet noch von flutter-pi selbst wiederholt. Bleibt die UI danach im
+Leerlauf, bleibt der Bildschirm dauerhaft schwarz, obwohl der Service als
+aktiv gilt. Vorerst Dart-seitig in `src/frontend/lib/main.dart`
+(`_scheduleUiReadyDetection`) mitigiert (mehrere Frames erzwingen, mehrere
+Timing-Reports abwarten, mit Timeout-Fallback) — das verkleinert das
+Zeitfenster, behebt die Ursache aber nicht. Ein echter Fix bräuchte einen
+flutter-pi-Fork (Commit-Retry + echtes Presentation-Signal an Dart). Siehe
+`docs/19-ivi-homescreen-evaluation.md` Abschnitt 0 — diese Frage muss auch für
+ivi-homescreen als möglichen Ersatz explizit geprüft werden.
+
 Erledigt: Zentrale Projektversion
 
 Die Projektversion wird derzeit an mehreren Stellen unabhängig gepflegt und kann dadurch auseinanderlaufen:

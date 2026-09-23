@@ -25,7 +25,9 @@ The deployment architecture emphasizes reliability, minimal resource consumption
   - Connection: HDMI video + USB for touch input
   - Resolution: 1024×600 (native)
    - Audio: HDMI audio with separate headphone and speaker outputs; each speaker channel has a 2.6 W PA amplifier
-  - Requires correct HDMI modes in `/boot/config.txt`
+  - The panel ships a cloned EDID whose timings the vc4 driver rejects; an
+    EDID override keeps it on full KMS at its native mode, see
+    [22 – Waveshare 1024x600 Display under Full KMS](22-waveshare-display-1024x600.md)
 - **CAN Interface**:
   • Adapter: MCP2515 (SPI) or isolated CAN HAT (e.g. PiCAN 2, Kvaser)
   • Protocol: CAN 2.0B, 500 kbps or 1 Mbps (vehicle‑specific)
@@ -217,6 +219,28 @@ so this needs no separate auth layer - only filesystem permissions - and,
 unlike a TCP port, is not reachable over the network even by mistake. The
 image recipe must not add a network-facing `tcp_address` to
 `/etc/carnine/config.toml`.
+
+`0600` is the default, not a hard-coded value: `server.socket_mode` (or the
+`CARNINE_SOCKET_MODE` environment variable) accepts an octal mode, and modes
+granting world access are rejected. Widening it to `0660` lets every member of
+the `carnine` group reach the service — convenient on a test device where a
+second login needs to run a gRPC client, and a deliberate weakening anywhere
+else. The backend logs a warning at startup whenever the mode is not `0600`.
+Both the socket and the `RuntimeDirectory=carnine` directory have to be
+widened; the directory's `0700` alone already blocks a second account.
+
+On the test device this is set through a systemd drop-in rather than
+`/etc/carnine/config.toml`, because `deploy_pi.sh` overwrites that file from
+the repository on every deployment:
+
+```ini
+# /etc/systemd/system/carnine-backend.service.d/testing-group-access.conf
+[Service]
+Environment=CARNINE_SOCKET_MODE=0660
+RuntimeDirectoryMode=0750
+```
+
+plus `sudo usermod -aG carnine pi`. The generated image must not ship either.
 
 Verify the service directly on the Pi:
 

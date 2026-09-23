@@ -1,3 +1,7 @@
+// The gRPC calls return tonic's `Status`, which clippy counts as a large
+// `Err`; it is the API's type, not ours.
+#![allow(clippy::result_large_err)]
+
 use std::env;
 use std::time::Duration;
 
@@ -11,10 +15,11 @@ pub mod carnine {
 
 use carnine::{
     audio_service_client::AudioServiceClient, get_cover_art_request::Target as CoverArtTarget,
-    media_service_client::MediaServiceClient, AddPlaylistEntryRequest, CreatePlaylistRequest,
-    Empty, GetCoverArtRequest, GetPlaylistRequest, ImportMusicVolumeRequest, LibraryEventType,
-    PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, RepeatMode, RescanMediaRequest,
-    SearchMediaRequest, SetRepeatModeRequest, SetShuffleModeRequest,
+    media_service_client::MediaServiceClient, system_service_client::SystemServiceClient,
+    AddPlaylistEntryRequest, CreatePlaylistRequest, Empty, GetCoverArtRequest, GetPlaylistRequest,
+    ImportMusicVolumeRequest, LibraryEventType, PlayPlaylistRequest, PlayQueueEntryRequest,
+    PlayRequest, RepeatMode, RescanMediaRequest, SearchMediaRequest, SetRepeatModeRequest,
+    SetShuffleModeRequest, SystemMetrics,
 };
 
 #[tokio::main]
@@ -64,6 +69,8 @@ async fn main() -> Result<()> {
         "cover-art" => get_cover_art(&mut client).await?,
         "repeat" => set_repeat_mode(&mut client).await?,
         "shuffle" => set_shuffle_mode(&mut client).await?,
+        "metrics" => get_system_metrics(&endpoint).await?,
+        "metrics-stream" => stream_system_metrics(&endpoint).await?,
         unknown => bail!("unknown command: {unknown}"),
     }
     Ok(())
@@ -235,8 +242,16 @@ async fn stream_library_events(client: &mut MediaServiceClient<Channel>) -> Resu
     let mut stream = client.stream_library_events(Empty {}).await?.into_inner();
     read_events(&mut stream, count, |event| {
         println!(
-            "library event={} scan_id={} processed={} imported={} path={} message={}",
-            event.event, event.scan_id, event.processed, event.imported, event.path, event.message
+            "library event={} scan_id={} processed={} imported={} path={} message={} \
+             playlist_id={} playlist_name={}",
+            event.event,
+            event.scan_id,
+            event.processed,
+            event.imported,
+            event.path,
+            event.message,
+            event.playlist_id,
+            event.playlist_name
         );
     })
     .await
@@ -250,6 +265,62 @@ async fn stream_audio_events(endpoint: &str) -> Result<()> {
         println!("audio event={} message={}", event.event, event.message);
     })
     .await
+}
+
+async fn get_system_metrics(endpoint: &str) -> Result<()> {
+    let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let metrics = client.get_system_metrics(Empty {}).await?.into_inner();
+    print_system_metrics(&metrics);
+    Ok(())
+}
+
+/// Prints the opening snapshot plus as many pushed samples as requested
+/// (default 1). With the stock 30 s cadence, `metrics-stream 3` runs for about
+/// a minute.
+async fn stream_system_metrics(endpoint: &str) -> Result<()> {
+    let count = event_count(1)?;
+    let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let mut stream = client.stream_system_metrics(Empty {}).await?.into_inner();
+    read_events(&mut stream, count, |metrics| {
+        print_system_metrics(&metrics);
+    })
+    .await
+}
+
+fn print_system_metrics(metrics: &SystemMetrics) {
+    if metrics.sampled_at_unix_ms == 0 {
+        println!("no sample taken yet");
+        return;
+    }
+    let temperature = metrics
+        .cpu_temperature_celsius
+        .map(|value| format!("{value:.1} C"))
+        .unwrap_or_else(|| "n/a".to_string());
+    let usage = metrics
+        .cpu_usage_percent
+        .map(|value| format!("{value:.1} %"))
+        .unwrap_or_else(|| "n/a".to_string());
+    println!(
+        "cpu temperature={temperature} usage={usage} load={:.2}/{:.2}/{:.2} cores={} uptime={}s",
+        metrics.load_average_1m,
+        metrics.load_average_5m,
+        metrics.load_average_15m,
+        metrics.cpu_count,
+        metrics.uptime_seconds
+    );
+    for disk in &metrics.disks {
+        println!(
+            "disk path={} mount={} used={:.1} % available={:.2} GiB of {:.2} GiB",
+            disk.path,
+            disk.mount_point,
+            disk.used_percent,
+            disk.available_bytes as f64 / (1024.0 * 1024.0 * 1024.0),
+            disk.total_bytes as f64 / (1024.0 * 1024.0 * 1024.0)
+        );
+    }
+    if metrics.disks.is_empty() {
+        println!("disk no sample taken yet");
+    }
 }
 
 async fn library_event_smoke(endpoint: &str) -> Result<()> {

@@ -45,6 +45,12 @@ service ConfigService {
 
 service SystemService {
   rpc ReportUiReady (Empty) returns (CommandResponse);
+  // Latest sampled health snapshot. Answered from the sampler's cache, so
+  // calling this never triggers a read of /proc or /sys.
+  rpc GetSystemMetrics (Empty) returns (SystemMetrics);
+  // Pushes a snapshot on every CPU sample (system.metrics_interval_seconds),
+  // starting with the current one.
+  rpc StreamSystemMetrics (Empty) returns (stream SystemMetrics);
 }
 
 message CanDataRequest {
@@ -122,6 +128,8 @@ enum LibraryEventType {
   LIBRARY_IMPORT_STARTED = 6;
   LIBRARY_IMPORT_PROGRESS = 7;
   LIBRARY_IMPORT_COMPLETED = 8;
+  PLAYLIST_CREATED = 9;
+  PLAYLIST_ENTRY_ADDED = 10;
 }
 
 message LibraryEvent {
@@ -134,6 +142,8 @@ message LibraryEvent {
   string source_label = 7;
   string source_path = 8;
   uint64 matching_files = 9;
+  uint64 playlist_id = 10;
+  string playlist_name = 11;
 }
 
 message MediaItem {
@@ -282,6 +292,14 @@ message Configuration {
   // Optional TCP loopback fallback (ADR-002); empty means unset. Must stay
   // unset in production - see docs/07-deployment.md §7.4.
   string tcp_address = 15;
+  // Octal socket permissions such as "0660"; empty means the production
+  // default 0600. See docs/07-deployment.md §7.4.
+  string socket_mode = 19;
+  // Health sampling, see SystemService.GetSystemMetrics.
+  uint64 metrics_interval_seconds = 16;
+  uint64 disk_metrics_interval_seconds = 17;
+  // Empty means the default: root filesystem plus every media folder.
+  repeated string disk_paths = 18;
 }
 
 message UpdateConfigurationRequest {
@@ -293,4 +311,34 @@ message ConfigurationResponse {
   string message = 2;
   Configuration configuration = 3;
   bool restart_required = 4;
+}
+
+message DiskUsage {
+  // Path that was probed, as configured in system.disk_paths.
+  string path = 1;
+  // Mount point the path resolves to; several configured paths can share one.
+  string mount_point = 2;
+  uint64 total_bytes = 3;
+  uint64 available_bytes = 4;
+  double used_percent = 5;
+}
+
+message SystemMetrics {
+  // CPU package temperature. Absent when the board exposes no thermal zone.
+  optional double cpu_temperature_celsius = 1;
+  // CPU utilisation across all cores between the last two samples, 0..100.
+  // Absent for the very first sample, which has no predecessor to diff.
+  optional double cpu_usage_percent = 2;
+  double load_average_1m = 3;
+  double load_average_5m = 4;
+  double load_average_15m = 5;
+  uint32 cpu_count = 6;
+  uint64 uptime_seconds = 7;
+  // When the CPU values above were sampled.
+  int64 sampled_at_unix_ms = 8;
+  // Disk usage is sampled on its own, slower cadence
+  // (system.disk_metrics_interval_seconds), so it carries its own timestamp
+  // and repeats unchanged across several CPU samples.
+  repeated DiskUsage disks = 9;
+  int64 disks_sampled_at_unix_ms = 10;
 }

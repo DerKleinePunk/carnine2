@@ -87,7 +87,7 @@ class MediaController extends ChangeNotifier {
     await player.start();
     await library.start();
     await audio.start();
-    unawaited(playlists.loadPlaylists());
+    unawaited(playlists.start());
     _connection = MediaConnectionStatus.online;
     notifyListeners();
   }
@@ -173,6 +173,7 @@ class MediaController extends ChangeNotifier {
       await _repository.reconnect();
       await player.reconnect();
       await library.reconnect();
+      await playlists.reconnect();
       await audio.reconnect();
       _connection = MediaConnectionStatus.online;
       _nextReconnectDelay = _initialReconnectDelay;
