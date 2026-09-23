@@ -14,6 +14,7 @@ enum PlayerEventKind {
   stopped,
   trackChanged,
   error,
+  queueFinished,
   unknown,
 }
 
@@ -28,6 +29,7 @@ PlayerEventKind playerEventKindFrom(PlayerEventType raw) {
     PlayerEventType.PLAYER_STOPPED => PlayerEventKind.stopped,
     PlayerEventType.PLAYER_TRACK_CHANGED => PlayerEventKind.trackChanged,
     PlayerEventType.PLAYER_ERROR => PlayerEventKind.error,
+    PlayerEventType.PLAYER_QUEUE_FINISHED => PlayerEventKind.queueFinished,
     _ => PlayerEventKind.unknown,
   };
 }

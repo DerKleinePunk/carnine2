@@ -232,6 +232,37 @@ void main() {
     expect(controller.position, Duration.zero);
   });
 
+  test('a finished queue stops the player instead of being ignored', () async {
+    await controller.start();
+
+    repository.playerEventsController.add(
+      PlayerEventUpdate(
+        kind: PlayerEventKind.playbackStarted,
+        state: const PlayerSnapshot(
+          status: PlaybackStatus.playing,
+          mediaPath: '/music/a.mp3',
+          position: Duration(seconds: 10),
+        ),
+        message: 'started',
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.status, PlaybackStatus.playing);
+
+    // What the backend sends when the last track of a queue ran out. It used
+    // to land in the unknown branch, leaving the UI on "playing" forever.
+    repository.playerEventsController.add(
+      const PlayerEventUpdate(
+        kind: PlayerEventKind.queueFinished,
+        state: null,
+        message: 'playlist finished',
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(controller.status, PlaybackStatus.stopped);
+  });
+
   test('playTrack on an unplayable track sends no command', () async {
     await controller.start();
 

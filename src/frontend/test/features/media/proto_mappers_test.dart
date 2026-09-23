@@ -109,10 +109,28 @@ void main() {
         PlayerEventType.PLAYER_STOPPED: PlayerEventKind.stopped,
         PlayerEventType.PLAYER_TRACK_CHANGED: PlayerEventKind.trackChanged,
         PlayerEventType.PLAYER_ERROR: PlayerEventKind.error,
+        PlayerEventType.PLAYER_QUEUE_FINISHED: PlayerEventKind.queueFinished,
       };
 
       for (final entry in cases.entries) {
         expect(playerEventKindFrom(entry.key), entry.value);
+      }
+    });
+
+    // The table above used to claim it covered every event while
+    // PLAYER_QUEUE_FINISHED was missing, so the end of a playlist was logged
+    // as "unknown" and the UI kept showing playback. This test cannot be
+    // satisfied by a stale table: it walks the generated enum itself.
+    test('no backend player event falls through to unknown', () {
+      for (final type in PlayerEventType.values) {
+        if (type == PlayerEventType.PLAYER_EVENT_TYPE_UNSPECIFIED) {
+          continue;
+        }
+        expect(
+          playerEventKindFrom(type),
+          isNot(PlayerEventKind.unknown),
+          reason: '$type has no mapping; the UI would ignore it',
+        );
       }
     });
 
@@ -177,6 +195,22 @@ void main() {
 
       for (final entry in cases.entries) {
         expect(libraryScanEventKindFrom(entry.key), entry.value);
+      }
+    });
+
+    // Same guard as for the player events: the table above covers four of the
+    // ten library events, so only walking the generated enum notices when the
+    // backend gains one the UI would silently drop.
+    test('no backend library event falls through to unknown', () {
+      for (final type in LibraryEventType.values) {
+        if (type == LibraryEventType.LIBRARY_EVENT_TYPE_UNSPECIFIED) {
+          continue;
+        }
+        expect(
+          libraryScanEventKindFrom(type),
+          isNot(LibraryScanEventKind.unknown),
+          reason: '$type has no mapping; the UI would ignore it',
+        );
       }
     });
 

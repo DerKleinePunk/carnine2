@@ -75,6 +75,7 @@ async fn inspect_music_volumes(
         .build()
         .await?;
     let objects = manager.get_managed_objects().await?;
+    let mut present_volumes: Vec<PathBuf> = Vec::new();
     for (object_path, interfaces) in objects {
         let Some(block_properties) = interfaces.get("org.freedesktop.UDisks2.Block") else {
             continue;
@@ -111,6 +112,7 @@ async fn inspect_music_volumes(
             continue;
         }
         for mount_path in mount_points {
+            present_volumes.push(mount_path.clone());
             if let Err(error) =
                 media_service.discover_music_volume(label.to_string(), mount_path.clone())
             {
@@ -119,6 +121,9 @@ async fn inspect_music_volumes(
         }
         info!(path = %object_path, label, "inspected MUSIK volume");
     }
+    // Runs on every inspection, including the one after a stick was pulled:
+    // that is when the list is empty and a stale import offer has to go.
+    media_service.forget_absent_music_volumes(&present_volumes);
     Ok(())
 }
 

@@ -133,6 +133,12 @@ pub struct MediaServiceImpl {
     cover_cache_dir: PathBuf,
     library_events: broadcast::Sender<LibraryEvent>,
     next_scan_id: Arc<AtomicU64>,
+    /// The volume waiting for the user's "Uebernehmen", kept so that a client
+    /// which connects later still learns about it. The event is broadcast once,
+    /// at the moment the volume is found - on the Pi that happens while the
+    /// service starts, seconds before the UI is up, and a live-only stream
+    /// would drop it and never offer the import.
+    pending_music_volume: Arc<Mutex<Option<LibraryEvent>>>,
 }
 
 pub struct ConfigServiceImpl {
@@ -176,6 +182,7 @@ impl MediaServiceImpl {
             cover_cache_dir,
             library_events,
             next_scan_id: Arc::new(AtomicU64::new(1)),
+            pending_music_volume: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -215,6 +222,7 @@ impl MediaServiceImpl {
             cover_cache_dir,
             library_events,
             next_scan_id: Arc::new(AtomicU64::new(1)),
+            pending_music_volume: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -327,8 +335,46 @@ impl MediaServiceImpl {
             message: format!("found {matching_files} MP3 file(s)"),
             ..Default::default()
         };
+        self.remember_pending_music_volume(event.clone());
         let _ = self.library_events.send(event);
         Ok(())
+    }
+
+    /// Keeps the offer for clients that connect after it was broadcast, and
+    /// replaces an older offer for the same volume.
+    fn remember_pending_music_volume(&self, event: LibraryEvent) {
+        match self.pending_music_volume.lock() {
+            Ok(mut pending) => *pending = Some(event),
+            Err(error) => warn!(%error, "pending music volume lock was poisoned"),
+        }
+    }
+
+    fn take_pending_music_volume(&self) -> Option<LibraryEvent> {
+        self.pending_music_volume.lock().ok()?.clone()
+    }
+
+    fn clear_pending_music_volume(&self) {
+        if let Ok(mut pending) = self.pending_music_volume.lock() {
+            *pending = None;
+        }
+    }
+
+    /// Drops the offer when the volume it points at is gone - a stick pulled
+    /// out must not leave a client that connects afterwards offering to import
+    /// from it.
+    pub(crate) fn forget_absent_music_volumes(&self, present: &[PathBuf]) {
+        let Ok(mut pending) = self.pending_music_volume.lock() else {
+            return;
+        };
+        let still_there = pending.as_ref().is_some_and(|event| {
+            present
+                .iter()
+                .any(|path| path.as_os_str().to_string_lossy() == event.source_path)
+        });
+        if pending.is_some() && !still_there {
+            info!("the volume waiting for import is gone; dropping the offer");
+            *pending = None;
+        }
     }
 
     fn import_music_volume(&self, source_path: PathBuf) -> anyhow::Result<Vec<LibraryEvent>> {
@@ -392,6 +438,9 @@ impl MediaServiceImpl {
             message: format!("imported {} MP3 file(s)", files.len()),
             ..Default::default()
         });
+        // The offer has been taken up; a client connecting now must not be
+        // asked about the same volume again.
+        self.clear_pending_music_volume();
         Ok(events)
     }
 }
@@ -651,7 +700,10 @@ impl MediaService for MediaServiceImpl {
     ) -> Result<Response<Self::StreamLibraryEventsStream>, Status> {
         let updates = tokio_stream::wrappers::BroadcastStream::new(self.library_events.subscribe())
             .filter_map(|event| async move { event.ok().map(Ok) });
-        Ok(Response::new(Box::pin(updates)))
+        // A volume found before this client connected is replayed first, the
+        // way the player stream opens with its snapshot.
+        let pending = tokio_stream::iter(self.take_pending_music_volume().map(Ok));
+        Ok(Response::new(Box::pin(pending.chain(updates))))
     }
 
     async fn create_playlist(
@@ -2066,6 +2118,98 @@ mod tests {
             "restore_paused".to_string(),
             cover_cache_dir,
         )
+    }
+
+    /// The event that offers a USB volume is broadcast once, while the service
+    /// starts. On the Pi the UI comes up seconds later - it must still be
+    /// offered the import, or the banner never appears.
+    #[tokio::test]
+    async fn a_volume_found_before_a_client_connects_is_still_offered() {
+        let directory =
+            std::env::temp_dir().join(format!("carnine-pending-volume-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).expect("source directory should be creatable");
+        std::fs::write(directory.join("track.mp3"), b"not really audio")
+            .expect("source file should be writable");
+        let service = playlist_test_service(
+            directory.join("library.sqlite3"),
+            PathBuf::from("/tmp/carnine-covers"),
+        );
+
+        service
+            .discover_music_volume("MUSIK".to_string(), directory.clone())
+            .expect("discovery should succeed");
+
+        // Only now does the client turn up.
+        let mut events = service
+            .stream_library_events(Request::new(Empty {}))
+            .await
+            .expect("library events should open")
+            .into_inner();
+        // Bounded on purpose: without the replay this stream simply stays
+        // silent, and an unbounded await would hang the whole suite instead
+        // of reporting the regression.
+        let event = tokio::time::timeout(Duration::from_secs(5), events.next())
+            .await
+            .expect("a client connecting after the volume was found got nothing at all")
+            .expect("the pending volume should be replayed")
+            .expect("the replayed event should not be an error");
+
+        assert_eq!(event.event, LibraryEventType::LibraryMusicFound as i32);
+        assert_eq!(event.source_path, directory.display().to_string());
+        assert_eq!(event.matching_files, 1);
+
+        let _ = std::fs::remove_dir_all(&directory);
+    }
+
+    #[tokio::test]
+    async fn a_volume_that_disappeared_is_no_longer_offered() {
+        let directory =
+            std::env::temp_dir().join(format!("carnine-vanished-volume-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).expect("source directory should be creatable");
+        std::fs::write(directory.join("track.mp3"), b"not really audio")
+            .expect("source file should be writable");
+        let service = playlist_test_service(
+            directory.join("library.sqlite3"),
+            PathBuf::from("/tmp/carnine-covers"),
+        );
+        service
+            .discover_music_volume("MUSIK".to_string(), directory.clone())
+            .expect("discovery should succeed");
+
+        // The next inspection sees no MUSIK volume at all - the stick is out.
+        service.forget_absent_music_volumes(&[]);
+
+        assert!(
+            service.take_pending_music_volume().is_none(),
+            "an offer for a volume that is gone must not survive"
+        );
+
+        let _ = std::fs::remove_dir_all(&directory);
+    }
+
+    #[tokio::test]
+    async fn a_volume_that_is_still_there_stays_on_offer() {
+        let directory =
+            std::env::temp_dir().join(format!("carnine-kept-volume-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).expect("source directory should be creatable");
+        std::fs::write(directory.join("track.mp3"), b"not really audio")
+            .expect("source file should be writable");
+        let service = playlist_test_service(
+            directory.join("library.sqlite3"),
+            PathBuf::from("/tmp/carnine-covers"),
+        );
+        service
+            .discover_music_volume("MUSIK".to_string(), directory.clone())
+            .expect("discovery should succeed");
+
+        service.forget_absent_music_volumes(&[directory.clone()]);
+
+        assert!(
+            service.take_pending_music_volume().is_some(),
+            "the volume is still mounted, so the offer has to stand"
+        );
+
+        let _ = std::fs::remove_dir_all(&directory);
     }
 
     #[tokio::test]

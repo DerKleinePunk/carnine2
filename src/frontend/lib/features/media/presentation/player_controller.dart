@@ -318,6 +318,14 @@ class PlayerController extends ChangeNotifier {
         _anchorStartedAt = null;
         _stopTicker();
         notifyListeners();
+      case PlayerEventKind.queueFinished:
+        // The last track ran out. The backend is already stopped; without this
+        // the UI kept showing playback until some other event arrived.
+        _status = PlaybackStatus.stopped;
+        _anchorPosition = Duration.zero;
+        _anchorStartedAt = null;
+        _stopTicker();
+        notifyListeners();
       case PlayerEventKind.error:
         _transientMessageKey = AppTextKey.mediaCommandFailed;
         _logger.severe('Player reported an error: ${event.message}');
