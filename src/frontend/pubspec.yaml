@@ -20,6 +20,35 @@ dependencies:
   logging: ^1.2.0
   window_manager: ^0.5.1
   characters: ^1.4.1
+  # Offline-Karte (MBTiles, Navigationsmodus), eigenes Open-Source-Paket.
+  # Die drei dependency_overrides unten sind Pflicht, siehe dessen README.
+  local_map:
+    git:
+      url: https://github.com/DerKleinePunk/flutter_local_map.git
+      ref: master
+      path: packages/local_map
+
+# Pflicht fuer local_map: Overrides wirken nicht transitiv. Forks mit
+# einstellbarem panBuffer/rasterTileScale und mbtiles ^0.5.
+dependency_overrides:
+  vector_map_tiles:
+    git:
+      url: https://github.com/DerKleinePunk/flutter-vector-map-tiles
+      ref: local_map_pi
+  flutter_map_mbtiles:
+    git:
+      url: https://github.com/DerKleinePunk/flutter_map_plugins
+      ref: to_flutter_map_8
+      path: flutter_map_mbtiles
+  vector_map_tiles_mbtiles:
+    git:
+      url: https://github.com/DerKleinePunk/flutter_map_plugins
+      ref: to_flutter_map_8
+      path: vector_map_tiles_mbtiles
+  # vector_tile_renderer verlangt vector_tile ^2 (protobuf ^3), gRPC braucht
+  # protobuf ^6. vector_tile 4.0.0 ist laut Changelog nur fuer protobuf 6 neu
+  # generiert, die API ist unveraendert.
+  vector_tile: ^4.0.0
 
 dev_dependencies:
   flutter_test:
@@ -30,6 +59,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    # Dunkler Kartenstyle fuer local_map (MapConfig.vectorStyleAssets).
+    - assets/maps/style_carnine_dark.json
   fonts:
     - family: NotoSansSC
       fonts:

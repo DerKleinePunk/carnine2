@@ -1,3 +1,4 @@
+import 'package:carnine_frontend/features/maps/presentation/maps_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/carnine_top_bar.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/dashboard_content.dart';
@@ -13,12 +14,14 @@ class DashboardScreen extends StatefulWidget {
     required this.languageController,
     this.controller,
     this.mediaController,
+    this.mapsController,
     super.key,
   });
 
   final AppLanguageController languageController;
   final DashboardController? controller;
   final MediaController? mediaController;
+  final MapsController? mapsController;
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -36,7 +39,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
       widget.mediaController ?? MediaController();
 
   bool get _ownsController => widget.controller == null;
+  // Same reasoning as the media controller: route, destination and the
+  // position stream must survive switching to another section and back.
+  late final MapsController _mapsController =
+      widget.mapsController ??
+      MapsController(
+        // Instructions in the language set in the settings, read per route.
+        language: () => widget.languageController.locale.languageCode,
+      );
+
   bool get _ownsMediaController => widget.mediaController == null;
+  bool get _ownsMapsController => widget.mapsController == null;
 
   DashboardGrpcStatus _lastHandledGrpcStatus = DashboardGrpcStatus.notConnected;
 
@@ -54,6 +67,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
     if (_ownsMediaController) {
       _mediaController.dispose();
+    }
+    if (_ownsMapsController) {
+      _mapsController.dispose();
     }
 
     super.dispose();
@@ -120,6 +136,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         onTestGrpc: _controller.testGrpc,
                         languageController: widget.languageController,
                         mediaController: _mediaController,
+                        mapsController: _mapsController,
                       ),
                     ),
                   ],

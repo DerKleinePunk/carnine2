@@ -1,6 +1,7 @@
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/models/dashboard_nav_item.dart';
 import 'package:carnine_frontend/features/maps/presentation/maps_content.dart';
+import 'package:carnine_frontend/features/maps/presentation/maps_controller.dart';
 import 'package:carnine_frontend/features/media/presentation/media_content.dart';
 import 'package:carnine_frontend/features/media/presentation/media_controller.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_content.dart';
@@ -22,6 +23,7 @@ class DashboardContent extends StatelessWidget {
     required this.onTestGrpc,
     required this.languageController,
     required this.mediaController,
+    required this.mapsController,
     super.key,
   });
 
@@ -33,6 +35,7 @@ class DashboardContent extends StatelessWidget {
   final Future<void> Function() onTestGrpc;
   final AppLanguageController languageController;
   final MediaController mediaController;
+  final MapsController mapsController;
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +48,7 @@ class DashboardContent extends StatelessWidget {
     }
 
     if (selectedItem.destination == DashboardDestination.maps) {
-      return const MapsContent();
+      return MapsContent(controller: mapsController);
     }
 
     final l10n = AppLocalizations.of(context);
