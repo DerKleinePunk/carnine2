@@ -32,8 +32,15 @@ abstract final class AppWindow {
     await windowManager.waitUntilReadyToShow(_windowOptions, _showAndFocus);
   }
 
+  /// Exit code that asks the supervising systemd unit to start the frontend
+  /// again (`RestartForceExitStatus=` in carnine-frontend.service).
+  static const int restartExitCode = 75;
+
+  static bool get _isEmbedded =>
+      Platform.environment.containsKey('CARNINE_EMBEDDED');
+
   static bool get _usesWindowManager {
-    return !Platform.environment.containsKey('CARNINE_EMBEDDED') &&
+    return !_isEmbedded &&
         (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
   }
 
@@ -46,11 +53,18 @@ abstract final class AppWindow {
     exit(0);
   }
 
-  /// Restarts only this frontend process - not a system reboot. Spawns a
-  /// detached copy of the running executable before exiting this one, so it
-  /// works the same whether systemd (`Restart=on-failure`, which a clean
-  /// exit code would not trigger) or a plain dev run is supervising it.
+  /// Restarts only this frontend process - not a system reboot.
+  ///
+  /// On the target the unit restarts it: a detached copy would not survive,
+  /// because systemd stops the whole control group once the main process
+  /// exits, and the embedder's own arguments are not visible to Dart. On a
+  /// dev run a detached copy of the running executable takes over.
   static Future<void> restartApplication() async {
+    if (_isEmbedded) {
+      _logger.info('Exiting with $restartExitCode so systemd restarts the frontend');
+      exit(restartExitCode);
+    }
+
     try {
       await Process.start(
         Platform.resolvedExecutable,

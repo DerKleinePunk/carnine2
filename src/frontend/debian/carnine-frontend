@@ -9,5 +9,5 @@ BUNDLE_DIR=/opt/carnine/frontend
 export LD_LIBRARY_PATH="$BUNDLE_DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
 # -f: take the display's native mode; without it the view keeps its default
-# 1920x720 size regardless of the panel.
-exec "$BUNDLE_DIR/homescreen" -b "$BUNDLE_DIR" -f
+# 1920x720 size regardless of the panel. -c: touch only, no pointer to draw.
+exec "$BUNDLE_DIR/homescreen" -b "$BUNDLE_DIR" -f -c
