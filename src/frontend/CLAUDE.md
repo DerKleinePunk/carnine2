@@ -50,7 +50,7 @@ Das Stitch-Projekt ist Source of Truth für Screens, Komponenten, Spacing und vi
 - Bei Unsicherheit, ob eine UI-Änderung vom Design-System abweicht: nachfragen (siehe Regel oben), nicht frei improvisieren.
 
 ### Flutter-Version-Updates
-Ein Update der Flutter-Version im Frontend darf **nur** durchgeführt werden, wenn diese Version bereits auch für `flutter-pi` verfügbar ist (siehe `docs/07-deployment.md`, `resources/debos/README.md`). Kein Update auf eine neuere Flutter-Version vorziehen, ohne vorher zu prüfen, ob `flutter-pi` sie bereits unterstützt.
+Auf dem Pi läuft das Frontend unter ivi-homescreen und wird mit `emb_cli` gebaut (ADR-020, `docs/07-deployment.md` §3.3). Maßgeblich ist die Flutter-Version im emb-Workspace (derzeit 3.47.5), nicht die im `PATH`. Ein Update der Flutter-Version nur zusammen mit dem emb-Workspace, und nur auf eine Version, für die emb eine vorgebaute arm64-Engine liefert. Danach auf dem Pi prüfen, nicht nur lokal. Die Karte (`local_map`) ist auf derselben Version gemessen; ein Versionswechsel wird mit der Karten-Sitzung abgestimmt.
 
 ## Verhältnis zu AGENTS.md
 
