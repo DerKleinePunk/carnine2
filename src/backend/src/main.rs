@@ -30,6 +30,7 @@ mod config;
 mod cpal_audio_engine;
 mod database;
 mod media_player;
+mod navigation;
 mod server_transport;
 mod storage_events;
 mod system_metrics;
@@ -463,8 +464,14 @@ impl ConfigService for ConfigServiceImpl {
             .configuration
             .context("configuration is required")
             .map_err(|error| Status::invalid_argument(error.to_string()))?;
-        let updated = configuration_from_proto(&configuration)
+        let mut updated = configuration_from_proto(&configuration)
             .map_err(|error| Status::invalid_argument(error.to_string()))?;
+        updated.navigation = self
+            .configuration
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .navigation
+            .clone();
         let toml = toml::to_string_pretty(&updated)
             .map_err(|error| Status::internal(error.to_string()))?;
         let temporary_path = self.path.with_extension("toml.tmp");
@@ -1065,6 +1072,9 @@ fn configuration_from_proto(configuration: &Configuration) -> Result<config::Con
             ),
             disk_paths: configuration.disk_paths.iter().map(PathBuf::from).collect(),
         },
+        // Not part of the Configuration message; update_configuration carries
+        // the current section over so saving settings cannot drop it.
+        navigation: config::NavigationConfig::default(),
     };
     configuration.validate()?;
     Ok(configuration)
@@ -1227,6 +1237,7 @@ async fn main() -> Result<()> {
     let media_player = Arc::clone(&media_service.player);
     MediaPlayer::spawn_completion_watcher(Arc::clone(&media_player));
     let config_service = ConfigServiceImpl::new(configuration.clone(), configuration_path);
+    let navigation_service = navigation::start(&configuration.navigation);
 
     let socket_mode = configuration.server.socket_permissions()?;
     if socket_mode != config::DEFAULT_SOCKET_MODE {
@@ -1258,6 +1269,9 @@ async fn main() -> Result<()> {
         .add_service(carnine::system_service_server::SystemServiceServer::new(
             system_service,
         ))
+        .add_service(
+            carnine::navigation_service_server::NavigationServiceServer::new(navigation_service),
+        )
         .serve_with_incoming_shutdown(incoming, async move {
             let _ = shutdown_receiver.await;
         });
@@ -1426,6 +1440,7 @@ mod tests {
                 level: "info".to_string(),
             },
             system: config::SystemConfig::default(),
+            navigation: config::NavigationConfig::default(),
         }
     }
 
@@ -1554,6 +1569,39 @@ mod tests {
         configuration.database_path = String::new();
 
         assert!(configuration_from_proto(&configuration).is_err());
+    }
+
+    #[tokio::test]
+    async fn update_configuration_keeps_the_navigation_section() {
+        let path = std::env::temp_dir().join(format!(
+            "carnine-config-navigation-test-{}.toml",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&path);
+        let mut current = test_configuration();
+        current.navigation.position_source = config::PositionSourceSetting::Replay;
+        current.navigation.replay_file = Some(PathBuf::from("/var/lib/carnine/tour.nmea"));
+        current.navigation.map_region = "hessen".to_string();
+        let service = ConfigServiceImpl::new(current, path.clone());
+
+        // The settings page sends the Configuration message, which has no
+        // navigation fields at all.
+        service
+            .update_configuration(Request::new(super::UpdateConfigurationRequest {
+                configuration: Some(configuration_to_proto(&test_configuration())),
+            }))
+            .await
+            .expect("configuration update should succeed");
+
+        let saved: config::Config =
+            toml::from_str(&std::fs::read_to_string(&path).expect("configuration should be saved"))
+                .expect("saved configuration should be valid TOML");
+        assert_eq!(
+            saved.navigation.position_source,
+            config::PositionSourceSetting::Replay
+        );
+        assert_eq!(saved.navigation.map_region, "hessen");
+        let _ = std::fs::remove_file(path);
     }
 
     #[tokio::test]

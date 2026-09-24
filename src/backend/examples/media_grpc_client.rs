@@ -15,10 +15,12 @@ pub mod carnine {
 
 use carnine::{
     audio_service_client::AudioServiceClient, get_cover_art_request::Target as CoverArtTarget,
-    media_service_client::MediaServiceClient, system_service_client::SystemServiceClient,
-    AddPlaylistEntryRequest, CreatePlaylistRequest, Empty, GetCoverArtRequest, GetPlaylistRequest,
-    ImportMusicVolumeRequest, LibraryEventType, PlayPlaylistRequest, PlayQueueEntryRequest,
-    PlayRequest, RepeatMode, RescanMediaRequest, SearchMediaRequest, SetRepeatModeRequest,
+    media_service_client::MediaServiceClient, navigation_service_client::NavigationServiceClient,
+    system_service_client::SystemServiceClient, AddPlaylistEntryRequest, ComputeRouteRequest,
+    CreatePlaylistRequest, Empty, FixState, GetCoverArtRequest, GetPlaylistRequest,
+    GetReplayRouteRequest, ImportMusicVolumeRequest, LatLon, LibraryEventType, PlayPlaylistRequest,
+    PlayQueueEntryRequest, PlayRequest, PositionFix, PositionSourceKind, RepeatMode,
+    RescanMediaRequest, Route, SearchMediaRequest, SearchPlacesRequest, SetRepeatModeRequest,
     SetShuffleModeRequest, SystemMetrics,
 };
 
@@ -71,6 +73,11 @@ async fn main() -> Result<()> {
         "shuffle" => set_shuffle_mode(&mut client).await?,
         "metrics" => get_system_metrics(&endpoint).await?,
         "metrics-stream" => stream_system_metrics(&endpoint).await?,
+        "nav-status" => get_navigation_status(&endpoint).await?,
+        "positions" => stream_positions(&endpoint).await?,
+        "places" => search_places(&endpoint).await?,
+        "route" => compute_route(&endpoint).await?,
+        "replay-route" => replay_route(&endpoint).await?,
         unknown => bail!("unknown command: {unknown}"),
     }
     Ok(())
@@ -285,6 +292,167 @@ async fn stream_system_metrics(endpoint: &str) -> Result<()> {
         print_system_metrics(&metrics);
     })
     .await
+}
+
+async fn get_navigation_status(endpoint: &str) -> Result<()> {
+    let mut client = NavigationServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let status = client.get_navigation_status(Empty {}).await?.into_inner();
+    println!(
+        "routing_available={} source={:?} fix={:?} region={}",
+        status.routing_available,
+        status.position_source(),
+        status.fix_state(),
+        if status.map_region.is_empty() {
+            "-"
+        } else {
+            &status.map_region
+        }
+    );
+    Ok(())
+}
+
+fn parse_lat_lon(value: &str) -> Result<LatLon> {
+    let (latitude, longitude) = value
+        .split_once(',')
+        .context("coordinates must be given as lat,lon")?;
+    Ok(LatLon {
+        latitude: latitude.trim().parse()?,
+        longitude: longitude.trim().parse()?,
+    })
+}
+
+/// `route <to lat,lon> [from lat,lon|-] [language]`: without a start the
+/// backend routes from its current fix.
+async fn compute_route(endpoint: &str) -> Result<()> {
+    let destination = env::args().nth(3).context(
+        "usage: media_grpc_client [endpoint] route <to lat,lon> [from lat,lon|-] [language]",
+    )?;
+    let origin = env::args()
+        .nth(4)
+        .filter(|value| value != "-")
+        .map(|value| parse_lat_lon(&value))
+        .transpose()?;
+    let mut client = NavigationServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let route = client
+        .compute_route(ComputeRouteRequest {
+            origin,
+            destination: Some(parse_lat_lon(&destination)?),
+            language: env::args().nth(5),
+        })
+        .await?
+        .into_inner();
+    print_route(&route);
+    Ok(())
+}
+
+/// `replay-route [language]`: the map-matched route of the running replay.
+async fn replay_route(endpoint: &str) -> Result<()> {
+    let mut client = NavigationServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let route = client
+        .get_replay_route(GetReplayRouteRequest {
+            language: env::args().nth(3),
+        })
+        .await?
+        .into_inner();
+    print_route(&route);
+    Ok(())
+}
+
+fn print_route(route: &Route) {
+    println!(
+        "{} distance={:.1} km duration={:.0} min points={} maneuvers={}",
+        route.route_id,
+        route.distance_meters / 1000.0,
+        route.duration_seconds / 60.0,
+        route.geometry.len(),
+        route.maneuvers.len()
+    );
+    for maneuver in &route.maneuvers {
+        println!(
+            "  [{:>5}] type={:<2} {:>7.0} m  {}{}",
+            maneuver.begin_shape_index,
+            maneuver.r#type,
+            maneuver.length_meters,
+            maneuver.instruction,
+            if maneuver.street_names.is_empty() {
+                String::new()
+            } else {
+                format!(" ({})", maneuver.street_names.join(", "))
+            }
+        );
+    }
+}
+
+/// `places <query> [lat,lon]`: place search, optionally ranked around a point.
+async fn search_places(endpoint: &str) -> Result<()> {
+    let query = env::args()
+        .nth(3)
+        .context("usage: media_grpc_client [endpoint] places <query> [lat,lon]")?;
+    let near = env::args()
+        .nth(4)
+        .map(|value| parse_lat_lon(&value))
+        .transpose()?;
+    let mut client = NavigationServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let response = client
+        .search_places(SearchPlacesRequest {
+            query,
+            limit: 0,
+            near,
+        })
+        .await?
+        .into_inner();
+    for place in &response.places {
+        let (latitude, longitude) = place
+            .location
+            .as_ref()
+            .map(|location| (location.latitude, location.longitude))
+            .unwrap_or_default();
+        println!(
+            "{:<22} {:<40} {latitude:.5},{longitude:.5} z{} {}",
+            format!("{:?}", place.r#type()),
+            place.name,
+            place.zoom,
+            place.detail.as_deref().unwrap_or("")
+        );
+    }
+    println!("{} hit(s)", response.places.len());
+    Ok(())
+}
+
+/// Prints the current position plus as many updates as requested (default 5;
+/// a replay or GPS mouse sends one per second).
+async fn stream_positions(endpoint: &str) -> Result<()> {
+    let count = event_count(5)?;
+    let mut client = NavigationServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let mut stream = client.stream_positions(Empty {}).await?.into_inner();
+    read_events(&mut stream, count, |fix| print_position(&fix)).await
+}
+
+fn print_position(fix: &PositionFix) {
+    let optional = |value: Option<f64>, digits: usize| {
+        value
+            .map(|value| format!("{value:.digits$}"))
+            .unwrap_or_else(|| "-".to_string())
+    };
+    let source = match fix.source() {
+        PositionSourceKind::PositionSourceReplay => "replay",
+        PositionSourceKind::PositionSourceSerial => "serial",
+        _ => "none",
+    };
+    match (fix.fix_state(), &fix.location) {
+        (FixState::Fix, Some(location)) => println!(
+            "fix lat={:.6} lon={:.6} heading={} speed_mps={} accuracy_m={} time_ms={} source={source}",
+            location.latitude,
+            location.longitude,
+            optional(fix.heading_degrees, 1),
+            optional(fix.speed_mps, 2),
+            optional(fix.accuracy_meters, 1),
+            fix.timestamp_utc_ms
+                .map(|value| value.to_string())
+                .unwrap_or_else(|| "-".to_string()),
+        ),
+        _ => println!("no fix source={source}"),
+    }
 }
 
 fn print_system_metrics(metrics: &SystemMetrics) {

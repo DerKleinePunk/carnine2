@@ -65,6 +65,12 @@ tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 zbus = "5"
 tonic = "0.12"
+# HTTP client for the local Valhalla service (ADR-021). Already in the tree
+# through tonic; plain http only, the router listens on loopback.
+bytes = "1"
+http-body-util = "0.1"
+hyper = { version = "1", features = ["client", "http1"] }
+hyper-util = { version = "0.1", features = ["client-legacy", "http1", "tokio"] }
 prost = "0.13"
 ringbuf = "0.4"
 ffmpeg-next = { version = "8", optional = true }
