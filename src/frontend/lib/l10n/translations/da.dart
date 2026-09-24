@@ -194,4 +194,6 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.mapsNoPosition: 'Ingen GPS-position',
   AppTextKey.mapsRouteError: 'Ruten kunne ikke beregnes',
   AppTextKey.mapsSearchNoResults: 'Ingen resultater',
+  AppTextKey.mapsNoMapData: 'Ingen kortdata installeret',
+  AppTextKey.mapsMapUnavailable: 'Kortet kan ikke vises',
 };

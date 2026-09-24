@@ -191,4 +191,6 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.mapsNoPosition: 'Geen GPS-positie',
   AppTextKey.mapsRouteError: 'Route kon niet worden berekend',
   AppTextKey.mapsSearchNoResults: 'Geen resultaten',
+  AppTextKey.mapsNoMapData: 'Geen kaartgegevens geïnstalleerd',
+  AppTextKey.mapsMapUnavailable: 'De kaart kan niet worden weergegeven',
 };

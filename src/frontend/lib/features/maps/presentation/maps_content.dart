@@ -7,6 +7,7 @@ import 'package:carnine_frontend/features/maps/presentation/widgets/trip_status_
 import 'package:carnine_frontend/features/maps/presentation/widgets/turn_by_turn_card.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:carnine_frontend/styles/colors.dart';
+import 'package:carnine_frontend/styles/text_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:local_map/local_map.dart';
 
@@ -51,6 +52,7 @@ class MapsContent extends StatelessWidget {
             config: _mapConfig,
             controller: controller.map,
             layerStyle: _layerStyle,
+            errorBuilder: (context, error) => _MapErrorView(error: error),
           ),
         ),
         ListenableBuilder(
@@ -200,5 +202,48 @@ class _Overlays extends StatelessWidget {
       NavigationFailureKind.unknown => AppTextKey.mapsRouteError,
     };
     return (l10n.text(key), true);
+  }
+}
+
+/// Replaces the map when it cannot be drawn: no MBTiles file installed, or a
+/// file or style the map cannot read. The details go to the log.
+class _MapErrorView extends StatelessWidget {
+  const _MapErrorView({required this.error});
+
+  final MapError error;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final missing =
+        error.category == MapErrorCategory.noMapData ||
+        error.category == MapErrorCategory.mbtilesMissing;
+    return ColoredBox(
+      color: AppColors.surface,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              missing ? Icons.map_outlined : Icons.error_outline,
+              size: 64,
+              color: AppColors.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.text(
+                missing
+                    ? AppTextKey.mapsNoMapData
+                    : AppTextKey.mapsMapUnavailable,
+              ),
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodyLarge.copyWith(
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

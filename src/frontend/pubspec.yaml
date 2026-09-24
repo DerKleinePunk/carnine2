@@ -27,7 +27,7 @@ dependencies:
       url: https://github.com/DerKleinePunk/flutter_local_map.git
       # Feste Marke statt master: Aenderungen an der Lib kommen erst mit
       # einem bewussten Wechsel der Marke ins Auto.
-      ref: local_map-v0.2.0
+      ref: local_map-v0.3.0
       path: packages/local_map
 
 # Pflicht fuer local_map: Overrides wirken nicht transitiv. Forks mit

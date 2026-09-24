@@ -192,4 +192,6 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.mapsNoPosition: 'Nincs GPS-pozíció',
   AppTextKey.mapsRouteError: 'Az útvonal nem számítható ki',
   AppTextKey.mapsSearchNoResults: 'Nincs találat',
+  AppTextKey.mapsNoMapData: 'Nincsenek telepített térképadatok',
+  AppTextKey.mapsMapUnavailable: 'A térkép nem jeleníthető meg',
 };

@@ -180,4 +180,6 @@ enum AppTextKey {
   mapsNoPosition,
   mapsRouteError,
   mapsSearchNoResults,
+  mapsNoMapData,
+  mapsMapUnavailable,
 }

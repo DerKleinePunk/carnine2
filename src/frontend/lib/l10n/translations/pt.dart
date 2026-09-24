@@ -192,4 +192,6 @@ const Map<AppTextKey, String> ptTranslations = <AppTextKey, String>{
   AppTextKey.mapsNoPosition: 'Sem posição GPS',
   AppTextKey.mapsRouteError: 'Não foi possível calcular a rota',
   AppTextKey.mapsSearchNoResults: 'Sem resultados',
+  AppTextKey.mapsNoMapData: 'Nenhum dado de mapa instalado',
+  AppTextKey.mapsMapUnavailable: 'Não é possível exibir o mapa',
 };
