@@ -109,6 +109,58 @@ final $typed_data.Uint8List audioEventTypeDescriptor = $convert.base64Decode(
     'EhgKFEFVRElPX1NPVVJDRV9SRU1PVkVEEAcSGAoUQVVESU9fREVWSUNFX0NIQU5HRUQQCBIPCg'
     'tBVURJT19FUlJPUhAJ');
 
+@$core.Deprecated('Use fixStateDescriptor instead')
+const FixState$json = {
+  '1': 'FixState',
+  '2': [
+    {'1': 'FIX_STATE_UNSPECIFIED', '2': 0},
+    {'1': 'FIX_STATE_NO_FIX', '2': 1},
+    {'1': 'FIX_STATE_FIX', '2': 2},
+  ],
+};
+
+/// Descriptor for `FixState`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List fixStateDescriptor = $convert.base64Decode(
+    'CghGaXhTdGF0ZRIZChVGSVhfU1RBVEVfVU5TUEVDSUZJRUQQABIUChBGSVhfU1RBVEVfTk9fRk'
+    'lYEAESEQoNRklYX1NUQVRFX0ZJWBAC');
+
+@$core.Deprecated('Use positionSourceKindDescriptor instead')
+const PositionSourceKind$json = {
+  '1': 'PositionSourceKind',
+  '2': [
+    {'1': 'POSITION_SOURCE_KIND_UNSPECIFIED', '2': 0},
+    {'1': 'POSITION_SOURCE_NONE', '2': 1},
+    {'1': 'POSITION_SOURCE_SERIAL', '2': 2},
+    {'1': 'POSITION_SOURCE_REPLAY', '2': 3},
+  ],
+};
+
+/// Descriptor for `PositionSourceKind`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List positionSourceKindDescriptor = $convert.base64Decode(
+    'ChJQb3NpdGlvblNvdXJjZUtpbmQSJAogUE9TSVRJT05fU09VUkNFX0tJTkRfVU5TUEVDSUZJRU'
+    'QQABIYChRQT1NJVElPTl9TT1VSQ0VfTk9ORRABEhoKFlBPU0lUSU9OX1NPVVJDRV9TRVJJQUwQ'
+    'AhIaChZQT1NJVElPTl9TT1VSQ0VfUkVQTEFZEAM=');
+
+@$core.Deprecated('Use placeTypeDescriptor instead')
+const PlaceType$json = {
+  '1': 'PlaceType',
+  '2': [
+    {'1': 'PLACE_TYPE_UNSPECIFIED', '2': 0},
+    {'1': 'PLACE_TYPE_PLACE', '2': 1},
+    {'1': 'PLACE_TYPE_POI', '2': 2},
+    {'1': 'PLACE_TYPE_MOUNTAIN_PEAK', '2': 3},
+    {'1': 'PLACE_TYPE_WATER_NAME', '2': 4},
+    {'1': 'PLACE_TYPE_TRANSPORTATION_NAME', '2': 5},
+  ],
+};
+
+/// Descriptor for `PlaceType`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List placeTypeDescriptor = $convert.base64Decode(
+    'CglQbGFjZVR5cGUSGgoWUExBQ0VfVFlQRV9VTlNQRUNJRklFRBAAEhQKEFBMQUNFX1RZUEVfUE'
+    'xBQ0UQARISCg5QTEFDRV9UWVBFX1BPSRACEhwKGFBMQUNFX1RZUEVfTU9VTlRBSU5fUEVBSxAD'
+    'EhkKFVBMQUNFX1RZUEVfV0FURVJfTkFNRRAEEiIKHlBMQUNFX1RZUEVfVFJBTlNQT1JUQVRJT0'
+    '5fTkFNRRAF');
+
 @$core.Deprecated('Use canDataRequestDescriptor instead')
 const CanDataRequest$json = {
   '1': 'CanDataRequest',
@@ -866,3 +918,354 @@ final $typed_data.Uint8List systemMetricsDescriptor = $convert.base64Decode(
     'NrVXNhZ2VSBWRpc2tzEjYKGGRpc2tzX3NhbXBsZWRfYXRfdW5peF9tcxgKIAEoA1IUZGlza3NT'
     'YW1wbGVkQXRVbml4TXNCGgoYX2NwdV90ZW1wZXJhdHVyZV9jZWxzaXVzQhQKEl9jcHVfdXNhZ2'
     'VfcGVyY2VudA==');
+
+@$core.Deprecated('Use latLonDescriptor instead')
+const LatLon$json = {
+  '1': 'LatLon',
+  '2': [
+    {'1': 'latitude', '3': 1, '4': 1, '5': 1, '10': 'latitude'},
+    {'1': 'longitude', '3': 2, '4': 1, '5': 1, '10': 'longitude'},
+  ],
+};
+
+/// Descriptor for `LatLon`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List latLonDescriptor = $convert.base64Decode(
+    'CgZMYXRMb24SGgoIbGF0aXR1ZGUYASABKAFSCGxhdGl0dWRlEhwKCWxvbmdpdHVkZRgCIAEoAV'
+    'IJbG9uZ2l0dWRl');
+
+@$core.Deprecated('Use positionFixDescriptor instead')
+const PositionFix$json = {
+  '1': 'PositionFix',
+  '2': [
+    {
+      '1': 'fix_state',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.carnine.FixState',
+      '10': 'fixState'
+    },
+    {
+      '1': 'location',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.carnine.LatLon',
+      '10': 'location'
+    },
+    {
+      '1': 'heading_degrees',
+      '3': 3,
+      '4': 1,
+      '5': 1,
+      '9': 0,
+      '10': 'headingDegrees',
+      '17': true
+    },
+    {
+      '1': 'speed_mps',
+      '3': 4,
+      '4': 1,
+      '5': 1,
+      '9': 1,
+      '10': 'speedMps',
+      '17': true
+    },
+    {
+      '1': 'accuracy_meters',
+      '3': 5,
+      '4': 1,
+      '5': 1,
+      '9': 2,
+      '10': 'accuracyMeters',
+      '17': true
+    },
+    {
+      '1': 'timestamp_utc_ms',
+      '3': 6,
+      '4': 1,
+      '5': 3,
+      '9': 3,
+      '10': 'timestampUtcMs',
+      '17': true
+    },
+    {
+      '1': 'source',
+      '3': 7,
+      '4': 1,
+      '5': 14,
+      '6': '.carnine.PositionSourceKind',
+      '10': 'source'
+    },
+  ],
+  '8': [
+    {'1': '_heading_degrees'},
+    {'1': '_speed_mps'},
+    {'1': '_accuracy_meters'},
+    {'1': '_timestamp_utc_ms'},
+  ],
+};
+
+/// Descriptor for `PositionFix`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List positionFixDescriptor = $convert.base64Decode(
+    'CgtQb3NpdGlvbkZpeBIuCglmaXhfc3RhdGUYASABKA4yES5jYXJuaW5lLkZpeFN0YXRlUghmaX'
+    'hTdGF0ZRIrCghsb2NhdGlvbhgCIAEoCzIPLmNhcm5pbmUuTGF0TG9uUghsb2NhdGlvbhIsCg9o'
+    'ZWFkaW5nX2RlZ3JlZXMYAyABKAFIAFIOaGVhZGluZ0RlZ3JlZXOIAQESIAoJc3BlZWRfbXBzGA'
+    'QgASgBSAFSCHNwZWVkTXBziAEBEiwKD2FjY3VyYWN5X21ldGVycxgFIAEoAUgCUg5hY2N1cmFj'
+    'eU1ldGVyc4gBARItChB0aW1lc3RhbXBfdXRjX21zGAYgASgDSANSDnRpbWVzdGFtcFV0Y01ziA'
+    'EBEjMKBnNvdXJjZRgHIAEoDjIbLmNhcm5pbmUuUG9zaXRpb25Tb3VyY2VLaW5kUgZzb3VyY2VC'
+    'EgoQX2hlYWRpbmdfZGVncmVlc0IMCgpfc3BlZWRfbXBzQhIKEF9hY2N1cmFjeV9tZXRlcnNCEw'
+    'oRX3RpbWVzdGFtcF91dGNfbXM=');
+
+@$core.Deprecated('Use navigationStatusDescriptor instead')
+const NavigationStatus$json = {
+  '1': 'NavigationStatus',
+  '2': [
+    {
+      '1': 'routing_available',
+      '3': 1,
+      '4': 1,
+      '5': 8,
+      '10': 'routingAvailable'
+    },
+    {
+      '1': 'position_source',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.carnine.PositionSourceKind',
+      '10': 'positionSource'
+    },
+    {
+      '1': 'fix_state',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.carnine.FixState',
+      '10': 'fixState'
+    },
+    {'1': 'map_region', '3': 4, '4': 1, '5': 9, '10': 'mapRegion'},
+  ],
+};
+
+/// Descriptor for `NavigationStatus`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List navigationStatusDescriptor = $convert.base64Decode(
+    'ChBOYXZpZ2F0aW9uU3RhdHVzEisKEXJvdXRpbmdfYXZhaWxhYmxlGAEgASgIUhByb3V0aW5nQX'
+    'ZhaWxhYmxlEkQKD3Bvc2l0aW9uX3NvdXJjZRgCIAEoDjIbLmNhcm5pbmUuUG9zaXRpb25Tb3Vy'
+    'Y2VLaW5kUg5wb3NpdGlvblNvdXJjZRIuCglmaXhfc3RhdGUYAyABKA4yES5jYXJuaW5lLkZpeF'
+    'N0YXRlUghmaXhTdGF0ZRIdCgptYXBfcmVnaW9uGAQgASgJUgltYXBSZWdpb24=');
+
+@$core.Deprecated('Use placeDescriptor instead')
+const Place$json = {
+  '1': 'Place',
+  '2': [
+    {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
+    {
+      '1': 'location',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.carnine.LatLon',
+      '10': 'location'
+    },
+    {'1': 'zoom', '3': 3, '4': 1, '5': 13, '10': 'zoom'},
+    {
+      '1': 'type',
+      '3': 4,
+      '4': 1,
+      '5': 14,
+      '6': '.carnine.PlaceType',
+      '10': 'type'
+    },
+    {'1': 'detail', '3': 5, '4': 1, '5': 9, '9': 0, '10': 'detail', '17': true},
+  ],
+  '8': [
+    {'1': '_detail'},
+  ],
+};
+
+/// Descriptor for `Place`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List placeDescriptor = $convert.base64Decode(
+    'CgVQbGFjZRISCgRuYW1lGAEgASgJUgRuYW1lEisKCGxvY2F0aW9uGAIgASgLMg8uY2FybmluZS'
+    '5MYXRMb25SCGxvY2F0aW9uEhIKBHpvb20YAyABKA1SBHpvb20SJgoEdHlwZRgEIAEoDjISLmNh'
+    'cm5pbmUuUGxhY2VUeXBlUgR0eXBlEhsKBmRldGFpbBgFIAEoCUgAUgZkZXRhaWyIAQFCCQoHX2'
+    'RldGFpbA==');
+
+@$core.Deprecated('Use searchPlacesRequestDescriptor instead')
+const SearchPlacesRequest$json = {
+  '1': 'SearchPlacesRequest',
+  '2': [
+    {'1': 'query', '3': 1, '4': 1, '5': 9, '10': 'query'},
+    {'1': 'limit', '3': 2, '4': 1, '5': 13, '10': 'limit'},
+    {
+      '1': 'near',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.carnine.LatLon',
+      '9': 0,
+      '10': 'near',
+      '17': true
+    },
+  ],
+  '8': [
+    {'1': '_near'},
+  ],
+};
+
+/// Descriptor for `SearchPlacesRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List searchPlacesRequestDescriptor = $convert.base64Decode(
+    'ChNTZWFyY2hQbGFjZXNSZXF1ZXN0EhQKBXF1ZXJ5GAEgASgJUgVxdWVyeRIUCgVsaW1pdBgCIA'
+    'EoDVIFbGltaXQSKAoEbmVhchgDIAEoCzIPLmNhcm5pbmUuTGF0TG9uSABSBG5lYXKIAQFCBwoF'
+    'X25lYXI=');
+
+@$core.Deprecated('Use searchPlacesResponseDescriptor instead')
+const SearchPlacesResponse$json = {
+  '1': 'SearchPlacesResponse',
+  '2': [
+    {
+      '1': 'places',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.carnine.Place',
+      '10': 'places'
+    },
+  ],
+};
+
+/// Descriptor for `SearchPlacesResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List searchPlacesResponseDescriptor = $convert.base64Decode(
+    'ChRTZWFyY2hQbGFjZXNSZXNwb25zZRImCgZwbGFjZXMYASADKAsyDi5jYXJuaW5lLlBsYWNlUg'
+    'ZwbGFjZXM=');
+
+@$core.Deprecated('Use computeRouteRequestDescriptor instead')
+const ComputeRouteRequest$json = {
+  '1': 'ComputeRouteRequest',
+  '2': [
+    {
+      '1': 'origin',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.carnine.LatLon',
+      '9': 0,
+      '10': 'origin',
+      '17': true
+    },
+    {
+      '1': 'destination',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.carnine.LatLon',
+      '10': 'destination'
+    },
+    {
+      '1': 'language',
+      '3': 4,
+      '4': 1,
+      '5': 9,
+      '9': 1,
+      '10': 'language',
+      '17': true
+    },
+  ],
+  '8': [
+    {'1': '_origin'},
+    {'1': '_language'},
+  ],
+  '9': [
+    {'1': 3, '2': 4},
+  ],
+};
+
+/// Descriptor for `ComputeRouteRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List computeRouteRequestDescriptor = $convert.base64Decode(
+    'ChNDb21wdXRlUm91dGVSZXF1ZXN0EiwKBm9yaWdpbhgBIAEoCzIPLmNhcm5pbmUuTGF0TG9uSA'
+    'BSBm9yaWdpbogBARIxCgtkZXN0aW5hdGlvbhgCIAEoCzIPLmNhcm5pbmUuTGF0TG9uUgtkZXN0'
+    'aW5hdGlvbhIfCghsYW5ndWFnZRgEIAEoCUgBUghsYW5ndWFnZYgBAUIJCgdfb3JpZ2luQgsKCV'
+    '9sYW5ndWFnZUoECAMQBA==');
+
+@$core.Deprecated('Use getReplayRouteRequestDescriptor instead')
+const GetReplayRouteRequest$json = {
+  '1': 'GetReplayRouteRequest',
+  '2': [
+    {
+      '1': 'language',
+      '3': 1,
+      '4': 1,
+      '5': 9,
+      '9': 0,
+      '10': 'language',
+      '17': true
+    },
+  ],
+  '8': [
+    {'1': '_language'},
+  ],
+};
+
+/// Descriptor for `GetReplayRouteRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getReplayRouteRequestDescriptor = $convert.base64Decode(
+    'ChVHZXRSZXBsYXlSb3V0ZVJlcXVlc3QSHwoIbGFuZ3VhZ2UYASABKAlIAFIIbGFuZ3VhZ2WIAQ'
+    'FCCwoJX2xhbmd1YWdl');
+
+@$core.Deprecated('Use maneuverDescriptor instead')
+const Maneuver$json = {
+  '1': 'Maneuver',
+  '2': [
+    {'1': 'instruction', '3': 1, '4': 1, '5': 9, '10': 'instruction'},
+    {'1': 'length_meters', '3': 2, '4': 1, '5': 1, '10': 'lengthMeters'},
+    {'1': 'time_seconds', '3': 3, '4': 1, '5': 1, '10': 'timeSeconds'},
+    {'1': 'type', '3': 4, '4': 1, '5': 13, '10': 'type'},
+    {
+      '1': 'begin_shape_index',
+      '3': 5,
+      '4': 1,
+      '5': 13,
+      '10': 'beginShapeIndex'
+    },
+    {'1': 'street_names', '3': 6, '4': 3, '5': 9, '10': 'streetNames'},
+  ],
+};
+
+/// Descriptor for `Maneuver`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List maneuverDescriptor = $convert.base64Decode(
+    'CghNYW5ldXZlchIgCgtpbnN0cnVjdGlvbhgBIAEoCVILaW5zdHJ1Y3Rpb24SIwoNbGVuZ3RoX2'
+    '1ldGVycxgCIAEoAVIMbGVuZ3RoTWV0ZXJzEiEKDHRpbWVfc2Vjb25kcxgDIAEoAVILdGltZVNl'
+    'Y29uZHMSEgoEdHlwZRgEIAEoDVIEdHlwZRIqChFiZWdpbl9zaGFwZV9pbmRleBgFIAEoDVIPYm'
+    'VnaW5TaGFwZUluZGV4EiEKDHN0cmVldF9uYW1lcxgGIAMoCVILc3RyZWV0TmFtZXM=');
+
+@$core.Deprecated('Use routeDescriptor instead')
+const Route$json = {
+  '1': 'Route',
+  '2': [
+    {'1': 'route_id', '3': 1, '4': 1, '5': 9, '10': 'routeId'},
+    {
+      '1': 'geometry',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.carnine.LatLon',
+      '10': 'geometry'
+    },
+    {'1': 'distance_meters', '3': 3, '4': 1, '5': 1, '10': 'distanceMeters'},
+    {'1': 'duration_seconds', '3': 4, '4': 1, '5': 1, '10': 'durationSeconds'},
+    {
+      '1': 'maneuvers',
+      '3': 5,
+      '4': 3,
+      '5': 11,
+      '6': '.carnine.Maneuver',
+      '10': 'maneuvers'
+    },
+  ],
+};
+
+/// Descriptor for `Route`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List routeDescriptor = $convert.base64Decode(
+    'CgVSb3V0ZRIZCghyb3V0ZV9pZBgBIAEoCVIHcm91dGVJZBIrCghnZW9tZXRyeRgCIAMoCzIPLm'
+    'Nhcm5pbmUuTGF0TG9uUghnZW9tZXRyeRInCg9kaXN0YW5jZV9tZXRlcnMYAyABKAFSDmRpc3Rh'
+    'bmNlTWV0ZXJzEikKEGR1cmF0aW9uX3NlY29uZHMYBCABKAFSD2R1cmF0aW9uU2Vjb25kcxIvCg'
+    'ltYW5ldXZlcnMYBSADKAsyES5jYXJuaW5lLk1hbmV1dmVyUgltYW5ldXZlcnM=');

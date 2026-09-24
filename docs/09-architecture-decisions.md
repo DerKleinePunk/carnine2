@@ -1025,6 +1025,68 @@ the one pinned in the emb workspace, not the one on `PATH`.
 
 ---
 
+## ADR-021: NavigationService - Routing, Position and Place Search in the Backend
+
+**Status:** Accepted (September 2026)
+
+**Context:**
+The navigation page embeds the offline map `local_map` from
+`DerKleinePunk/flutter_local_map` (plan: `docs/plan-carnine2-integration.md`
+there; trade fair on 6 November 2026). The library calls routing, position
+and place search only through its own interfaces (`RoutingProvider`,
+`PositionSource`, `PlaceSearch`). ADR-013 keeps logic out of the frontend,
+and ADR-015 makes gRPC the only contract, so these three belong in the
+backend behind a new service. The contract was agreed with the map library's
+maintainers before any code was written.
+
+**Decision:**
+Add `NavigationService` to `carnine.proto`:
+
+- `GetNavigationStatus` - whether the router answers, which position source
+  is active (none, serial GPS mouse, NMEA replay) and whether it has a fix.
+- `SearchPlaces` - name search over `germany_names.db` (rusqlite, FTS5).
+  `near` is part of the request from the start; the backend may ignore it
+  in v1.
+- `ComputeRoute` - origin (default: current fix) to destination, with the
+  instruction language (BCP-47, default `de-DE`).
+- `GetReplayRoute` - the route of the running NMEA replay, map-matched with
+  Valhalla's `/trace_route`, so position and route on the fair stand come
+  from the same recording.
+- `StreamPositions` - fixes at the source's rate (1 Hz), heading unsmoothed.
+
+Conventions: SI units (metres, seconds, degrees, m/s); failures as gRPC
+status codes (`UNAVAILABLE` router down, `NOT_FOUND` no route or no replay,
+`FAILED_PRECONDITION` no origin and no fix, `INVALID_ARGUMENT` bad
+coordinates); maneuver types are Valhalla's numbering passed through;
+timestamps are GPS time, because the Pi has no RTC. Route progress, heading
+smoothing and off-route handling stay in the map library for v1;
+`StreamGuidance` is reserved for after the fair.
+
+For the fair the backend talks to a native `valhalla_service` on
+`127.0.0.1:8002` (systemd, no container). Linking `libvalhalla` into the
+backend follows later and does not change this contract.
+
+Exception to "the frontend only speaks gRPC": the map reads its vector tiles
+directly from the MBTiles file. Rendering needs thousands of tile reads per
+second of panning; routing them through gRPC would add latency without any
+logic to protect.
+
+**Rationale:**
+- The library's data models already fit; the gRPC adapters in the frontend
+  stay thin and hold no logic.
+- One source of routing and position keeps voice guidance (ADR-016/017) able
+  to use the same route in the backend later.
+- Map-matching the replay avoids a demo where the arrow runs beside the line.
+
+**Consequences:**
+- New backend dependencies: an HTTP client for Valhalla, NMEA parsing,
+  serial port access, rusqlite with FTS5 for the names database.
+- Map data (MBTiles, names, Valhalla tiles) must be deployed to the target
+  and needs a larger SD card than the 4 GB one in the test device.
+- The example client `media_grpc_client` gets a command for every new RPC.
+
+---
+
 These decisions collectively create a system that is:
 - **Safe**: Type-safe languages (Rust, Dart) prevent entire classes of bugs
 - **Performant**: Async concurrency and optimized serialization minimize latency

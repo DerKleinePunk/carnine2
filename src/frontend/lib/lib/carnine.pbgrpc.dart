@@ -1032,3 +1032,202 @@ abstract class SystemServiceBase extends $grpc.Service {
   $async.Stream<$0.SystemMetrics> streamSystemMetrics(
       $grpc.ServiceCall call, $0.Empty request);
 }
+
+/// Routing, own position and place search for the navigation page (ADR-021).
+/// Units are SI; failures are gRPC status codes: UNAVAILABLE (router down),
+/// NOT_FOUND (no route, or no replay running), FAILED_PRECONDITION (no origin
+/// given and no fix), INVALID_ARGUMENT (bad coordinates).
+@$pb.GrpcServiceName('carnine.NavigationService')
+class NavigationServiceClient extends $grpc.Client {
+  /// The hostname for this service.
+  static const $core.String defaultHost = '';
+
+  /// OAuth scopes needed for the client.
+  static const $core.List<$core.String> oauthScopes = [
+    '',
+  ];
+
+  NavigationServiceClient(super.channel, {super.options, super.interceptors});
+
+  $grpc.ResponseFuture<$0.ServiceVersion> getServiceVersion(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getServiceVersion, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.NavigationStatus> getNavigationStatus(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getNavigationStatus, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.SearchPlacesResponse> searchPlaces(
+    $0.SearchPlacesRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$searchPlaces, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.Route> computeRoute(
+    $0.ComputeRouteRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$computeRoute, request, options: options);
+  }
+
+  /// The route of the running NMEA replay, map-matched against the recorded
+  /// fixes, so position and route come from the same recording.
+  $grpc.ResponseFuture<$0.Route> getReplayRoute(
+    $0.GetReplayRouteRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getReplayRoute, request, options: options);
+  }
+
+  /// Fixes at the source's rate (1 Hz for NMEA), heading unsmoothed.
+  $grpc.ResponseStream<$0.PositionFix> streamPositions(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$streamPositions, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
+  // method descriptors
+
+  static final _$getServiceVersion =
+      $grpc.ClientMethod<$0.Empty, $0.ServiceVersion>(
+          '/carnine.NavigationService/GetServiceVersion',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.ServiceVersion.fromBuffer);
+  static final _$getNavigationStatus =
+      $grpc.ClientMethod<$0.Empty, $0.NavigationStatus>(
+          '/carnine.NavigationService/GetNavigationStatus',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.NavigationStatus.fromBuffer);
+  static final _$searchPlaces =
+      $grpc.ClientMethod<$0.SearchPlacesRequest, $0.SearchPlacesResponse>(
+          '/carnine.NavigationService/SearchPlaces',
+          ($0.SearchPlacesRequest value) => value.writeToBuffer(),
+          $0.SearchPlacesResponse.fromBuffer);
+  static final _$computeRoute =
+      $grpc.ClientMethod<$0.ComputeRouteRequest, $0.Route>(
+          '/carnine.NavigationService/ComputeRoute',
+          ($0.ComputeRouteRequest value) => value.writeToBuffer(),
+          $0.Route.fromBuffer);
+  static final _$getReplayRoute =
+      $grpc.ClientMethod<$0.GetReplayRouteRequest, $0.Route>(
+          '/carnine.NavigationService/GetReplayRoute',
+          ($0.GetReplayRouteRequest value) => value.writeToBuffer(),
+          $0.Route.fromBuffer);
+  static final _$streamPositions = $grpc.ClientMethod<$0.Empty, $0.PositionFix>(
+      '/carnine.NavigationService/StreamPositions',
+      ($0.Empty value) => value.writeToBuffer(),
+      $0.PositionFix.fromBuffer);
+}
+
+@$pb.GrpcServiceName('carnine.NavigationService')
+abstract class NavigationServiceBase extends $grpc.Service {
+  $core.String get $name => 'carnine.NavigationService';
+
+  NavigationServiceBase() {
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.ServiceVersion>(
+        'GetServiceVersion',
+        getServiceVersion_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.ServiceVersion value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.NavigationStatus>(
+        'GetNavigationStatus',
+        getNavigationStatus_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.NavigationStatus value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.SearchPlacesRequest, $0.SearchPlacesResponse>(
+            'SearchPlaces',
+            searchPlaces_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.SearchPlacesRequest.fromBuffer(value),
+            ($0.SearchPlacesResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ComputeRouteRequest, $0.Route>(
+        'ComputeRoute',
+        computeRoute_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.ComputeRouteRequest.fromBuffer(value),
+        ($0.Route value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.GetReplayRouteRequest, $0.Route>(
+        'GetReplayRoute',
+        getReplayRoute_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.GetReplayRouteRequest.fromBuffer(value),
+        ($0.Route value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.PositionFix>(
+        'StreamPositions',
+        streamPositions_Pre,
+        false,
+        true,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.PositionFix value) => value.writeToBuffer()));
+  }
+
+  $async.Future<$0.ServiceVersion> getServiceVersion_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return getServiceVersion($call, await $request);
+  }
+
+  $async.Future<$0.ServiceVersion> getServiceVersion(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.NavigationStatus> getNavigationStatus_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return getNavigationStatus($call, await $request);
+  }
+
+  $async.Future<$0.NavigationStatus> getNavigationStatus(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.SearchPlacesResponse> searchPlaces_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.SearchPlacesRequest> $request) async {
+    return searchPlaces($call, await $request);
+  }
+
+  $async.Future<$0.SearchPlacesResponse> searchPlaces(
+      $grpc.ServiceCall call, $0.SearchPlacesRequest request);
+
+  $async.Future<$0.Route> computeRoute_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.ComputeRouteRequest> $request) async {
+    return computeRoute($call, await $request);
+  }
+
+  $async.Future<$0.Route> computeRoute(
+      $grpc.ServiceCall call, $0.ComputeRouteRequest request);
+
+  $async.Future<$0.Route> getReplayRoute_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.GetReplayRouteRequest> $request) async {
+    return getReplayRoute($call, await $request);
+  }
+
+  $async.Future<$0.Route> getReplayRoute(
+      $grpc.ServiceCall call, $0.GetReplayRouteRequest request);
+
+  $async.Stream<$0.PositionFix> streamPositions_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async* {
+    yield* streamPositions($call, await $request);
+  }
+
+  $async.Stream<$0.PositionFix> streamPositions(
+      $grpc.ServiceCall call, $0.Empty request);
+}
