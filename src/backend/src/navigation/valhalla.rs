@@ -24,6 +24,17 @@ const CONNECT_TIMEOUT: Duration = Duration::from_secs(2);
 /// Valhalla's shapes are encoded polylines with six decimal places.
 const POLYLINE_PRECISION: f64 = 1e6;
 
+/// A replay tour is split where it comes closer than this to its own earlier
+/// way ...
+const OVERLAP_RADIUS_METERS: f64 = 25.0;
+/// ... that lies more than this far back along the tour. A bend or a stop at
+/// the lights stays in one piece; the turning point of an out-and-back drive
+/// does not.
+const OVERLAP_MIN_PATH_GAP_METERS: f64 = 300.0;
+
+/// Valhalla maneuver types for "you have arrived" (straight, right, left).
+const ARRIVAL_TYPES: [u32; 3] = [4, 5, 6];
+
 /// Valhalla error codes that mean "these points cannot be connected", as
 /// opposed to a malformed request: 171 no suitable edges near a location,
 /// 442 no path found, 443 exact route match failed, 444 map-match failed.
@@ -113,6 +124,29 @@ impl Valhalla {
             "directions_options": {"units": "kilometers", "language": language},
         });
         self.trip("trace_route", body).await
+    }
+
+    /// Map-matches a whole recorded tour. `/trace_route` matches a trace that
+    /// drives its own way again only in part (the 45 km out-and-back demo tour
+    /// came back as 22.7 km), so the tour is split at such overlaps, each
+    /// piece matched on its own and the pieces joined again. Same approach as
+    /// `routeAlongTrace` in the map library.
+    pub async fn route_along_trace(
+        &self,
+        points: &[(f64, f64)],
+        language: &str,
+    ) -> Result<RouteData, RoutingError> {
+        let split = split_trace_at_overlaps(points);
+        tracing::info!(
+            pieces = split.len(),
+            points = ?split.iter().map(|piece| piece.len()).collect::<Vec<_>>(),
+            "tour split for map-matching"
+        );
+        let mut pieces = Vec::new();
+        for piece in split {
+            pieces.push(self.trace_route(piece, language).await?);
+        }
+        Ok(join_routes(pieces))
     }
 
     async fn trip(&self, action: &str, body: Value) -> Result<RouteData, RoutingError> {
@@ -207,6 +241,77 @@ pub fn parse_trip(answer: &Value) -> Result<RouteData, RoutingError> {
         duration_seconds: trip["summary"]["time"].as_f64().unwrap_or_default(),
         maneuvers,
     })
+}
+
+/// Splits `trace` where it drives its own earlier way again: as soon as a
+/// point lies closer than [`OVERLAP_RADIUS_METERS`] to a point of the same
+/// piece more than [`OVERLAP_MIN_PATH_GAP_METERS`] back along the way.
+/// Neighbouring pieces share one point.
+pub fn split_trace_at_overlaps(trace: &[(f64, f64)]) -> Vec<&[(f64, f64)]> {
+    if trace.len() < 3 {
+        return vec![trace];
+    }
+    let mut path = vec![0.0; trace.len()];
+    for i in 1..trace.len() {
+        path[i] = path[i - 1] + flat_meters(trace[i - 1], trace[i]);
+    }
+    let mut pieces = Vec::new();
+    let mut start = 0;
+    for i in 1..trace.len() {
+        for j in start..i {
+            // Path distance only shrinks from here on.
+            if path[i] - path[j] <= OVERLAP_MIN_PATH_GAP_METERS {
+                break;
+            }
+            if flat_meters(trace[i], trace[j]) < OVERLAP_RADIUS_METERS {
+                pieces.push(&trace[start..i]);
+                start = i - 1;
+                break;
+            }
+        }
+    }
+    pieces.push(&trace[start..]);
+    pieces
+}
+
+/// Equirectangular distance: exact enough for points a few kilometres apart
+/// and much cheaper than haversine, which would run millions of times here.
+fn flat_meters(a: (f64, f64), b: (f64, f64)) -> f64 {
+    const METERS_PER_DEGREE: f64 = 111_319.49;
+    let dx = (b.1 - a.1) * a.0.to_radians().cos() * METERS_PER_DEGREE;
+    let dy = (b.0 - a.0) * METERS_PER_DEGREE;
+    (dx * dx + dy * dy).sqrt()
+}
+
+/// Joins routes driven one after the other: geometry appended, maneuver
+/// indices shifted, the arrival at the end of every piece but the last
+/// dropped.
+pub fn join_routes(pieces: Vec<RouteData>) -> RouteData {
+    let count = pieces.len();
+    let mut joined = RouteData {
+        geometry: Vec::new(),
+        distance_meters: 0.0,
+        duration_seconds: 0.0,
+        maneuvers: Vec::new(),
+    };
+    for (i, piece) in pieces.into_iter().enumerate() {
+        let offset = u32::try_from(joined.geometry.len()).unwrap_or(u32::MAX);
+        let is_last = i + 1 == count;
+        joined.geometry.extend(piece.geometry);
+        joined.distance_meters += piece.distance_meters;
+        joined.duration_seconds += piece.duration_seconds;
+        joined.maneuvers.extend(
+            piece
+                .maneuvers
+                .into_iter()
+                .filter(|m| is_last || !ARRIVAL_TYPES.contains(&m.kind))
+                .map(|m| ManeuverData {
+                    begin_shape_index: m.begin_shape_index.saturating_add(offset),
+                    ..m
+                }),
+        );
+    }
+    joined
 }
 
 /// Decodes a Google-style encoded polyline into (lat, lon) pairs.
@@ -335,6 +440,80 @@ mod tests {
             error_from_answer(StatusCode::INTERNAL_SERVER_ERROR, &json!({})),
             RoutingError::Unavailable(_)
         ));
+    }
+
+    /// Straight line north from Alsfeld, one point every ~11 m.
+    fn line(from: usize, to: usize) -> Vec<(f64, f64)> {
+        (from..to)
+            .map(|i| (50.75 + i as f64 * 0.0001, 9.27))
+            .collect()
+    }
+
+    #[test]
+    fn a_tour_that_drives_back_is_split_at_the_turn() {
+        // 2.2 km north, then back south on the other lane, 14 m to the east.
+        let mut tour = line(0, 200);
+        let turn = tour.len();
+        tour.extend(
+            line(0, 200)
+                .into_iter()
+                .rev()
+                .map(|(lat, lon)| (lat, lon + 0.0002)),
+        );
+        let pieces = split_trace_at_overlaps(&tour);
+        assert_eq!(
+            pieces.len(),
+            2,
+            "{:?}",
+            pieces.iter().map(|p| p.len()).collect::<Vec<_>>()
+        );
+        assert_eq!(pieces[0].last(), pieces[1].first(), "pieces share the seam");
+        assert!(
+            pieces[0].len() > turn,
+            "the first piece reaches past the turn"
+        );
+        assert_eq!(pieces[0].len() + pieces[1].len() - 1, tour.len());
+    }
+
+    #[test]
+    fn a_tour_without_overlap_stays_whole() {
+        let tour = line(0, 300);
+        assert_eq!(split_trace_at_overlaps(&tour), vec![tour.as_slice()]);
+        assert_eq!(split_trace_at_overlaps(&tour[..2]).len(), 1);
+    }
+
+    fn maneuver(kind: u32, begin_shape_index: u32) -> ManeuverData {
+        ManeuverData {
+            instruction: String::new(),
+            length_meters: 100.0,
+            time_seconds: 10.0,
+            kind,
+            begin_shape_index,
+            street_names: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn joined_routes_keep_one_arrival_and_valid_indices() {
+        let piece = |kinds: &[(u32, u32)]| RouteData {
+            geometry: vec![(50.0, 9.0), (50.1, 9.0), (50.2, 9.0)],
+            distance_meters: 1000.0,
+            duration_seconds: 60.0,
+            maneuvers: kinds.iter().map(|&(k, i)| maneuver(k, i)).collect(),
+        };
+        let joined = join_routes(vec![
+            piece(&[(1, 0), (10, 1), (4, 2)]),
+            piece(&[(1, 0), (5, 2)]),
+        ]);
+        assert_eq!(joined.geometry.len(), 6);
+        assert_eq!(joined.distance_meters, 2000.0);
+        assert_eq!(joined.duration_seconds, 120.0);
+        let got: Vec<(u32, u32)> = joined
+            .maneuvers
+            .iter()
+            .map(|m| (m.kind, m.begin_shape_index))
+            .collect();
+        assert_eq!(got, [(1, 0), (10, 1), (1, 3), (5, 5)]);
     }
 
     #[tokio::test]
