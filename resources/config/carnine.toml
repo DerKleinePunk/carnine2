@@ -56,3 +56,4 @@ disk_paths = []
 # replay_loop = true
 # valhalla_url = "http://127.0.0.1:8002"
 # map_region = "hessen"
+# names_database = "/var/lib/carnine/maps/hessen_names.db"

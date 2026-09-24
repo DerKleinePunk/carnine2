@@ -17,10 +17,10 @@ use carnine::{
     audio_service_client::AudioServiceClient, get_cover_art_request::Target as CoverArtTarget,
     media_service_client::MediaServiceClient, navigation_service_client::NavigationServiceClient,
     system_service_client::SystemServiceClient, AddPlaylistEntryRequest, CreatePlaylistRequest,
-    Empty, FixState, GetCoverArtRequest, GetPlaylistRequest, ImportMusicVolumeRequest,
+    Empty, FixState, GetCoverArtRequest, GetPlaylistRequest, ImportMusicVolumeRequest, LatLon,
     LibraryEventType, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PositionFix,
-    PositionSourceKind, RepeatMode, RescanMediaRequest, SearchMediaRequest, SetRepeatModeRequest,
-    SetShuffleModeRequest, SystemMetrics,
+    PositionSourceKind, RepeatMode, RescanMediaRequest, SearchMediaRequest, SearchPlacesRequest,
+    SetRepeatModeRequest, SetShuffleModeRequest, SystemMetrics,
 };
 
 #[tokio::main]
@@ -74,6 +74,7 @@ async fn main() -> Result<()> {
         "metrics-stream" => stream_system_metrics(&endpoint).await?,
         "nav-status" => get_navigation_status(&endpoint).await?,
         "positions" => stream_positions(&endpoint).await?,
+        "places" => search_places(&endpoint).await?,
         unknown => bail!("unknown command: {unknown}"),
     }
     Ok(())
@@ -304,6 +305,50 @@ async fn get_navigation_status(endpoint: &str) -> Result<()> {
             &status.map_region
         }
     );
+    Ok(())
+}
+
+/// `places <query> [lat,lon]`: place search, optionally ranked around a point.
+async fn search_places(endpoint: &str) -> Result<()> {
+    let query = env::args()
+        .nth(3)
+        .context("usage: media_grpc_client [endpoint] places <query> [lat,lon]")?;
+    let near = env::args()
+        .nth(4)
+        .map(|value| -> Result<LatLon> {
+            let (latitude, longitude) = value
+                .split_once(',')
+                .context("near must be given as lat,lon")?;
+            Ok(LatLon {
+                latitude: latitude.trim().parse()?,
+                longitude: longitude.trim().parse()?,
+            })
+        })
+        .transpose()?;
+    let mut client = NavigationServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let response = client
+        .search_places(SearchPlacesRequest {
+            query,
+            limit: 0,
+            near,
+        })
+        .await?
+        .into_inner();
+    for place in &response.places {
+        let (latitude, longitude) = place
+            .location
+            .as_ref()
+            .map(|location| (location.latitude, location.longitude))
+            .unwrap_or_default();
+        println!(
+            "{:<22} {:<40} {latitude:.5},{longitude:.5} z{} {}",
+            format!("{:?}", place.r#type()),
+            place.name,
+            place.zoom,
+            place.detail.as_deref().unwrap_or("")
+        );
+    }
+    println!("{} hit(s)", response.places.len());
     Ok(())
 }
 

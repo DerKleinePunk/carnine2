@@ -144,6 +144,10 @@ pub struct NavigationConfig {
     /// Region of the installed map data, reported to the frontend as is.
     #[serde(default)]
     pub map_region: String,
+    /// FTS5 names index built next to the tiles (`<map>_names.db`). Unset
+    /// means place search answers UNAVAILABLE.
+    #[serde(default)]
+    pub names_database: Option<PathBuf>,
 }
 
 fn default_replay_loop() -> bool {
@@ -163,6 +167,7 @@ impl Default for NavigationConfig {
             replay_loop: default_replay_loop(),
             valhalla_url: default_valhalla_url(),
             map_region: String::new(),
+            names_database: None,
         }
     }
 }

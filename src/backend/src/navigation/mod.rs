@@ -2,6 +2,7 @@
 //! (ADR-021).
 
 pub mod nmea;
+pub mod places;
 pub mod position;
 pub mod service;
 
@@ -35,4 +36,5 @@ pub fn start(config: &NavigationConfig) -> NavigationServiceImpl {
         _ => {}
     }
     NavigationServiceImpl::new(hub, config.valhalla_url.clone(), config.map_region.clone())
+        .with_names_database(config.names_database.clone())
 }

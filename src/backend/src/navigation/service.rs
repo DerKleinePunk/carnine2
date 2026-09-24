@@ -1,18 +1,20 @@
 //! gRPC surface of navigation (ADR-021).
 
+use std::path::PathBuf;
 use std::pin::Pin;
 use std::time::Duration;
 
 use futures_util::StreamExt;
 use tokio_stream::wrappers::WatchStream;
 use tonic::{Request, Response, Status};
-use tracing::info;
+use tracing::{info, warn};
 
+use super::places::{self, PlaceRecord};
 use super::position::{Fix, PositionHub, PositionState, SourceKind};
 use crate::carnine::navigation_service_server::NavigationService;
 use crate::carnine::{
-    ComputeRouteRequest, Empty, FixState, GetReplayRouteRequest, LatLon, NavigationStatus,
-    PositionFix, PositionSourceKind, Route, SearchPlacesRequest, SearchPlacesResponse,
+    ComputeRouteRequest, Empty, FixState, GetReplayRouteRequest, LatLon, NavigationStatus, Place,
+    PlaceType, PositionFix, PositionSourceKind, Route, SearchPlacesRequest, SearchPlacesResponse,
     ServiceVersion,
 };
 
@@ -26,6 +28,7 @@ pub struct NavigationServiceImpl {
     positions: PositionHub,
     valhalla_url: String,
     map_region: String,
+    names_database: Option<PathBuf>,
 }
 
 impl NavigationServiceImpl {
@@ -34,7 +37,13 @@ impl NavigationServiceImpl {
             positions,
             valhalla_url,
             map_region,
+            names_database: None,
         }
+    }
+
+    pub fn with_names_database(mut self, names_database: Option<PathBuf>) -> Self {
+        self.names_database = names_database;
+        self
     }
 
     /// Whether something accepts connections at the router's address. A full
@@ -80,6 +89,30 @@ fn fix_state(fix: Option<&Fix>) -> FixState {
     match fix {
         Some(fix) if fix.valid => FixState::Fix,
         _ => FixState::NoFix,
+    }
+}
+
+fn place_type(kind: &str) -> PlaceType {
+    match kind {
+        "place" => PlaceType::Place,
+        "poi" => PlaceType::Poi,
+        "mountain_peak" => PlaceType::MountainPeak,
+        "water_name" => PlaceType::WaterName,
+        "transportation_name" => PlaceType::TransportationName,
+        _ => PlaceType::Unspecified,
+    }
+}
+
+fn place(record: PlaceRecord) -> Place {
+    Place {
+        location: Some(LatLon {
+            latitude: record.latitude,
+            longitude: record.longitude,
+        }),
+        zoom: record.zoom,
+        r#type: place_type(&record.kind) as i32,
+        detail: record.detail.filter(|detail| !detail.is_empty()),
+        name: record.name,
     }
 }
 
@@ -129,9 +162,29 @@ impl NavigationService for NavigationServiceImpl {
 
     async fn search_places(
         &self,
-        _request: Request<SearchPlacesRequest>,
+        request: Request<SearchPlacesRequest>,
     ) -> Result<Response<SearchPlacesResponse>, Status> {
-        Err(Status::unimplemented("SearchPlaces is not implemented yet"))
+        let request = request.into_inner();
+        let Some(database) = self.names_database.clone() else {
+            return Err(Status::unavailable("no names database configured"));
+        };
+        let near = request
+            .near
+            .map(|near| (near.latitude, near.longitude))
+            .filter(|(lat, lon)| lat.is_finite() && lon.is_finite());
+        let query = request.query;
+        let limit = usize::try_from(request.limit).unwrap_or(places::DEFAULT_LIMIT);
+        let hits =
+            tokio::task::spawn_blocking(move || places::search(&database, &query, limit, near))
+                .await
+                .map_err(|err| Status::internal(format!("place search panicked: {err}")))?
+                .map_err(|err| {
+                    warn!(error = %format!("{err:#}"), "place search failed");
+                    Status::unavailable(format!("place search failed: {err:#}"))
+                })?;
+        Ok(Response::new(SearchPlacesResponse {
+            places: hits.into_iter().map(place).collect(),
+        }))
     }
 
     async fn compute_route(
@@ -227,6 +280,39 @@ mod tests {
             fix: None,
         };
         assert_eq!(position_fix(&state), None);
+    }
+
+    #[tokio::test]
+    async fn search_without_a_names_database_is_unavailable() {
+        let service = NavigationServiceImpl::new(
+            PositionHub::new(SourceKind::None),
+            "http://127.0.0.1:9".to_string(),
+            String::new(),
+        );
+        let status = service
+            .search_places(Request::new(SearchPlacesRequest {
+                query: "Alsfeld".to_string(),
+                limit: 0,
+                near: None,
+            }))
+            .await
+            .expect_err("no database configured");
+        assert_eq!(status.code(), tonic::Code::Unavailable);
+    }
+
+    #[test]
+    fn records_map_to_places_with_their_type() {
+        let wire = place(PlaceRecord {
+            name: "Alsfeld".to_string(),
+            latitude: 50.75,
+            longitude: 9.27,
+            zoom: 12,
+            kind: "place".to_string(),
+            detail: Some(String::new()),
+        });
+        assert_eq!(wire.r#type, PlaceType::Place as i32);
+        assert_eq!(wire.detail, None, "an empty detail is left out");
+        assert_eq!(wire.zoom, 12);
     }
 
     #[tokio::test]
