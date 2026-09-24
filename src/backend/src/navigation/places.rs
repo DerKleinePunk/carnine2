@@ -18,6 +18,11 @@ const MAX_LIMIT: usize = 100;
 /// With `near`, this many candidates per requested result are fetched first;
 /// FTS knows nothing about distance, and "Hauptstraße" exists a thousand times.
 const NEAR_CANDIDATE_FACTOR: usize = 10;
+/// Half the side of the box searched first around `near`, in degrees of
+/// latitude (about 33 km). FTS ranks by text alone; without this box a common
+/// street name finds its namesakes somewhere else in Germany, and the nearby
+/// ones never make it into the candidates.
+const NEAR_BOX_DEGREES: f64 = 0.3;
 
 /// Type names as the extraction script writes them, in ranking order.
 const TYPE_PRIORITY: [&str; 5] = [
@@ -62,29 +67,32 @@ pub fn search(
         OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
     )
     .with_context(|| format!("opening names database {}", database.display()))?;
-    let mut statement = connection.prepare(
-        "SELECT name, lat, lng, zoom, type, detail FROM names
-         WHERE names MATCH ?1
-         ORDER BY CASE type
-             WHEN 'place' THEN 0 WHEN 'poi' THEN 1 WHEN 'mountain_peak' THEN 2
-             WHEN 'water_name' THEN 3 WHEN 'transportation_name' THEN 4 ELSE 5 END,
-           rank
-         LIMIT ?2",
-    )?;
-    let fetch = i64::try_from(fetch).unwrap_or(i64::MAX);
-    let mut records = statement
-        .query_map(rusqlite::params![fts_query, fetch], |row| {
-            Ok(PlaceRecord {
-                name: row.get(0)?,
-                latitude: row.get(1)?,
-                longitude: row.get(2)?,
-                zoom: u32::try_from(row.get::<_, i64>(3)?).unwrap_or(0),
-                kind: row.get(4)?,
-                detail: row.get(5)?,
-            })
-        })?
-        .collect::<rusqlite::Result<Vec<_>>>()
-        .context("reading names")?;
+    let mut records = Vec::new();
+    if let Some((lat, lon)) = near {
+        // Longitude degrees shrink towards the poles; widen the box to match.
+        let lon_span = NEAR_BOX_DEGREES / lat.to_radians().cos().max(0.1);
+        records = query_names(
+            &connection,
+            &fts_query,
+            Some((
+                lat - NEAR_BOX_DEGREES,
+                lat + NEAR_BOX_DEGREES,
+                lon - lon_span,
+                lon + lon_span,
+            )),
+            fetch,
+        )?;
+    }
+    if records.len() < fetch {
+        for record in query_names(&connection, &fts_query, None, fetch)? {
+            if records.len() >= fetch {
+                break;
+            }
+            if !records.contains(&record) {
+                records.push(record);
+            }
+        }
+    }
     if let Some(origin) = near {
         // Stable sort: the type order from SQL stays, distance decides within it.
         records.sort_by(|a, b| {
@@ -95,6 +103,45 @@ pub fn search(
         });
     }
     records.truncate(limit);
+    Ok(records)
+}
+
+/// One FTS lookup in type order, optionally limited to a box
+/// (min_lat, max_lat, min_lon, max_lon).
+fn query_names(
+    connection: &Connection,
+    fts_query: &str,
+    bounds: Option<(f64, f64, f64, f64)>,
+    fetch: usize,
+) -> Result<Vec<PlaceRecord>> {
+    let (min_lat, max_lat, min_lon, max_lon) = bounds.unwrap_or((-90.0, 90.0, -180.0, 180.0));
+    let mut statement = connection.prepare_cached(
+        "SELECT name, lat, lng, zoom, type, detail FROM names
+         WHERE names MATCH ?1
+           AND lat BETWEEN ?2 AND ?3 AND lng BETWEEN ?4 AND ?5
+         ORDER BY CASE type
+             WHEN 'place' THEN 0 WHEN 'poi' THEN 1 WHEN 'mountain_peak' THEN 2
+             WHEN 'water_name' THEN 3 WHEN 'transportation_name' THEN 4 ELSE 5 END,
+           rank
+         LIMIT ?6",
+    )?;
+    let fetch = i64::try_from(fetch).unwrap_or(i64::MAX);
+    let records = statement
+        .query_map(
+            rusqlite::params![fts_query, min_lat, max_lat, min_lon, max_lon, fetch],
+            |row| {
+                Ok(PlaceRecord {
+                    name: row.get(0)?,
+                    latitude: row.get(1)?,
+                    longitude: row.get(2)?,
+                    zoom: u32::try_from(row.get::<_, i64>(3)?).unwrap_or(0),
+                    kind: row.get(4)?,
+                    detail: row.get(5)?,
+                })
+            },
+        )?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .context("reading names")?;
     Ok(records)
 }
 
@@ -207,6 +254,29 @@ mod tests {
         assert_eq!(hits.len(), 2);
         assert!((hits[0].latitude - 50.75).abs() < 1e-9, "nearest first");
         assert!((hits[1].latitude - 51.31).abs() < 1e-9);
+    }
+
+    #[test]
+    fn near_finds_the_local_namesake_among_many_far_ones() {
+        // 300 far-away "Hauptstraße" rank before the local one by text alone.
+        let mut rows: Vec<(&str, f64, f64, i64, &str)> = (0..300)
+            .map(|i| {
+                (
+                    "Hauptstraße",
+                    53.0 + f64::from(i) * 0.001,
+                    10.0,
+                    16,
+                    "transportation_name",
+                )
+            })
+            .collect();
+        rows.push(("Hauptstraße", 50.7520, 9.2700, 16, "transportation_name"));
+        let db = names_db(&rows);
+        let hits = search(&db.path, "Hauptstraße", 3, Some(ALSFELD)).expect("search");
+        assert!(
+            (hits[0].latitude - 50.7520).abs() < 1e-9,
+            "local one first: {hits:?}"
+        );
     }
 
     #[test]
