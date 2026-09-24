@@ -3,8 +3,8 @@
 //!
 //! Ranking follows the map library's `OfflineGeocoder`, so a search reads the
 //! same in the demo app and in carnine2: places before POIs before peaks,
-//! water and streets; with `near`, more candidates per type ordered by
-//! distance.
+//! water and streets; within a type the exact name before prefix hits, and
+//! with `near` each of those two parts ordered by distance.
 
 use std::path::Path;
 
@@ -15,9 +15,10 @@ use rusqlite::{Connection, OpenFlags};
 pub const DEFAULT_LIMIT: usize = 15;
 /// Hard cap, so a client cannot ask the Pi for the whole index.
 const MAX_LIMIT: usize = 100;
-/// With `near`, this many candidates per requested result are fetched first;
-/// FTS knows nothing about distance, and "Hauptstraße" exists a thousand times.
-const NEAR_CANDIDATE_FACTOR: usize = 10;
+/// This many candidates per requested result are fetched first; FTS knows
+/// nothing about distance or exact names, and "Hauptstraße" exists a thousand
+/// times.
+const CANDIDATE_FACTOR: usize = 10;
 /// Half the side of the box searched first around `near`, in degrees of
 /// latitude (about 33 km). FTS ranks by text alone; without this box a common
 /// street name finds its namesakes somewhere else in Germany, and the nearby
@@ -50,6 +51,7 @@ pub fn search(
     limit: usize,
     near: Option<(f64, f64)>,
 ) -> Result<Vec<PlaceRecord>> {
+    let query = query.trim();
     let Some(fts_query) = fts_query(query) else {
         return Ok(Vec::new());
     };
@@ -57,11 +59,7 @@ pub fn search(
         0 => DEFAULT_LIMIT,
         limit => limit.min(MAX_LIMIT),
     };
-    let fetch = if near.is_some() {
-        limit * NEAR_CANDIDATE_FACTOR
-    } else {
-        limit
-    };
+    let fetch = limit * CANDIDATE_FACTOR;
     let connection = Connection::open_with_flags(
         database,
         OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
@@ -93,15 +91,19 @@ pub fn search(
             }
         }
     }
-    if let Some(origin) = near {
-        // Stable sort: the type order from SQL stays, distance decides within it.
-        records.sort_by(|a, b| {
-            type_rank(&a.kind).cmp(&type_rank(&b.kind)).then_with(|| {
-                distance_meters(origin, (a.latitude, a.longitude))
-                    .total_cmp(&distance_meters(origin, (b.latitude, b.longitude)))
+    // Stable sort: without `near` the FTS order stays within type and exactness.
+    let query = query.to_lowercase();
+    let inexact = |record: &PlaceRecord| record.name.to_lowercase() != query;
+    records.sort_by(|a, b| {
+        type_rank(&a.kind)
+            .cmp(&type_rank(&b.kind))
+            .then_with(|| inexact(a).cmp(&inexact(b)))
+            .then_with(|| match near {
+                Some(origin) => distance_meters(origin, (a.latitude, a.longitude))
+                    .total_cmp(&distance_meters(origin, (b.latitude, b.longitude))),
+                None => std::cmp::Ordering::Equal,
             })
-        });
-    }
+    });
     records.truncate(limit);
     Ok(records)
 }
@@ -277,6 +279,22 @@ mod tests {
             (hits[0].latitude - 50.7520).abs() < 1e-9,
             "local one first: {hits:?}"
         );
+    }
+
+    #[test]
+    fn the_exact_name_comes_before_prefix_hits() {
+        // Same cases as the map library's OfflineGeocoder test.
+        let db = names_db(&[
+            ("Fulda-Galerie", 50.74, 9.26, 14, "place"),
+            ("Fulda", 50.55, 9.68, 12, "place"),
+        ]);
+        let names = |hits: Vec<PlaceRecord>| -> Vec<String> {
+            hits.into_iter().map(|hit| hit.name).collect()
+        };
+        let near = search(&db.path, "fulda", 0, Some((50.74, 9.25))).expect("search");
+        assert_eq!(names(near), ["Fulda", "Fulda-Galerie"]);
+        let plain = search(&db.path, "Fulda ", 0, None).expect("search");
+        assert_eq!(names(plain)[0], "Fulda");
     }
 
     #[test]
