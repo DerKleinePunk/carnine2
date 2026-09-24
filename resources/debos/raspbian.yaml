@@ -209,6 +209,14 @@ actions:
   # selbst herunter. Statt auf fkms auszuweichen schieben wir ein korrigiertes
   # EDID unter (Kernel-Parameter in cmdline.txt weiter unten).
   # Begruendung und Gegenproben: docs/22-waveshare-display-1024x600.md
+
+  # overlay kopiert eine einzelne Datei nur in ein vorhandenes Verzeichnis,
+  # und das Debian-Rootfs hat kein /lib/firmware/edid.
+  - action: run
+    description: Create the EDID firmware directory
+    chroot: true
+    command: install -d /lib/firmware/edid
+
   - action: overlay
     description: Install corrected EDID for the Waveshare 1024x600 panel
     origin: recipe

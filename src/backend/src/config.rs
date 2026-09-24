@@ -16,6 +16,9 @@ pub struct Config {
     /// valid and get the defaults below.
     #[serde(default)]
     pub system: SystemConfig,
+    /// Optional: without it navigation runs with no position source.
+    #[serde(default)]
+    pub navigation: NavigationConfig,
 }
 
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
@@ -112,6 +115,63 @@ impl Default for SystemConfig {
     }
 }
 
+/// Where the backend's own position comes from (ADR-021).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PositionSourceSetting {
+    #[default]
+    None,
+    /// GPS mouse: NMEA read from `serial_device`.
+    Serial,
+    /// Recorded NMEA tour replayed from `replay_file` (trade fair, tests).
+    Replay,
+}
+
+#[derive(Debug, Clone, Deserialize, serde::Serialize)]
+pub struct NavigationConfig {
+    #[serde(default)]
+    pub position_source: PositionSourceSetting,
+    #[serde(default)]
+    pub serial_device: Option<PathBuf>,
+    #[serde(default)]
+    pub replay_file: Option<PathBuf>,
+    /// Start the replay again when it reaches the end.
+    #[serde(default = "default_replay_loop")]
+    pub replay_loop: bool,
+    /// Base URL of the Valhalla service the backend routes with.
+    #[serde(default = "default_valhalla_url")]
+    pub valhalla_url: String,
+    /// Region of the installed map data, reported to the frontend as is.
+    #[serde(default)]
+    pub map_region: String,
+    /// FTS5 names index built next to the tiles (`<map>_names.db`). Unset
+    /// means place search answers UNAVAILABLE.
+    #[serde(default)]
+    pub names_database: Option<PathBuf>,
+}
+
+fn default_replay_loop() -> bool {
+    true
+}
+
+fn default_valhalla_url() -> String {
+    "http://127.0.0.1:8002".to_string()
+}
+
+impl Default for NavigationConfig {
+    fn default() -> Self {
+        Self {
+            position_source: PositionSourceSetting::default(),
+            serial_device: None,
+            replay_file: None,
+            replay_loop: default_replay_loop(),
+            valhalla_url: default_valhalla_url(),
+            map_region: String::new(),
+            names_database: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
 pub struct LoggingConfig {
     pub directory: PathBuf,
@@ -158,6 +218,28 @@ impl Config {
             .any(|path| path.as_os_str().is_empty())
         {
             anyhow::bail!("system.disk_paths contains an empty path");
+        }
+        let navigation = &self.navigation;
+        let missing =
+            |path: &Option<PathBuf>| path.as_ref().is_none_or(|p| p.as_os_str().is_empty());
+        match navigation.position_source {
+            PositionSourceSetting::Serial if missing(&navigation.serial_device) => {
+                anyhow::bail!(
+                    "navigation.position_source = \"serial\" needs navigation.serial_device"
+                )
+            }
+            PositionSourceSetting::Replay if missing(&navigation.replay_file) => {
+                anyhow::bail!(
+                    "navigation.position_source = \"replay\" needs navigation.replay_file"
+                )
+            }
+            _ => {}
+        }
+        if !navigation.valhalla_url.starts_with("http://") {
+            anyhow::bail!(
+                "navigation.valhalla_url must be a plain http:// URL on this machine: {}",
+                navigation.valhalla_url
+            );
         }
         Ok(())
     }
@@ -339,5 +421,49 @@ mod tests {
                 .expect("0660 should parse"),
             0o660
         );
+    }
+
+    #[test]
+    fn navigation_defaults_to_no_source_and_checks_source_paths() {
+        use super::PositionSourceSetting;
+
+        let (mut config, _) =
+            Config::load_with_env(|_| None).expect("repository config should load");
+        assert_eq!(
+            config.navigation.position_source,
+            PositionSourceSetting::None
+        );
+        assert_eq!(config.navigation.valhalla_url, "http://127.0.0.1:8002");
+        assert!(config.navigation.replay_loop);
+
+        config.navigation.position_source = PositionSourceSetting::Replay;
+        assert!(config.validate().is_err());
+        config.navigation.replay_file =
+            Some(std::path::PathBuf::from("/var/lib/carnine/tour.nmea"));
+        assert!(config.validate().is_ok());
+
+        config.navigation.position_source = PositionSourceSetting::Serial;
+        assert!(config.validate().is_err());
+        config.navigation.serial_device = Some(std::path::PathBuf::from("/dev/ttyACM0"));
+        assert!(config.validate().is_ok());
+
+        config.navigation.valhalla_url = "https://example.org".to_string();
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn parses_the_navigation_section() {
+        let config: Config = toml::from_str(&format!(
+            "{}\n[navigation]\nposition_source = \"replay\"\nreplay_file = \"/tmp/tour.nmea\"\nreplay_loop = false\nmap_region = \"hessen\"\n",
+            std::fs::read_to_string("../../resources/config/carnine.toml")
+                .expect("repository config should be readable")
+        ))
+        .expect("a navigation section must parse");
+        assert_eq!(
+            config.navigation.position_source,
+            super::PositionSourceSetting::Replay
+        );
+        assert!(!config.navigation.replay_loop);
+        assert_eq!(config.navigation.map_region, "hessen");
     }
 }
