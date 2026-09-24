@@ -979,6 +979,52 @@ instead of one, compensating in practice for flutter-pi's missing retry.
 
 ---
 
+## ADR-020: Frontend Embedder - ivi-homescreen via emb_cli instead of flutter-pi
+
+**Status:** Accepted (September 2026), trial on `feature/emb-cli`
+
+**Context:**
+The offline map (`local_map` from `DerKleinePunk/flutter_local_map`) is
+planned as the navigation page for the trade fair on 6 November 2026. It has
+been developed and measured on the Pi 4 under ivi-homescreen, cross-built
+with `emb_cli` (Flutter 3.47.x, backend `drm-kms-egl`), and its load times are
+too slow under flutter-pi. flutter-pi also lags behind current Flutter
+releases with no date for catching up, and it has the silent,
+non-retried DRM commit failure described in ADR-019. The go/no-go protocol in
+`docs/19-ivi-homescreen-evaluation.md` was never carried out.
+
+**Decision:**
+Build the frontend with `emb cross --target rpi4-trixie --backend drm-kms-egl`
+and run it under ivi-homescreen (`homescreen -b /opt/carnine/frontend -f`),
+replacing `flutterpi_tool` and flutter-pi. The switch is taken ahead of the
+evaluation protocol because of the fair deadline; the product owner accepts
+that risk. Embedder plugins stay disabled (`DISABLE_PLUGINS=ON`): the frontend
+uses no native plugin on the Pi, and `window_manager` is skipped when
+`CARNINE_EMBEDDED` is set (formerly `CARNINE_FLUTTER_PI`). The Flutter SDK is
+the one pinned in the emb workspace, not the one on `PATH`.
+
+**Rationale:**
+- Map and Carnine2 run on the same chain, so the map measurements taken on
+  that chain stay valid.
+- ivi-homescreen is actively developed, tracks current Flutter, and exposes
+  its DRM pipeline options (`--drm-pipeline-depth`, `--drm-async-flip`).
+
+**Consequences:**
+- A build host needs an emb workspace (`CARNINE_EMB_WORKSPACE`, default
+  `~/develop/emb-workspace`) with the Flutter SDK and an ivi-homescreen
+  checkout; see `docs/07-deployment.md`.
+- The target needs `seatd` running; `drm-kms-egl` otherwise hangs silently
+  on `libseat`. The frontend package depends on it.
+- emb's AOT step has no `--dart-define`; `build_pi.sh` stamps the version into
+  a staged copy of the frontend instead.
+- Known open risk: under ivi-homescreen the map demo stopped presenting frames
+  after a long run (page-flip events reported lost). It must be ruled out on
+  the target before the fair; ADR-019's frame-forcing mitigation stays until
+  ivi-homescreen's commit behavior is confirmed.
+- Rollback is switching back to `main`'s `build_pi.sh` and frontend package.
+
+---
+
 These decisions collectively create a system that is:
 - **Safe**: Type-safe languages (Rust, Dart) prevent entire classes of bugs
 - **Performant**: Async concurrency and optimized serialization minimize latency

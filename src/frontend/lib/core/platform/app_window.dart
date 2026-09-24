@@ -33,7 +33,7 @@ abstract final class AppWindow {
   }
 
   static bool get _usesWindowManager {
-    return !Platform.environment.containsKey('CARNINE_FLUTTER_PI') &&
+    return !Platform.environment.containsKey('CARNINE_EMBEDDED') &&
         (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
   }
 

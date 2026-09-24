@@ -73,7 +73,8 @@ file with `rename`.
 #### Runtime Dependencies (on Pi)
 - **CAN Driver**: `socketcan` kernel module loaded (`modprobe can`, `modprobe can_raw`)
 - **System libraries**:
-  - `libgl1-mesa-glx` (Mesa OpenGL for flutter_pi)
+  - `libegl1`, `libgles2`, `libgbm1` (Mesa EGL/GLES for ivi-homescreen)
+  - `seatd` running (`systemctl enable --now seatd`); `drm-kms-egl` hangs silently on `libseat` without it
   - `libssl3` (OpenSSL runtime)
   - `curl` (for OTA updates)
 
@@ -87,8 +88,10 @@ file with `rename`.
 - Standard build tools (gcc, make, pkg‑config)
 
 **Flutter Frontend Cross‑Compilation**
-- Flutter SDK 3.10.5+
-- `flutterpi_tool` ([GitHub](https://github.com/ardera/flutterpi_tool)) build engine
+- [`emb_cli`](https://pub.dev/packages/emb_cli) (`dart install emb_cli`)
+- An emb workspace with the Flutter SDK emb pins and an
+  [ivi-homescreen](https://github.com/toyota-connected/ivi-homescreen) checkout
+  (see 3.3); the Flutter SDK on `PATH` is not used for Pi builds (ADR-020)
 - Standard build tools
 
 #### System Packages (apt) on Workstation
@@ -176,36 +179,43 @@ sudo apt-get update && sudo apt-get install -y \
    cp target/aarch64-unknown-linux-gnu/release/carnine-backend build/backend/
    ```
 
-### 3.3 Build Frontend (Flutter via flutterpi_tool)
+### 3.3 Build Frontend (Flutter via emb_cli / ivi-homescreen)
 
-**Build on workstation (Linux), then transfer to Pi.**
+The frontend runs under ivi-homescreen with the `drm-kms-egl` backend and is
+cross-built with `emb_cli` (ADR-020). `build_pi.sh` does all of the following;
+the steps are listed for provisioning a new build host.
 
-1. **Install flutterpi_tool** on workstation:
-
-   ```bash
-   flutter pub global activate flutterpi_tool
-   ```
-
-2. **Build Flutter app** with flutterpi_tool:
+1. **Provision the emb workspace** (once per host, default
+   `~/develop/emb-workspace`, override with `CARNINE_EMB_WORKSPACE`):
 
    ```bash
-   cd src/frontend
-   flutterpi_tool build --arch=arm64 --cpu=pi4 --output-dir build/frontend
+   W=~/develop/emb-workspace
+   mkdir -p $W/app
+   git clone --recursive https://github.com/toyota-connected/ivi-homescreen.git $W/app/ivi-homescreen
+   emb flutter -w $W --flutter-version 3.47.5
+   cd $W/app/ivi-homescreen
+   emb cross . --target rpi4-trixie --backend drm-kms-egl -D DISABLE_PLUGINS=ON --fetch-only -w $W
    ```
 
-3. **Transfer binaries to Raspberry Pi**:
+   The fetch downloads the Arm GNU toolchain and a RaspiOS trixie sysroot
+   (several GB, cached under `~/.cache/emb`). The build also compiles a
+   host-native `wayland-cxx-scanner` and needs `sudo apt install libpugixml-dev`
+   on the workstation.
 
-   ```bash
-   rsync -avz build/ pi@<pi-ip>:/opt/carnine/
-   ```
+2. **Build** with `./build_pi.sh`. It copies `src/frontend` to
+   `build/emb-app/carnine_frontend` (emb writes into the app directory),
+   stamps the version there, and runs
+   `emb cross . --target rpi4-trixie --build --backend drm-kms-egl --app <copy> --mode release -D DISABLE_PLUGINS=ON`.
+   Never judge performance from a debug build: `executor_lib` and other
+   isolate pools fall back to the main isolate in debug.
 
-4. **Run on Pi**:
+3. **Install** the resulting `resources/debos/carnine-frontend.deb` with
+   `./deploy_pi.sh`. The package installs the bundle to
+   `/opt/carnine/frontend`; `/usr/bin/carnine-frontend` starts
+   `homescreen -b /opt/carnine/frontend -f`.
 
-   ```bash
-   # SSH into Pi
-   ssh pi@<pi-ip>
-   /opt/carnine/carpc_frontend
-   ```
+4. **Stop it by hand** with `pkill -x homescreen`. `pkill -f homescreen`
+   also matches the SSH command line that runs it.
 
 ---
 
