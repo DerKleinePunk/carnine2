@@ -15,6 +15,12 @@ abstract final class GrpcEndpoint {
 
   static const String _defaultSocketPath = '/run/carnine/carnine.sock';
 
+  /// Pass as `ChannelOptions.connectionTimeout`. grpc-dart replaces every
+  /// connection after 50 minutes by default (meant for Google's servers,
+  /// which close after an hour) and thereby breaks all streams running on
+  /// it. The backend is local and never closes a connection on its own.
+  static const Duration connectionLifetime = Duration(days: 365);
+
   /// Builds a channel to the backend using [options], honoring the same
   /// `CARNINE_SOCKET_PATH`/`CARNINE_TCP_ADDRESS` environment overrides the
   /// backend itself reads, so both sides agree on a non-default location

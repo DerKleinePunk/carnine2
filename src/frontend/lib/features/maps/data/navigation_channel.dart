@@ -54,6 +54,7 @@ class NavigationChannel {
       options: const ChannelOptions(
         credentials: ChannelCredentials.insecure(),
         connectTimeout: Duration(milliseconds: 400),
+        connectionTimeout: GrpcEndpoint.connectionLifetime,
         keepAlive: ClientKeepAliveOptions(
           pingInterval: Duration(seconds: 5),
           timeout: Duration(milliseconds: 400),

@@ -94,7 +94,10 @@ class CarnineGrpcService implements UiStateStore {
 
   static ClientChannel _createDefaultChannel() {
     return GrpcEndpoint.createChannel(
-      options: const ChannelOptions(credentials: ChannelCredentials.insecure()),
+      options: const ChannelOptions(
+        credentials: ChannelCredentials.insecure(),
+        connectionTimeout: GrpcEndpoint.connectionLifetime,
+      ),
     );
   }
 }
