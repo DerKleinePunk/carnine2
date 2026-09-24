@@ -15,10 +15,11 @@ pub mod carnine {
 
 use carnine::{
     audio_service_client::AudioServiceClient, get_cover_art_request::Target as CoverArtTarget,
-    media_service_client::MediaServiceClient, system_service_client::SystemServiceClient,
-    AddPlaylistEntryRequest, CreatePlaylistRequest, Empty, GetCoverArtRequest, GetPlaylistRequest,
-    ImportMusicVolumeRequest, LibraryEventType, PlayPlaylistRequest, PlayQueueEntryRequest,
-    PlayRequest, RepeatMode, RescanMediaRequest, SearchMediaRequest, SetRepeatModeRequest,
+    media_service_client::MediaServiceClient, navigation_service_client::NavigationServiceClient,
+    system_service_client::SystemServiceClient, AddPlaylistEntryRequest, CreatePlaylistRequest,
+    Empty, FixState, GetCoverArtRequest, GetPlaylistRequest, ImportMusicVolumeRequest,
+    LibraryEventType, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PositionFix,
+    PositionSourceKind, RepeatMode, RescanMediaRequest, SearchMediaRequest, SetRepeatModeRequest,
     SetShuffleModeRequest, SystemMetrics,
 };
 
@@ -71,6 +72,8 @@ async fn main() -> Result<()> {
         "shuffle" => set_shuffle_mode(&mut client).await?,
         "metrics" => get_system_metrics(&endpoint).await?,
         "metrics-stream" => stream_system_metrics(&endpoint).await?,
+        "nav-status" => get_navigation_status(&endpoint).await?,
+        "positions" => stream_positions(&endpoint).await?,
         unknown => bail!("unknown command: {unknown}"),
     }
     Ok(())
@@ -285,6 +288,59 @@ async fn stream_system_metrics(endpoint: &str) -> Result<()> {
         print_system_metrics(&metrics);
     })
     .await
+}
+
+async fn get_navigation_status(endpoint: &str) -> Result<()> {
+    let mut client = NavigationServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let status = client.get_navigation_status(Empty {}).await?.into_inner();
+    println!(
+        "routing_available={} source={:?} fix={:?} region={}",
+        status.routing_available,
+        status.position_source(),
+        status.fix_state(),
+        if status.map_region.is_empty() {
+            "-"
+        } else {
+            &status.map_region
+        }
+    );
+    Ok(())
+}
+
+/// Prints the current position plus as many updates as requested (default 5;
+/// a replay or GPS mouse sends one per second).
+async fn stream_positions(endpoint: &str) -> Result<()> {
+    let count = event_count(5)?;
+    let mut client = NavigationServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let mut stream = client.stream_positions(Empty {}).await?.into_inner();
+    read_events(&mut stream, count, |fix| print_position(&fix)).await
+}
+
+fn print_position(fix: &PositionFix) {
+    let optional = |value: Option<f64>, digits: usize| {
+        value
+            .map(|value| format!("{value:.digits$}"))
+            .unwrap_or_else(|| "-".to_string())
+    };
+    let source = match fix.source() {
+        PositionSourceKind::PositionSourceReplay => "replay",
+        PositionSourceKind::PositionSourceSerial => "serial",
+        _ => "none",
+    };
+    match (fix.fix_state(), &fix.location) {
+        (FixState::Fix, Some(location)) => println!(
+            "fix lat={:.6} lon={:.6} heading={} speed_mps={} accuracy_m={} time_ms={} source={source}",
+            location.latitude,
+            location.longitude,
+            optional(fix.heading_degrees, 1),
+            optional(fix.speed_mps, 2),
+            optional(fix.accuracy_meters, 1),
+            fix.timestamp_utc_ms
+                .map(|value| value.to_string())
+                .unwrap_or_else(|| "-".to_string()),
+        ),
+        _ => println!("no fix source={source}"),
+    }
 }
 
 fn print_system_metrics(metrics: &SystemMetrics) {

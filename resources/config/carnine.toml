@@ -44,3 +44,15 @@ disk_metrics_interval_seconds = 300
 # root filesystem plus every media folder above, deduplicated per filesystem,
 # so a mounted MUSIK volume is picked up without touching this file.
 disk_paths = []
+
+# Navigation (ADR-021). Without this section there is no position source and
+# routing points at the default Valhalla address below.
+# [navigation]
+# "none", "serial" (GPS mouse, NMEA on serial_device) or "replay" (recorded
+# NMEA tour from replay_file, looped by default - for the trade fair stand).
+# position_source = "replay"
+# serial_device = "/dev/ttyACM0"
+# replay_file = "/var/lib/carnine/maps/GPS-Adnan-Tour.txt"
+# replay_loop = true
+# valhalla_url = "http://127.0.0.1:8002"
+# map_region = "hessen"
