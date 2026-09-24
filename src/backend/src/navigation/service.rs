@@ -340,7 +340,7 @@ impl NavigationService for NavigationServiceImpl {
         info!(points = points.len(), %language, "map-matching the replay tour");
         let data = self
             .valhalla
-            .trace_route(&points, &language)
+            .route_along_trace(&points, &language)
             .await
             .map_err(|err| {
                 warn!(error = ?err, "replay route failed");
