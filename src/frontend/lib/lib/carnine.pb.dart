@@ -3047,6 +3047,867 @@ class SystemMetrics extends $pb.GeneratedMessage {
   void clearDisksSampledAtUnixMs() => $_clearField(10);
 }
 
+class LatLon extends $pb.GeneratedMessage {
+  factory LatLon({
+    $core.double? latitude,
+    $core.double? longitude,
+  }) {
+    final result = create();
+    if (latitude != null) result.latitude = latitude;
+    if (longitude != null) result.longitude = longitude;
+    return result;
+  }
+
+  LatLon._();
+
+  factory LatLon.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory LatLon.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'LatLon',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aD(1, _omitFieldNames ? '' : 'latitude')
+    ..aD(2, _omitFieldNames ? '' : 'longitude')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LatLon clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LatLon copyWith(void Function(LatLon) updates) =>
+      super.copyWith((message) => updates(message as LatLon)) as LatLon;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static LatLon create() => LatLon._();
+  @$core.override
+  LatLon createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static LatLon getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<LatLon>(create);
+  static LatLon? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.double get latitude => $_getN(0);
+  @$pb.TagNumber(1)
+  set latitude($core.double value) => $_setDouble(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasLatitude() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearLatitude() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.double get longitude => $_getN(1);
+  @$pb.TagNumber(2)
+  set longitude($core.double value) => $_setDouble(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasLongitude() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLongitude() => $_clearField(2);
+}
+
+class PositionFix extends $pb.GeneratedMessage {
+  factory PositionFix({
+    FixState? fixState,
+    LatLon? location,
+    $core.double? headingDegrees,
+    $core.double? speedMps,
+    $core.double? accuracyMeters,
+    $fixnum.Int64? timestampUtcMs,
+    PositionSourceKind? source,
+  }) {
+    final result = create();
+    if (fixState != null) result.fixState = fixState;
+    if (location != null) result.location = location;
+    if (headingDegrees != null) result.headingDegrees = headingDegrees;
+    if (speedMps != null) result.speedMps = speedMps;
+    if (accuracyMeters != null) result.accuracyMeters = accuracyMeters;
+    if (timestampUtcMs != null) result.timestampUtcMs = timestampUtcMs;
+    if (source != null) result.source = source;
+    return result;
+  }
+
+  PositionFix._();
+
+  factory PositionFix.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory PositionFix.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'PositionFix',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aE<FixState>(1, _omitFieldNames ? '' : 'fixState',
+        enumValues: FixState.values)
+    ..aOM<LatLon>(2, _omitFieldNames ? '' : 'location',
+        subBuilder: LatLon.create)
+    ..aD(3, _omitFieldNames ? '' : 'headingDegrees')
+    ..aD(4, _omitFieldNames ? '' : 'speedMps')
+    ..aD(5, _omitFieldNames ? '' : 'accuracyMeters')
+    ..aInt64(6, _omitFieldNames ? '' : 'timestampUtcMs')
+    ..aE<PositionSourceKind>(7, _omitFieldNames ? '' : 'source',
+        enumValues: PositionSourceKind.values)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PositionFix clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PositionFix copyWith(void Function(PositionFix) updates) =>
+      super.copyWith((message) => updates(message as PositionFix))
+          as PositionFix;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PositionFix create() => PositionFix._();
+  @$core.override
+  PositionFix createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static PositionFix getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<PositionFix>(create);
+  static PositionFix? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  FixState get fixState => $_getN(0);
+  @$pb.TagNumber(1)
+  set fixState(FixState value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasFixState() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFixState() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  LatLon get location => $_getN(1);
+  @$pb.TagNumber(2)
+  set location(LatLon value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasLocation() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLocation() => $_clearField(2);
+  @$pb.TagNumber(2)
+  LatLon ensureLocation() => $_ensure(1);
+
+  /// Course over ground, 0 = north, clockwise. Raw: the map smooths it and
+  /// freezes it at standstill, smoothing here as well would lag behind turns.
+  @$pb.TagNumber(3)
+  $core.double get headingDegrees => $_getN(2);
+  @$pb.TagNumber(3)
+  set headingDegrees($core.double value) => $_setDouble(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasHeadingDegrees() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearHeadingDegrees() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.double get speedMps => $_getN(3);
+  @$pb.TagNumber(4)
+  set speedMps($core.double value) => $_setDouble(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasSpeedMps() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearSpeedMps() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.double get accuracyMeters => $_getN(4);
+  @$pb.TagNumber(5)
+  set accuracyMeters($core.double value) => $_setDouble(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasAccuracyMeters() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearAccuracyMeters() => $_clearField(5);
+
+  /// GPS time from the fix, not the Pi's clock (no RTC).
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get timestampUtcMs => $_getI64(5);
+  @$pb.TagNumber(6)
+  set timestampUtcMs($fixnum.Int64 value) => $_setInt64(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasTimestampUtcMs() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearTimestampUtcMs() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  PositionSourceKind get source => $_getN(6);
+  @$pb.TagNumber(7)
+  set source(PositionSourceKind value) => $_setField(7, value);
+  @$pb.TagNumber(7)
+  $core.bool hasSource() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearSource() => $_clearField(7);
+}
+
+class NavigationStatus extends $pb.GeneratedMessage {
+  factory NavigationStatus({
+    $core.bool? routingAvailable,
+    PositionSourceKind? positionSource,
+    FixState? fixState,
+    $core.String? mapRegion,
+  }) {
+    final result = create();
+    if (routingAvailable != null) result.routingAvailable = routingAvailable;
+    if (positionSource != null) result.positionSource = positionSource;
+    if (fixState != null) result.fixState = fixState;
+    if (mapRegion != null) result.mapRegion = mapRegion;
+    return result;
+  }
+
+  NavigationStatus._();
+
+  factory NavigationStatus.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory NavigationStatus.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'NavigationStatus',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'routingAvailable')
+    ..aE<PositionSourceKind>(2, _omitFieldNames ? '' : 'positionSource',
+        enumValues: PositionSourceKind.values)
+    ..aE<FixState>(3, _omitFieldNames ? '' : 'fixState',
+        enumValues: FixState.values)
+    ..aOS(4, _omitFieldNames ? '' : 'mapRegion')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  NavigationStatus clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  NavigationStatus copyWith(void Function(NavigationStatus) updates) =>
+      super.copyWith((message) => updates(message as NavigationStatus))
+          as NavigationStatus;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static NavigationStatus create() => NavigationStatus._();
+  @$core.override
+  NavigationStatus createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static NavigationStatus getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<NavigationStatus>(create);
+  static NavigationStatus? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get routingAvailable => $_getBF(0);
+  @$pb.TagNumber(1)
+  set routingAvailable($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRoutingAvailable() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRoutingAvailable() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  PositionSourceKind get positionSource => $_getN(1);
+  @$pb.TagNumber(2)
+  set positionSource(PositionSourceKind value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasPositionSource() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPositionSource() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  FixState get fixState => $_getN(2);
+  @$pb.TagNumber(3)
+  set fixState(FixState value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasFixState() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFixState() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get mapRegion => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set mapRegion($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasMapRegion() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearMapRegion() => $_clearField(4);
+}
+
+class Place extends $pb.GeneratedMessage {
+  factory Place({
+    $core.String? name,
+    LatLon? location,
+    $core.int? zoom,
+    PlaceType? type,
+    $core.String? detail,
+  }) {
+    final result = create();
+    if (name != null) result.name = name;
+    if (location != null) result.location = location;
+    if (zoom != null) result.zoom = zoom;
+    if (type != null) result.type = type;
+    if (detail != null) result.detail = detail;
+    return result;
+  }
+
+  Place._();
+
+  factory Place.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory Place.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'Place',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..aOM<LatLon>(2, _omitFieldNames ? '' : 'location',
+        subBuilder: LatLon.create)
+    ..aI(3, _omitFieldNames ? '' : 'zoom', fieldType: $pb.PbFieldType.OU3)
+    ..aE<PlaceType>(4, _omitFieldNames ? '' : 'type',
+        enumValues: PlaceType.values)
+    ..aOS(5, _omitFieldNames ? '' : 'detail')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Place clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Place copyWith(void Function(Place) updates) =>
+      super.copyWith((message) => updates(message as Place)) as Place;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static Place create() => Place._();
+  @$core.override
+  Place createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static Place getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Place>(create);
+  static Place? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  LatLon get location => $_getN(1);
+  @$pb.TagNumber(2)
+  set location(LatLon value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasLocation() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLocation() => $_clearField(2);
+  @$pb.TagNumber(2)
+  LatLon ensureLocation() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  $core.int get zoom => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set zoom($core.int value) => $_setUnsignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasZoom() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearZoom() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  PlaceType get type => $_getN(3);
+  @$pb.TagNumber(4)
+  set type(PlaceType value) => $_setField(4, value);
+  @$pb.TagNumber(4)
+  $core.bool hasType() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearType() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get detail => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set detail($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasDetail() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearDetail() => $_clearField(5);
+}
+
+class SearchPlacesRequest extends $pb.GeneratedMessage {
+  factory SearchPlacesRequest({
+    $core.String? query,
+    $core.int? limit,
+    LatLon? near,
+  }) {
+    final result = create();
+    if (query != null) result.query = query;
+    if (limit != null) result.limit = limit;
+    if (near != null) result.near = near;
+    return result;
+  }
+
+  SearchPlacesRequest._();
+
+  factory SearchPlacesRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SearchPlacesRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SearchPlacesRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'query')
+    ..aI(2, _omitFieldNames ? '' : 'limit', fieldType: $pb.PbFieldType.OU3)
+    ..aOM<LatLon>(3, _omitFieldNames ? '' : 'near', subBuilder: LatLon.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SearchPlacesRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SearchPlacesRequest copyWith(void Function(SearchPlacesRequest) updates) =>
+      super.copyWith((message) => updates(message as SearchPlacesRequest))
+          as SearchPlacesRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SearchPlacesRequest create() => SearchPlacesRequest._();
+  @$core.override
+  SearchPlacesRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SearchPlacesRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SearchPlacesRequest>(create);
+  static SearchPlacesRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get query => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set query($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasQuery() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearQuery() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get limit => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set limit($core.int value) => $_setUnsignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasLimit() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLimit() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  LatLon get near => $_getN(2);
+  @$pb.TagNumber(3)
+  set near(LatLon value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasNear() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearNear() => $_clearField(3);
+  @$pb.TagNumber(3)
+  LatLon ensureNear() => $_ensure(2);
+}
+
+class SearchPlacesResponse extends $pb.GeneratedMessage {
+  factory SearchPlacesResponse({
+    $core.Iterable<Place>? places,
+  }) {
+    final result = create();
+    if (places != null) result.places.addAll(places);
+    return result;
+  }
+
+  SearchPlacesResponse._();
+
+  factory SearchPlacesResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SearchPlacesResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SearchPlacesResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..pPM<Place>(1, _omitFieldNames ? '' : 'places', subBuilder: Place.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SearchPlacesResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SearchPlacesResponse copyWith(void Function(SearchPlacesResponse) updates) =>
+      super.copyWith((message) => updates(message as SearchPlacesResponse))
+          as SearchPlacesResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SearchPlacesResponse create() => SearchPlacesResponse._();
+  @$core.override
+  SearchPlacesResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SearchPlacesResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SearchPlacesResponse>(create);
+  static SearchPlacesResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<Place> get places => $_getList(0);
+}
+
+class ComputeRouteRequest extends $pb.GeneratedMessage {
+  factory ComputeRouteRequest({
+    LatLon? origin,
+    LatLon? destination,
+    $core.String? language,
+  }) {
+    final result = create();
+    if (origin != null) result.origin = origin;
+    if (destination != null) result.destination = destination;
+    if (language != null) result.language = language;
+    return result;
+  }
+
+  ComputeRouteRequest._();
+
+  factory ComputeRouteRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ComputeRouteRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ComputeRouteRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOM<LatLon>(1, _omitFieldNames ? '' : 'origin', subBuilder: LatLon.create)
+    ..aOM<LatLon>(2, _omitFieldNames ? '' : 'destination',
+        subBuilder: LatLon.create)
+    ..aOS(4, _omitFieldNames ? '' : 'language')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ComputeRouteRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ComputeRouteRequest copyWith(void Function(ComputeRouteRequest) updates) =>
+      super.copyWith((message) => updates(message as ComputeRouteRequest))
+          as ComputeRouteRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ComputeRouteRequest create() => ComputeRouteRequest._();
+  @$core.override
+  ComputeRouteRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ComputeRouteRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ComputeRouteRequest>(create);
+  static ComputeRouteRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  LatLon get origin => $_getN(0);
+  @$pb.TagNumber(1)
+  set origin(LatLon value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasOrigin() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearOrigin() => $_clearField(1);
+  @$pb.TagNumber(1)
+  LatLon ensureOrigin() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  LatLon get destination => $_getN(1);
+  @$pb.TagNumber(2)
+  set destination(LatLon value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasDestination() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDestination() => $_clearField(2);
+  @$pb.TagNumber(2)
+  LatLon ensureDestination() => $_ensure(1);
+
+  @$pb.TagNumber(4)
+  $core.String get language => $_getSZ(2);
+  @$pb.TagNumber(4)
+  set language($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(4)
+  $core.bool hasLanguage() => $_has(2);
+  @$pb.TagNumber(4)
+  void clearLanguage() => $_clearField(4);
+}
+
+class GetReplayRouteRequest extends $pb.GeneratedMessage {
+  factory GetReplayRouteRequest({
+    $core.String? language,
+  }) {
+    final result = create();
+    if (language != null) result.language = language;
+    return result;
+  }
+
+  GetReplayRouteRequest._();
+
+  factory GetReplayRouteRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetReplayRouteRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetReplayRouteRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'language')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetReplayRouteRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetReplayRouteRequest copyWith(
+          void Function(GetReplayRouteRequest) updates) =>
+      super.copyWith((message) => updates(message as GetReplayRouteRequest))
+          as GetReplayRouteRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetReplayRouteRequest create() => GetReplayRouteRequest._();
+  @$core.override
+  GetReplayRouteRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetReplayRouteRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetReplayRouteRequest>(create);
+  static GetReplayRouteRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get language => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set language($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasLanguage() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearLanguage() => $_clearField(1);
+}
+
+class Maneuver extends $pb.GeneratedMessage {
+  factory Maneuver({
+    $core.String? instruction,
+    $core.double? lengthMeters,
+    $core.double? timeSeconds,
+    $core.int? type,
+    $core.int? beginShapeIndex,
+    $core.Iterable<$core.String>? streetNames,
+  }) {
+    final result = create();
+    if (instruction != null) result.instruction = instruction;
+    if (lengthMeters != null) result.lengthMeters = lengthMeters;
+    if (timeSeconds != null) result.timeSeconds = timeSeconds;
+    if (type != null) result.type = type;
+    if (beginShapeIndex != null) result.beginShapeIndex = beginShapeIndex;
+    if (streetNames != null) result.streetNames.addAll(streetNames);
+    return result;
+  }
+
+  Maneuver._();
+
+  factory Maneuver.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory Maneuver.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'Maneuver',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'instruction')
+    ..aD(2, _omitFieldNames ? '' : 'lengthMeters')
+    ..aD(3, _omitFieldNames ? '' : 'timeSeconds')
+    ..aI(4, _omitFieldNames ? '' : 'type', fieldType: $pb.PbFieldType.OU3)
+    ..aI(5, _omitFieldNames ? '' : 'beginShapeIndex',
+        fieldType: $pb.PbFieldType.OU3)
+    ..pPS(6, _omitFieldNames ? '' : 'streetNames')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Maneuver clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Maneuver copyWith(void Function(Maneuver) updates) =>
+      super.copyWith((message) => updates(message as Maneuver)) as Maneuver;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static Maneuver create() => Maneuver._();
+  @$core.override
+  Maneuver createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static Maneuver getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Maneuver>(create);
+  static Maneuver? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get instruction => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set instruction($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasInstruction() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearInstruction() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.double get lengthMeters => $_getN(1);
+  @$pb.TagNumber(2)
+  set lengthMeters($core.double value) => $_setDouble(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasLengthMeters() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLengthMeters() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.double get timeSeconds => $_getN(2);
+  @$pb.TagNumber(3)
+  set timeSeconds($core.double value) => $_setDouble(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasTimeSeconds() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTimeSeconds() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get type => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set type($core.int value) => $_setUnsignedInt32(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasType() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearType() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.int get beginShapeIndex => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set beginShapeIndex($core.int value) => $_setUnsignedInt32(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasBeginShapeIndex() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearBeginShapeIndex() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $pb.PbList<$core.String> get streetNames => $_getList(5);
+}
+
+class Route extends $pb.GeneratedMessage {
+  factory Route({
+    $core.String? routeId,
+    $core.Iterable<LatLon>? geometry,
+    $core.double? distanceMeters,
+    $core.double? durationSeconds,
+    $core.Iterable<Maneuver>? maneuvers,
+  }) {
+    final result = create();
+    if (routeId != null) result.routeId = routeId;
+    if (geometry != null) result.geometry.addAll(geometry);
+    if (distanceMeters != null) result.distanceMeters = distanceMeters;
+    if (durationSeconds != null) result.durationSeconds = durationSeconds;
+    if (maneuvers != null) result.maneuvers.addAll(maneuvers);
+    return result;
+  }
+
+  Route._();
+
+  factory Route.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory Route.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'Route',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'routeId')
+    ..pPM<LatLon>(2, _omitFieldNames ? '' : 'geometry',
+        subBuilder: LatLon.create)
+    ..aD(3, _omitFieldNames ? '' : 'distanceMeters')
+    ..aD(4, _omitFieldNames ? '' : 'durationSeconds')
+    ..pPM<Maneuver>(5, _omitFieldNames ? '' : 'maneuvers',
+        subBuilder: Maneuver.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Route clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Route copyWith(void Function(Route) updates) =>
+      super.copyWith((message) => updates(message as Route)) as Route;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static Route create() => Route._();
+  @$core.override
+  Route createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static Route getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Route>(create);
+  static Route? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get routeId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set routeId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRouteId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRouteId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $pb.PbList<LatLon> get geometry => $_getList(1);
+
+  @$pb.TagNumber(3)
+  $core.double get distanceMeters => $_getN(2);
+  @$pb.TagNumber(3)
+  set distanceMeters($core.double value) => $_setDouble(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasDistanceMeters() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearDistanceMeters() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.double get durationSeconds => $_getN(3);
+  @$pb.TagNumber(4)
+  set durationSeconds($core.double value) => $_setDouble(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasDurationSeconds() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearDurationSeconds() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $pb.PbList<Maneuver> get maneuvers => $_getList(4);
+}
+
 const $core.bool _omitFieldNames =
     $core.bool.fromEnvironment('protobuf.omit_field_names');
 const $core.bool _omitMessageNames =

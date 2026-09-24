@@ -53,6 +53,23 @@ service SystemService {
   rpc StreamSystemMetrics (Empty) returns (stream SystemMetrics);
 }
 
+// Routing, own position and place search for the navigation page (ADR-021).
+// Units are SI; failures are gRPC status codes: UNAVAILABLE (router down),
+// NOT_FOUND (no route, or no replay running), FAILED_PRECONDITION (no origin
+// given and no fix), INVALID_ARGUMENT (bad coordinates).
+service NavigationService {
+  rpc GetServiceVersion (Empty) returns (ServiceVersion);
+  rpc GetNavigationStatus (Empty) returns (NavigationStatus);
+  rpc SearchPlaces (SearchPlacesRequest) returns (SearchPlacesResponse);
+  rpc ComputeRoute (ComputeRouteRequest) returns (Route);
+  // The route of the running NMEA replay, map-matched against the recorded
+  // fixes, so position and route come from the same recording.
+  rpc GetReplayRoute (GetReplayRouteRequest) returns (Route);
+  // Fixes at the source's rate (1 Hz for NMEA), heading unsmoothed.
+  rpc StreamPositions (Empty) returns (stream PositionFix);
+  // Reserved for after the trade fair: StreamGuidance (progress, off-route).
+}
+
 message CanDataRequest {
   string sensor_id = 1;
 }
@@ -341,4 +358,98 @@ message SystemMetrics {
   // and repeats unchanged across several CPU samples.
   repeated DiskUsage disks = 9;
   int64 disks_sampled_at_unix_ms = 10;
+}
+
+message LatLon {
+  double latitude = 1;   // WGS84 degrees
+  double longitude = 2;
+}
+
+enum FixState {
+  FIX_STATE_UNSPECIFIED = 0;
+  // Source is alive but has no valid position; PositionFix.location is unset.
+  FIX_STATE_NO_FIX = 1;
+  FIX_STATE_FIX = 2;
+}
+
+enum PositionSourceKind {
+  POSITION_SOURCE_KIND_UNSPECIFIED = 0;
+  POSITION_SOURCE_NONE = 1;    // nothing configured, or the device is missing
+  POSITION_SOURCE_SERIAL = 2;  // GPS mouse, NMEA over USB/serial
+  POSITION_SOURCE_REPLAY = 3;  // recorded NMEA tour (trade fair, tests)
+}
+
+message PositionFix {
+  FixState fix_state = 1;
+  LatLon location = 2;
+  // Course over ground, 0 = north, clockwise. Raw: the map smooths it and
+  // freezes it at standstill, smoothing here as well would lag behind turns.
+  optional double heading_degrees = 3;
+  optional double speed_mps = 4;
+  optional double accuracy_meters = 5;  // estimated from HDOP when present
+  // GPS time from the fix, not the Pi's clock (no RTC).
+  optional int64 timestamp_utc_ms = 6;
+  PositionSourceKind source = 7;
+}
+
+message NavigationStatus {
+  bool routing_available = 1;
+  PositionSourceKind position_source = 2;
+  FixState fix_state = 3;
+  string map_region = 4;  // e.g. "hessen", for display and plausibility checks
+}
+
+enum PlaceType {
+  PLACE_TYPE_UNSPECIFIED = 0;
+  PLACE_TYPE_PLACE = 1;
+  PLACE_TYPE_POI = 2;
+  PLACE_TYPE_MOUNTAIN_PEAK = 3;
+  PLACE_TYPE_WATER_NAME = 4;
+  PLACE_TYPE_TRANSPORTATION_NAME = 5;
+}
+
+message Place {
+  string name = 1;
+  LatLon location = 2;
+  uint32 zoom = 3;  // suggested zoom level to jump to
+  PlaceType type = 4;
+  optional string detail = 5;
+}
+
+message SearchPlacesRequest {
+  string query = 1;
+  uint32 limit = 2;          // 0 = default (15)
+  optional LatLon near = 3;  // rank nearby hits first; may be ignored in v1
+}
+
+message SearchPlacesResponse {
+  repeated Place places = 1;
+}
+
+message ComputeRouteRequest {
+  optional LatLon origin = 1;  // unset = the backend's current fix
+  LatLon destination = 2;
+  reserved 3;                  // via points, after the trade fair
+  optional string language = 4;  // BCP-47 for instructions; unset = "de-DE"
+}
+
+message GetReplayRouteRequest {
+  optional string language = 1;  // BCP-47 for instructions; unset = "de-DE"
+}
+
+message Maneuver {
+  string instruction = 1;
+  double length_meters = 2;
+  double time_seconds = 3;
+  uint32 type = 4;               // Valhalla maneuver type, passed through
+  uint32 begin_shape_index = 5;  // index into Route.geometry, continuous across legs
+  repeated string street_names = 6;
+}
+
+message Route {
+  string route_id = 1;
+  repeated LatLon geometry = 2;
+  double distance_meters = 3;
+  double duration_seconds = 4;
+  repeated Maneuver maneuvers = 5;
 }
