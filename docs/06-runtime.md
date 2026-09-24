@@ -86,6 +86,22 @@ interval. An explicit seek, when added to the control API, is stored
 immediately. A stop resets the current position to the beginning but does not
 modify the queue.
 
+### Scenario 3d: Dashboard Page Restore
+
+The frontend starts on the page that was open before the restart:
+
+1. After the dashboard is built, the frontend asks `SystemService.GetUiState`
+   for the page saved last. The first page shows until the answer arrives.
+2. A known page name opens that page, unless the user already switched to
+   another one. An empty or unknown name, and the settings page, keep the
+   first page.
+3. Two seconds after a switch the frontend saves the page with
+   `SystemService.SaveUiState`, so tapping through the menu writes only the
+   page the user settles on. Settings are never saved; after a restart from
+   there the previous page comes back.
+4. The backend stores the name in the `ui_state` table of the media database,
+   next to the playback resume state.
+
 ### Scenario 4: Vehicle Data Display
 
 CAN-Bus data updates:

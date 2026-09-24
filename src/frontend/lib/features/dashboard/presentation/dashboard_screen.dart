@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
 import 'package:carnine_frontend/features/maps/presentation/maps_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/carnine_top_bar.dart';
@@ -15,6 +18,7 @@ class DashboardScreen extends StatefulWidget {
     this.controller,
     this.mediaController,
     this.mapsController,
+    this.uiStateStore,
     super.key,
   });
 
@@ -23,13 +27,18 @@ class DashboardScreen extends StatefulWidget {
   final MediaController? mediaController;
   final MapsController? mapsController;
 
+  /// Where the page shown last is kept; without it the dashboard always
+  /// starts on the first page. Ignored when [controller] is given.
+  final UiStateStore? uiStateStore;
+
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
   late final DashboardController _controller =
-      widget.controller ?? DashboardController();
+      widget.controller ??
+      DashboardController(uiStateStore: widget.uiStateStore);
 
   // Owned here, not by MediaContent, so the queue and playback state survive
   // switching to another sidebar section and back - MediaContent would
@@ -57,6 +66,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _controller.addListener(_handleControllerChange);
+    unawaited(_controller.restoreLastPage());
   }
 
   @override

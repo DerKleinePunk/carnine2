@@ -1,4 +1,5 @@
 import 'package:carnine_frontend/core/platform/grpc_endpoint.dart';
+import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
 import 'package:carnine_frontend/lib/carnine.pbgrpc.dart';
 import 'package:grpc/grpc.dart';
 import 'package:logging/logging.dart';
@@ -9,7 +10,7 @@ typedef ClientChannelFactory = ClientChannel Function();
 ///
 /// The service keeps transport creation isolated in [GrpcEndpoint] so
 /// dashboard widgets don't need to know which transport is active.
-class CarnineGrpcService {
+class CarnineGrpcService implements UiStateStore {
   CarnineGrpcService({Logger? logger, ClientChannelFactory? channelFactory})
     : _logger = logger ?? Logger('CarnineGrpcService'),
       _channelFactory = channelFactory ?? _createDefaultChannel;
@@ -31,6 +32,32 @@ class CarnineGrpcService {
     } catch (error, stackTrace) {
       _logger.severe('Could not report UI readiness', error, stackTrace);
       rethrow;
+    } finally {
+      await channel.shutdown();
+    }
+  }
+
+  @override
+  Future<String> loadLastPage() async {
+    final channel = _channelFactory();
+    try {
+      final stub = SystemServiceClient(channel);
+      final state = await stub.getUiState(Empty());
+      return state.lastPage;
+    } finally {
+      await channel.shutdown();
+    }
+  }
+
+  @override
+  Future<void> saveLastPage(String page) async {
+    final channel = _channelFactory();
+    try {
+      final stub = SystemServiceClient(channel);
+      final response = await stub.saveUiState(UiState(lastPage: page));
+      if (!response.success) {
+        throw StateError(response.message);
+      }
     } finally {
       await channel.shutdown();
     }

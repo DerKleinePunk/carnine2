@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:carnine_frontend/data/services/carnine_grpc_service.dart';
+import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/models/dashboard_nav_item.dart';
 import 'package:carnine_frontend/lib/carnine.pb.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
@@ -12,9 +15,14 @@ import 'package:logging/logging.dart';
 class DashboardController extends ChangeNotifier {
   DashboardController({
     CarnineGrpcService? grpcService,
+    this._uiStateStore,
     Logger? logger,
   })  : _grpcService = grpcService ?? CarnineGrpcService(),
         _logger = logger ?? Logger('DashboardController');
+
+  /// Waits this long after a switch before saving the page, so tapping
+  /// through the menu does not call the backend for every page.
+  static const Duration pageSaveDelay = Duration(seconds: 2);
 
   static const List<DashboardNavItem> navItems = <DashboardNavItem>[
     DashboardNavItem(
@@ -56,7 +64,10 @@ class DashboardController extends ChangeNotifier {
   ];
 
   final CarnineGrpcService _grpcService;
+  final UiStateStore? _uiStateStore;
   final Logger _logger;
+  Timer? _pageSaveTimer;
+  bool _userSelectedPage = false;
 
   int _selectedIndex = 0;
   DashboardGrpcStatus _grpcStatus = DashboardGrpcStatus.notConnected;
@@ -85,7 +96,63 @@ class DashboardController extends ChangeNotifier {
     );
 
     _selectedIndex = index;
+    _userSelectedPage = true;
+    _schedulePageSave(nextItem.destination);
     notifyListeners();
+  }
+
+  /// Opens the page saved last, unless the user picked one in the meantime.
+  Future<void> restoreLastPage() async {
+    final store = _uiStateStore;
+    if (store == null) {
+      return;
+    }
+    try {
+      final name = await store.loadLastPage();
+      final index = navItems.indexWhere(
+        (item) =>
+            item.destination.name == name && _isRestorable(item.destination),
+      );
+      if (_userSelectedPage || index < 0 || index == _selectedIndex) {
+        return;
+      }
+      _logger.info('Restoring dashboard page $name');
+      _selectedIndex = index;
+      notifyListeners();
+    } catch (error, stackTrace) {
+      _logger.warning('Could not restore the last page', error, stackTrace);
+    }
+  }
+
+  /// Settings are a detour, not a place to come back to after a restart.
+  static bool _isRestorable(DashboardDestination destination) =>
+      destination != DashboardDestination.settings;
+
+  void _schedulePageSave(DashboardDestination destination) {
+    if (_uiStateStore == null || !_isRestorable(destination)) {
+      return;
+    }
+    _pageSaveTimer?.cancel();
+    _pageSaveTimer = Timer(pageSaveDelay, () => _savePage(destination));
+  }
+
+  Future<void> _savePage(DashboardDestination destination) async {
+    _pageSaveTimer = null;
+    try {
+      await _uiStateStore?.saveLastPage(destination.name);
+      _logger.info('Saved dashboard page ${destination.name}');
+    } catch (error, stackTrace) {
+      _logger.warning('Could not save the page', error, stackTrace);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_pageSaveTimer?.isActive ?? false) {
+      _pageSaveTimer?.cancel();
+      unawaited(_savePage(selectedItem.destination));
+    }
+    super.dispose();
   }
 
   /// Exercises the generated gRPC client and exposes the result to the UI.

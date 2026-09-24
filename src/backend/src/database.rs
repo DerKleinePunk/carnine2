@@ -5,7 +5,7 @@ use std::process::Command;
 use anyhow::{Context, Result};
 use rusqlite::{params, Connection};
 
-const CURRENT_SCHEMA_VERSION: i64 = 2;
+const CURRENT_SCHEMA_VERSION: i64 = 3;
 
 pub struct Database {
     connection: Connection,
@@ -127,6 +127,15 @@ impl Database {
             self.connection.execute_batch(
                 "ALTER TABLE media ADD COLUMN cover_path TEXT;
                 INSERT INTO schema_migrations (version) VALUES (2);",
+            )?;
+        }
+        if version < 3 {
+            self.connection.execute_batch(
+                "CREATE TABLE ui_state (
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    last_page TEXT NOT NULL DEFAULT ''
+                );
+                INSERT INTO schema_migrations (version) VALUES (3);",
             )?;
         }
         if version > CURRENT_SCHEMA_VERSION {
@@ -343,6 +352,27 @@ impl Database {
             position_ms: row.get(2)?,
             resume_mode: row.get(3)?,
         }))
+    }
+
+    pub fn save_last_page(&self, page: &str) -> Result<()> {
+        self.connection.execute(
+            "INSERT INTO ui_state (id, last_page) VALUES (1, ?1)
+             ON CONFLICT(id) DO UPDATE SET last_page = excluded.last_page",
+            [page],
+        )?;
+        Ok(())
+    }
+
+    /// The page saved last, or an empty string when there is none.
+    pub fn load_last_page(&self) -> Result<String> {
+        let mut statement = self
+            .connection
+            .prepare("SELECT last_page FROM ui_state WHERE id = 1")?;
+        let mut rows = statement.query([])?;
+        Ok(match rows.next()? {
+            Some(row) => row.get(0)?,
+            None => String::new(),
+        })
     }
 
     pub fn rescan_folder(
@@ -683,6 +713,15 @@ mod tests {
         assert_eq!(entries[0].media_id, entries[1].media_id);
         assert_eq!(entries[0].position, 0);
         assert_eq!(entries[1].position, 1);
+    }
+
+    #[test]
+    fn saves_and_loads_the_last_page() {
+        let database = Database::open(":memory:").expect("database should open");
+        assert_eq!(database.load_last_page().expect("should load"), "");
+        database.save_last_page("maps").expect("should save");
+        database.save_last_page("media").expect("should overwrite");
+        assert_eq!(database.load_last_page().expect("should load"), "media");
     }
 
     #[test]

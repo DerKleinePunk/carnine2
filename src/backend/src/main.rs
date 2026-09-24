@@ -14,7 +14,7 @@ use futures_util::StreamExt;
 use tokio::sync::broadcast;
 use tokio::sync::oneshot;
 use tonic::{transport::Server, Request, Response, Status};
-use tracing::{info, warn};
+use tracing::{debug, error, info, warn};
 use tracing_appender::rolling;
 use tracing_subscriber::prelude::*;
 
@@ -47,18 +47,25 @@ use carnine::{
     LibraryEvent, LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest,
     PlayQueueEntryRequest, PlayRequest, PlayerEvent, PlayerState, Playlist, PlaylistEntry,
     RescanMediaRequest, SearchMediaRequest, SearchMediaResponse, ServiceVersion,
-    SetRepeatModeRequest, SetShuffleModeRequest, SetVolumeRequest, SystemMetrics,
+    SetRepeatModeRequest, SetShuffleModeRequest, SetVolumeRequest, SystemMetrics, UiState,
     UpdateConfigurationRequest, VolumeResponse,
 };
 
 #[derive(Debug, Default)]
 pub struct SystemServiceImpl {
     metrics: Arc<system_metrics::SystemMetricsHandle>,
+    database_path: PathBuf,
 }
 
+/// Page names are identifiers like "maps"; anything longer is not one.
+const MAX_UI_PAGE_NAME_LEN: usize = 64;
+
 impl SystemServiceImpl {
-    pub fn with_metrics(metrics: Arc<system_metrics::SystemMetricsHandle>) -> Self {
-        Self { metrics }
+    pub fn new(metrics: Arc<system_metrics::SystemMetricsHandle>, database_path: PathBuf) -> Self {
+        Self {
+            metrics,
+            database_path,
+        }
     }
 }
 
@@ -115,6 +122,41 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
         let updates = tokio_stream::wrappers::BroadcastStream::new(self.metrics.subscribe())
             .filter_map(|metrics| async move { metrics.ok().map(Ok) });
         Ok(Response::new(Box::pin(snapshot.chain(updates))))
+    }
+
+    async fn get_ui_state(&self, _request: Request<Empty>) -> Result<Response<UiState>, Status> {
+        let last_page = database::Database::open(&self.database_path)
+            .and_then(|database| database.load_last_page())
+            .map_err(|error| {
+                error!(error = %error, "loading UI state failed");
+                Status::internal(error.to_string())
+            })?;
+        debug!(last_page = %last_page, "UI state loaded");
+        Ok(Response::new(UiState { last_page }))
+    }
+
+    async fn save_ui_state(
+        &self,
+        request: Request<UiState>,
+    ) -> Result<Response<CommandResponse>, Status> {
+        let last_page = request.into_inner().last_page;
+        info!(last_page = %last_page, "saving UI state requested");
+        if last_page.len() > MAX_UI_PAGE_NAME_LEN {
+            return Err(Status::invalid_argument(format!(
+                "page name longer than {MAX_UI_PAGE_NAME_LEN} bytes"
+            )));
+        }
+        database::Database::open(&self.database_path)
+            .and_then(|database| database.save_last_page(&last_page))
+            .map_err(|error| {
+                error!(error = %error, "saving UI state failed");
+                Status::internal(error.to_string())
+            })?;
+        info!(last_page = %last_page, "UI state saved");
+        Ok(Response::new(CommandResponse {
+            success: true,
+            message: "UI state saved".to_string(),
+        }))
     }
 }
 
@@ -1220,7 +1262,10 @@ async fn main() -> Result<()> {
             disk_paths: configuration.disk_metric_paths(),
         },
     );
-    let system_service = SystemServiceImpl::with_metrics(Arc::clone(&system_metrics));
+    let system_service = SystemServiceImpl::new(
+        Arc::clone(&system_metrics),
+        configuration.media.database_path.clone(),
+    );
     let media_service = MediaServiceImpl::new_runtime(
         configuration.media.database_path.clone(),
         configuration.media.folders.clone(),
@@ -1335,7 +1380,7 @@ mod tests {
         system_service_server::SystemService, AddPlaylistEntryRequest, AudioEventType,
         CreatePlaylistRequest, Empty, GetCoverArtRequest, GetPlaylistRequest, LibraryEventType,
         PlayerEventType, RepeatMode, RescanMediaRequest, SetRepeatModeRequest,
-        SetShuffleModeRequest, SystemMetrics,
+        SetShuffleModeRequest, SystemMetrics, UiState,
     };
     use crate::config;
     use crate::database;
@@ -1455,9 +1500,51 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn system_service_keeps_the_last_page_across_instances() {
+        let database_path =
+            std::env::temp_dir().join(format!("carnine-ui-state-{}.sqlite3", std::process::id()));
+        let _ = std::fs::remove_file(&database_path);
+        let metrics = Arc::new(system_metrics::SystemMetricsHandle::new());
+        let service = SystemServiceImpl::new(Arc::clone(&metrics), database_path.clone());
+
+        let initial = SystemService::get_ui_state(&service, Request::new(Empty {}))
+            .await
+            .expect("UI state should load before anything was saved")
+            .into_inner();
+        assert_eq!(initial.last_page, "");
+
+        SystemService::save_ui_state(
+            &service,
+            Request::new(UiState {
+                last_page: "maps".to_string(),
+            }),
+        )
+        .await
+        .expect("UI state should save");
+        let too_long = SystemService::save_ui_state(
+            &service,
+            Request::new(UiState {
+                last_page: "x".repeat(65),
+            }),
+        )
+        .await
+        .expect_err("an overlong page name is rejected");
+        assert_eq!(too_long.code(), tonic::Code::InvalidArgument);
+
+        // A new instance stands for the backend after a restart.
+        let restarted = SystemServiceImpl::new(metrics, database_path.clone());
+        let restored = SystemService::get_ui_state(&restarted, Request::new(Empty {}))
+            .await
+            .expect("UI state should load")
+            .into_inner();
+        assert_eq!(restored.last_page, "maps");
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    #[tokio::test]
     async fn system_service_serves_the_sampled_metrics() {
         let metrics = Arc::new(system_metrics::SystemMetricsHandle::new());
-        let service = SystemServiceImpl::with_metrics(Arc::clone(&metrics));
+        let service = SystemServiceImpl::new(Arc::clone(&metrics), PathBuf::new());
 
         // Before the first sample the snapshot is empty but still answerable,
         // so a client that connects during startup does not get an error.

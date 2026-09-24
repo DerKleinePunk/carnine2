@@ -21,6 +21,61 @@ export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 export 'carnine.pbenum.dart';
 
+class UiState extends $pb.GeneratedMessage {
+  factory UiState({
+    $core.String? lastPage,
+  }) {
+    final result = create();
+    if (lastPage != null) result.lastPage = lastPage;
+    return result;
+  }
+
+  UiState._();
+
+  factory UiState.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory UiState.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'UiState',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'lastPage')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UiState clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UiState copyWith(void Function(UiState) updates) =>
+      super.copyWith((message) => updates(message as UiState)) as UiState;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static UiState create() => UiState._();
+  @$core.override
+  UiState createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static UiState getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UiState>(create);
+  static UiState? _defaultInstance;
+
+  /// Dashboard page shown last, by its name (e.g. "maps"); empty when none
+  /// was saved yet.
+  @$pb.TagNumber(1)
+  $core.String get lastPage => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set lastPage($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasLastPage() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearLastPage() => $_clearField(1);
+}
+
 class CanDataRequest extends $pb.GeneratedMessage {
   factory CanDataRequest({
     $core.String? sensorId,

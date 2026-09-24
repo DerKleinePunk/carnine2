@@ -21,7 +21,7 @@ use carnine::{
     GetReplayRouteRequest, ImportMusicVolumeRequest, LatLon, LibraryEventType, PlayPlaylistRequest,
     PlayQueueEntryRequest, PlayRequest, PositionFix, PositionSourceKind, RepeatMode,
     RescanMediaRequest, Route, SearchMediaRequest, SearchPlacesRequest, SetRepeatModeRequest,
-    SetShuffleModeRequest, SystemMetrics,
+    SetShuffleModeRequest, SystemMetrics, UiState,
 };
 
 #[tokio::main]
@@ -73,6 +73,8 @@ async fn main() -> Result<()> {
         "shuffle" => set_shuffle_mode(&mut client).await?,
         "metrics" => get_system_metrics(&endpoint).await?,
         "metrics-stream" => stream_system_metrics(&endpoint).await?,
+        "ui-state" => get_ui_state(&endpoint).await?,
+        "save-ui-state" => save_ui_state(&endpoint).await?,
         "nav-status" => get_navigation_status(&endpoint).await?,
         "positions" => stream_positions(&endpoint).await?,
         "places" => search_places(&endpoint).await?,
@@ -292,6 +294,25 @@ async fn stream_system_metrics(endpoint: &str) -> Result<()> {
         print_system_metrics(&metrics);
     })
     .await
+}
+
+async fn get_ui_state(endpoint: &str) -> Result<()> {
+    let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let state = client.get_ui_state(Empty {}).await?.into_inner();
+    println!("last_page={}", state.last_page);
+    Ok(())
+}
+
+/// `save-ui-state <page>`; without a page it clears the saved one.
+async fn save_ui_state(endpoint: &str) -> Result<()> {
+    let last_page = env::args().nth(3).unwrap_or_default();
+    let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let response = client
+        .save_ui_state(UiState { last_page })
+        .await?
+        .into_inner();
+    println!("{}: {}", response.success, response.message);
+    Ok(())
 }
 
 async fn get_navigation_status(endpoint: &str) -> Result<()> {

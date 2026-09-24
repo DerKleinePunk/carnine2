@@ -961,6 +961,22 @@ class SystemServiceClient extends $grpc.Client {
         options: options);
   }
 
+  /// What the UI keeps across restarts, stored in the media database next to
+  /// the resume state. Unknown values are the UI's to ignore.
+  $grpc.ResponseFuture<$0.UiState> getUiState(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getUiState, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.CommandResponse> saveUiState(
+    $0.UiState request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$saveUiState, request, options: options);
+  }
+
   // method descriptors
 
   static final _$reportUiReady =
@@ -978,6 +994,15 @@ class SystemServiceClient extends $grpc.Client {
           '/carnine.SystemService/StreamSystemMetrics',
           ($0.Empty value) => value.writeToBuffer(),
           $0.SystemMetrics.fromBuffer);
+  static final _$getUiState = $grpc.ClientMethod<$0.Empty, $0.UiState>(
+      '/carnine.SystemService/GetUiState',
+      ($0.Empty value) => value.writeToBuffer(),
+      $0.UiState.fromBuffer);
+  static final _$saveUiState =
+      $grpc.ClientMethod<$0.UiState, $0.CommandResponse>(
+          '/carnine.SystemService/SaveUiState',
+          ($0.UiState value) => value.writeToBuffer(),
+          $0.CommandResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('carnine.SystemService')
@@ -1006,6 +1031,20 @@ abstract class SystemServiceBase extends $grpc.Service {
         true,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($0.SystemMetrics value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.UiState>(
+        'GetUiState',
+        getUiState_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.UiState value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.UiState, $0.CommandResponse>(
+        'SaveUiState',
+        saveUiState_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.UiState.fromBuffer(value),
+        ($0.CommandResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.CommandResponse> reportUiReady_Pre(
@@ -1031,6 +1070,22 @@ abstract class SystemServiceBase extends $grpc.Service {
 
   $async.Stream<$0.SystemMetrics> streamSystemMetrics(
       $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.UiState> getUiState_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return getUiState($call, await $request);
+  }
+
+  $async.Future<$0.UiState> getUiState(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.CommandResponse> saveUiState_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.UiState> $request) async {
+    return saveUiState($call, await $request);
+  }
+
+  $async.Future<$0.CommandResponse> saveUiState(
+      $grpc.ServiceCall call, $0.UiState request);
 }
 
 /// Routing, own position and place search for the navigation page (ADR-021).

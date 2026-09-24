@@ -51,6 +51,16 @@ service SystemService {
   // Pushes a snapshot on every CPU sample (system.metrics_interval_seconds),
   // starting with the current one.
   rpc StreamSystemMetrics (Empty) returns (stream SystemMetrics);
+  // What the UI keeps across restarts, stored in the media database next to
+  // the resume state. Unknown values are the UI's to ignore.
+  rpc GetUiState (Empty) returns (UiState);
+  rpc SaveUiState (UiState) returns (CommandResponse);
+}
+
+message UiState {
+  // Dashboard page shown last, by its name (e.g. "maps"); empty when none
+  // was saved yet.
+  string last_page = 1;
 }
 
 // Routing, own position and place search for the navigation page (ADR-021).

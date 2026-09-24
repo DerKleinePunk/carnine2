@@ -161,6 +161,18 @@ final $typed_data.Uint8List placeTypeDescriptor = $convert.base64Decode(
     'EhkKFVBMQUNFX1RZUEVfV0FURVJfTkFNRRAEEiIKHlBMQUNFX1RZUEVfVFJBTlNQT1JUQVRJT0'
     '5fTkFNRRAF');
 
+@$core.Deprecated('Use uiStateDescriptor instead')
+const UiState$json = {
+  '1': 'UiState',
+  '2': [
+    {'1': 'last_page', '3': 1, '4': 1, '5': 9, '10': 'lastPage'},
+  ],
+};
+
+/// Descriptor for `UiState`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List uiStateDescriptor = $convert
+    .base64Decode('CgdVaVN0YXRlEhsKCWxhc3RfcGFnZRgBIAEoCVIIbGFzdFBhZ2U=');
+
 @$core.Deprecated('Use canDataRequestDescriptor instead')
 const CanDataRequest$json = {
   '1': 'CanDataRequest',
