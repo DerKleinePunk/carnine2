@@ -16,11 +16,12 @@ pub mod carnine {
 use carnine::{
     audio_service_client::AudioServiceClient, get_cover_art_request::Target as CoverArtTarget,
     media_service_client::MediaServiceClient, navigation_service_client::NavigationServiceClient,
-    system_service_client::SystemServiceClient, AddPlaylistEntryRequest, CreatePlaylistRequest,
-    Empty, FixState, GetCoverArtRequest, GetPlaylistRequest, ImportMusicVolumeRequest, LatLon,
-    LibraryEventType, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PositionFix,
-    PositionSourceKind, RepeatMode, RescanMediaRequest, SearchMediaRequest, SearchPlacesRequest,
-    SetRepeatModeRequest, SetShuffleModeRequest, SystemMetrics,
+    system_service_client::SystemServiceClient, AddPlaylistEntryRequest, ComputeRouteRequest,
+    CreatePlaylistRequest, Empty, FixState, GetCoverArtRequest, GetPlaylistRequest,
+    GetReplayRouteRequest, ImportMusicVolumeRequest, LatLon, LibraryEventType, PlayPlaylistRequest,
+    PlayQueueEntryRequest, PlayRequest, PositionFix, PositionSourceKind, RepeatMode,
+    RescanMediaRequest, Route, SearchMediaRequest, SearchPlacesRequest, SetRepeatModeRequest,
+    SetShuffleModeRequest, SystemMetrics,
 };
 
 #[tokio::main]
@@ -75,6 +76,8 @@ async fn main() -> Result<()> {
         "nav-status" => get_navigation_status(&endpoint).await?,
         "positions" => stream_positions(&endpoint).await?,
         "places" => search_places(&endpoint).await?,
+        "route" => compute_route(&endpoint).await?,
+        "replay-route" => replay_route(&endpoint).await?,
         unknown => bail!("unknown command: {unknown}"),
     }
     Ok(())
@@ -308,6 +311,78 @@ async fn get_navigation_status(endpoint: &str) -> Result<()> {
     Ok(())
 }
 
+fn parse_lat_lon(value: &str) -> Result<LatLon> {
+    let (latitude, longitude) = value
+        .split_once(',')
+        .context("coordinates must be given as lat,lon")?;
+    Ok(LatLon {
+        latitude: latitude.trim().parse()?,
+        longitude: longitude.trim().parse()?,
+    })
+}
+
+/// `route <to lat,lon> [from lat,lon|-] [language]`: without a start the
+/// backend routes from its current fix.
+async fn compute_route(endpoint: &str) -> Result<()> {
+    let destination = env::args().nth(3).context(
+        "usage: media_grpc_client [endpoint] route <to lat,lon> [from lat,lon|-] [language]",
+    )?;
+    let origin = env::args()
+        .nth(4)
+        .filter(|value| value != "-")
+        .map(|value| parse_lat_lon(&value))
+        .transpose()?;
+    let mut client = NavigationServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let route = client
+        .compute_route(ComputeRouteRequest {
+            origin,
+            destination: Some(parse_lat_lon(&destination)?),
+            language: env::args().nth(5),
+        })
+        .await?
+        .into_inner();
+    print_route(&route);
+    Ok(())
+}
+
+/// `replay-route [language]`: the map-matched route of the running replay.
+async fn replay_route(endpoint: &str) -> Result<()> {
+    let mut client = NavigationServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let route = client
+        .get_replay_route(GetReplayRouteRequest {
+            language: env::args().nth(3),
+        })
+        .await?
+        .into_inner();
+    print_route(&route);
+    Ok(())
+}
+
+fn print_route(route: &Route) {
+    println!(
+        "{} distance={:.1} km duration={:.0} min points={} maneuvers={}",
+        route.route_id,
+        route.distance_meters / 1000.0,
+        route.duration_seconds / 60.0,
+        route.geometry.len(),
+        route.maneuvers.len()
+    );
+    for maneuver in &route.maneuvers {
+        println!(
+            "  [{:>5}] type={:<2} {:>7.0} m  {}{}",
+            maneuver.begin_shape_index,
+            maneuver.r#type,
+            maneuver.length_meters,
+            maneuver.instruction,
+            if maneuver.street_names.is_empty() {
+                String::new()
+            } else {
+                format!(" ({})", maneuver.street_names.join(", "))
+            }
+        );
+    }
+}
+
 /// `places <query> [lat,lon]`: place search, optionally ranked around a point.
 async fn search_places(endpoint: &str) -> Result<()> {
     let query = env::args()
@@ -315,15 +390,7 @@ async fn search_places(endpoint: &str) -> Result<()> {
         .context("usage: media_grpc_client [endpoint] places <query> [lat,lon]")?;
     let near = env::args()
         .nth(4)
-        .map(|value| -> Result<LatLon> {
-            let (latitude, longitude) = value
-                .split_once(',')
-                .context("near must be given as lat,lon")?;
-            Ok(LatLon {
-                latitude: latitude.trim().parse()?,
-                longitude: longitude.trim().parse()?,
-            })
-        })
+        .map(|value| parse_lat_lon(&value))
         .transpose()?;
     let mut client = NavigationServiceClient::<Channel>::connect(endpoint.to_string()).await?;
     let response = client

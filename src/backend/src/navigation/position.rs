@@ -98,8 +98,7 @@ pub fn replay_steps(log: &str) -> Vec<ReplayStep> {
                     _ => DEFAULT_REPLAY_INTERVAL,
                 };
                 previous_time = rmc.time.or(previous_time);
-                // A recording's own timestamps are years old; replayed fixes
-                // are stamped when they are sent instead (see run_replay).
+                // Replayed fixes are stamped when sent (see run_replay).
                 steps.push(ReplayStep {
                     delay: if steps.is_empty() {
                         Duration::ZERO
@@ -150,39 +149,47 @@ fn now_unix_ms() -> Option<i64> {
     i64::try_from(elapsed.as_millis()).ok()
 }
 
-/// Replays `path` into `hub`, forever if `looped`. Returns when the file
-/// cannot be read, or after one pass without looping.
-pub async fn run_replay(hub: PositionHub, path: PathBuf, looped: bool) {
-    let read_path = path.clone();
-    let log = match tokio::task::spawn_blocking(move || std::fs::read_to_string(read_path)).await {
-        Ok(Ok(log)) => log,
-        Ok(Err(err)) => {
-            error!(path = %path.display(), error = %err, "position replay file unreadable");
-            return;
-        }
-        Err(err) => {
-            error!(path = %path.display(), error = %err, "position replay file read panicked");
-            return;
-        }
-    };
+/// Reads and parses a recorded tour. Done once at startup: the same steps
+/// feed the replay and the map-matched replay route.
+pub fn load_replay(path: &Path) -> Result<Vec<ReplayStep>> {
+    let log = std::fs::read_to_string(path)
+        .with_context(|| format!("reading position replay {}", path.display()))?;
     let steps = replay_steps(&log);
     if steps.is_empty() {
-        error!(path = %path.display(), "position replay file has no RMC sentences");
-        return;
+        anyhow::bail!("position replay {} has no RMC sentences", path.display());
     }
-    info!(path = %path.display(), fixes = steps.len(), looped, "position replay started");
+    Ok(steps)
+}
+
+/// The tour's valid positions with standstill collapsed, as map-matching
+/// wants them: the same point repeated only weighs the match towards it.
+pub fn trace_points(steps: &[ReplayStep]) -> Vec<(f64, f64)> {
+    let mut points: Vec<(f64, f64)> = Vec::new();
+    for step in steps.iter().filter(|step| step.fix.valid) {
+        let point = (step.fix.latitude, step.fix.longitude);
+        if points.last() != Some(&point) {
+            points.push(point);
+        }
+    }
+    points
+}
+
+/// Replays `steps` into `hub`, forever if `looped`.
+pub async fn run_replay(hub: PositionHub, steps: Vec<ReplayStep>, name: String, looped: bool) {
+    info!(replay = %name, fixes = steps.len(), looped, "position replay started");
     loop {
         for step in &steps {
             tokio::time::sleep(step.delay).await;
             let mut fix = step.fix.clone();
+            // A recording's own timestamps are years old.
             fix.timestamp_utc_ms = now_unix_ms();
             hub.publish(fix);
         }
         if !looped {
-            info!(path = %path.display(), "position replay finished");
+            info!(replay = %name, "position replay finished");
             return;
         }
-        info!(path = %path.display(), "position replay restarting from the beginning");
+        info!(replay = %name, "position replay restarting from the beginning");
         tokio::time::sleep(DEFAULT_REPLAY_INTERVAL).await;
     }
 }
@@ -291,6 +298,19 @@ $GPRMC,141502.000,A,5024.5968,N,00921.8742,E,22.35,184.27,010518,,,A*5C
         };
         // 2018-05-01T14:15:02Z
         assert_eq!(gps_timestamp_ms(&rmc), Some(1_525_184_102_000));
+    }
+
+    #[test]
+    fn trace_points_skip_no_fix_and_standstill() {
+        let mut steps = replay_steps(LOG);
+        let standing = steps[1].clone();
+        steps.push(standing.clone());
+        let mut moved = standing;
+        moved.fix.latitude += 0.001;
+        steps.push(moved);
+        let points = trace_points(&steps);
+        assert_eq!(points.len(), 2, "no-fix dropped, repeated point collapsed");
+        assert!(points[1].0 > points[0].0);
     }
 
     #[test]

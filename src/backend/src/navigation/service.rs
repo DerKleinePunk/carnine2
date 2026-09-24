@@ -1,7 +1,10 @@
 //! gRPC surface of navigation (ADR-021).
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::pin::Pin;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::StreamExt;
@@ -11,11 +14,12 @@ use tracing::{info, warn};
 
 use super::places::{self, PlaceRecord};
 use super::position::{Fix, PositionHub, PositionState, SourceKind};
+use super::valhalla::{RouteData, RoutingError, Valhalla};
 use crate::carnine::navigation_service_server::NavigationService;
 use crate::carnine::{
-    ComputeRouteRequest, Empty, FixState, GetReplayRouteRequest, LatLon, NavigationStatus, Place,
-    PlaceType, PositionFix, PositionSourceKind, Route, SearchPlacesRequest, SearchPlacesResponse,
-    ServiceVersion,
+    ComputeRouteRequest, Empty, FixState, GetReplayRouteRequest, LatLon, Maneuver,
+    NavigationStatus, Place, PlaceType, PositionFix, PositionSourceKind, Route,
+    SearchPlacesRequest, SearchPlacesResponse, ServiceVersion,
 };
 
 /// How long the router probe may take before it counts as unavailable. The
@@ -23,21 +27,69 @@ use crate::carnine::{
 /// long that call can hang.
 const ROUTER_PROBE_TIMEOUT: Duration = Duration::from_millis(300);
 
+/// Instruction language when the request names none.
+const DEFAULT_LANGUAGE: &str = "de-DE";
+
 #[derive(Debug, Clone)]
 pub struct NavigationServiceImpl {
     positions: PositionHub,
     valhalla_url: String,
     map_region: String,
     names_database: Option<PathBuf>,
+    valhalla: Valhalla,
+    /// Valid, deduplicated points of the running replay; `None` without one.
+    replay_points: Option<Arc<Vec<(f64, f64)>>>,
+    /// Map-matching the whole tour takes seconds, and its answer never
+    /// changes; one route per instruction language is kept.
+    replay_routes: Arc<tokio::sync::Mutex<HashMap<String, Route>>>,
+    next_route_id: Arc<AtomicU64>,
 }
 
 impl NavigationServiceImpl {
     pub fn new(positions: PositionHub, valhalla_url: String, map_region: String) -> Self {
         Self {
+            valhalla: Valhalla::new(&valhalla_url),
             positions,
             valhalla_url,
             map_region,
             names_database: None,
+            replay_points: None,
+            replay_routes: Arc::default(),
+            next_route_id: Arc::new(AtomicU64::new(1)),
+        }
+    }
+
+    pub fn with_replay_points(mut self, points: Option<Vec<(f64, f64)>>) -> Self {
+        self.replay_points = points.map(Arc::new);
+        self
+    }
+
+    fn route_message(&self, data: RouteData) -> Route {
+        let id = self.next_route_id.fetch_add(1, Ordering::Relaxed);
+        Route {
+            route_id: format!("route-{id}"),
+            geometry: data
+                .geometry
+                .into_iter()
+                .map(|(latitude, longitude)| LatLon {
+                    latitude,
+                    longitude,
+                })
+                .collect(),
+            distance_meters: data.distance_meters,
+            duration_seconds: data.duration_seconds,
+            maneuvers: data
+                .maneuvers
+                .into_iter()
+                .map(|maneuver| Maneuver {
+                    instruction: maneuver.instruction,
+                    length_meters: maneuver.length_meters,
+                    time_seconds: maneuver.time_seconds,
+                    r#type: maneuver.kind,
+                    begin_shape_index: maneuver.begin_shape_index,
+                    street_names: maneuver.street_names,
+                })
+                .collect(),
         }
     }
 
@@ -61,6 +113,53 @@ impl NavigationServiceImpl {
             .await,
             Ok(Ok(_))
         )
+    }
+}
+
+fn routing_status(error: RoutingError) -> Status {
+    match error {
+        RoutingError::Unavailable(message) => Status::unavailable(message),
+        RoutingError::NoRoute(message) => Status::not_found(message),
+        RoutingError::Invalid(message) => Status::invalid_argument(message),
+        RoutingError::Internal(message) => Status::internal(message),
+    }
+}
+
+/// A usable (lat, lon), or INVALID_ARGUMENT naming the field.
+fn coordinate(point: Option<LatLon>, field: &str) -> Result<(f64, f64), Status> {
+    let point = point.ok_or_else(|| Status::invalid_argument(format!("{field} is required")))?;
+    let valid = point.latitude.is_finite()
+        && point.longitude.is_finite()
+        && (-90.0..=90.0).contains(&point.latitude)
+        && (-180.0..=180.0).contains(&point.longitude);
+    if valid {
+        Ok((point.latitude, point.longitude))
+    } else {
+        Err(Status::invalid_argument(format!(
+            "{field} is not a WGS84 coordinate: {}, {}",
+            point.latitude, point.longitude
+        )))
+    }
+}
+
+/// The BCP-47 tag for Valhalla, defaulting to German. Only the shape is
+/// checked (letters, digits, hyphens); Valhalla falls back to English for a
+/// language it does not know.
+fn language(requested: Option<String>) -> Result<String, Status> {
+    let Some(tag) = requested.filter(|tag| !tag.trim().is_empty()) else {
+        return Ok(DEFAULT_LANGUAGE.to_string());
+    };
+    let tag = tag.trim();
+    let well_formed = tag.len() <= 35
+        && tag.split('-').all(|part| {
+            !part.is_empty() && part.len() <= 8 && part.chars().all(|c| c.is_ascii_alphanumeric())
+        });
+    if well_formed {
+        Ok(tag.to_string())
+    } else {
+        Err(Status::invalid_argument(format!(
+            "language is not a BCP-47 tag: {tag}"
+        )))
     }
 }
 
@@ -189,18 +288,73 @@ impl NavigationService for NavigationServiceImpl {
 
     async fn compute_route(
         &self,
-        _request: Request<ComputeRouteRequest>,
+        request: Request<ComputeRouteRequest>,
     ) -> Result<Response<Route>, Status> {
-        Err(Status::unimplemented("ComputeRoute is not implemented yet"))
+        let request = request.into_inner();
+        let destination = coordinate(request.destination, "destination")?;
+        let origin = match request.origin {
+            Some(origin) => coordinate(Some(origin), "origin")?,
+            None => match self.positions.current().fix {
+                Some(fix) if fix.valid => (fix.latitude, fix.longitude),
+                _ => {
+                    return Err(Status::failed_precondition(
+                        "no origin given and no GPS fix to start from",
+                    ))
+                }
+            },
+        };
+        let language = language(request.language)?;
+        info!(?origin, ?destination, %language, "route requested");
+        let data = self
+            .valhalla
+            .route(origin, destination, &language)
+            .await
+            .map_err(|err| {
+                warn!(error = ?err, "route failed");
+                routing_status(err)
+            })?;
+        let route = self.route_message(data);
+        info!(
+            route_id = %route.route_id,
+            distance_meters = route.distance_meters,
+            maneuvers = route.maneuvers.len(),
+            "route computed"
+        );
+        Ok(Response::new(route))
     }
 
     async fn get_replay_route(
         &self,
-        _request: Request<GetReplayRouteRequest>,
+        request: Request<GetReplayRouteRequest>,
     ) -> Result<Response<Route>, Status> {
-        Err(Status::unimplemented(
-            "GetReplayRoute is not implemented yet",
-        ))
+        let Some(points) = self.replay_points.clone() else {
+            return Err(Status::not_found("the position source is not a replay"));
+        };
+        let language = language(request.into_inner().language)?;
+        // Held across the Valhalla call, so a second caller waits for the
+        // first result instead of starting another multi-second match.
+        let mut cache = self.replay_routes.lock().await;
+        if let Some(route) = cache.get(&language) {
+            return Ok(Response::new(route.clone()));
+        }
+        info!(points = points.len(), %language, "map-matching the replay tour");
+        let data = self
+            .valhalla
+            .trace_route(&points, &language)
+            .await
+            .map_err(|err| {
+                warn!(error = ?err, "replay route failed");
+                routing_status(err)
+            })?;
+        let route = self.route_message(data);
+        info!(
+            route_id = %route.route_id,
+            distance_meters = route.distance_meters,
+            maneuvers = route.maneuvers.len(),
+            "replay route computed"
+        );
+        cache.insert(language, route.clone());
+        Ok(Response::new(route))
     }
 
     async fn stream_positions(
@@ -280,6 +434,108 @@ mod tests {
             fix: None,
         };
         assert_eq!(position_fix(&state), None);
+    }
+
+    fn service(hub: PositionHub) -> NavigationServiceImpl {
+        NavigationServiceImpl::new(hub, "http://127.0.0.1:9".to_string(), String::new())
+    }
+
+    #[tokio::test]
+    async fn route_without_origin_needs_a_fix() {
+        let status = service(PositionHub::new(SourceKind::Serial))
+            .compute_route(Request::new(ComputeRouteRequest {
+                origin: None,
+                destination: Some(LatLon {
+                    latitude: 50.75,
+                    longitude: 9.27,
+                }),
+                language: None,
+            }))
+            .await
+            .expect_err("no fix yet");
+        assert_eq!(status.code(), tonic::Code::FailedPrecondition);
+    }
+
+    #[tokio::test]
+    async fn route_checks_coordinates_and_language_before_asking_valhalla() {
+        let service = service(PositionHub::new(SourceKind::None));
+        let request = |destination: Option<LatLon>, language: Option<&str>| ComputeRouteRequest {
+            origin: Some(LatLon {
+                latitude: 50.41,
+                longitude: 9.36,
+            }),
+            destination,
+            language: language.map(str::to_string),
+        };
+        for bad in [
+            request(None, None),
+            request(
+                Some(LatLon {
+                    latitude: 95.0,
+                    longitude: 9.0,
+                }),
+                None,
+            ),
+            request(
+                Some(LatLon {
+                    latitude: 50.0,
+                    longitude: f64::NAN,
+                }),
+                None,
+            ),
+            request(
+                Some(LatLon {
+                    latitude: 50.0,
+                    longitude: 9.0,
+                }),
+                Some("de_DE; drop"),
+            ),
+        ] {
+            let status = service
+                .compute_route(Request::new(bad))
+                .await
+                .expect_err("rejected up front");
+            assert_eq!(status.code(), tonic::Code::InvalidArgument);
+        }
+    }
+
+    #[tokio::test]
+    async fn route_with_the_router_down_is_unavailable() {
+        let status = service(PositionHub::new(SourceKind::None))
+            .compute_route(Request::new(ComputeRouteRequest {
+                origin: Some(LatLon {
+                    latitude: 50.41,
+                    longitude: 9.36,
+                }),
+                destination: Some(LatLon {
+                    latitude: 50.75,
+                    longitude: 9.27,
+                }),
+                language: Some("en-US".to_string()),
+            }))
+            .await
+            .expect_err("nothing listens on port 9");
+        assert_eq!(status.code(), tonic::Code::Unavailable);
+    }
+
+    #[tokio::test]
+    async fn replay_route_needs_a_replay() {
+        let status = service(PositionHub::new(SourceKind::Serial))
+            .get_replay_route(Request::new(GetReplayRouteRequest { language: None }))
+            .await
+            .expect_err("no replay running");
+        assert_eq!(status.code(), tonic::Code::NotFound);
+    }
+
+    #[test]
+    fn language_defaults_to_german_and_accepts_tags() {
+        assert_eq!(language(None).unwrap(), "de-DE");
+        assert_eq!(language(Some("  ".to_string())).unwrap(), "de-DE");
+        assert_eq!(
+            language(Some("zh-Hans-CN".to_string())).unwrap(),
+            "zh-Hans-CN"
+        );
+        assert!(language(Some("de--DE".to_string())).is_err());
     }
 
     #[tokio::test]

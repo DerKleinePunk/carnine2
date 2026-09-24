@@ -338,10 +338,14 @@ name = "carnine-backend"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bytes",
  "chrono",
  "cpal",
  "ffmpeg-next",
  "futures-util",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
  "libc",
  "prost",
  "rand",
