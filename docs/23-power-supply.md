@@ -45,6 +45,8 @@ The supply gets its own UART, **uart5**, so Bluetooth keeps the Pi's default
 UART; uart4 is not used because GPIO 8/9 belong to SPI0, which a CAN adapter
 (MCP2515) needs.
 
+![Pi 4 header with the four pins for the supply](hardware/power-supply/pi4-wiring.svg)
+
 | Supply | Pi 4 | Header pin |
 |---|---|---|
 | RXD | GPIO 12, uart5 TXD | 32 |
@@ -52,8 +54,12 @@ UART; uart4 is not used because GPIO 8/9 belong to SPI0, which a CAN adapter
 | Dig3 | GPIO 5, `gpio-poweroff` | 29 |
 | GND | GND | e.g. 30 or 34 |
 
-The old project wired RXD/TXD to the default UART (GPIO 14/15); with uart5
-the cable goes to pins 32/33 instead. The backend package's udev rule
+RXD and TXD on the supply are taken as its own receive and transmit line,
+so they cross over to the Pi's TX and RX. If `/dev/powersupply` shows no
+telegrams (they come every second), swap the two wires with the Pi switched
+off. The old project wired RXD/TXD to the default UART (GPIO 14/15); with
+uart5 the cable goes to pins 32/33 instead. The full header is on
+[pinout.xyz](https://pinout.xyz). The backend package's udev rule
 (`61-carnine-powersupply.rules`) names the line `/dev/powersupply`, whatever
 ttyAMA number it gets.
 
