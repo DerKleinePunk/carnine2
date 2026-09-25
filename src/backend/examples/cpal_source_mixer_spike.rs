@@ -39,7 +39,7 @@ fn main() -> Result<()> {
         .default_output_config()
         .context("failed to read default output configuration")?;
     let (source, consumer) =
-        ExternalPcmSource::start(music_path, SAMPLE_RATE, SAMPLE_RATE as usize * 2)?;
+        ExternalPcmSource::start_at(music_path, SAMPLE_RATE, SAMPLE_RATE as usize * 2, 0)?;
     let mut mixer = AudioMixer::new(SAMPLE_RATE, 250);
     let source_id = mixer.add_stream_source(consumer, 1.0)?;
     let (commands, command_receiver) = mpsc::channel();

@@ -45,10 +45,10 @@ use carnine::{
     CommandResponse, Configuration, ConfigurationResponse, CreatePlaylistRequest, Empty,
     GetCoverArtRequest, GetCoverArtResponse, GetPlaylistRequest, ImportMusicVolumeRequest,
     LibraryEvent, LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest,
-    PlayQueueEntryRequest, PlayRequest, PlayerEvent, PlayerState, Playlist, PlaylistEntry,
-    RepeatMode, RescanMediaRequest, SearchMediaRequest, SearchMediaResponse, ServiceVersion,
-    SetRepeatModeRequest, SetShuffleModeRequest, SetVolumeRequest, SystemMetrics, UiState,
-    UpdateConfigurationRequest, VolumeResponse,
+    PlayQueueEntryRequest, PlayRequest, PlayerEvent, PlayerEventType, PlayerState, Playlist,
+    PlaylistEntry, RepeatMode, RescanMediaRequest, SearchMediaRequest, SearchMediaResponse,
+    ServiceVersion, SetRepeatModeRequest, SetShuffleModeRequest, SetVolumeRequest, SystemMetrics,
+    UiState, UpdateConfigurationRequest, VolumeResponse,
 };
 
 #[derive(Debug, Default)]
@@ -165,6 +165,16 @@ use media_player::MediaPlayer;
 
 #[derive(Debug, Default)]
 pub struct CarnineServiceImpl;
+
+fn saves_resume_state(event: i32) -> bool {
+    [
+        PlayerEventType::PlayerPlaybackStarted,
+        PlayerEventType::PlayerTrackChanged,
+        PlayerEventType::PlayerQueueFinished,
+    ]
+    .iter()
+    .any(|kind| *kind as i32 == event)
+}
 
 #[derive(Clone)]
 pub struct MediaServiceImpl {
@@ -293,6 +303,28 @@ impl MediaServiceImpl {
         if let Err(error) = self.save_resume_state() {
             warn!(%error, "failed to save resume state after changing {setting}");
         }
+    }
+
+    /// Saves the resume state whenever a track starts, changes or the queue
+    /// runs out. Only stop and SIGTERM saved it before, so after a queue ran
+    /// to its end the next PlayPlaylist picked up a position from long ago
+    /// (#26), and after a power cut the car resumed at an old track.
+    fn spawn_resume_saver(&self) {
+        let service = self.clone();
+        let mut events = self.player.subscribe_events();
+        tokio::spawn(async move {
+            loop {
+                match events.recv().await {
+                    Ok(event) if saves_resume_state(event.event) => {
+                        if let Err(error) = service.save_resume_state() {
+                            warn!(%error, "failed to save resume state after a track change");
+                        }
+                    }
+                    Ok(_) | Err(broadcast::error::RecvError::Lagged(_)) => {}
+                    Err(broadcast::error::RecvError::Closed) => break,
+                }
+            }
+        });
     }
 
     fn restore_resume_state(&self) -> anyhow::Result<()> {
@@ -1311,6 +1343,7 @@ async fn main() -> Result<()> {
     )));
     audio_volume.start();
     media_service.restore_resume_state()?;
+    media_service.spawn_resume_saver();
     storage_events::spawn(Arc::new(media_service.clone()));
     let media_player = Arc::clone(&media_service.player);
     MediaPlayer::spawn_completion_watcher(Arc::clone(&media_player));
@@ -2281,6 +2314,86 @@ mod tests {
             RepeatMode::RepeatQueue
         );
         assert!(restored_service.player.shuffle_enabled());
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    #[tokio::test]
+    async fn a_track_change_saves_the_resume_state() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-resume-saver-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&database_path);
+        let database = database::Database::open(&database_path).expect("database should open");
+        let source_id = database
+            .upsert_source("/music", "AVAILABLE")
+            .expect("source should save");
+        let playlist_id = database
+            .create_playlist("Saver")
+            .expect("playlist should be created");
+        let mut entries = Vec::new();
+        for name in ["first", "second"] {
+            let path = format!("/music/{name}.mp3");
+            let media_id = database
+                .upsert_media(&database::MediaRecord {
+                    id: 0,
+                    source_id,
+                    path: path.clone(),
+                    title: name.to_string(),
+                    artist: "Artist".to_string(),
+                    duration_ms: 100_000,
+                    status: "AVAILABLE".to_string(),
+                    cover_path: None,
+                })
+                .expect("media should save");
+            let entry_id = database
+                .add_playlist_entry(playlist_id, media_id)
+                .expect("entry should save");
+            entries.push((entry_id, path));
+        }
+        drop(database);
+        let service = MediaServiceImpl::with_player(
+            MediaPlayer::with_engine(Box::new(FakeAudioEngine)),
+            database_path.clone(),
+            Vec::new(),
+            Vec::new(),
+            "restore_paused".to_string(),
+            PathBuf::from("/tmp/carnine-covers"),
+        );
+        service
+            .player
+            .play_playlist(
+                playlist_id as i64,
+                entries.clone(),
+                Some(entries[0].0),
+                90_000,
+                "auto-play",
+            )
+            .expect("playlist should start");
+        service.spawn_resume_saver();
+
+        service
+            .player
+            .execute("queue-entry", "1")
+            .expect("second track should start");
+
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+        let saved = loop {
+            let state = database::Database::open(&database_path)
+                .expect("database should open")
+                .load_resume_state()
+                .expect("resume state should load");
+            if let Some(state) = state.filter(|state| state.playlist_entry_id == Some(entries[1].0))
+            {
+                break state;
+            }
+            assert!(
+                std::time::Instant::now() < deadline,
+                "the track change was never saved"
+            );
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        };
+        assert!(saved.position_ms < 1_000, "{} ms", saved.position_ms);
         let _ = std::fs::remove_file(database_path);
     }
 

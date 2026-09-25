@@ -32,31 +32,43 @@ pub struct ExternalPcmSource {
 }
 
 impl ExternalPcmSource {
-    pub fn start(
+    /// Starts FFmpeg decoding `input_path` from `position_ms` into the track.
+    /// `-ss` before `-i` makes FFmpeg seek in the input rather than decode and
+    /// discard everything up to that point; 0 starts at the beginning.
+    pub fn start_at(
         input_path: impl AsRef<Path>,
         sample_rate: u32,
         capacity_frames: usize,
+        position_ms: i64,
     ) -> Result<(Self, HeapCons<f32>)> {
         let input_path = input_path.as_ref();
+        let mut arguments = vec![
+            "-hide_banner".to_string(),
+            "-loglevel".to_string(),
+            "error".to_string(),
+            "-nostdin".to_string(),
+        ];
+        if position_ms > 0 {
+            arguments.push("-ss".to_string());
+            arguments.push(format!("{}.{:03}", position_ms / 1000, position_ms % 1000));
+        }
+        arguments.extend([
+            "-i".to_string(),
+            input_path
+                .to_str()
+                .context("audio path is not valid UTF-8")?
+                .to_string(),
+            "-vn".to_string(),
+            "-f".to_string(),
+            "s16le".to_string(),
+            "-ar".to_string(),
+            sample_rate.to_string(),
+            "-ac".to_string(),
+            SOURCE_CHANNELS.to_string(),
+            "pipe:1".to_string(),
+        ]);
         let mut child = Command::new("ffmpeg")
-            .args([
-                "-hide_banner",
-                "-loglevel",
-                "error",
-                "-nostdin",
-                "-i",
-                input_path
-                    .to_str()
-                    .context("audio path is not valid UTF-8")?,
-                "-vn",
-                "-f",
-                "s16le",
-                "-ar",
-                &sample_rate.to_string(),
-                "-ac",
-                &SOURCE_CHANNELS.to_string(),
-                "pipe:1",
-            ])
+            .args(&arguments)
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
             .spawn()
@@ -201,7 +213,35 @@ mod tests {
         HeapRb,
     };
 
-    use super::decode_into_ring;
+    use super::{decode_into_ring, ExternalPcmSource};
+
+    #[test]
+    fn start_at_decodes_only_the_rest_of_the_track() {
+        const SAMPLE_RATE: u32 = 44_100;
+        // The repository test track runs about 174.9 s.
+        let (source, _consumer) = ExternalPcmSource::start_at(
+            "../../resources/musik/1-Here We Go Now (Single Edit).mp3",
+            SAMPLE_RATE,
+            SAMPLE_RATE as usize * 10,
+            170_000,
+        )
+        .expect("ffmpeg should start");
+        let deadline = std::time::Instant::now() + Duration::from_secs(20);
+        while !source.is_finished() && std::time::Instant::now() < deadline {
+            thread::sleep(Duration::from_millis(20));
+        }
+        assert!(
+            source.is_finished(),
+            "the last seconds should decode quickly"
+        );
+
+        let seconds =
+            source.stop().expect("decoder should stop") as f64 / (SAMPLE_RATE as f64 * 2.0);
+        assert!(
+            (4.0..6.0).contains(&seconds),
+            "decoded {seconds:.2} s instead of the last ~4.9 s"
+        );
+    }
 
     #[test]
     fn decodes_interleaved_stereo_frames_without_reordering() {

@@ -78,8 +78,16 @@ impl CpalAudioEngine {
 
 impl AudioEngine for CpalAudioEngine {
     fn start(&self, input_path: &str) -> Result<Box<dyn Playback>> {
-        let (source, consumer) =
-            ExternalPcmSource::start(input_path, self.sample_rate, SOURCE_BUFFER_FRAMES)?;
+        self.start_at(input_path, 0)
+    }
+
+    fn start_at(&self, input_path: &str, position_ms: i64) -> Result<Box<dyn Playback>> {
+        let (source, consumer) = ExternalPcmSource::start_at(
+            input_path,
+            self.sample_rate,
+            SOURCE_BUFFER_FRAMES,
+            position_ms,
+        )?;
         let (reply_sender, reply_receiver) = mpsc::sync_channel(1);
         let cancelled = Arc::new(AtomicBool::new(false));
         self.command_sender
@@ -103,7 +111,7 @@ impl AudioEngine for CpalAudioEngine {
                 ));
             }
         };
-        info!(source_id = ?source_id, input_path, "cpal audio source started");
+        info!(source_id = ?source_id, input_path, position_ms, "cpal audio source started");
         Ok(Box::new(CpalPlayback {
             command_sender: self.command_sender.clone(),
             source_id,
