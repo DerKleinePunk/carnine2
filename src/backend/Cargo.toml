@@ -18,6 +18,7 @@ extended-description = "Carnine backend service providing the gRPC interface for
 assets = [
 	["target/release/carnine-backend", "usr/bin/carnine-backend", "755"],
 	["debian/60-carnine-gps.rules", "lib/udev/rules.d/60-carnine-gps.rules", "644"],
+	["debian/61-carnine-powersupply.rules", "lib/udev/rules.d/61-carnine-powersupply.rules", "644"],
 ]
 maintainer-scripts = "debian/"
 systemd-units = { enable = true, start = true }

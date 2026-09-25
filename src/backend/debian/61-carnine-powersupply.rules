@@ -1,0 +1,5 @@
+# Stable name /dev/powersupply for the serial line of the vehicle power
+# supply (docs/23-power-supply.md): the Pi 4's uart5 on GPIO 12/13, enabled
+# with dtoverlay=uart5 in config.txt. Its ttyAMA number changes with the other
+# UARTs in use, the register address of the controller does not.
+SUBSYSTEM=="tty", KERNELS=="fe201a00.serial", SYMLINK+="powersupply"

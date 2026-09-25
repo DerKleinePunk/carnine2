@@ -102,6 +102,13 @@ debos -t display=waveshare-1024x600 raspbian.yaml
 Ohne diesen Parameter bleibt `display=auto` aktiv und die HDMI-Auflösung wird
 weiterhin automatisch anhand der Display-Erkennung gewählt.
 
+Für ein Gerät mit dem Kfz-Netzteil AuPrV1_1 kommt `-t power_supply:auprv1`
+dazu. Dann trägt das Rezept `dtoverlay=gpio-poweroff,active_low=1,gpiopin=5`
+ein, das Signal „Pi ist angehalten“ an Dig3. Ohne Netzteil darf das Overlay
+nicht aktiv sein (Kernel-BUG beim Ausschalten), deshalb steht es sonst nur
+auskommentiert in `config.txt`. Den UART für das Netzteil (`uart5`, GPIO
+12/13) schaltet das Image immer ein, siehe `docs/23-power-supply.md`.
+
 Das Waveshare-Profil läuft unter **Full KMS** (`vc4-kms-v3d`). Das Panel bringt
 ein geklontes EDID mit ungeraden Timings mit, die der vc4-Treiber ablehnt — er
 fällt dann auf 1920x1080 zurück und das Panel skaliert selbst herunter. Das

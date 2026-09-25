@@ -1,8 +1,9 @@
 #!/bin/sh
 set -e
 
-# Give an already plugged-in GPS receiver its /dev/gps link now instead of at
-# the next replug. Fails harmlessly where udev does not run (image build).
+# Give an already plugged-in GPS receiver its /dev/gps link, and the power
+# supply's UART its /dev/powersupply link, now instead of at the next replug
+# or boot. Fails harmlessly where udev does not run (image build).
 if [ "$1" = "configure" ] && command -v udevadm >/dev/null 2>&1; then
     udevadm control --reload-rules 2>/dev/null || true
     udevadm trigger --subsystem-match=tty --action=add 2>/dev/null || true

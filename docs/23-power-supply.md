@@ -36,8 +36,34 @@ not work out and are not used.
   Pi power, relay 2 = amplifier. That these are Rel1–Rel3 in this order is
   assumed from the numbering, not checked.
 
-Open before connecting it to a Pi: the signal level on RXD/TXD. The Pi's
-UART is 3.3 V and not 5 V tolerant; the AVR can run at 5 V.
+The serial lines run at **3.3 V**, so they connect to the Pi directly,
+without a level shifter.
+
+### Wiring to the Pi 4
+
+The supply gets its own UART, **uart5**, so Bluetooth keeps the Pi's default
+UART; uart4 is not used because GPIO 8/9 belong to SPI0, which a CAN adapter
+(MCP2515) needs.
+
+| Supply | Pi 4 | Header pin |
+|---|---|---|
+| RXD | GPIO 12, uart5 TXD | 32 |
+| TXD | GPIO 13, uart5 RXD | 33 |
+| Dig3 | GPIO 5, `gpio-poweroff` | 29 |
+| GND | GND | e.g. 30 or 34 |
+
+The old project wired RXD/TXD to the default UART (GPIO 14/15); with uart5
+the cable goes to pins 32/33 instead. The backend package's udev rule
+(`61-carnine-powersupply.rules`) names the line `/dev/powersupply`, whatever
+ttyAMA number it gets.
+
+**Image:** `uart5` is always enabled (it is unused without a supply). The
+halt signal only with `-t power_supply:auprv1` when building the image,
+because the overlay's README requires a supply that really cuts power when
+signalled; without one, powering off ends in a kernel BUG and the Pi keeps
+drawing current. Without the parameter the line is in `config.txt` commented
+out. `active_low` also pulls GPIO 5 low on a reboot and early in the boot;
+the firmware only looks at Dig3 in POWEROFF, so that does no harm.
 
 ## Firmware (V2.2.12)
 
@@ -110,9 +136,9 @@ stream; a receiver must skip them.
 
 Nothing of this is built yet.
 
-- **Image:** UART enabled for the supply and the serial console moved off it
-  (`enable_uart`, `cmdline.txt`); `gpio-poweroff` overlay; the service user
-  in `dialout`.
+- **Image:** done – `uart5`, optional `gpio-poweroff`, `/dev/powersupply`
+  (see [Wiring to the Pi 4](#wiring-to-the-pi-4)). The serial console is not
+  on any UART, and the backend service is already in `dialout`.
 - **Backend:** a power module with its own configuration section, off by
   default, testable in WSL on a pseudo-terminal like the GPS source. It sends
   `+` regularly, reads KL15, voltage and state, shuts the Pi down through

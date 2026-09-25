@@ -3,6 +3,7 @@
 {{- $display := or .display "auto" -}}
 {{- $version := or .version "unknown" -}}
 {{- $ssh_public_key := or .ssh_public_key "" -}}
+{{- $power_supply := or .power_supply "none" -}}
 {{- $default_image := "raspbian.img" -}}
 {{- if eq $display "waveshare-1024x600" -}}
 {{- $default_image = "raspbian-1024x600.img" -}}
@@ -205,6 +206,33 @@ actions:
       sed -i '/^[[:space:]]*#\?[[:space:]]*dtparam=i2c_arm=/d' /boot/firmware/config.txt
       sed -i '/^[[:space:]]*#\?[[:space:]]*disable_splash=/d' /boot/firmware/config.txt
       printf '%s\n' 'dtparam=i2c_arm=on' 'disable_splash=1' >> /boot/firmware/config.txt
+
+  - action: run
+    description: Serial line and halt signal for the vehicle power supply
+    chroot: true
+    # docs/23-power-supply.md. uart5 ist ein vollwertiger PL011 auf GPIO 12/13
+    # (Pins 32/33); Bluetooth behaelt den Standard-UART, und uart4 (GPIO 8/9)
+    # wuerde einem CAN-Adapter SPI0 wegnehmen. uart5 gibt es nur auf dem Pi 4,
+    # daher der [pi4]-Filter; ohne angeschlossenes Netzteil bleibt er ungenutzt.
+    # gpio-poweroff zieht GPIO 5 (Pin 29) nach dem Anhalten auf low, damit das
+    # Netzteil (Dig3) sofort abschaltet. Das Overlay verlangt laut README ein
+    # Netzteil, das dann wirklich abschaltet - sonst Kernel-BUG beim
+    # Ausschalten. Deshalb nur mit -t power_supply:auprv1, sonst als
+    # auskommentierter Hinweis.
+    command: |
+      {{ if and (ne $power_supply "none") (ne $power_supply "auprv1") -}}
+      echo 'ERROR: power_supply must be none or auprv1' >&2
+      exit 1
+      {{- end }}
+      sed -i '/^[[:space:]]*#\?[[:space:]]*dtoverlay=uart5/d' /boot/firmware/config.txt
+      sed -i '/^[[:space:]]*#\?[[:space:]]*dtoverlay=gpio-poweroff/d' /boot/firmware/config.txt
+      printf '%s\n' '[pi4]' 'dtoverlay=uart5' '[all]' >> /boot/firmware/config.txt
+      {{ if eq $power_supply "auprv1" -}}
+      printf '%s\n' 'dtoverlay=gpio-poweroff,active_low=1,gpiopin=5' >> /boot/firmware/config.txt
+      {{- else -}}
+      printf '%s\n' '# Mit dem Kfz-Netzteil AuPrV1_1 (docs/23-power-supply.md):' \
+        '#dtoverlay=gpio-poweroff,active_low=1,gpiopin=5' >> /boot/firmware/config.txt
+      {{- end }}
 
   # Das Waveshare-Panel laeuft unter Full KMS (vc4-kms-v3d aus der
   # pi-gen-config.txt). Sein EDID ist geklont und traegt ungerade

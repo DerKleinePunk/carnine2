@@ -34,6 +34,9 @@ The deployment architecture emphasizes reliability, minimal resource consumption
   • Connection: SPI bus or USB
 - **GPS receiver** (optional, `position_source = "serial"`): any NMEA 0183
   receiver on USB or a UART, see [GPS receiver](#gps-receiver) below
+- **Vehicle power supply** (optional): the AuPrV1_1 board switches the Pi
+  with the ignition and gives it time to shut down; serial line on uart5
+  (`/dev/powersupply`), see [23 – Vehicle Power Supply](23-power-supply.md)
 - **Power Supply**:
   • USB‑C: 5 V/3 A minimum (ensure quality supply to avoid voltage sag)
   • Optional: battery backup (UPS HAT) for graceful shutdown on power loss
