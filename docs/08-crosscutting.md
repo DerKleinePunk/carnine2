@@ -143,17 +143,26 @@ The maps page draws the MBTiles vector tiles with
 - To see what a tile really contains, decode one tile from the MBTiles file.
   The `vector_layers` list in the metadata can be incomplete.
 
-### Style ID and the Tile Cache
-- `vector_map_tiles` caches tiles already filtered for a style in
-  `/tmp/.vector_map`, keyed by tile and **style `id`**. The filter keeps only
-  the layers and fields that style uses.
-- A changed style with the same `id` gets the old filtered data. It then
-  renders like the old one, although the log reports the new layer count
-  ("Style aktiv: N Ebenen").
-- Raise the number in `id` (currently `carnine-dark-2`) whenever layers,
-  filters or queried fields change. Colour-only changes do not need a new id.
-- This matters on the Pi as well: without a new id, an update keeps showing
-  the old cached tiles until they expire.
+### Style ID, Version and the Tile Cache
+`vector_map_tiles` caches two things in `/tmp/.vector_map`, and both outlive
+the app:
+
+| Cache | Files | Key |
+|---|---|---|
+| Tile data, filtered for a style (only the layers and fields it uses) | `*.pbf` | tile and style `id` |
+| Rendered tiles | `*.png` | style `id` and `metadata.version`, e.g. `carnine-dark-2-v3-…` |
+
+A changed style that keeps both gets old cached data or old images. It then
+looks like the previous one, although the log reports the new layer count
+("Style aktiv: N Ebenen"). This happened twice on 2026-09-25: first with the
+names, then with a colour-only change that did not show up on the panel at
+all.
+
+- **Every change** to the style: raise `metadata.version` (currently `3`).
+- **Changes to layers, filters or queried fields:** also raise the number
+  in `id` (currently `carnine-dark-2`).
+- Both apply on the Pi too; without them an update keeps showing the old
+  cached tiles until they expire.
 
 ### Supported Style Features
 `vector_tile_renderer` 6.1 understands `get`, `has`, `coalesce`, `match`,
@@ -161,7 +170,12 @@ The maps page draws the MBTiles vector tiles with
 `all`/`any`. `line-dasharray` is not supported.
 
 ### Colour Rules
-- Background and surfaces follow `AppColors.surface` (`#0e0e0e`).
+- The map background is `AppColors.surfaceContainer` (`#191919`), set both
+  in the style and as `MapLayerStyle.backgroundColor`. It is lighter than the
+  app's `surface`, because the 7-inch Waveshare panel shows nothing darker
+  than a mid dark grey: on 2026-09-25 areas that looked fine on a desktop
+  monitor were nearly invisible on the panel. Judge colours on the panel,
+  not on the monitor.
 - Roads and areas are never cyan or magenta. `AppColors.primary` marks the
   route and the own position, and `AppColors.secondary` marks the
   destination; both must stay the brightest things on the map.

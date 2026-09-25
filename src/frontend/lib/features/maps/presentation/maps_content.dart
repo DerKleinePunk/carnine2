@@ -32,8 +32,9 @@ class MapsContent extends StatelessWidget {
 
   static const _layerStyle = MapLayerStyle(
     // The background layer of style_carnine_dark.json; without it the map
-    // flashes light grey until the first tiles are drawn.
-    backgroundColor: AppColors.surface,
+    // flashes light grey until the first tiles are drawn. Lighter than the
+    // app's surface: the 7-inch panel swallows anything darker.
+    backgroundColor: AppColors.surfaceContainer,
     routeColor: AppColors.primary,
     routeWidth: 6,
     positionColor: AppColors.primary,
