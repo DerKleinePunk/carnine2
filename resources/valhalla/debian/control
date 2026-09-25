@@ -1,5 +1,5 @@
 Package: carnine-valhalla
-Version: 3.9.0
+Version: 3.9.0-2
 Section: misc
 Priority: optional
 Architecture: arm64

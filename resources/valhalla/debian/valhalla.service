@@ -14,8 +14,10 @@ Environment=LD_LIBRARY_PATH=/opt/valhalla/lib
 ExecStart=/opt/valhalla/bin/valhalla_service /etc/valhalla/valhalla.json 1
 Restart=on-failure
 RestartSec=5
-# Valhalla only reads, it has nothing to save on exit. Without this the
-# shutdown waited 29 s for it; the vehicle power supply allows 15 s.
+# valhalla_service lingers about 29 s after SIGTERM but ends at once on
+# SIGINT. It only reads, so nothing is lost either way; the timeout is a
+# safety net, since the vehicle power supply allows 15 s for the shutdown.
+KillSignal=SIGINT
 TimeoutStopSec=3
 KillMode=mixed
 Nice=5
