@@ -144,6 +144,8 @@ stream; a receiver must skip them.
   in RUN (not in service mode). `+` raises it, and so do most other
   commands (not `4`, `!`, `?`, `*`, `v`). Without a `+` for
   about 3 seconds the supply cuts the Pi hard.
+- **Service mode** (`!`) stops the watchdog until `?` or until the supply
+  itself restarts; it is kept in RAM only.
 - **Pi halted:** with `dtoverlay=gpio-poweroff,active_low=1,gpiopin=5` in
   `config.txt` the Pi signals on GPIO 5 that it has halted. Wired to Dig3,
   the supply switches off at once instead of waiting the full 15 s. Another
@@ -156,15 +158,21 @@ Nothing of this is built yet.
 - **Image:** done – `uart5`, optional `gpio-poweroff`, `/dev/powersupply`
   (see [Wiring to the Pi 4](#wiring-to-the-pi-4)). The serial console is not
   on any UART, and the backend service is already in `dialout`.
-- **Backend:** a power module with its own configuration section, off by
+- **Backend** ([#36](https://github.com/DerKleinePunk/carnine2/issues/36)): a power module with its own configuration section, off by
   default, testable in WSL on a pseudo-terminal like the GPS source. It sends
   `+` regularly, reads KL15, voltage and state, shuts the Pi down through
   logind when the supply goes to POWEROFF, and sends `$` when the Pi shuts
   down on its own. State over gRPC plus a command in `media_grpc_client`.
 - **Timing to check on the device:**
-  - The alive `+` must start within about 33 s of the Pi getting power
-    (30 s PIBOOT plus the watchdog), or the supply cuts a Pi that is still
-    booting. Boot time to a running backend is not measured yet.
+  - The alive `+` must start within about 31 s of the Pi getting power, or
+    the supply cuts a Pi that is still booting: RUN starts after the 30 s of
+    PIBOOT with the alive counter at only 1, so without a `+` sent before
+    (it counts in PIBOOT too, up to 3) the watchdog fires one second later.
+    Measured on the test board on 2026-09-25: PIBOOT 30 s → RUN →
+    `Alive time out !` 1 s later → POWEROFF 5 s → IDLE → POWERON again,
+    every 39 s while KL15 is on; the relays click each round. On the test
+    Pi the backend is up 7.7 s after the kernel starts (systemd), plus the
+    Pi's own firmware boot before that.
   - Shutdown must finish within 15 s, unless Dig3 reports the halt; the
     backend alone may take up to 10 s to stop (`TimeoutStopSec`).
   - The firmware can be changed where these do not fit.
