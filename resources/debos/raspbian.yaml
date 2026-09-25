@@ -196,11 +196,15 @@ actions:
     destination: /boot/firmware/config.txt
 
   - action: run
-    description: Enable I2C on Raspberry Pi
+    description: Enable I2C and hide the firmware rainbow splash
     chroot: true
+    # Angehaengt unter dem [all]-Abschnitt, mit dem die pi-gen-config.txt
+    # endet. disable_splash=1 blendet den Regenbogen der Firmware aus; der
+    # Carnine-Splash per Plymouth weiter unten bleibt (#27).
     command: |
       sed -i '/^[[:space:]]*#\?[[:space:]]*dtparam=i2c_arm=/d' /boot/firmware/config.txt
-      printf '%s\n' 'dtparam=i2c_arm=on' >> /boot/firmware/config.txt
+      sed -i '/^[[:space:]]*#\?[[:space:]]*disable_splash=/d' /boot/firmware/config.txt
+      printf '%s\n' 'dtparam=i2c_arm=on' 'disable_splash=1' >> /boot/firmware/config.txt
 
   # Das Waveshare-Panel laeuft unter Full KMS (vc4-kms-v3d aus der
   # pi-gen-config.txt). Sein EDID ist geklont und traegt ungerade
