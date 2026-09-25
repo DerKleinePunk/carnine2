@@ -10,6 +10,8 @@ Before building, ensure you have the required build dependencies installed. See 
 
 The root build scripts `build_linux.sh` and `build_pi.sh` generate Dart gRPC stubs from the shared schema at `src/proto/carnine.proto`.
 
+To run backend and frontend locally in WSL2, with the frontend under ivi-homescreen as on the Pi, use `./run_wsl.sh` ([docs/07-deployment.md](docs/07-deployment.md) §3.4).
+
 ## Build the Raspberry Pi Image
 
 The Raspberry Pi image is built with Debos in the `godebos/debos` container. The repository must be mounted from `/mnt/wsl` when using Podman Desktop with WSL, so that the files are available to the Podman machine.

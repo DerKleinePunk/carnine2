@@ -551,8 +551,9 @@ Noch offen:
   geschlossen, nicht gemessen** — bei erneutem Auftreten wieder oeffnen und
   dann mit `resources/debos/debug-pi-audio.sh` gegenmessen
 - WSLg/PulseAudio-Ausgabe bleibt fuer subjektive Audioqualitaet eine bekannte
-  Testeinschraenkung; lokale Starts verwenden `CARNINE_AUDIO_BACKEND=pulse` und
-  `CARNINE_AUDIO_DEVICE=default`, der Raspberry Pi weiterhin ALSA
+  Testeinschraenkung; lokale Starts gehen ueber das ALSA-Default-Geraet von
+  cpal, das WSLg an PulseAudio weiterreicht (`run_wsl.sh`, siehe
+  `07-deployment.md` 3.4), der Raspberry Pi direkt ueber ALSA
 - vollstaendig gepufferte Audioausgabe als spaetere Referenzimplementierung
   pruefen (das frueher hier vermutete Knacken am Ende von `stop` ist geklaert,
   siehe unten)

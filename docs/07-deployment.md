@@ -217,6 +217,67 @@ the steps are listed for provisioning a new build host.
 4. **Stop it by hand** with `pkill -x homescreen`. `pkill -f homescreen`
    also matches the SSH command line that runs it.
 
+### 3.4 Run Locally in WSL2 (ivi-homescreen on WSLg)
+
+`./run_wsl.sh` runs backend and frontend on the workstation, with the frontend
+under ivi-homescreen as on the Pi rather than in the GTK runner of
+`flutter run -d linux`. It uses the same emb workspace as 3.3 but builds
+natively for x86_64 with the `wayland-egl` backend, which WSLg's compositor
+provides. The Arm toolchain and sysroot are not needed for this.
+
+```bash
+./run_wsl.sh             # build what changed, then start both
+./run_wsl.sh --no-build  # start the last build again
+```
+
+The window opens at 1024x600, the panel's size. Closing it or Ctrl+C in the
+terminal stops the frontend, the backend and the Valhalla tunnel together.
+
+What the script does:
+
+1. Generates the protobuf stubs, copies `src/frontend` to
+   `build/emb-app-local/carnine_frontend` and runs
+   `emb cross . --build --backend wayland-egl --app <copy> --mode debug -D DISABLE_PLUGINS=ON`
+   in the ivi-homescreen checkout. Without `--target`, emb builds for the host.
+   The first build takes about a minute.
+2. Builds the backend with `cargo build` and writes a configuration to
+   `build/wsl-dev/config.toml`. The script regenerates it on every start, so
+   change the script instead of the file. The database, covers, logs and
+   socket all live in `build/wsl-dev/`. The media folder gets the repository
+   test MP3 if it is empty.
+3. Starts the backend with that configuration. It drops `CARNINE_SOCKET_PATH`
+   and `CARNINE_TCP_ADDRESS` from the environment first, because a dev shell
+   that exports them would otherwise take precedence over the configuration.
+4. Tunnels the Pi's Valhalla to `127.0.0.1:8002`, because there is no local
+   routing service. Without the Pi, the map still renders but shows no route.
+5. Starts `homescreen -b <bundle> -w 1024 --height 600` with
+   `CARNINE_EMBEDDED=1`, the socket from step 2 and the map tiles.
+
+Overrides, each an environment variable:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CARNINE_EMB_WORKSPACE` | `~/develop/emb-workspace` | emb workspace from 3.3 |
+| `CARNINE_FRONTEND_BUILD_MODE` | `debug` | `debug`, `profile` or `release` |
+| `CARNINE_MAPS_DIR` | `~/develop/carnine-maps` | Folder with `hessen.mbtiles` and `germany_names.db` |
+| `CARNINE_MAP_TILES`, `CARNINE_NAMES_DATABASE` | from `CARNINE_MAPS_DIR` | Individual map files |
+| `CARNINE_REPLAY_FILE` | the tour shipped with the resolved `local_map` revision | NMEA replay for the own position |
+| `CARNINE_WSL_MEDIA` | `build/wsl-dev/media` | Music folder; for example `/mnt/c/Users/<user>/Music` |
+| `CARNINE_VALHALLA_TUNNEL` | `pi@192.168.2.51` | SSH target for the Valhalla tunnel; empty disables it |
+
+Known differences from the Pi:
+
+- WSLg has no GPU driver for EGL, so Mesa falls back to software rendering.
+  The `libEGL warning` and `ZINK: failed to choose pdev` lines at startup are
+  expected. Frame rates therefore say nothing about the Pi, and neither does a
+  debug build (see 3.3).
+- There is no UDisks2 in WSL, so the backend logs that the storage listener
+  stopped and USB import cannot be tested here.
+- Audio goes through cpal's default ALSA device, which WSLg routes to
+  PulseAudio. The volume backend reports `pactl`.
+- The frontend logs `NOTIFY_SOCKET is not set` because systemd does not start
+  it here. This is harmless.
+
 ---
 
 ## 7.4 Backend Connectivity and Debugging
