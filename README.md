@@ -40,6 +40,10 @@ The generated image can be written to an SD card manually from Windows. Verify t
 
 See the [Arc42 documentation](docs/README.md) for detailed architectural information about the project.
 
+## User Guide
+
+The [Bedienungsanleitung](docs/bedienung/README.md) (German, for developers and testers) describes every screen and control of the frontend.
+
 ## Resources
 
 - [Sound Resources](resources/sounds/README.md) - Audio files for notifications and UI feedback
