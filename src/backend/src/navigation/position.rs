@@ -1,12 +1,15 @@
 //! The backend's own position: one hub holding the latest state, fed either by
 //! a GPS mouse (NMEA over a serial device) or by replaying a recorded tour.
 
+use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::os::fd::AsRawFd;
+use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result};
-use chrono::{NaiveDateTime, NaiveTime};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime, TimeDelta};
 use tokio::sync::watch;
 use tracing::{error, info, warn};
 
@@ -19,6 +22,15 @@ const DEFAULT_REPLAY_INTERVAL: Duration = Duration::from_secs(1);
 const MAX_REPLAY_INTERVAL: Duration = Duration::from_secs(5);
 /// Wait before reopening a serial device that vanished or failed.
 const SERIAL_RETRY_INTERVAL: Duration = Duration::from_secs(3);
+/// GPS week numbers wrap every 1024 weeks. A receiver whose firmware predates
+/// a wrap reports a date 19.6 years too early, the time of day stays right.
+const GPS_WEEK_ROLLOVER_WEEKS: i64 = 1024;
+/// No receiver can report a date before this code was written; the system
+/// clock may be further back on a device without RTC and network.
+const EARLIEST_GPS_DATE: NaiveDate = match NaiveDate::from_ymd_opt(2026, 1, 1) {
+    Some(date) => date,
+    None => panic!("valid date"),
+};
 
 /// Where fixes come from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -138,10 +150,33 @@ fn fix_from_rmc(rmc: &Rmc, hdop: Option<f64>, timestamp_utc_ms: Option<i64>) -> 
     }
 }
 
-/// GPS time of an `RMC` sentence in Unix milliseconds, when it has both parts.
-fn gps_timestamp_ms(rmc: &Rmc) -> Option<i64> {
-    let (date, time) = (rmc.date?, rmc.time?);
-    Some(NaiveDateTime::new(date, time).and_utc().timestamp_millis())
+/// GPS time of an `RMC` sentence, when it has both date and time.
+fn gps_datetime(rmc: &Rmc) -> Option<NaiveDateTime> {
+    Some(NaiveDateTime::new(rmc.date?, rmc.time?))
+}
+
+/// Moves a date that lies more than a day before `reference` forward by
+/// whole week-number rollovers. A receiver with a correct date is never
+/// earlier than the reference, which never runs ahead of the real time: it is
+/// the later of the system clock (at worst the time it was last saved) and
+/// [`EARLIEST_GPS_DATE`].
+fn correct_week_rollover(reported: NaiveDateTime, reference: NaiveDateTime) -> NaiveDateTime {
+    let rollover = TimeDelta::weeks(GPS_WEEK_ROLLOVER_WEEKS);
+    let mut corrected = reported;
+    // Bounded: four rollovers are 78 years, far beyond any real receiver.
+    for _ in 0..4 {
+        if corrected + TimeDelta::days(1) >= reference {
+            break;
+        }
+        corrected += rollover;
+    }
+    corrected
+}
+
+fn rollover_reference() -> NaiveDateTime {
+    let earliest = EARLIEST_GPS_DATE.and_time(NaiveTime::MIN);
+    let now = chrono::Utc::now().naive_utc();
+    now.max(earliest)
 }
 
 fn now_unix_ms() -> Option<i64> {
@@ -195,14 +230,15 @@ pub async fn run_replay(hub: PositionHub, steps: Vec<ReplayStep>, name: String, 
 }
 
 /// Reads NMEA from a serial device into `hub`, reopening it whenever it
-/// vanishes (a USB GPS mouse unplugged and replugged). Runs on a blocking
-/// thread; the line speed is left to the device (USB CDC receivers ignore it).
-pub fn spawn_serial(hub: PositionHub, device: PathBuf) {
+/// vanishes (a USB GPS mouse unplugged and replugged) or is not there yet.
+/// Runs on a blocking thread. Any NMEA 0183 receiver works; `baud` is its line
+/// speed.
+pub fn spawn_serial(hub: PositionHub, device: PathBuf, baud: u32) {
     std::thread::Builder::new()
         .name("gps-serial".to_string())
         .spawn(move || loop {
-            info!(device = %device.display(), "opening GPS serial device");
-            match read_serial(&hub, &device) {
+            info!(device = %device.display(), baud, "opening GPS serial device");
+            match read_serial(&hub, &device, baud) {
                 Ok(()) => warn!(device = %device.display(), "GPS serial device closed"),
                 Err(err) => {
                     warn!(device = %device.display(), error = %format!("{err:#}"), "GPS serial device failed")
@@ -214,10 +250,25 @@ pub fn spawn_serial(hub: PositionHub, device: PathBuf) {
         .unwrap_or_else(|err| error!(error = %err, "could not start the GPS serial thread"));
 }
 
-fn read_serial(hub: &PositionHub, device: &Path) -> Result<()> {
-    let file =
-        std::fs::File::open(device).with_context(|| format!("opening {}", device.display()))?;
-    info!(device = %device.display(), "GPS serial device opened");
+fn read_serial(hub: &PositionHub, device: &Path, baud: u32) -> Result<()> {
+    // Non-blocking so the open does not wait for a carrier the receiver never
+    // raises, and no controlling terminal for the service. Reads block again
+    // once the line is set up.
+    let file = std::fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOCTTY | libc::O_NONBLOCK)
+        .open(device)
+        .with_context(|| format!("opening {}", device.display()))?;
+    let terminal =
+        configure_line(&file, baud).with_context(|| format!("setting up {}", device.display()))?;
+    set_blocking(&file).with_context(|| format!("setting up {}", device.display()))?;
+    if terminal {
+        info!(device = %device.display(), baud, "GPS serial device opened");
+    } else {
+        // A pipe or file standing in for a receiver, e.g. when testing in WSL.
+        info!(device = %device.display(), "GPS source is not a terminal, reading it as is");
+    }
+    let mut rollover_logged = false;
     let mut hdop: Option<f64> = None;
     let mut reader = BufReader::new(file);
     let mut raw = Vec::new();
@@ -234,11 +285,80 @@ fn read_serial(hub: &PositionHub, device: &Path) -> Result<()> {
         match nmea::parse_sentence(line) {
             Some(Sentence::Gga { hdop: value }) => hdop = value,
             Some(Sentence::Rmc(rmc)) => {
-                hub.publish(fix_from_rmc(&rmc, hdop, gps_timestamp_ms(&rmc)));
+                let timestamp = gps_datetime(&rmc).map(|reported| {
+                    let corrected = correct_week_rollover(reported, rollover_reference());
+                    if corrected != reported && !rollover_logged {
+                        rollover_logged = true;
+                        info!(
+                            reported = %reported.date(),
+                            corrected = %corrected.date(),
+                            "GPS receiver reports a date before a week-number rollover, correcting it"
+                        );
+                    }
+                    corrected.and_utc().timestamp_millis()
+                });
+                hub.publish(fix_from_rmc(&rmc, hdop, timestamp));
             }
             None => {}
         }
     }
+}
+
+/// Puts a terminal into raw mode at `baud`, so the kernel neither edits nor
+/// echoes the receiver's lines. Returns `false`, without error, for anything
+/// that is not a terminal.
+fn configure_line(file: &File, baud: u32) -> Result<bool> {
+    let speed = baud_constant(baud).with_context(|| format!("unsupported line speed {baud}"))?;
+    let fd = file.as_raw_fd();
+    // SAFETY: termios is plain old data; tcgetattr fills it before any use.
+    let mut settings: libc::termios = unsafe { std::mem::zeroed() };
+    // SAFETY: fd stays open for the duration of the call, settings is valid.
+    if unsafe { libc::tcgetattr(fd, &mut settings) } != 0 {
+        let err = std::io::Error::last_os_error();
+        if err.raw_os_error() == Some(libc::ENOTTY) {
+            return Ok(false);
+        }
+        return Err(err).context("reading the line settings");
+    }
+    // SAFETY: settings came from tcgetattr; the calls only modify it.
+    unsafe {
+        libc::cfmakeraw(&mut settings);
+        libc::cfsetispeed(&mut settings, speed);
+        libc::cfsetospeed(&mut settings, speed);
+    }
+    settings.c_cflag |= libc::CLOCAL | libc::CREAD;
+    settings.c_cc[libc::VMIN] = 1;
+    settings.c_cc[libc::VTIME] = 0;
+    // SAFETY: fd is open, settings is a valid termios.
+    if unsafe { libc::tcsetattr(fd, libc::TCSANOW, &settings) } != 0 {
+        return Err(std::io::Error::last_os_error()).context("applying the line settings");
+    }
+    // Whatever arrived at the wrong speed before is garbage.
+    // SAFETY: fd is open.
+    unsafe { libc::tcflush(fd, libc::TCIFLUSH) };
+    Ok(true)
+}
+
+fn baud_constant(baud: u32) -> Option<libc::speed_t> {
+    Some(match baud {
+        4800 => libc::B4800,
+        9600 => libc::B9600,
+        19200 => libc::B19200,
+        38400 => libc::B38400,
+        57600 => libc::B57600,
+        115200 => libc::B115200,
+        _ => return None,
+    })
+}
+
+fn set_blocking(file: &File) -> Result<()> {
+    let fd = file.as_raw_fd();
+    // SAFETY: fd is open; F_GETFL/F_SETFL only touch its status flags.
+    let flags = unsafe { libc::fcntl(fd, libc::F_GETFL) };
+    if flags < 0 || unsafe { libc::fcntl(fd, libc::F_SETFL, flags & !libc::O_NONBLOCK) } < 0 {
+        return Err(std::io::Error::last_os_error()).context("switching to blocking reads");
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -297,7 +417,115 @@ $GPRMC,141502.000,A,5024.5968,N,00921.8742,E,22.35,184.27,010518,,,A*5C
             panic!("expected RMC");
         };
         // 2018-05-01T14:15:02Z
-        assert_eq!(gps_timestamp_ms(&rmc), Some(1_525_184_102_000));
+        let reported = gps_datetime(&rmc).expect("RMC has date and time");
+        assert_eq!(reported.and_utc().timestamp_millis(), 1_525_184_102_000);
+    }
+
+    fn at(year: i32, month: u32, day: u32, hour: u32) -> NaiveDateTime {
+        NaiveDate::from_ymd_opt(year, month, day)
+            .unwrap()
+            .and_hms_opt(hour, 0, 0)
+            .unwrap()
+    }
+
+    #[test]
+    fn week_rollover_moves_an_old_date_forward_by_1024_weeks() {
+        // Seen on a real receiver on 2026-09-25: it reported 2007-02-09.
+        let corrected = correct_week_rollover(at(2007, 2, 9, 14), at(2026, 9, 25, 10));
+        assert_eq!(corrected, at(2026, 9, 25, 14));
+        // Two rollovers back is corrected twice.
+        let corrected = correct_week_rollover(at(1987, 6, 26, 14), at(2026, 9, 25, 10));
+        assert_eq!(corrected, at(2026, 9, 25, 14));
+    }
+
+    #[test]
+    fn week_rollover_leaves_a_current_date_alone() {
+        let reference = at(2026, 9, 25, 10);
+        assert_eq!(
+            correct_week_rollover(at(2026, 9, 25, 14), reference),
+            at(2026, 9, 25, 14)
+        );
+        // A system clock last saved yesterday is still no reason to move it.
+        assert_eq!(
+            correct_week_rollover(at(2026, 9, 24, 12), reference),
+            at(2026, 9, 24, 12)
+        );
+        // Years after the last saved clock (device off for a long time).
+        assert_eq!(
+            correct_week_rollover(at(2030, 1, 1, 0), reference),
+            at(2030, 1, 1, 0)
+        );
+    }
+
+    #[test]
+    fn rollover_reference_is_never_before_the_earliest_date() {
+        assert!(rollover_reference() >= EARLIEST_GPS_DATE.and_time(NaiveTime::MIN));
+    }
+
+    #[test]
+    fn serial_source_reads_a_plain_file_without_a_terminal() {
+        // What a developer uses in WSL without a receiver: a file (or pipe)
+        // of NMEA lines. Reading ends at EOF, the spawn loop would reopen it.
+        let path = std::env::temp_dir().join(format!("carnine-nmea-{}.txt", std::process::id()));
+        std::fs::write(&path, LOG).unwrap();
+        let hub = PositionHub::new(SourceKind::Serial);
+        read_serial(&hub, &path, 4800).expect("a plain file is read as is");
+        std::fs::remove_file(&path).unwrap();
+        let fix = hub.current().fix.expect("the last RMC became the fix");
+        assert!(fix.valid);
+        assert_eq!(fix.accuracy_meters, Some(nmea::accuracy_from_hdop(1.2)));
+        // 010518 is 2018: not a rollover case, but before EARLIEST_GPS_DATE -
+        // hence moved on by 1024 weeks like a receiver stuck in 2018 would be.
+        let timestamp = fix.timestamp_utc_ms.unwrap();
+        assert!(
+            timestamp
+                >= EARLIEST_GPS_DATE
+                    .and_time(NaiveTime::MIN)
+                    .and_utc()
+                    .timestamp_millis()
+        );
+    }
+
+    #[test]
+    fn a_missing_device_is_an_error_not_a_panic() {
+        let hub = PositionHub::new(SourceKind::Serial);
+        assert!(read_serial(&hub, Path::new("/nonexistent/gps"), 4800).is_err());
+        assert_eq!(hub.current().fix, None);
+    }
+
+    #[test]
+    fn configure_line_sets_raw_mode_and_speed_on_a_terminal() {
+        // A pseudo-terminal stands in for the serial adapter.
+        // SAFETY: plain libc calls on a descriptor this test owns.
+        let master = unsafe { libc::posix_openpt(libc::O_RDWR | libc::O_NOCTTY) };
+        assert!(master >= 0, "posix_openpt");
+        assert_eq!(unsafe { libc::grantpt(master) }, 0);
+        assert_eq!(unsafe { libc::unlockpt(master) }, 0);
+        let mut name = [0 as libc::c_char; 128];
+        assert_eq!(
+            unsafe { libc::ptsname_r(master, name.as_mut_ptr(), name.len()) },
+            0
+        );
+        let slave_path = unsafe { std::ffi::CStr::from_ptr(name.as_ptr()) }
+            .to_str()
+            .unwrap()
+            .to_string();
+        let slave = std::fs::OpenOptions::new()
+            .read(true)
+            .custom_flags(libc::O_NOCTTY)
+            .open(&slave_path)
+            .unwrap();
+
+        assert!(configure_line(&slave, 4800).unwrap());
+        let mut settings: libc::termios = unsafe { std::mem::zeroed() };
+        assert_eq!(
+            unsafe { libc::tcgetattr(slave.as_raw_fd(), &mut settings) },
+            0
+        );
+        assert_eq!(unsafe { libc::cfgetispeed(&settings) }, libc::B4800);
+        assert_eq!(settings.c_lflag & (libc::ICANON | libc::ECHO), 0);
+        assert!(configure_line(&slave, 4801).is_err());
+        unsafe { libc::close(master) };
     }
 
     #[test]

@@ -1,0 +1,17 @@
+# Stable name /dev/gps for a GPS receiver, so that navigation.serial_device can
+# stay "/dev/gps" whichever ttyACM/ttyUSB number the kernel hands out. The
+# backend reads NMEA 0183 from any receiver; only this file knows devices.
+#
+# A receiver that is not listed: find its IDs with
+#   udevadm info --attribute-walk /dev/ttyUSB0 | grep -m2 -E 'idVendor|idProduct'
+# and add a line of the same form in /etc/udev/rules.d/61-carnine-gps-local.rules
+# (that file survives package updates), then replug the receiver.
+# docs/07-deployment.md, "GPS receiver", has the details.
+
+# u-blox receivers (USB CDC, show up as ttyACM).
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1546", SYMLINK+="gps"
+
+# Prolific PL2303 USB serial adapter, built into many older GPS mice (ttyUSB,
+# usually 4800 baud). It is a generic adapter: any other device on a PL2303,
+# an OBD cable for example, gets the name as well.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", SYMLINK+="gps"

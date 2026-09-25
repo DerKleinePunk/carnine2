@@ -133,6 +133,11 @@ pub struct NavigationConfig {
     pub position_source: PositionSourceSetting,
     #[serde(default)]
     pub serial_device: Option<PathBuf>,
+    /// Line speed of `serial_device`. 4800 is the NMEA 0183 standard rate;
+    /// USB CDC receivers (`ttyACM`) ignore it, USB serial adapters (`ttyUSB`)
+    /// and UARTs need the receiver's rate.
+    #[serde(default = "default_serial_baud")]
+    pub serial_baud: u32,
     #[serde(default)]
     pub replay_file: Option<PathBuf>,
     /// Start the replay again when it reaches the end.
@@ -150,6 +155,13 @@ pub struct NavigationConfig {
     pub names_database: Option<PathBuf>,
 }
 
+/// Line speeds a GPS receiver is set to in practice.
+pub const SERIAL_BAUD_RATES: [u32; 6] = [4800, 9600, 19200, 38400, 57600, 115200];
+
+fn default_serial_baud() -> u32 {
+    4800
+}
+
 fn default_replay_loop() -> bool {
     true
 }
@@ -163,6 +175,7 @@ impl Default for NavigationConfig {
         Self {
             position_source: PositionSourceSetting::default(),
             serial_device: None,
+            serial_baud: default_serial_baud(),
             replay_file: None,
             replay_loop: default_replay_loop(),
             valhalla_url: default_valhalla_url(),
@@ -234,6 +247,13 @@ impl Config {
                 )
             }
             _ => {}
+        }
+        if !SERIAL_BAUD_RATES.contains(&navigation.serial_baud) {
+            anyhow::bail!(
+                "navigation.serial_baud {} is not one of {:?}",
+                navigation.serial_baud,
+                SERIAL_BAUD_RATES
+            );
         }
         if !navigation.valhalla_url.starts_with("http://") {
             anyhow::bail!(
@@ -513,8 +533,15 @@ mod tests {
 
         config.navigation.position_source = PositionSourceSetting::Serial;
         assert!(config.validate().is_err());
-        config.navigation.serial_device = Some(std::path::PathBuf::from("/dev/ttyACM0"));
+        config.navigation.serial_device = Some(std::path::PathBuf::from("/dev/gps"));
         assert!(config.validate().is_ok());
+
+        assert_eq!(config.navigation.serial_baud, 4800);
+        config.navigation.serial_baud = 9600;
+        assert!(config.validate().is_ok());
+        config.navigation.serial_baud = 4801;
+        assert!(config.validate().is_err());
+        config.navigation.serial_baud = 4800;
 
         config.navigation.valhalla_url = "https://example.org".to_string();
         assert!(config.validate().is_err());

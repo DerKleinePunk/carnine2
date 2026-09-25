@@ -53,7 +53,10 @@ disk_paths = []
 # "none", "serial" (GPS mouse, NMEA on serial_device) or "replay" (recorded
 # NMEA tour from replay_file, looped by default - for the trade fair stand).
 # position_source = "replay"
-# serial_device = "/dev/ttyACM0"
+# /dev/gps is the link the backend package's udev rule creates; serial_baud is
+# the receiver's line speed (4800 is the NMEA standard, ignored on ttyACM).
+# serial_device = "/dev/gps"
+# serial_baud = 4800
 # replay_file = "/var/lib/carnine/maps/GPS-Adnan-Tour.txt"
 # replay_loop = true
 # valhalla_url = "http://127.0.0.1:8002"

@@ -9,7 +9,8 @@
 position_source = "replay"
 replay_file = "/var/lib/carnine/maps/GPS-Adnan-Tour.txt"
 replay_loop = true
-# serial_device = "/dev/ttyACM0"
+# serial_device = "/dev/gps"
+# serial_baud = 4800
 valhalla_url = "http://127.0.0.1:8002"
 map_region = "Hessen"
 names_database = "/var/lib/carnine/maps/germany_names.db"

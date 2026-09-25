@@ -32,6 +32,8 @@ The deployment architecture emphasizes reliability, minimal resource consumption
   • Adapter: MCP2515 (SPI) or isolated CAN HAT (e.g. PiCAN 2, Kvaser)
   • Protocol: CAN 2.0B, 500 kbps or 1 Mbps (vehicle‑specific)
   • Connection: SPI bus or USB
+- **GPS receiver** (optional, `position_source = "serial"`): any NMEA 0183
+  receiver on USB or a UART, see [GPS receiver](#gps-receiver) below
 - **Power Supply**:
   • USB‑C: 5 V/3 A minimum (ensure quality supply to avoid voltage sag)
   • Optional: battery backup (UPS HAT) for graceful shutdown on power loss
@@ -96,6 +98,66 @@ valhalla_url = "http://127.0.0.1:8002"
 map_region = "hessen"
 names_database = "/var/lib/carnine/maps/germany_names.db"
 ```
+
+#### GPS receiver
+
+The backend takes its position from any receiver that speaks NMEA 0183 (it
+uses `RMC` and `GGA`). Nothing in the code is tied to a model; what differs
+between receivers is configuration:
+
+1. **Device name.** The backend package installs
+   `/lib/udev/rules.d/60-carnine-gps.rules`, which links known receivers to
+   `/dev/gps`: u-blox (USB vendor `1546`, `ttyACM`) and the Prolific PL2303
+   adapter (`067b:2303`, `ttyUSB`) found in many older mice. For another
+   receiver, look up its IDs and add a rule in
+   `/etc/udev/rules.d/61-carnine-gps-local.rules`:
+
+   ```sh
+   udevadm info --attribute-walk /dev/ttyUSB0 | grep -m2 -E 'idVendor|idProduct'
+   echo 'SUBSYSTEM=="tty", ATTRS{idVendor}=="xxxx", ATTRS{idProduct}=="yyyy", SYMLINK+="gps"' \
+     | sudo tee /etc/udev/rules.d/61-carnine-gps-local.rules
+   ```
+
+   Replug the receiver and check `ls -l /dev/gps`. Setting `serial_device` to
+   the `/dev/serial/by-id/...` path works as well, without any rule.
+2. **Line speed.** `serial_baud` (default 4800, the NMEA standard). USB CDC
+   receivers (`ttyACM`) ignore it. On `ttyUSB` and UARTs it must match the
+   receiver; to find it, try the common rates until readable sentences appear:
+
+   ```sh
+   for b in 4800 9600 38400; do
+     sudo stty -F /dev/gps $b raw -echo; echo "== $b"
+     sudo timeout 3 cat /dev/gps | head -c 300
+   done
+   ```
+
+   The backend itself puts the line into raw mode at `serial_baud` when it
+   opens it.
+3. **Configuration** in a drop-in, e.g. `/etc/carnine/config.d/10-navigation.toml`:
+
+   ```toml
+   [navigation]
+   position_source = "serial"
+   serial_device = "/dev/gps"
+   serial_baud = 4800
+   ```
+
+   then `sudo systemctl restart carnine-backend`. The log shows
+   `GPS serial device opened`; `media_grpc_client ... positions` shows the
+   fixes.
+
+The service runs with the supplementary group `dialout`, which owns
+`ttyACM*`/`ttyUSB*`. A receiver that is unplugged or not there yet is not an
+error: the backend logs it and retries every 3 seconds.
+
+Receivers with old firmware report a date 1024 weeks (19.6 years) too early,
+the GPS week-number rollover; the one tested on 2026-09-25 said 2007-02-09.
+The backend moves such dates forward and logs
+`GPS receiver reports a date before a week-number rollover` once per connection.
+
+Without a receiver, for example in WSL, `serial_device` can point at a plain
+file or a named pipe of NMEA lines: the backend reads it as is, without line
+setup.
 
 A settings change through `ConfigService` rewrites `config.toml` with the
 merged values. The drop-ins are applied after it on the next start and still

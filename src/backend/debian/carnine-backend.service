@@ -9,7 +9,8 @@ Before=shutdown.target reboot.target halt.target poweroff.target
 Type=simple
 User=carnine
 Group=carnine
-SupplementaryGroups=audio
+# dialout: the GPS receiver on /dev/gps (ttyACM/ttyUSB are root:dialout).
+SupplementaryGroups=audio dialout
 RuntimeDirectory=carnine
 RuntimeDirectoryMode=0700
 ExecStart=/usr/bin/carnine-backend

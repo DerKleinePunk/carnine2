@@ -25,7 +25,7 @@ pub fn start(config: &NavigationConfig) -> NavigationServiceImpl {
     let mut replay_points = None;
     match (source, &config.serial_device, &config.replay_file) {
         (SourceKind::Serial, Some(device), _) => {
-            position::spawn_serial(hub.clone(), device.clone())
+            position::spawn_serial(hub.clone(), device.clone(), config.serial_baud)
         }
         (SourceKind::Replay, _, Some(file)) => match position::load_replay(file) {
             Ok(steps) => {
