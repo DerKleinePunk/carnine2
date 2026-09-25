@@ -73,7 +73,12 @@ uint8_t EEMEM my_eeprom_array[10] = { 0x01, 0x03, 0x00, 0x00 };
 #define EXTERNVOLTAGE 0x14
 #define NACK 0x15
 
-#define VERSION "V2.2.12"
+#define VERSION "V2.3.0"
+
+// Seconds the Pi gets to boot before the watchdog starts (was 30).
+#define PI_BOOT_TIME 60
+// Alive count on entering RUN: seconds of grace for the first alive (was 1).
+#define PI_ALIVE_ON_RUN 3
 
 SIGNAL(TIMER0_COMPA_vect) // Global Timer, 1000 Hz
 {
@@ -652,7 +657,7 @@ void MainLoop()
             systemState = STATE_PIBOOT;
             SetRelaisOn(1); // Power Raspberry
             powerOnTimer = 0;
-            bootTimer = 30;
+            bootTimer = PI_BOOT_TIME;
             stateChanged = true;
         }
     } else if(systemState == STATE_PIBOOT && bootTimer == 0) {
@@ -665,7 +670,9 @@ void MainLoop()
             systemState = STATE_RUN;
             powerOnTimer = 0;
             bootTimer = 25;
-            piAlive++;
+            if(piAlive < PI_ALIVE_ON_RUN) {
+                piAlive = PI_ALIVE_ON_RUN;
+            }
             stateChanged = true;
         }
     } else if(systemState == STATE_RUN) {

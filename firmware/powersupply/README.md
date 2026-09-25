@@ -4,9 +4,14 @@ Firmware of the AuPrV1_1 vehicle power supply: ignition (KL15), power-on and
 shutdown timing, alive watchdog and the three relays. Board, protocol and
 states are described in [docs/23-power-supply.md](../../docs/23-power-supply.md).
 
-Taken over unchanged from
+Taken over from
 [DerKleinePunk/carnine](https://github.com/DerKleinePunk/carnine)
 `src/powersupply/RaspberryPower/` at a84e9fa (2023-03-12), version V2.2.12.
+
+**V2.3.0** (2026-09-25): the Pi gets 60 s instead of 30 s to boot
+(`PI_BOOT_TIME`), and RUN starts with the alive counter at 3 instead of 1
+(`PI_ALIVE_ON_RUN`), so a Pi that has not sent `+` yet has 3 s of grace
+instead of 1.
 Authors: Marcus Borst, Michael Nenninger.
 
 ## Build

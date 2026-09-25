@@ -79,10 +79,11 @@ drawing current. Without the parameter the line is in `config.txt` commented
 out. `active_low` also pulls GPIO 5 low on a reboot and early in the boot;
 the firmware only looks at Dig3 in POWEROFF, so that does no harm.
 
-## Firmware (V2.2.12)
+## Firmware (V2.3.0)
 
-[firmware/powersupply/](../firmware/powersupply/README.md), taken over
-unchanged from the old project. ATmega88P at 8 MHz. `./build.sh` builds it on
+[firmware/powersupply/](../firmware/powersupply/README.md), taken over from
+the old project (V2.2.12); V2.3.0 gives the Pi more time to boot (see
+[What carnine2 needs for it](#what-carnine2-needs-for-it)). ATmega88P at 8 MHz. `./build.sh` builds it on
 Linux (with a container when `avr-gcc` is not installed) into
 `build/RaspberryPower.bin`.
 
@@ -136,7 +137,7 @@ stream; a receiver must skip them.
 |---|---|---|---|
 | IDLE | power-off finished | microcontroller sleeps | KL15 on → POWERON |
 | POWERON | KL15 on | relay 0 on (display, HDMI splitter) | after the power-on delay → PIBOOT; KL15 off → IDLE |
-| PIBOOT | delay over | relay 1 on (Pi power), boot timer 30 s | timer over → RUN; KL15 off at that point → POWEROFF |
+| PIBOOT | delay over | relay 1 on (Pi power), boot timer 60 s (V2.2.12: 30 s) | timer over → RUN; KL15 off at that point → POWEROFF |
 | RUN | Pi booted | watchdog active | KL15 off → POWEROFF (15 s); no alive → POWEROFF (5 s) |
 | POWEROFF | KL15 off, `$`, or watchdog | amplifier off, count down | timer over **or Dig3 active** → all relays off → IDLE |
 
@@ -164,11 +165,11 @@ Nothing of this is built yet.
   logind when the supply goes to POWEROFF, and sends `$` when the Pi shuts
   down on its own. State over gRPC plus a command in `media_grpc_client`.
 - **Timing to check on the device:**
-  - The alive `+` must start within about 31 s of the Pi getting power, or
-    the supply cuts a Pi that is still booting: RUN starts after the 30 s of
-    PIBOOT with the alive counter at only 1, so without a `+` sent before
-    (it counts in PIBOOT too, up to 3) the watchdog fires one second later.
-    Measured on the test board on 2026-09-25: PIBOOT 30 s → RUN →
+  - The alive `+` must start within about 63 s of the Pi getting power
+    (V2.3.0: 60 s PIBOOT, RUN starts with the alive counter at 3), or the
+    supply cuts a Pi that is still booting. A `+` sent in PIBOOT counts
+    too, up to 3. V2.2.12 allowed only about 31 s: 30 s PIBOOT and the
+    counter at 1. Measured with V2.2.12 on the test board on 2026-09-25: PIBOOT 30 s → RUN →
     `Alive time out !` 1 s later → POWEROFF 5 s → IDLE → POWERON again,
     every 39 s while KL15 is on; the relays click each round. On the test
     Pi the backend is up 7.7 s after the kernel starts (systemd), plus the
