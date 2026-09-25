@@ -23,7 +23,7 @@ Warteschlange.
 | Taste | Wirkung | Hinweise |
 |---|---|---|
 | **Zufall** (⤮) | Zufallswiedergabe an/aus | an = leuchtet, mit Punkt darunter |
-| **Zurück** (⏮) | ab 3 s Spielzeit: Titel von vorn; sonst vorheriger Titel | auf dem ersten Titel der Warteschlange gesperrt |
+| **Zurück** (⏮) | ab 3 s Spielzeit: Titel von vorn; sonst vorheriger Titel | auf dem ersten Titel der Warteschlange und bei Einzeltiteln gesperrt (#33) |
 | **−30 s** | – | noch nicht verfügbar, immer grau |
 | **Wiedergabe/Pause** | pausieren bzw. fortsetzen | grau, wenn kein Titel geladen ist |
 | **+30 s** | – | noch nicht verfügbar, immer grau |
@@ -101,7 +101,7 @@ Umbenennen, Löschen und Titel entfernen gibt es noch nicht (#14).
 
 - Das Feld „Name der Playlist“ (höchstens 40 Zeichen) hat sofort den Fokus.
 - **Angelegt wird mit „Fertig“ auf der Bildschirmtastatur** – einen eigenen
-  Knopf dafür gibt es nicht.
+  Knopf dafür gibt es noch nicht (#31).
 - Fehlermeldungen: „Bitte einen Namen eingeben“, „Eine Playlist mit diesem
   Namen existiert bereits“.
 - Danach geht es direkt zu **Titel hinzufügen** für die neue Playlist.

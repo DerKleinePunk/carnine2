@@ -11,7 +11,7 @@
 | Wiederholung und Zufall | ja |
 | laufende Playlist, Titel und Stelle im Titel | ja |
 | einzeln aus der Bibliothek gestarteter Titel | nein |
-| Sprache | nein – immer Deutsch |
+| Sprache | nein – immer Deutsch (#30) |
 | Route, Zoom, Suchtexte, eingeklappte Warteschlange, Unterseite von Medien und Optionen | nein |
 
 Nach einem Neustart des Backends (oder des ganzen Geräts) wird die Playlist
@@ -26,7 +26,8 @@ Backend-Konfiguration:
 | `auto-play` | spielt sofort weiter |
 
 Der Neustart der Oberfläche allein (Optionen → System → **Neustart**) lässt
-die Wiedergabe unberührt.
+die Wiedergabe unberührt. **Beenden** ist der Wartungsmodus: Die Oberfläche
+bleibt aus, bis sie jemand von Hand startet (siehe [Optionen](optionen.md#system)).
 
 Frisch geflasht ist die Datenbank leer: Wiederholung steht dann auf aus.
 
@@ -39,14 +40,14 @@ Frisch geflasht ist die Datenbank leer: Wiederholung steht dann auf aus.
   Zielsuche. Die Karte selbst bleibt bedienbar; die Position kommt nach der
   Wiederverbindung von selbst zurück.
 - Schlägt ein einzelner Befehl fehl (z. B. Weiter), gibt es **keine sichtbare
-  Rückmeldung** – nur einen Eintrag im Log (Optionen → System).
+  Rückmeldung** – nur einen Eintrag im Log (Optionen → System), siehe #32.
 
 ## Noch nicht verfügbar
 
 Sichtbar, aber ohne Funktion:
 
-- **NOTFALL** im Seitenmenü
-- Symbole Mobilfunk, Akku, Sonne in der Kopfleiste
+- **NOTFALL** im Seitenmenü (#34)
+- Symbole Mobilfunk, Akku, Sonne in der Kopfleiste (#34)
 - Seiten **Start**, **Klima**, **Technik** (nur Entwickler-Test)
 - **−30 s / +30 s** im Player (#8), Springen in der Zeitleiste
 - **Nach Updates suchen** (#20)

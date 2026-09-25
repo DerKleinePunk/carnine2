@@ -42,12 +42,12 @@ Oben das Logo „CarNine / V8-ACTIVE“ (ohne Funktion), darunter die Seiten:
 - Beim Wechsel bleibt der Zustand von Medien und Karten erhalten
   (Warteschlange, Unterseite, Route). Die Optionen fangen dagegen jedes Mal
   in der Übersicht an.
-- Der rote Knopf **NOTFALL** unten hat noch keine Funktion.
+- Der rote Knopf **NOTFALL** unten hat noch keine Funktion (#34).
 
 ### Kopfleiste (oben rechts)
 
 Drei kleine Symbole (Mobilfunk, Akku, Sonne) und die Uhr. Die Symbole sind
-Attrappen ohne Datenquelle. Die Uhr springt genau zum Minutenwechsel um. Nichts
+Attrappen ohne Datenquelle (#34). Die Uhr springt genau zum Minutenwechsel um. Nichts
 davon ist antippbar.
 
 ### Letzte Seite nach dem Start
