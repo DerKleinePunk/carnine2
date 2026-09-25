@@ -1151,6 +1151,17 @@ class NavigationServiceClient extends $grpc.Client {
         options: options);
   }
 
+  /// Switches writing the GPS receiver's raw NMEA to a file in
+  /// navigation.track_directory, live and kept across restarts. Such a file
+  /// works as a replay_file. FAILED_PRECONDITION without a track directory.
+  /// Answers with the status after the change.
+  $grpc.ResponseFuture<$0.NavigationStatus> setTrackRecording(
+    $0.SetTrackRecordingRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setTrackRecording, request, options: options);
+  }
+
   // method descriptors
 
   static final _$getServiceVersion =
@@ -1182,6 +1193,11 @@ class NavigationServiceClient extends $grpc.Client {
       '/carnine.NavigationService/StreamPositions',
       ($0.Empty value) => value.writeToBuffer(),
       $0.PositionFix.fromBuffer);
+  static final _$setTrackRecording =
+      $grpc.ClientMethod<$0.SetTrackRecordingRequest, $0.NavigationStatus>(
+          '/carnine.NavigationService/SetTrackRecording',
+          ($0.SetTrackRecordingRequest value) => value.writeToBuffer(),
+          $0.NavigationStatus.fromBuffer);
 }
 
 @$pb.GrpcServiceName('carnine.NavigationService')
@@ -1235,6 +1251,15 @@ abstract class NavigationServiceBase extends $grpc.Service {
         true,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($0.PositionFix value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.SetTrackRecordingRequest, $0.NavigationStatus>(
+            'SetTrackRecording',
+            setTrackRecording_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.SetTrackRecordingRequest.fromBuffer(value),
+            ($0.NavigationStatus value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.ServiceVersion> getServiceVersion_Pre(
@@ -1285,4 +1310,13 @@ abstract class NavigationServiceBase extends $grpc.Service {
 
   $async.Stream<$0.PositionFix> streamPositions(
       $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.NavigationStatus> setTrackRecording_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.SetTrackRecordingRequest> $request) async {
+    return setTrackRecording($call, await $request);
+  }
+
+  $async.Future<$0.NavigationStatus> setTrackRecording(
+      $grpc.ServiceCall call, $0.SetTrackRecordingRequest request);
 }

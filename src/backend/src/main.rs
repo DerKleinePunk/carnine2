@@ -1348,7 +1348,10 @@ async fn main() -> Result<()> {
     let media_player = Arc::clone(&media_service.player);
     MediaPlayer::spawn_completion_watcher(Arc::clone(&media_player));
     let config_service = ConfigServiceImpl::new(configuration.clone(), configuration_path);
-    let navigation_service = navigation::start(&configuration.navigation);
+    let navigation_service = navigation::start(
+        &configuration.navigation,
+        &configuration.media.database_path,
+    );
 
     let socket_mode = configuration.server.socket_permissions()?;
     if socket_mode != config::DEFAULT_SOCKET_MODE {

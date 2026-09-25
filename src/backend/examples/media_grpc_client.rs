@@ -18,10 +18,10 @@ use carnine::{
     media_service_client::MediaServiceClient, navigation_service_client::NavigationServiceClient,
     system_service_client::SystemServiceClient, AddPlaylistEntryRequest, ComputeRouteRequest,
     CreatePlaylistRequest, Empty, FixState, GetCoverArtRequest, GetPlaylistRequest,
-    GetReplayRouteRequest, ImportMusicVolumeRequest, LatLon, LibraryEventType, PlayPlaylistRequest,
-    PlayQueueEntryRequest, PlayRequest, PositionFix, PositionSourceKind, RepeatMode,
-    RescanMediaRequest, Route, SearchMediaRequest, SearchPlacesRequest, SetRepeatModeRequest,
-    SetShuffleModeRequest, SystemMetrics, UiState,
+    GetReplayRouteRequest, ImportMusicVolumeRequest, LatLon, LibraryEventType, NavigationStatus,
+    PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PositionFix, PositionSourceKind,
+    RepeatMode, RescanMediaRequest, Route, SearchMediaRequest, SearchPlacesRequest,
+    SetRepeatModeRequest, SetShuffleModeRequest, SetTrackRecordingRequest, SystemMetrics, UiState,
 };
 
 #[tokio::main]
@@ -80,6 +80,7 @@ async fn main() -> Result<()> {
         "places" => search_places(&endpoint).await?,
         "route" => compute_route(&endpoint).await?,
         "replay-route" => replay_route(&endpoint).await?,
+        "track-recording" => set_track_recording(&endpoint).await?,
         unknown => bail!("unknown command: {unknown}"),
     }
     Ok(())
@@ -318,17 +319,51 @@ async fn save_ui_state(endpoint: &str) -> Result<()> {
 async fn get_navigation_status(endpoint: &str) -> Result<()> {
     let mut client = NavigationServiceClient::<Channel>::connect(endpoint.to_string()).await?;
     let status = client.get_navigation_status(Empty {}).await?.into_inner();
+    print_navigation_status(&status);
+    Ok(())
+}
+
+fn print_navigation_status(status: &NavigationStatus) {
+    let or_dash = |value: &str| {
+        if value.is_empty() {
+            "-".to_string()
+        } else {
+            value.to_string()
+        }
+    };
     println!(
-        "routing_available={} source={:?} fix={:?} region={}",
+        "routing_available={} source={:?} fix={:?} region={} track_recording={} track_file={}",
         status.routing_available,
         status.position_source(),
         status.fix_state(),
-        if status.map_region.is_empty() {
-            "-"
-        } else {
-            &status.map_region
-        }
+        or_dash(&status.map_region),
+        match (
+            status.track_recording_available,
+            status.track_recording_enabled
+        ) {
+            (false, _) => "unavailable",
+            (true, true) => "on",
+            (true, false) => "off",
+        },
+        or_dash(&status.track_file),
     );
+}
+
+async fn set_track_recording(endpoint: &str) -> Result<()> {
+    let enabled = env::args()
+        .nth(3)
+        .context("track-recording requires a state: on|off")?;
+    let enabled = match enabled.as_str() {
+        "on" => true,
+        "off" => false,
+        other => bail!("unknown track-recording state: {other} (expected on|off)"),
+    };
+    let mut client = NavigationServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let status = client
+        .set_track_recording(SetTrackRecordingRequest { enabled })
+        .await?
+        .into_inner();
+    print_navigation_status(&status);
     Ok(())
 }
 

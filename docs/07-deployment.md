@@ -159,6 +159,31 @@ Without a receiver, for example in WSL, `serial_device` can point at a plain
 file or a named pipe of NMEA lines: the backend reads it as is, without line
 setup.
 
+#### Recording drives
+
+With `track_directory` set in `[navigation]` (the device drop-in uses
+`/var/lib/carnine/tracks`), the backend can write everything the receiver
+sends to one file per drive, named after its GPS start time, e.g.
+`2026-09-25T14-57-00Z.nmea`. Such a file is a valid `replay_file`: a real
+drive becomes a trade-fair tour, and a problem seen on the road can be
+replayed at the desk.
+
+Recording is switched live over gRPC, no restart needed, and the switch is
+kept in the media database across restarts and deployments:
+
+```sh
+media_grpc_client <endpoint> track-recording on    # or off
+media_grpc_client <endpoint> nav-status            # track_recording=on track_file=...
+```
+
+`NavigationService.SetTrackRecording` answers `FAILED_PRECONDITION` when no
+`track_directory` is configured. Only the serial source writes; with the
+replay the switch is kept but nothing is written. A new file starts whenever
+recording is switched on and whenever the receiver is reopened (unplugged,
+backend restarted). If the directory cannot be written, the backend logs it
+once and pauses recording until it is switched again. At 1 Hz a receiver
+produces roughly 1 MB per hour; nothing deletes old files.
+
 #### Clock without RTC and network
 
 The Raspberry Pi has no battery-backed clock. At boot systemd-timesyncd

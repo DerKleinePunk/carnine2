@@ -15,6 +15,7 @@ use tracing::{error, info, warn};
 
 use super::clock::ClockSetter;
 use super::nmea::{self, Rmc, Sentence};
+use super::track::TrackRecorder;
 
 /// Pause between two replayed fixes when the recording gives no usable time.
 const DEFAULT_REPLAY_INTERVAL: Duration = Duration::from_secs(1);
@@ -156,22 +157,23 @@ fn gps_datetime(rmc: &Rmc) -> Option<NaiveDateTime> {
     Some(NaiveDateTime::new(rmc.date?, rmc.time?))
 }
 
-/// Moves a date that lies more than a day before `reference` forward by
-/// whole week-number rollovers. A receiver with a correct date is never
-/// earlier than the reference, which never runs ahead of the real time: it is
-/// the later of the system clock (at worst the time it was last saved) and
-/// [`EARLIEST_GPS_DATE`].
+/// Moves a date forward by the whole number of week-number rollovers that
+/// brings it closest to `reference`, never backwards. A receiver that missed
+/// a rollover is off by almost exactly 1024 weeks; a date that is merely old,
+/// such as a recording from years ago read back in a test, is nearer to where
+/// it is than to the next rollover and stays. The reference is the later of
+/// the system clock (at worst the time it was last saved) and
+/// [`EARLIEST_GPS_DATE`]; it may lag the real time by up to half a rollover
+/// (9.8 years) and the result is still right.
 fn correct_week_rollover(reported: NaiveDateTime, reference: NaiveDateTime) -> NaiveDateTime {
-    let rollover = TimeDelta::weeks(GPS_WEEK_ROLLOVER_WEEKS);
-    let mut corrected = reported;
-    // Bounded: four rollovers are 78 years, far beyond any real receiver.
-    for _ in 0..4 {
-        if corrected + TimeDelta::days(1) >= reference {
-            break;
-        }
-        corrected += rollover;
+    let rollover_ms = TimeDelta::weeks(GPS_WEEK_ROLLOVER_WEEKS).num_milliseconds();
+    let behind_ms = (reference - reported).num_milliseconds();
+    if behind_ms <= 0 {
+        return reported;
     }
-    corrected
+    // Nearest whole number of rollovers, rounding half up.
+    let rollovers = (behind_ms + rollover_ms / 2) / rollover_ms;
+    reported + TimeDelta::weeks(GPS_WEEK_ROLLOVER_WEEKS * rollovers)
 }
 
 fn rollover_reference() -> NaiveDateTime {
@@ -233,13 +235,20 @@ pub async fn run_replay(hub: PositionHub, steps: Vec<ReplayStep>, name: String, 
 /// Reads NMEA from a serial device into `hub`, reopening it whenever it
 /// vanishes (a USB GPS mouse unplugged and replugged) or is not there yet.
 /// Runs on a blocking thread. Any NMEA 0183 receiver works; `baud` is its line
-/// speed; `clock` may set the system clock from the first valid fix.
-pub fn spawn_serial(hub: PositionHub, device: PathBuf, baud: u32, mut clock: ClockSetter) {
+/// speed; `clock` may set the system clock from the first valid fix, and
+/// `tracks` writes the raw lines when recording is on.
+pub fn spawn_serial(
+    hub: PositionHub,
+    device: PathBuf,
+    baud: u32,
+    mut clock: ClockSetter,
+    tracks: TrackRecorder,
+) {
     std::thread::Builder::new()
         .name("gps-serial".to_string())
         .spawn(move || loop {
             info!(device = %device.display(), baud, "opening GPS serial device");
-            match read_serial(&hub, &device, baud, &mut clock) {
+            match read_serial(&hub, &device, baud, &mut clock, &tracks) {
                 Ok(()) => warn!(device = %device.display(), "GPS serial device closed"),
                 Err(err) => {
                     warn!(device = %device.display(), error = %format!("{err:#}"), "GPS serial device failed")
@@ -251,7 +260,13 @@ pub fn spawn_serial(hub: PositionHub, device: PathBuf, baud: u32, mut clock: Clo
         .unwrap_or_else(|err| error!(error = %err, "could not start the GPS serial thread"));
 }
 
-fn read_serial(hub: &PositionHub, device: &Path, baud: u32, clock: &mut ClockSetter) -> Result<()> {
+fn read_serial(
+    hub: &PositionHub,
+    device: &Path,
+    baud: u32,
+    clock: &mut ClockSetter,
+    tracks: &TrackRecorder,
+) -> Result<()> {
     // Non-blocking so the open does not wait for a carrier the receiver never
     // raises, and no controlling terminal for the service. Reads block again
     // once the line is set up.
@@ -269,7 +284,12 @@ fn read_serial(hub: &PositionHub, device: &Path, baud: u32, clock: &mut ClockSet
         // A pipe or file standing in for a receiver, e.g. when testing in WSL.
         info!(device = %device.display(), "GPS source is not a terminal, reading it as is");
     }
+    // Each connection is its own track file.
+    tracks.new_segment();
     let mut rollover_logged = false;
+    // Lines are recorded from the first RMC on, so the file is named after
+    // GPS time and a replay of it starts with a timed sentence.
+    let mut gps_time: Option<NaiveDateTime> = None;
     let mut hdop: Option<f64> = None;
     let mut reader = BufReader::new(file);
     let mut raw = Vec::new();
@@ -286,7 +306,7 @@ fn read_serial(hub: &PositionHub, device: &Path, baud: u32, clock: &mut ClockSet
         match nmea::parse_sentence(line) {
             Some(Sentence::Gga { hdop: value }) => hdop = value,
             Some(Sentence::Rmc(rmc)) => {
-                let timestamp = gps_datetime(&rmc).map(|reported| {
+                let corrected = gps_datetime(&rmc).map(|reported| {
                     let corrected = correct_week_rollover(reported, rollover_reference());
                     if corrected != reported && !rollover_logged {
                         rollover_logged = true;
@@ -296,14 +316,22 @@ fn read_serial(hub: &PositionHub, device: &Path, baud: u32, clock: &mut ClockSet
                             "GPS receiver reports a date before a week-number rollover, correcting it"
                         );
                     }
-                    corrected.and_utc().timestamp_millis()
+                    corrected
                 });
+                let timestamp = corrected.map(|time| time.and_utc().timestamp_millis());
                 if let (true, Some(gps_ms)) = (rmc.valid, timestamp) {
                     clock.offer(gps_ms);
                 }
+                // An RMC without date and time still starts the recording.
+                gps_time = corrected
+                    .or(gps_time)
+                    .or_else(|| Some(chrono::Utc::now().naive_utc()));
                 hub.publish(fix_from_rmc(&rmc, hdop, timestamp));
             }
             None => {}
+        }
+        if gps_time.is_some() {
+            tracks.record_line(line, gps_time);
         }
     }
 }
@@ -443,6 +471,23 @@ $GPRMC,141502.000,A,5024.5968,N,00921.8742,E,22.35,184.27,010518,,,A*5C
     }
 
     #[test]
+    fn week_rollover_works_with_a_clock_that_lags_the_real_time() {
+        // Device off for two years, clock restored from the last shutdown.
+        let corrected = correct_week_rollover(at(2007, 2, 9, 14), at(2024, 9, 25, 10));
+        assert_eq!(corrected, at(2026, 9, 25, 14));
+    }
+
+    #[test]
+    fn week_rollover_leaves_an_old_recording_alone() {
+        // A 2018 tour replayed through the serial source in WSL: 8 years back
+        // is nearer to no rollover than to one.
+        assert_eq!(
+            correct_week_rollover(at(2018, 5, 1, 14), at(2026, 9, 25, 10)),
+            at(2018, 5, 1, 14)
+        );
+    }
+
+    #[test]
     fn week_rollover_leaves_a_current_date_alone() {
         let reference = at(2026, 9, 25, 10);
         assert_eq!(
@@ -473,22 +518,44 @@ $GPRMC,141502.000,A,5024.5968,N,00921.8742,E,22.35,184.27,010518,,,A*5C
         let path = std::env::temp_dir().join(format!("carnine-nmea-{}.txt", std::process::id()));
         std::fs::write(&path, LOG).unwrap();
         let hub = PositionHub::new(SourceKind::Serial);
-        read_serial(&hub, &path, 4800, &mut ClockSetter::new(false))
-            .expect("a plain file is read as is");
+        read_serial(
+            &hub,
+            &path,
+            4800,
+            &mut ClockSetter::new(false),
+            &TrackRecorder::new(None, false),
+        )
+        .expect("a plain file is read as is");
         std::fs::remove_file(&path).unwrap();
         let fix = hub.current().fix.expect("the last RMC became the fix");
         assert!(fix.valid);
         assert_eq!(fix.accuracy_meters, Some(nmea::accuracy_from_hdop(1.2)));
-        // 010518 is 2018: not a rollover case, but before EARLIEST_GPS_DATE -
-        // hence moved on by 1024 weeks like a receiver stuck in 2018 would be.
-        let timestamp = fix.timestamp_utc_ms.unwrap();
-        assert!(
-            timestamp
-                >= EARLIEST_GPS_DATE
-                    .and_time(NaiveTime::MIN)
-                    .and_utc()
-                    .timestamp_millis()
+        // 010518 is 2018: an old recording, not a rollover - kept as it is.
+        assert_eq!(fix.timestamp_utc_ms, Some(1_525_184_102_000));
+    }
+
+    #[test]
+    fn serial_source_records_the_raw_lines_from_the_first_rmc() {
+        let base = std::env::temp_dir().join(format!("carnine-record-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(&base).unwrap();
+        let input = base.join("in.nmea");
+        std::fs::write(&input, LOG).unwrap();
+        let tracks = TrackRecorder::new(Some(base.join("tracks")), true);
+        let hub = PositionHub::new(SourceKind::Serial);
+        read_serial(&hub, &input, 4800, &mut ClockSetter::new(false), &tracks).unwrap();
+
+        let file = tracks.status().file.expect("recording wrote a file");
+        let recorded = std::fs::read_to_string(&file).unwrap();
+        let first_rmc = LOG.find("$GPRMC").unwrap();
+        assert_eq!(
+            recorded,
+            LOG[first_rmc..],
+            "everything from the first RMC on"
         );
+        // The recording works as a replay file again.
+        assert_eq!(replay_steps(&recorded).len(), 2);
+        std::fs::remove_dir_all(base).unwrap();
     }
 
     #[test]
@@ -498,7 +565,8 @@ $GPRMC,141502.000,A,5024.5968,N,00921.8742,E,22.35,184.27,010518,,,A*5C
             &hub,
             Path::new("/nonexistent/gps"),
             4800,
-            &mut ClockSetter::new(false)
+            &mut ClockSetter::new(false),
+            &TrackRecorder::new(None, false)
         )
         .is_err());
         assert_eq!(hub.current().fix, None);

@@ -13,6 +13,8 @@ replay_loop = true
 # serial_baud = 4800
 # With "serial": set the clock from GPS while NTP has not synchronized it.
 set_system_clock = true
+# Recorded drives; switched with `media_grpc_client ... track-recording on`.
+track_directory = "/var/lib/carnine/tracks"
 valhalla_url = "http://127.0.0.1:8002"
 map_region = "Hessen"
 names_database = "/var/lib/carnine/maps/germany_names.db"

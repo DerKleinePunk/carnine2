@@ -77,6 +77,11 @@ service NavigationService {
   rpc GetReplayRoute (GetReplayRouteRequest) returns (Route);
   // Fixes at the source's rate (1 Hz for NMEA), heading unsmoothed.
   rpc StreamPositions (Empty) returns (stream PositionFix);
+  // Switches writing the GPS receiver's raw NMEA to a file in
+  // navigation.track_directory, live and kept across restarts. Such a file
+  // works as a replay_file. FAILED_PRECONDITION without a track directory.
+  // Answers with the status after the change.
+  rpc SetTrackRecording (SetTrackRecordingRequest) returns (NavigationStatus);
   // Reserved for after the trade fair: StreamGuidance (progress, off-route).
 }
 
@@ -407,6 +412,16 @@ message NavigationStatus {
   PositionSourceKind position_source = 2;
   FixState fix_state = 3;
   string map_region = 4;  // e.g. "hessen", for display and plausibility checks
+  // A track directory is configured, so SetTrackRecording can be used.
+  bool track_recording_available = 5;
+  // Recording is switched on. Only the serial source writes anything.
+  bool track_recording_enabled = 6;
+  // File being written right now; empty while nothing is written.
+  string track_file = 7;
+}
+
+message SetTrackRecordingRequest {
+  bool enabled = 1;
 }
 
 enum PlaceType {

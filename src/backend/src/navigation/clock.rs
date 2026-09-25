@@ -22,8 +22,13 @@ enum Decision {
     Set,
 }
 
+/// No GPS time before this is plausible (see `EARLIEST_GPS_DATE` in
+/// `position`): a recording from years ago fed in for a test must never turn
+/// the clock back.
+const EARLIEST_CLOCK_MS: i64 = 1_767_225_600_000; // 2026-01-01T00:00:00Z
+
 fn decide(enabled: bool, done: bool, synchronized: bool, gps_ms: i64, now_ms: i64) -> Decision {
-    if !enabled || done {
+    if !enabled || done || gps_ms < EARLIEST_CLOCK_MS {
         Decision::Nothing
     } else if synchronized {
         Decision::LeaveToNtp
@@ -157,6 +162,21 @@ mod tests {
         assert_eq!(
             decide(true, false, false, NOW + 1_500, NOW),
             Decision::AlreadyRight
+        );
+        // 2018 - an old recording, never a reason to turn the clock back.
+        assert_eq!(
+            decide(true, false, false, 1_525_184_102_000, NOW),
+            Decision::Nothing
+        );
+    }
+
+    #[test]
+    fn earliest_clock_is_the_first_of_january_2026() {
+        assert_eq!(
+            chrono::DateTime::from_timestamp_millis(EARLIEST_CLOCK_MS)
+                .unwrap()
+                .to_rfc3339(),
+            "2026-01-01T00:00:00+00:00"
         );
     }
 

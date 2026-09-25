@@ -142,6 +142,10 @@ pub struct NavigationConfig {
     /// synchronized it (no RTC, no network in the car). Needs CAP_SYS_TIME.
     #[serde(default)]
     pub set_system_clock: bool,
+    /// Where SetTrackRecording writes the receiver's raw NMEA, one file per
+    /// drive. Unset means recording is not available.
+    #[serde(default)]
+    pub track_directory: Option<PathBuf>,
     #[serde(default)]
     pub replay_file: Option<PathBuf>,
     /// Start the replay again when it reaches the end.
@@ -181,6 +185,7 @@ impl Default for NavigationConfig {
             serial_device: None,
             serial_baud: default_serial_baud(),
             set_system_clock: false,
+            track_directory: None,
             replay_file: None,
             replay_loop: default_replay_loop(),
             valhalla_url: default_valhalla_url(),

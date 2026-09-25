@@ -1057,6 +1057,21 @@ const NavigationStatus$json = {
       '10': 'fixState'
     },
     {'1': 'map_region', '3': 4, '4': 1, '5': 9, '10': 'mapRegion'},
+    {
+      '1': 'track_recording_available',
+      '3': 5,
+      '4': 1,
+      '5': 8,
+      '10': 'trackRecordingAvailable'
+    },
+    {
+      '1': 'track_recording_enabled',
+      '3': 6,
+      '4': 1,
+      '5': 8,
+      '10': 'trackRecordingEnabled'
+    },
+    {'1': 'track_file', '3': 7, '4': 1, '5': 9, '10': 'trackFile'},
   ],
 };
 
@@ -1065,7 +1080,23 @@ final $typed_data.Uint8List navigationStatusDescriptor = $convert.base64Decode(
     'ChBOYXZpZ2F0aW9uU3RhdHVzEisKEXJvdXRpbmdfYXZhaWxhYmxlGAEgASgIUhByb3V0aW5nQX'
     'ZhaWxhYmxlEkQKD3Bvc2l0aW9uX3NvdXJjZRgCIAEoDjIbLmNhcm5pbmUuUG9zaXRpb25Tb3Vy'
     'Y2VLaW5kUg5wb3NpdGlvblNvdXJjZRIuCglmaXhfc3RhdGUYAyABKA4yES5jYXJuaW5lLkZpeF'
-    'N0YXRlUghmaXhTdGF0ZRIdCgptYXBfcmVnaW9uGAQgASgJUgltYXBSZWdpb24=');
+    'N0YXRlUghmaXhTdGF0ZRIdCgptYXBfcmVnaW9uGAQgASgJUgltYXBSZWdpb24SOgoZdHJhY2tf'
+    'cmVjb3JkaW5nX2F2YWlsYWJsZRgFIAEoCFIXdHJhY2tSZWNvcmRpbmdBdmFpbGFibGUSNgoXdH'
+    'JhY2tfcmVjb3JkaW5nX2VuYWJsZWQYBiABKAhSFXRyYWNrUmVjb3JkaW5nRW5hYmxlZBIdCgp0'
+    'cmFja19maWxlGAcgASgJUgl0cmFja0ZpbGU=');
+
+@$core.Deprecated('Use setTrackRecordingRequestDescriptor instead')
+const SetTrackRecordingRequest$json = {
+  '1': 'SetTrackRecordingRequest',
+  '2': [
+    {'1': 'enabled', '3': 1, '4': 1, '5': 8, '10': 'enabled'},
+  ],
+};
+
+/// Descriptor for `SetTrackRecordingRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setTrackRecordingRequestDescriptor =
+    $convert.base64Decode(
+        'ChhTZXRUcmFja1JlY29yZGluZ1JlcXVlc3QSGAoHZW5hYmxlZBgBIAEoCFIHZW5hYmxlZA==');
 
 @$core.Deprecated('Use placeDescriptor instead')
 const Place$json = {

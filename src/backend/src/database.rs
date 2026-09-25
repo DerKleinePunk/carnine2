@@ -5,7 +5,7 @@ use std::process::Command;
 use anyhow::{Context, Result};
 use rusqlite::{params, Connection};
 
-const CURRENT_SCHEMA_VERSION: i64 = 4;
+const CURRENT_SCHEMA_VERSION: i64 = 5;
 
 pub struct Database {
     connection: Connection,
@@ -147,6 +147,16 @@ impl Database {
                 "ALTER TABLE resume_state ADD COLUMN repeat_mode TEXT NOT NULL DEFAULT 'REPEAT_OFF';
                 ALTER TABLE resume_state ADD COLUMN shuffle_enabled INTEGER NOT NULL DEFAULT 0;
                 INSERT INTO schema_migrations (version) VALUES (4);",
+            )?;
+        }
+        if version < 5 {
+            // Navigation switches set over gRPC that must survive a restart.
+            self.connection.execute_batch(
+                "CREATE TABLE navigation_state (
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    track_recording INTEGER NOT NULL DEFAULT 0
+                );
+                INSERT INTO schema_migrations (version) VALUES (5);",
             )?;
         }
         if version > CURRENT_SCHEMA_VERSION {
@@ -408,6 +418,27 @@ impl Database {
         })
     }
 
+    pub fn save_track_recording(&self, enabled: bool) -> Result<()> {
+        self.connection.execute(
+            "INSERT INTO navigation_state (id, track_recording) VALUES (1, ?1)
+             ON CONFLICT(id) DO UPDATE SET track_recording = excluded.track_recording",
+            [enabled],
+        )?;
+        Ok(())
+    }
+
+    /// Whether track recording was switched on; off when never set.
+    pub fn load_track_recording(&self) -> Result<bool> {
+        let mut statement = self
+            .connection
+            .prepare("SELECT track_recording FROM navigation_state WHERE id = 1")?;
+        let mut rows = statement.query([])?;
+        Ok(match rows.next()? {
+            Some(row) => row.get(0)?,
+            None => false,
+        })
+    }
+
     pub fn rescan_folder(
         &self,
         folder: &Path,
@@ -631,6 +662,19 @@ mod tests {
             CURRENT_SCHEMA_VERSION
         );
         let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn keeps_the_track_recording_switch() {
+        let database = Database::open(":memory:").expect("database should open");
+        assert!(
+            !database.load_track_recording().unwrap(),
+            "off when never set"
+        );
+        database.save_track_recording(true).unwrap();
+        assert!(database.load_track_recording().unwrap());
+        database.save_track_recording(false).unwrap();
+        assert!(!database.load_track_recording().unwrap());
     }
 
     #[test]

@@ -60,6 +60,11 @@ disk_paths = []
 # Set the system clock from the first valid fix while NTP has not synchronized
 # it (no RTC, no network in the car). Only the serial source does this.
 # set_system_clock = false
+# Directory for recorded drives (raw NMEA of the serial source, one file per
+# drive, usable as replay_file). Switched on and off over gRPC
+# (NavigationService.SetTrackRecording, CLI: track-recording on|off); the
+# switch is kept in the media database. Unset: recording unavailable.
+# track_directory = "/var/lib/carnine/tracks"
 # replay_file = "/var/lib/carnine/maps/GPS-Adnan-Tour.txt"
 # replay_loop = true
 # valhalla_url = "http://127.0.0.1:8002"

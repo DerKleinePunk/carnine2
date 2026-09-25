@@ -3307,12 +3307,20 @@ class NavigationStatus extends $pb.GeneratedMessage {
     PositionSourceKind? positionSource,
     FixState? fixState,
     $core.String? mapRegion,
+    $core.bool? trackRecordingAvailable,
+    $core.bool? trackRecordingEnabled,
+    $core.String? trackFile,
   }) {
     final result = create();
     if (routingAvailable != null) result.routingAvailable = routingAvailable;
     if (positionSource != null) result.positionSource = positionSource;
     if (fixState != null) result.fixState = fixState;
     if (mapRegion != null) result.mapRegion = mapRegion;
+    if (trackRecordingAvailable != null)
+      result.trackRecordingAvailable = trackRecordingAvailable;
+    if (trackRecordingEnabled != null)
+      result.trackRecordingEnabled = trackRecordingEnabled;
+    if (trackFile != null) result.trackFile = trackFile;
     return result;
   }
 
@@ -3335,6 +3343,9 @@ class NavigationStatus extends $pb.GeneratedMessage {
     ..aE<FixState>(3, _omitFieldNames ? '' : 'fixState',
         enumValues: FixState.values)
     ..aOS(4, _omitFieldNames ? '' : 'mapRegion')
+    ..aOB(5, _omitFieldNames ? '' : 'trackRecordingAvailable')
+    ..aOB(6, _omitFieldNames ? '' : 'trackRecordingEnabled')
+    ..aOS(7, _omitFieldNames ? '' : 'trackFile')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -3391,6 +3402,91 @@ class NavigationStatus extends $pb.GeneratedMessage {
   $core.bool hasMapRegion() => $_has(3);
   @$pb.TagNumber(4)
   void clearMapRegion() => $_clearField(4);
+
+  /// A track directory is configured, so SetTrackRecording can be used.
+  @$pb.TagNumber(5)
+  $core.bool get trackRecordingAvailable => $_getBF(4);
+  @$pb.TagNumber(5)
+  set trackRecordingAvailable($core.bool value) => $_setBool(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasTrackRecordingAvailable() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearTrackRecordingAvailable() => $_clearField(5);
+
+  /// Recording is switched on. Only the serial source writes anything.
+  @$pb.TagNumber(6)
+  $core.bool get trackRecordingEnabled => $_getBF(5);
+  @$pb.TagNumber(6)
+  set trackRecordingEnabled($core.bool value) => $_setBool(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasTrackRecordingEnabled() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearTrackRecordingEnabled() => $_clearField(6);
+
+  /// File being written right now; empty while nothing is written.
+  @$pb.TagNumber(7)
+  $core.String get trackFile => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set trackFile($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasTrackFile() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearTrackFile() => $_clearField(7);
+}
+
+class SetTrackRecordingRequest extends $pb.GeneratedMessage {
+  factory SetTrackRecordingRequest({
+    $core.bool? enabled,
+  }) {
+    final result = create();
+    if (enabled != null) result.enabled = enabled;
+    return result;
+  }
+
+  SetTrackRecordingRequest._();
+
+  factory SetTrackRecordingRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SetTrackRecordingRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SetTrackRecordingRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'enabled')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetTrackRecordingRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetTrackRecordingRequest copyWith(
+          void Function(SetTrackRecordingRequest) updates) =>
+      super.copyWith((message) => updates(message as SetTrackRecordingRequest))
+          as SetTrackRecordingRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetTrackRecordingRequest create() => SetTrackRecordingRequest._();
+  @$core.override
+  SetTrackRecordingRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SetTrackRecordingRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SetTrackRecordingRequest>(create);
+  static SetTrackRecordingRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get enabled => $_getBF(0);
+  @$pb.TagNumber(1)
+  set enabled($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasEnabled() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEnabled() => $_clearField(1);
 }
 
 class Place extends $pb.GeneratedMessage {

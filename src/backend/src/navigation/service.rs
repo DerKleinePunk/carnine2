@@ -14,12 +14,13 @@ use tracing::{info, warn};
 
 use super::places::{self, PlaceRecord};
 use super::position::{Fix, PositionHub, PositionState, SourceKind};
+use super::track::TrackRecorder;
 use super::valhalla::{RouteData, RoutingError, Valhalla};
 use crate::carnine::navigation_service_server::NavigationService;
 use crate::carnine::{
     ComputeRouteRequest, Empty, FixState, GetReplayRouteRequest, LatLon, Maneuver,
     NavigationStatus, Place, PlaceType, PositionFix, PositionSourceKind, Route,
-    SearchPlacesRequest, SearchPlacesResponse, ServiceVersion,
+    SearchPlacesRequest, SearchPlacesResponse, ServiceVersion, SetTrackRecordingRequest,
 };
 
 /// How long the router probe may take before it counts as unavailable. The
@@ -43,6 +44,9 @@ pub struct NavigationServiceImpl {
     /// changes; one route per instruction language is kept.
     replay_routes: Arc<tokio::sync::Mutex<HashMap<String, Route>>>,
     next_route_id: Arc<AtomicU64>,
+    tracks: TrackRecorder,
+    /// Media database that keeps the recording switch; `None` in tests.
+    database: Option<PathBuf>,
 }
 
 impl NavigationServiceImpl {
@@ -56,6 +60,31 @@ impl NavigationServiceImpl {
             replay_points: None,
             replay_routes: Arc::default(),
             next_route_id: Arc::new(AtomicU64::new(1)),
+            tracks: TrackRecorder::new(None, false),
+            database: None,
+        }
+    }
+
+    pub fn with_tracks(mut self, tracks: TrackRecorder, database: PathBuf) -> Self {
+        self.tracks = tracks;
+        self.database = Some(database);
+        self
+    }
+
+    async fn status(&self) -> NavigationStatus {
+        let state = self.positions.current();
+        let tracks = self.tracks.status();
+        NavigationStatus {
+            routing_available: self.router_reachable().await,
+            position_source: source_kind(state.source) as i32,
+            fix_state: fix_state(state.fix.as_ref()) as i32,
+            map_region: self.map_region.clone(),
+            track_recording_available: tracks.available,
+            track_recording_enabled: tracks.enabled,
+            track_file: tracks
+                .file
+                .map(|path| path.display().to_string())
+                .unwrap_or_default(),
         }
     }
 
@@ -250,13 +279,27 @@ impl NavigationService for NavigationServiceImpl {
         &self,
         _request: Request<Empty>,
     ) -> Result<Response<NavigationStatus>, Status> {
-        let state = self.positions.current();
-        Ok(Response::new(NavigationStatus {
-            routing_available: self.router_reachable().await,
-            position_source: source_kind(state.source) as i32,
-            fix_state: fix_state(state.fix.as_ref()) as i32,
-            map_region: self.map_region.clone(),
-        }))
+        Ok(Response::new(self.status().await))
+    }
+
+    async fn set_track_recording(
+        &self,
+        request: Request<SetTrackRecordingRequest>,
+    ) -> Result<Response<NavigationStatus>, Status> {
+        let enabled = request.into_inner().enabled;
+        self.tracks
+            .set_enabled(enabled)
+            .map_err(|err| Status::failed_precondition(err.to_string()))?;
+        info!(enabled, "track recording switched");
+        if let Some(database) = &self.database {
+            // Live already; a failed save only means the next start forgets it.
+            if let Err(err) = crate::database::Database::open(database)
+                .and_then(|database| database.save_track_recording(enabled))
+            {
+                warn!(error = %format!("{err:#}"), "track recording switch not saved");
+            }
+        }
+        Ok(Response::new(self.status().await))
     }
 
     async fn search_places(
@@ -569,6 +612,45 @@ mod tests {
         assert_eq!(wire.r#type, PlaceType::Place as i32);
         assert_eq!(wire.detail, None, "an empty detail is left out");
         assert_eq!(wire.zoom, 12);
+    }
+
+    #[tokio::test]
+    async fn track_recording_needs_a_directory_and_is_kept_in_the_database() {
+        let service = NavigationServiceImpl::new(
+            PositionHub::new(SourceKind::Serial),
+            "http://127.0.0.1:9".to_string(),
+            String::new(),
+        );
+        let status = service
+            .set_track_recording(Request::new(SetTrackRecordingRequest { enabled: true }))
+            .await
+            .expect_err("no track directory configured");
+        assert_eq!(status.code(), tonic::Code::FailedPrecondition);
+
+        let base = std::env::temp_dir().join(format!("carnine-track-rpc-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(&base).unwrap();
+        let database = base.join("media.sqlite3");
+        let service = service.with_tracks(
+            TrackRecorder::new(Some(base.join("tracks")), false),
+            database.clone(),
+        );
+        let status = service
+            .set_track_recording(Request::new(SetTrackRecordingRequest { enabled: true }))
+            .await
+            .expect("recording switches on")
+            .into_inner();
+        assert!(status.track_recording_available);
+        assert!(status.track_recording_enabled);
+        assert_eq!(
+            status.track_file, "",
+            "nothing written before the first line"
+        );
+        assert!(crate::database::Database::open(&database)
+            .unwrap()
+            .load_track_recording()
+            .unwrap());
+        std::fs::remove_dir_all(base).unwrap();
     }
 
     #[tokio::test]
