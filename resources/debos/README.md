@@ -74,6 +74,14 @@ verdreifachen. Nach dem ersten Start bringt sie `deploy_maps.sh` auf das Gerät:
 Das Skript liest aus `~/develop/carnine-maps` (anders mit `CARNINE_MAPS_DIR`),
 prüft dort `SHA256SUMS` und startet danach Valhalla, Backend und Frontend neu.
 
+Gebaut werden die Daten nicht in carnine2, sondern mit den Skripten im
+Kartenprojekt `DerKleinePunk/flutter_local_map` (`scripts/tilemaker.sh`,
+`scripts/extract_names_to_sqlite.py`, `scripts/valhalla/`). Welche Datei
+woher kommt und wie neue Daten auf das Gerät gelangen, steht in
+`docs/07-deployment.md`, Abschnitt „Where the map data comes from“. Die
+fertigen Dateien liegen in keinem Repository, sondern nur in
+`~/develop/carnine-maps` und auf den Geräten.
+
 Bis die Daten da sind, gilt:
 
 - `valhalla.service` bleibt inaktiv, weil seine Bedingung

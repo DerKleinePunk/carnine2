@@ -99,6 +99,48 @@ map_region = "hessen"
 names_database = "/var/lib/carnine/maps/germany_names.db"
 ```
 
+#### Where the map data comes from
+
+carnine2 does not build any map data. Tiles, names database, routing tiles
+and the demo tour are made with the scripts in the map project
+[DerKleinePunk/flutter_local_map](https://github.com/DerKleinePunk/flutter_local_map),
+directory `scripts/`. Use the tag that `src/frontend/pubspec.yaml` pins for
+`local_map` (currently `local_map-v0.3.0`), so the data matches the library
+that draws it. The map project's `README.md` and
+`docs/valhalla-offline-setup.md` describe the tools and prerequisites
+(Docker, Python packages).
+
+**The built files are in no repository.** Neither carnine2 nor the map
+project checks them in (only the small demo tour is in the map project), and
+at about 7.5 GB they do not belong there. The working copy is
+`~/develop/carnine-maps` on the development machine, besides the devices
+themselves; keep a backup of that folder elsewhere, since building it again
+takes hours.
+
+| File in `~/develop/carnine-maps` | Made by (map project) | Notes |
+|---|---|---|
+| `hessen.mbtiles` | `scripts/tilemaker.sh hessen` | tilemaker in Docker, OpenMapTiles schema, `scripts/tilemaker/config-openmaptiles-z17.json`; source `germany-latest.osm.pbf` from Geofabrik, cut to the Hessen bounding box. Installed as `map.mbtiles`. Names only as `name:latin`, see §8.11 in [08 – Cross-cutting Concepts](08-crosscutting.md). |
+| `germany_names.db` | `scripts/extract_names_to_sqlite.py`, run by `tilemaker.sh` as `<region>_names.db` | FTS5 index for `SearchPlaces`. As the name says, the file in use comes from the full-Germany run (`./tilemaker.sh` without a region), so search covers more than the tiles show. |
+| `valhalla_tiles.tar` | `scripts/valhalla/build_valhalla_from_pbf.sh`, called at the end of `tilemaker.sh` | Routing tiles for the local Valhalla. The current file (5 GB, built 2026-09-24) covers all of Germany: read from its level-2 tile names on 2026-09-25, 895 of 1068 tiles lie in the German bounding box, the rest along ferry lines to Scandinavia and the Baltic, as in a Geofabrik Germany extract. So routes work beyond the Hessen tiles, into areas the map does not draw. |
+| `GPS-Adnan-Tour.txt` | `scripts/GpsTest/` | Recorded NMEA tour replayed on the stand. New tours: record a drive, see [Recording drives](#recording-drives). |
+
+The Valhalla program itself is not part of the data: it is built natively on
+a Pi (`docs/valhalla-offline-setup.md` in the map project, "Native
+Pi-Binaries") and packaged as `carnine-valhalla.deb` with
+`resources/valhalla/package-deb.sh`.
+
+After building new data:
+
+1. Copy the files into `~/develop/carnine-maps` under the names above;
+   `deploy_maps.sh` expects exactly these (the tiles can be another file with
+   `CARNINE_MAP_TILES`).
+2. Renew the checksums there:
+   `sha256sum hessen.mbtiles germany_names.db valhalla_tiles.tar GPS-Adnan-Tour.txt > SHA256SUMS`.
+3. `./deploy_maps.sh [user@host]`.
+4. For another region, also set `map_region` in the navigation drop-in, and
+   check the map style (`src/frontend/assets/maps/`) against the new tiles,
+   see §8.11.
+
 #### GPS receiver
 
 The backend takes its position from any receiver that speaks NMEA 0183 (it
