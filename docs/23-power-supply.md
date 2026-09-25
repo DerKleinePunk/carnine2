@@ -4,7 +4,8 @@
 come from the predecessor project
 [DerKleinePunk/carnine](https://github.com/DerKleinePunk/carnine); the
 firmware is now in [firmware/powersupply/](../firmware/powersupply/README.md)
-and builds here, but nothing in carnine2 talks to the supply so far.
+and builds here. The test board runs it and talks to the test Pi over
+uart5, but nothing in carnine2 talks to the supply so far.
 
 ## Why
 
@@ -35,6 +36,13 @@ not work out and are not used.
 - **Relays in the firmware:** relay 0 = display and HDMI splitter, relay 1 =
   Pi power, relay 2 = amplifier. That these are Rel1–Rel3 in this order is
   assumed from the numbering, not checked.
+- **USB socket and jumper (top right):** the board has its own USB-serial
+  converter. A jumper connects the microcontroller's serial line either to
+  the USB socket (jumper towards the socket: programming) or to the pin
+  header (other side: running on the Pi). In the wrong position the Pi
+  receives the supply's output but its commands never arrive.
+- **Pi power:** later the Pi is fed from the supply through its USB-C
+  socket at 5.1 V, so it does not drop into undervoltage under full load.
 
 The serial lines run at **3.3 V**, so they connect to the Pi directly,
 without a level shifter.
@@ -55,9 +63,9 @@ UART; uart4 is not used because GPIO 8/9 belong to SPI0, which a CAN adapter
 | GND | GND | e.g. 30 or 34 |
 
 RXD and TXD on the supply are taken as its own receive and transmit line,
-so they cross over to the Pi's TX and RX. If `/dev/powersupply` shows no
-telegrams (they come every second), swap the two wires with the Pi switched
-off. The old project wired RXD/TXD to the default UART (GPIO 14/15); with
+so they cross over to the Pi's TX and RX (checked on the device). If
+`/dev/powersupply` shows nothing, swap the two wires with the Pi switched
+off; if it shows output but `v` gets no answer, check the jumper. The old project wired RXD/TXD to the default UART (GPIO 14/15); with
 uart5 the cable goes to pins 32/33 instead. The full header is on
 [pinout.xyz](https://pinout.xyz). The backend package's udev rule
 (`61-carnine-powersupply.rules`) names the line `/dev/powersupply`, whatever
@@ -78,9 +86,12 @@ unchanged from the old project. ATmega88P at 8 MHz. `./build.sh` builds it on
 Linux (with a container when `avr-gcc` is not installed) into
 `build/RaspberryPower.bin`.
 
-**Flashing** is done with a Windows program through the bootloader on the
-serial line: build here, copy the `.bin` to Windows, write it from there. The
-command `U` resets the chip into the bootloader. Which bootloader and
+**Flashing** is done with a Windows program through the bootloader, over the
+board's own USB socket with the jumper towards it: build here, copy the
+`.bin` to Windows, write it from there, set the jumper back. The command `U`
+resets the chip into the bootloader. Done on 2026-09-25 on the test board:
+it ran an older firmware before (a text line every second, no telegrams, no
+reaction to commands); with V2.2.12 the telegrams come and `v` answers. Which bootloader and
 protocol that is, is being asked; if it is a standard one, flashing and later
 updates could run from the Pi itself. Putting on or updating the bootloader
 itself is separate from the firmware.
