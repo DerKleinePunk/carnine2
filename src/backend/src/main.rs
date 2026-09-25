@@ -46,7 +46,7 @@ use carnine::{
     GetCoverArtRequest, GetCoverArtResponse, GetPlaylistRequest, ImportMusicVolumeRequest,
     LibraryEvent, LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest,
     PlayQueueEntryRequest, PlayRequest, PlayerEvent, PlayerState, Playlist, PlaylistEntry,
-    RescanMediaRequest, SearchMediaRequest, SearchMediaResponse, ServiceVersion,
+    RepeatMode, RescanMediaRequest, SearchMediaRequest, SearchMediaResponse, ServiceVersion,
     SetRepeatModeRequest, SetShuffleModeRequest, SetVolumeRequest, SystemMetrics, UiState,
     UpdateConfigurationRequest, VolumeResponse,
 };
@@ -281,7 +281,18 @@ impl MediaServiceImpl {
             playlist_entry_id: self.player.playlist_entry_id(),
             position_ms: self.player.position_ms(),
             resume_mode: self.resume_mode.clone(),
+            repeat_mode: self.player.repeat_mode().as_str_name().to_string(),
+            shuffle_enabled: self.player.shuffle_enabled(),
         })
+    }
+
+    /// Saved at once, not only on stop and SIGTERM: in the car the power goes
+    /// without a shutdown. The setting itself has taken effect either way, so
+    /// a failed save is logged rather than failing the request.
+    fn save_resume_state_after_setting(&self, setting: &str) {
+        if let Err(error) = self.save_resume_state() {
+            warn!(%error, "failed to save resume state after changing {setting}");
+        }
     }
 
     fn restore_resume_state(&self) -> anyhow::Result<()> {
@@ -289,6 +300,11 @@ impl MediaServiceImpl {
         let Some(state) = database.load_resume_state()? else {
             return Ok(());
         };
+        // Before the playlist loads, so that it builds its shuffle order.
+        self.player.set_repeat_mode(
+            RepeatMode::from_str_name(&state.repeat_mode).unwrap_or(RepeatMode::RepeatOff),
+        );
+        self.player.set_shuffle_mode(state.shuffle_enabled);
         let Some(playlist_id) = state.playlist_id else {
             return Ok(());
         };
@@ -914,6 +930,7 @@ impl MediaService for MediaServiceImpl {
     ) -> Result<Response<CommandResponse>, Status> {
         let mode = request.into_inner().mode();
         self.player.set_repeat_mode(mode);
+        self.save_resume_state_after_setting("repeat mode");
         Ok(Response::new(CommandResponse {
             success: true,
             message: format!("repeat mode set to {}", mode.as_str_name()),
@@ -926,6 +943,7 @@ impl MediaService for MediaServiceImpl {
     ) -> Result<Response<CommandResponse>, Status> {
         let enabled = request.into_inner().enabled;
         self.player.set_shuffle_mode(enabled);
+        self.save_resume_state_after_setting("shuffle mode");
         Ok(Response::new(CommandResponse {
             success: true,
             message: format!("shuffle mode set to {enabled}"),
@@ -2233,6 +2251,8 @@ mod tests {
                 "restore_paused",
             )
             .expect("resume context should load");
+        service.player.set_repeat_mode(RepeatMode::RepeatQueue);
+        service.player.set_shuffle_mode(true);
         service
             .save_resume_state()
             .expect("resume context should save");
@@ -2256,6 +2276,50 @@ mod tests {
         );
         assert_eq!(restored_service.player.position_ms(), 12_345);
         assert_eq!(restored_service.player.state(), "paused");
+        assert_eq!(
+            restored_service.player.repeat_mode(),
+            RepeatMode::RepeatQueue
+        );
+        assert!(restored_service.player.shuffle_enabled());
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    #[tokio::test]
+    async fn changing_repeat_or_shuffle_is_saved_without_a_stop() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-repeat-saved-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&database_path);
+        let service_at = |path: &PathBuf| {
+            MediaServiceImpl::with_player(
+                MediaPlayer::with_engine(Box::new(FakeAudioEngine)),
+                path.clone(),
+                Vec::new(),
+                Vec::new(),
+                "restore_paused".to_string(),
+                PathBuf::from("/tmp/carnine-covers"),
+            )
+        };
+        let service = service_at(&database_path);
+        service
+            .set_repeat_mode(Request::new(SetRepeatModeRequest {
+                mode: RepeatMode::RepeatQueue as i32,
+            }))
+            .await
+            .expect("repeat mode should be set");
+        service
+            .set_shuffle_mode(Request::new(SetShuffleModeRequest { enabled: true }))
+            .await
+            .expect("shuffle mode should be set");
+
+        // No stop and no SIGTERM, as when the car's power goes.
+        let restored = service_at(&database_path);
+        restored
+            .restore_resume_state()
+            .expect("resume state should restore");
+        assert_eq!(restored.player.repeat_mode(), RepeatMode::RepeatQueue);
+        assert!(restored.player.shuffle_enabled());
         let _ = std::fs::remove_file(database_path);
     }
 

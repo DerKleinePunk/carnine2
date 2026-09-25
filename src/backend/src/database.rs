@@ -5,7 +5,7 @@ use std::process::Command;
 use anyhow::{Context, Result};
 use rusqlite::{params, Connection};
 
-const CURRENT_SCHEMA_VERSION: i64 = 3;
+const CURRENT_SCHEMA_VERSION: i64 = 4;
 
 pub struct Database {
     connection: Connection,
@@ -37,6 +37,9 @@ pub struct ResumeState {
     pub playlist_entry_id: Option<i64>,
     pub position_ms: i64,
     pub resume_mode: String,
+    /// Proto name of the repeat mode, e.g. `REPEAT_QUEUE`.
+    pub repeat_mode: String,
+    pub shuffle_enabled: bool,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -136,6 +139,14 @@ impl Database {
                     last_page TEXT NOT NULL DEFAULT ''
                 );
                 INSERT INTO schema_migrations (version) VALUES (3);",
+            )?;
+        }
+        if version < 4 {
+            // Repeat and shuffle were lost on every backend restart (#29).
+            self.connection.execute_batch(
+                "ALTER TABLE resume_state ADD COLUMN repeat_mode TEXT NOT NULL DEFAULT 'REPEAT_OFF';
+                ALTER TABLE resume_state ADD COLUMN shuffle_enabled INTEGER NOT NULL DEFAULT 0;
+                INSERT INTO schema_migrations (version) VALUES (4);",
             )?;
         }
         if version > CURRENT_SCHEMA_VERSION {
@@ -334,18 +345,23 @@ impl Database {
     pub fn save_resume_state(&self, state: &ResumeState) -> Result<()> {
         self.connection.execute(
             "INSERT INTO resume_state
-                (id, playlist_id, playlist_entry_id, position_ms, resume_mode)
-             VALUES (1, ?1, ?2, ?3, ?4)
+                (id, playlist_id, playlist_entry_id, position_ms, resume_mode,
+                 repeat_mode, shuffle_enabled)
+             VALUES (1, ?1, ?2, ?3, ?4, ?5, ?6)
              ON CONFLICT(id) DO UPDATE SET
                 playlist_id = excluded.playlist_id,
                 playlist_entry_id = excluded.playlist_entry_id,
                 position_ms = excluded.position_ms,
-                resume_mode = excluded.resume_mode",
+                resume_mode = excluded.resume_mode,
+                repeat_mode = excluded.repeat_mode,
+                shuffle_enabled = excluded.shuffle_enabled",
             params![
                 state.playlist_id,
                 state.playlist_entry_id,
                 state.position_ms,
-                state.resume_mode
+                state.resume_mode,
+                state.repeat_mode,
+                state.shuffle_enabled
             ],
         )?;
         Ok(())
@@ -353,7 +369,8 @@ impl Database {
 
     pub fn load_resume_state(&self) -> Result<Option<ResumeState>> {
         let mut statement = self.connection.prepare(
-            "SELECT playlist_id, playlist_entry_id, position_ms, resume_mode
+            "SELECT playlist_id, playlist_entry_id, position_ms, resume_mode,
+                    repeat_mode, shuffle_enabled
              FROM resume_state WHERE id = 1",
         )?;
         let mut rows = statement.query([])?;
@@ -365,6 +382,8 @@ impl Database {
             playlist_entry_id: row.get(1)?,
             position_ms: row.get(2)?,
             resume_mode: row.get(3)?,
+            repeat_mode: row.get(4)?,
+            shuffle_enabled: row.get(5)?,
         }))
     }
 
@@ -784,6 +803,8 @@ mod tests {
             playlist_entry_id: Some(playlist_entry_id),
             position_ms: 12_345,
             resume_mode: "restore_paused".to_string(),
+            repeat_mode: "REPEAT_QUEUE".to_string(),
+            shuffle_enabled: true,
         };
         database
             .save_resume_state(&state)

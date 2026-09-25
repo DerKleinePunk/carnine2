@@ -231,14 +231,14 @@ impl MediaPlayer {
         }
     }
 
-    fn repeat_mode(&self) -> RepeatMode {
+    pub fn repeat_mode(&self) -> RepeatMode {
         *self
             .repeat_mode
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
-    fn shuffle_enabled(&self) -> bool {
+    pub fn shuffle_enabled(&self) -> bool {
         *self
             .shuffle_enabled
             .lock()
