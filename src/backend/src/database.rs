@@ -231,6 +231,20 @@ impl Database {
         }))
     }
 
+    /// The scanned duration of the file at `path`, if the library knows it.
+    /// A path is unique per source only; any known duration will do.
+    pub fn duration_by_path(&self, path: &str) -> Result<Option<i64>> {
+        let mut statement = self.connection.prepare(
+            "SELECT duration_ms FROM media
+             WHERE path = ?1 AND duration_ms > 0 ORDER BY id LIMIT 1",
+        )?;
+        let mut rows = statement.query([path])?;
+        Ok(match rows.next()? {
+            Some(row) => Some(row.get(0)?),
+            None => None,
+        })
+    }
+
     pub fn playlist_cover_path(&self, playlist_id: i64) -> Result<Option<String>> {
         let mut statement = self.connection.prepare(
             "SELECT media.cover_path
@@ -634,6 +648,19 @@ mod tests {
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].title, "Road Home (Edit)");
         assert_eq!(results[0].id, first_id);
+
+        assert_eq!(
+            database
+                .duration_by_path("/music/song.mp3")
+                .expect("duration lookup should work"),
+            Some(175_000)
+        );
+        assert_eq!(
+            database
+                .duration_by_path("/music/unknown.mp3")
+                .expect("duration lookup should work"),
+            None
+        );
     }
 
     #[test]

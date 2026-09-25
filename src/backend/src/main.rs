@@ -216,6 +216,15 @@ impl MediaServiceImpl {
         cover_cache_dir: PathBuf,
     ) -> Self {
         let (library_events, _) = broadcast::channel(64);
+        let lookup_database = database_path.clone();
+        player.set_duration_lookup(Box::new(move |path| {
+            database::Database::open(&lookup_database)
+                .and_then(|database| database.duration_by_path(path))
+                .unwrap_or_else(|error| {
+                    warn!(%error, path, "track duration lookup failed");
+                    None
+                })
+        }));
         Self {
             player: Arc::new(player),
             database_path,
@@ -255,18 +264,14 @@ impl MediaServiceImpl {
         resume_mode: String,
         cover_cache_dir: PathBuf,
     ) -> Self {
-        let (library_events, _) = broadcast::channel(64);
-        Self {
-            player: Arc::new(player),
+        Self::from_player(
+            player,
             database_path,
             media_folders,
             supported_formats,
             resume_mode,
             cover_cache_dir,
-            library_events,
-            next_scan_id: Arc::new(AtomicU64::new(1)),
-            pending_music_volume: Arc::new(Mutex::new(None)),
-        }
+        )
     }
 
     fn save_resume_state(&self) -> anyhow::Result<()> {

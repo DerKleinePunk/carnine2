@@ -38,7 +38,14 @@ pub struct MediaPlayer {
     shuffle_position: Mutex<usize>,
     events: broadcast::Sender<PlayerEvent>,
     audio_events: broadcast::Sender<AudioEvent>,
+    duration_lookup: Mutex<Option<DurationLookup>>,
+    /// Duration of the last looked-up path, so position events - one a
+    /// second - do not each open the library.
+    duration_cache: Mutex<Option<(String, i64)>>,
 }
+
+/// Finds a track's duration by its path; the player knows no database.
+pub type DurationLookup = Box<dyn Fn(&str) -> Option<i64> + Send + Sync>;
 
 impl MediaPlayer {
     fn with_state(engine: Box<dyn AudioEngine>) -> Self {
@@ -61,7 +68,47 @@ impl MediaPlayer {
             shuffle_position: Mutex::new(0),
             events,
             audio_events,
+            duration_lookup: Mutex::new(None),
+            duration_cache: Mutex::new(None),
         }
+    }
+
+    /// Where the player state's `duration_ms` comes from. Without a lookup it
+    /// stays 0.
+    pub fn set_duration_lookup(&self, lookup: DurationLookup) {
+        *self
+            .duration_lookup
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(lookup);
+        *self
+            .duration_cache
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
+    }
+
+    fn duration_ms(&self) -> i64 {
+        let path = self.media_path();
+        if path.is_empty() {
+            return 0;
+        }
+        let mut cache = self
+            .duration_cache
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some((cached_path, duration)) = cache.as_ref() {
+            if *cached_path == path {
+                return *duration;
+            }
+        }
+        let duration = self
+            .duration_lookup
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .as_ref()
+            .and_then(|lookup| lookup(&path))
+            .unwrap_or(0);
+        *cache = Some((path, duration));
+        duration
     }
 
     /// Builds the sole production player, backed by `cpal`. Fallible because
@@ -177,7 +224,7 @@ impl MediaPlayer {
             status: self.state().to_string(),
             media_path: self.media_path(),
             position_ms: self.position_ms(),
-            duration_ms: 0,
+            duration_ms: self.duration_ms(),
             playlist_id: self.playlist_id().unwrap_or_default() as u64,
             repeat_mode: self.repeat_mode() as i32,
             shuffle_enabled: self.shuffle_enabled(),
@@ -342,7 +389,14 @@ impl MediaPlayer {
         Ok("playlist loaded".to_string())
     }
 
+    /// Without a path: resume what is loaded, or start the current track.
+    /// With a path: play that file from the start as a queue of one, also
+    /// over a paused or playing track - a path that only resumed the old
+    /// track would silently play something other than what was asked for.
     fn play(&self, input_path: &str) -> Result<String> {
+        if !input_path.is_empty() {
+            return self.play_path(input_path);
+        }
         let playback = self
             .playback
             .lock()
@@ -364,21 +418,30 @@ impl MediaPlayer {
             self.publish(PlayerEventType::PlayerResumed, "playback resumed");
             return Ok("playback resumed".to_string());
         }
-        if input_path.is_empty() && !self.media_path().is_empty() {
-            drop(playback);
-            return self.start_current_path();
-        }
-        if input_path.is_empty() {
+        drop(playback);
+        if self.media_path().is_empty() {
             bail!("play requires an audio file path in parameters");
         }
+        self.start_current_path()
+    }
+
+    fn play_path(&self, input_path: &str) -> Result<String> {
+        // Checked before anything stops, so a wrong path leaves the current
+        // track alone.
         if !Path::new(input_path).is_file() {
             bail!("audio file does not exist: {input_path}");
         }
-        drop(playback);
+        self.stop_active_playback()?;
         *self
             .queue
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = vec![input_path.to_string()];
+        // The loose file is no playlist entry; a stale id here would report
+        // the previous playlist's first entry as playing.
+        self.queue_entry_ids
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clear();
         *self
             .queue_index
             .lock()
@@ -391,6 +454,9 @@ impl MediaPlayer {
             .position_ms
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = 0;
+        if self.shuffle_enabled() {
+            self.reshuffle_from_current();
+        }
         self.start_path(input_path)
     }
 
@@ -851,6 +917,106 @@ mod tests {
         player.stop().expect("playback should stop");
 
         assert_eq!(player.position_ms(), 12_345);
+    }
+
+    #[test]
+    fn play_with_a_path_replaces_a_paused_playlist_track() {
+        let folder = std::env::temp_dir().join(format!("carnine-play-path-{}", std::process::id()));
+        std::fs::create_dir_all(&folder).expect("test folder should be created");
+        let loose = folder.join("loose.flac");
+        std::fs::write(&loose, b"test").expect("test file should be written");
+        let loose = loose.to_string_lossy().to_string();
+
+        let player = player();
+        player
+            .play_playlist(
+                7,
+                vec![
+                    (11, "/music/first.mp3".to_string()),
+                    (12, "/music/second.mp3".to_string()),
+                ],
+                Some(11),
+                5_000,
+                "auto-play",
+            )
+            .expect("playlist should start");
+        player.execute("pause", "").expect("playback should pause");
+
+        player
+            .execute("play", &loose)
+            .expect("a path should start that file");
+
+        assert_eq!(player.media_path(), loose);
+        assert_eq!(player.state(), "playing");
+        assert_eq!(player.position_ms() / 1000, 0);
+        assert_eq!(player.playlist_id(), None);
+        assert_eq!(player.playlist_entry_id(), None);
+        assert!(
+            player.execute("next", "").is_err(),
+            "a queue of one has no next"
+        );
+
+        // Without a path, play resumes what is loaded.
+        player.execute("pause", "").expect("playback should pause");
+        player.execute("play", "").expect("resume should work");
+        assert_eq!(player.media_path(), loose);
+        assert_eq!(player.state(), "playing");
+
+        // A missing file leaves the current track playing.
+        assert!(player.execute("play", "/does/not/exist.mp3").is_err());
+        assert_eq!(player.media_path(), loose);
+        assert_eq!(player.state(), "playing");
+        let _ = std::fs::remove_dir_all(folder);
+    }
+
+    #[test]
+    fn player_state_reports_the_duration_once_looked_up_per_track() {
+        use std::sync::atomic::AtomicUsize;
+
+        let player = player();
+        assert_eq!(player.player_state().duration_ms, 0, "nothing loaded yet");
+
+        let lookups = Arc::new(AtomicUsize::new(0));
+        let counter = Arc::clone(&lookups);
+        player.set_duration_lookup(Box::new(move |path| {
+            counter.fetch_add(1, Ordering::Relaxed);
+            match path {
+                "/music/first.mp3" => Some(175_000),
+                _ => None,
+            }
+        }));
+        player
+            .play_playlist(
+                7,
+                vec![
+                    (11, "/music/first.mp3".to_string()),
+                    (12, "/music/second.mp3".to_string()),
+                ],
+                Some(11),
+                0,
+                "restore_paused",
+            )
+            .expect("playlist should load");
+
+        assert_eq!(player.player_state().duration_ms, 175_000);
+        assert_eq!(
+            player.position_event().state.expect("state").duration_ms,
+            175_000
+        );
+        assert_eq!(lookups.load(Ordering::Relaxed), 1, "one lookup per track");
+
+        player
+            .execute("play", "")
+            .expect("loaded track should start");
+        player
+            .execute("queue-entry", "1")
+            .expect("second track should start");
+        assert_eq!(
+            player.player_state().duration_ms,
+            0,
+            "unknown to the library"
+        );
+        assert_eq!(lookups.load(Ordering::Relaxed), 2);
     }
 
     #[test]
