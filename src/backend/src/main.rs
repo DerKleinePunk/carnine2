@@ -1133,8 +1133,13 @@ Usage:
   carnine-backend --version  Print the release version and build id
   carnine-backend --help     Print this text
 
+Configuration: /etc/carnine/config.toml, then every *.toml in
+/etc/carnine/config.d in name order laid over it (a later file wins).
+Drop-ins survive a deployment; put device-specific sections there.
+
 Environment overrides (each one wins over the configuration file):
-  CARNINE_CONFIG          Path to the configuration file
+  CARNINE_CONFIG          Path to the configuration file (drop-ins then come
+                          from the .d directory beside it)
   CARNINE_LOG_DIRECTORY   Directory for backend.log
   CARNINE_DATABASE_PATH   Path to the SQLite media database
   CARNINE_SOCKET_PATH     Unix domain socket to listen on
@@ -1224,6 +1229,11 @@ async fn main() -> Result<()> {
         "carnine backend bootstrap started; config={}",
         configuration_path.display()
     );
+    // Listed again rather than returned by load(): the files are few, and a
+    // drop-in that silently did not apply is exactly what this line is for.
+    for drop_in in config::Config::drop_in_files(&configuration_path)? {
+        info!("configuration drop-in applied: {}", drop_in.display());
+    }
 
     if let Some(parent) = configuration.media.database_path.parent() {
         std::fs::create_dir_all(parent).with_context(|| {

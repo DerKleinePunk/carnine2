@@ -65,6 +65,39 @@ The runtime configuration `/etc/carnine/config.toml` is owned by
 the backend persists configuration updates atomically by replacing a temporary
 file with `rename`.
 
+`deploy_pi.sh` overwrites `/etc/carnine/config.toml` with
+`resources/config/carnine.toml` on every deployment. Settings that belong to
+one device therefore go into drop-ins in `/etc/carnine/config.d/*.toml`, which
+no package owns and no deployment touches:
+
+- The backend reads `config.toml` first. It then lays every `*.toml` from
+  `config.d` over it in name order, so a later file wins.
+- Tables merge key by key. A drop-in can set one value, such as
+  `[logging] level = "debug"`, or add a whole section.
+- Files with any other extension are ignored, for example `*.dpkg-old` or
+  editor backups.
+- At startup the log lists each applied file as
+  `configuration drop-in applied: ...`.
+- With `CARNINE_CONFIG`, drop-ins come from the `.d` directory beside that
+  file; `run_wsl.sh`, for example, uses `build/wsl-dev/config.d`.
+
+The map setup of a device is the typical case:
+
+```toml
+# /etc/carnine/config.d/10-navigation.toml
+[navigation]
+position_source = "replay"
+replay_file = "/var/lib/carnine/maps/GPS-Adnan-Tour.txt"
+replay_loop = true
+valhalla_url = "http://127.0.0.1:8002"
+map_region = "hessen"
+names_database = "/var/lib/carnine/maps/germany_names.db"
+```
+
+A settings change through `ConfigService` rewrites `config.toml` with the
+merged values. The drop-ins are applied after it on the next start and still
+win.
+
 #### Operating System
 - **OS**: Raspberry Pi OS (Debian‑based, 64‑bit preferred)
   • Kernel 5.10+ with `CONFIG_CAN=y`

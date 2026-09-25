@@ -46,7 +46,9 @@ disk_metrics_interval_seconds = 300
 disk_paths = []
 
 # Navigation (ADR-021). Without this section there is no position source and
-# routing points at the default Valhalla address below.
+# routing points at the default Valhalla address below. On a device, put the
+# real values in /etc/carnine/config.d/10-navigation.toml: deploy_pi.sh
+# overwrites this file, the drop-ins survive (docs/07-deployment.md).
 # [navigation]
 # "none", "serial" (GPS mouse, NMEA on serial_device) or "replay" (recorded
 # NMEA tour from replay_file, looped by default - for the trade fair stand).

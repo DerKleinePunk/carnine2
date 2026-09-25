@@ -271,9 +271,12 @@ impl Config {
                 system_path.is_file().then(|| system_path.to_path_buf())
             })
             .unwrap_or_else(|| PathBuf::from("../../resources/config/carnine.toml"));
-        let content = fs::read_to_string(&path)
-            .with_context(|| format!("failed to read configuration {}", path.display()))?;
-        let mut config: Config = toml::from_str(&content)
+        let mut table = read_table(&path)?;
+        for drop_in in Self::drop_in_files(&path)? {
+            merge_tables(&mut table, read_table(&drop_in)?);
+        }
+        let mut config: Config = toml::Value::Table(table)
+            .try_into()
             .with_context(|| format!("failed to parse configuration {}", path.display()))?;
         if let Some(log_directory) = lookup("CARNINE_LOG_DIRECTORY") {
             config.logging.directory = PathBuf::from(log_directory);
@@ -296,6 +299,72 @@ impl Config {
         }
         config.validate()?;
         Ok((config, path))
+    }
+
+    /// Drop-ins for the configuration at `path`: the `*.toml` files in the
+    /// directory beside it named after it, `/etc/carnine/config.d` for
+    /// `/etc/carnine/config.toml`, in name order. [`Config::load`] lays each
+    /// over the main file, so a later file wins. No package owns them and no
+    /// deployment touches them, which is what keeps device-specific sections
+    /// such as `[navigation]` alive across `deploy_pi.sh`. A missing directory
+    /// means no drop-ins.
+    pub fn drop_in_files(path: &Path) -> Result<Vec<PathBuf>> {
+        let directory = path.with_extension("d");
+        let entries = match fs::read_dir(&directory) {
+            Ok(entries) => entries,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+            Err(error) => {
+                return Err(error).with_context(|| {
+                    format!(
+                        "failed to read configuration drop-ins {}",
+                        directory.display()
+                    )
+                })
+            }
+        };
+        let mut files = Vec::new();
+        for entry in entries {
+            let file = entry
+                .with_context(|| {
+                    format!(
+                        "failed to read configuration drop-ins {}",
+                        directory.display()
+                    )
+                })?
+                .path();
+            if file
+                .extension()
+                .is_some_and(|extension| extension == "toml")
+                && file.is_file()
+            {
+                files.push(file);
+            }
+        }
+        files.sort();
+        Ok(files)
+    }
+}
+
+fn read_table(path: &Path) -> Result<toml::Table> {
+    let content = fs::read_to_string(path)
+        .with_context(|| format!("failed to read configuration {}", path.display()))?;
+    toml::from_str(&content)
+        .with_context(|| format!("failed to parse configuration {}", path.display()))
+}
+
+/// Lays `overlay` over `base`: tables merge key by key, anything else
+/// replaces what was there. A drop-in can so change one value of a section
+/// without repeating the rest of it.
+fn merge_tables(base: &mut toml::Table, overlay: toml::Table) {
+    for (key, value) in overlay {
+        match (base.get_mut(&key), value) {
+            (Some(toml::Value::Table(existing)), toml::Value::Table(overlay)) => {
+                merge_tables(existing, overlay)
+            }
+            (_, value) => {
+                base.insert(key, value);
+            }
+        }
     }
 }
 
@@ -449,6 +518,114 @@ mod tests {
 
         config.navigation.valhalla_url = "https://example.org".to_string();
         assert!(config.validate().is_err());
+    }
+
+    /// A copy of the repository configuration in its own directory, so a test
+    /// can put drop-ins beside it.
+    fn configuration_in(name: &str) -> std::path::PathBuf {
+        let directory =
+            std::env::temp_dir().join(format!("carnine-drop-in-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&directory);
+        std::fs::create_dir_all(&directory).expect("test directory should be created");
+        let path = directory.join("config.toml");
+        std::fs::copy("../../resources/config/carnine.toml", &path)
+            .expect("repository config should be copied");
+        path
+    }
+
+    fn write_drop_in(path: &std::path::Path, name: &str, content: &str) {
+        let directory = path.with_extension("d");
+        std::fs::create_dir_all(&directory).expect("drop-in directory should be created");
+        std::fs::write(directory.join(name), content).expect("drop-in should be written");
+    }
+
+    fn load_from(path: &std::path::Path) -> anyhow::Result<Config> {
+        let path = path.as_os_str().to_owned();
+        Config::load_with_env(|key| (key == "CARNINE_CONFIG").then(|| path.clone()))
+            .map(|(config, _)| config)
+    }
+
+    #[test]
+    fn a_drop_in_adds_a_section_and_changes_single_values() {
+        let path = configuration_in("merge");
+        write_drop_in(
+            &path,
+            "10-navigation.toml",
+            "[navigation]\nposition_source = \"replay\"\nreplay_file = \"/var/lib/carnine/maps/tour.txt\"\nmap_region = \"hessen\"\n",
+        );
+        write_drop_in(&path, "20-logging.toml", "[logging]\nlevel = \"debug\"\n");
+
+        let config = load_from(&path).expect("config with drop-ins should load");
+        assert_eq!(
+            config.navigation.position_source,
+            super::PositionSourceSetting::Replay
+        );
+        assert_eq!(config.navigation.map_region, "hessen");
+        assert_eq!(config.logging.level, "debug");
+        // The rest of [logging] still comes from the main file.
+        assert_eq!(
+            config.logging.directory,
+            std::path::PathBuf::from("/var/log/carnine")
+        );
+        let _ = std::fs::remove_dir_all(path.parent().expect("test directory"));
+    }
+
+    #[test]
+    fn later_drop_ins_win_and_other_files_are_ignored() {
+        let path = configuration_in("order");
+        write_drop_in(&path, "20-late.toml", "[logging]\nlevel = \"warn\"\n");
+        write_drop_in(&path, "10-early.toml", "[logging]\nlevel = \"debug\"\n");
+        write_drop_in(
+            &path,
+            "30-left.toml.dpkg-old",
+            "[logging]\nlevel = \"trace\"\n",
+        );
+
+        assert_eq!(
+            Config::drop_in_files(&path)
+                .expect("drop-ins should be listed")
+                .iter()
+                .map(|file| file.file_name().expect("file name").to_owned())
+                .collect::<Vec<_>>(),
+            vec!["10-early.toml", "20-late.toml"]
+        );
+        assert_eq!(
+            load_from(&path).expect("config should load").logging.level,
+            "warn"
+        );
+        let _ = std::fs::remove_dir_all(path.parent().expect("test directory"));
+    }
+
+    #[test]
+    fn no_drop_in_directory_means_the_main_file_alone() {
+        let path = configuration_in("none");
+        assert!(Config::drop_in_files(&path)
+            .expect("a missing directory is not an error")
+            .is_empty());
+        assert_eq!(
+            load_from(&path).expect("config should load").logging.level,
+            "info"
+        );
+        let _ = std::fs::remove_dir_all(path.parent().expect("test directory"));
+    }
+
+    #[test]
+    fn a_broken_drop_in_names_itself_and_is_still_validated() {
+        let path = configuration_in("broken");
+        write_drop_in(&path, "10-broken.toml", "[navigation\n");
+        let error = format!("{:#}", load_from(&path).expect_err("broken TOML must fail"));
+        assert!(error.contains("10-broken.toml"), "{error}");
+        let _ = std::fs::remove_dir_all(path.parent().expect("test directory"));
+
+        let path = configuration_in("invalid");
+        write_drop_in(
+            &path,
+            "10-navigation.toml",
+            "[navigation]\nposition_source = \"replay\"\n",
+        );
+        let error = format!("{:#}", load_from(&path).expect_err("replay needs a file"));
+        assert!(error.contains("replay_file"), "{error}");
+        let _ = std::fs::remove_dir_all(path.parent().expect("test directory"));
     }
 
     #[test]
