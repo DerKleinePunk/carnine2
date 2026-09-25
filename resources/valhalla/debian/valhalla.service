@@ -14,6 +14,10 @@ Environment=LD_LIBRARY_PATH=/opt/valhalla/lib
 ExecStart=/opt/valhalla/bin/valhalla_service /etc/valhalla/valhalla.json 1
 Restart=on-failure
 RestartSec=5
+# Valhalla only reads, it has nothing to save on exit. Without this the
+# shutdown waited 29 s for it; the vehicle power supply allows 15 s.
+TimeoutStopSec=3
+KillMode=mixed
 Nice=5
 
 [Install]
