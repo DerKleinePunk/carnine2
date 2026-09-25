@@ -11,6 +11,9 @@ User=carnine
 Group=carnine
 # dialout: the GPS receiver on /dev/gps (ttyACM/ttyUSB are root:dialout).
 SupplementaryGroups=audio dialout
+# Setting the clock from GPS time (navigation.set_system_clock) - no RTC, and
+# no NTP in the car.
+AmbientCapabilities=CAP_SYS_TIME
 RuntimeDirectory=carnine
 RuntimeDirectoryMode=0700
 ExecStart=/usr/bin/carnine-backend

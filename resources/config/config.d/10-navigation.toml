@@ -11,6 +11,8 @@ replay_file = "/var/lib/carnine/maps/GPS-Adnan-Tour.txt"
 replay_loop = true
 # serial_device = "/dev/gps"
 # serial_baud = 4800
+# With "serial": set the clock from GPS while NTP has not synchronized it.
+set_system_clock = true
 valhalla_url = "http://127.0.0.1:8002"
 map_region = "Hessen"
 names_database = "/var/lib/carnine/maps/germany_names.db"

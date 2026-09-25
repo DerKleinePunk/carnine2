@@ -138,6 +138,10 @@ pub struct NavigationConfig {
     /// and UARTs need the receiver's rate.
     #[serde(default = "default_serial_baud")]
     pub serial_baud: u32,
+    /// Set the system clock from the first valid GPS fix while NTP has not
+    /// synchronized it (no RTC, no network in the car). Needs CAP_SYS_TIME.
+    #[serde(default)]
+    pub set_system_clock: bool,
     #[serde(default)]
     pub replay_file: Option<PathBuf>,
     /// Start the replay again when it reaches the end.
@@ -176,6 +180,7 @@ impl Default for NavigationConfig {
             position_source: PositionSourceSetting::default(),
             serial_device: None,
             serial_baud: default_serial_baud(),
+            set_system_clock: false,
             replay_file: None,
             replay_loop: default_replay_loop(),
             valhalla_url: default_valhalla_url(),

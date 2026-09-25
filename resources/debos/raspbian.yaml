@@ -406,6 +406,11 @@ actions:
       systemctl enable systemd-timesyncd
       systemctl enable avahi-daemon.service
 
+      # Local time for the clock in the UI; logs stay in UTC. Another zone:
+      # timedatectl set-timezone <Zone> on the device.
+      ln -sf /usr/share/zoneinfo/Europe/Berlin /etc/localtime
+      echo Europe/Berlin > /etc/timezone
+
   - action: run
     description: Drop SSH host keys
     chroot: true

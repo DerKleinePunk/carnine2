@@ -1,6 +1,7 @@
 //! Navigation: own position, routing and place search for the map page
 //! (ADR-021).
 
+pub mod clock;
 pub mod nmea;
 pub mod places;
 pub mod position;
@@ -24,9 +25,12 @@ pub fn start(config: &NavigationConfig) -> NavigationServiceImpl {
     info!(source = ?source, "navigation position source configured");
     let mut replay_points = None;
     match (source, &config.serial_device, &config.replay_file) {
-        (SourceKind::Serial, Some(device), _) => {
-            position::spawn_serial(hub.clone(), device.clone(), config.serial_baud)
-        }
+        (SourceKind::Serial, Some(device), _) => position::spawn_serial(
+            hub.clone(),
+            device.clone(),
+            config.serial_baud,
+            clock::ClockSetter::new(config.set_system_clock),
+        ),
         (SourceKind::Replay, _, Some(file)) => match position::load_replay(file) {
             Ok(steps) => {
                 replay_points = Some(position::trace_points(&steps));

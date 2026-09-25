@@ -13,6 +13,7 @@ use chrono::{NaiveDate, NaiveDateTime, NaiveTime, TimeDelta};
 use tokio::sync::watch;
 use tracing::{error, info, warn};
 
+use super::clock::ClockSetter;
 use super::nmea::{self, Rmc, Sentence};
 
 /// Pause between two replayed fixes when the recording gives no usable time.
@@ -232,13 +233,13 @@ pub async fn run_replay(hub: PositionHub, steps: Vec<ReplayStep>, name: String, 
 /// Reads NMEA from a serial device into `hub`, reopening it whenever it
 /// vanishes (a USB GPS mouse unplugged and replugged) or is not there yet.
 /// Runs on a blocking thread. Any NMEA 0183 receiver works; `baud` is its line
-/// speed.
-pub fn spawn_serial(hub: PositionHub, device: PathBuf, baud: u32) {
+/// speed; `clock` may set the system clock from the first valid fix.
+pub fn spawn_serial(hub: PositionHub, device: PathBuf, baud: u32, mut clock: ClockSetter) {
     std::thread::Builder::new()
         .name("gps-serial".to_string())
         .spawn(move || loop {
             info!(device = %device.display(), baud, "opening GPS serial device");
-            match read_serial(&hub, &device, baud) {
+            match read_serial(&hub, &device, baud, &mut clock) {
                 Ok(()) => warn!(device = %device.display(), "GPS serial device closed"),
                 Err(err) => {
                     warn!(device = %device.display(), error = %format!("{err:#}"), "GPS serial device failed")
@@ -250,7 +251,7 @@ pub fn spawn_serial(hub: PositionHub, device: PathBuf, baud: u32) {
         .unwrap_or_else(|err| error!(error = %err, "could not start the GPS serial thread"));
 }
 
-fn read_serial(hub: &PositionHub, device: &Path, baud: u32) -> Result<()> {
+fn read_serial(hub: &PositionHub, device: &Path, baud: u32, clock: &mut ClockSetter) -> Result<()> {
     // Non-blocking so the open does not wait for a carrier the receiver never
     // raises, and no controlling terminal for the service. Reads block again
     // once the line is set up.
@@ -297,6 +298,9 @@ fn read_serial(hub: &PositionHub, device: &Path, baud: u32) -> Result<()> {
                     }
                     corrected.and_utc().timestamp_millis()
                 });
+                if let (true, Some(gps_ms)) = (rmc.valid, timestamp) {
+                    clock.offer(gps_ms);
+                }
                 hub.publish(fix_from_rmc(&rmc, hdop, timestamp));
             }
             None => {}
@@ -469,7 +473,8 @@ $GPRMC,141502.000,A,5024.5968,N,00921.8742,E,22.35,184.27,010518,,,A*5C
         let path = std::env::temp_dir().join(format!("carnine-nmea-{}.txt", std::process::id()));
         std::fs::write(&path, LOG).unwrap();
         let hub = PositionHub::new(SourceKind::Serial);
-        read_serial(&hub, &path, 4800).expect("a plain file is read as is");
+        read_serial(&hub, &path, 4800, &mut ClockSetter::new(false))
+            .expect("a plain file is read as is");
         std::fs::remove_file(&path).unwrap();
         let fix = hub.current().fix.expect("the last RMC became the fix");
         assert!(fix.valid);
@@ -489,7 +494,13 @@ $GPRMC,141502.000,A,5024.5968,N,00921.8742,E,22.35,184.27,010518,,,A*5C
     #[test]
     fn a_missing_device_is_an_error_not_a_panic() {
         let hub = PositionHub::new(SourceKind::Serial);
-        assert!(read_serial(&hub, Path::new("/nonexistent/gps"), 4800).is_err());
+        assert!(read_serial(
+            &hub,
+            Path::new("/nonexistent/gps"),
+            4800,
+            &mut ClockSetter::new(false)
+        )
+        .is_err());
         assert_eq!(hub.current().fix, None);
     }
 

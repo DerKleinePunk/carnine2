@@ -159,6 +159,28 @@ Without a receiver, for example in WSL, `serial_device` can point at a plain
 file or a named pipe of NMEA lines: the backend reads it as is, without line
 setup.
 
+#### Clock without RTC and network
+
+The Raspberry Pi has no battery-backed clock. At boot systemd-timesyncd
+starts from the time it saved at the last shutdown and corrects it over NTP
+once a network is there; in the car there usually is none. With
+`set_system_clock = true` in `[navigation]` (the device drop-in sets it) and
+the serial source, the backend sets the clock from the first valid GPS fix:
+
+- only while the kernel reports the clock as not synchronized, so NTP always
+  wins when it is available;
+- only when it is more than 2 seconds off, and once per backend start;
+- after the week-number rollover correction above.
+
+The log says `system clock set from GPS time` with the old and new time. The
+unit grants `CAP_SYS_TIME` for this. Without the capability, for example when
+the backend runs in WSL, it logs `could not set the system clock` once and
+carries on. The replay source never sets the clock.
+
+The image sets the time zone to `Europe/Berlin`, which is what the clock in
+the UI shows; logs stay in UTC. Another zone:
+`sudo timedatectl set-timezone <Zone>`, then restart `carnine-frontend`.
+
 A settings change through `ConfigService` rewrites `config.toml` with the
 merged values. The drop-ins are applied after it on the next start and still
 win.

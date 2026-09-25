@@ -57,6 +57,9 @@ disk_paths = []
 # the receiver's line speed (4800 is the NMEA standard, ignored on ttyACM).
 # serial_device = "/dev/gps"
 # serial_baud = 4800
+# Set the system clock from the first valid fix while NTP has not synchronized
+# it (no RTC, no network in the car). Only the serial source does this.
+# set_system_clock = false
 # replay_file = "/var/lib/carnine/maps/GPS-Adnan-Tour.txt"
 # replay_loop = true
 # valhalla_url = "http://127.0.0.1:8002"
