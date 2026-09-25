@@ -530,15 +530,17 @@ impl MediaPlayer {
         if target_index >= queue_len {
             bail!("queue index out of range: {target_index}");
         }
+        // Without a running track - a playlist restored paused after a
+        // restart - picking an entry simply starts it; refusing that with
+        // "no active playback" made no sense to someone tapping a title.
         let active_playback = self
             .playback
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .take();
-        let Some(active_playback) = active_playback else {
-            bail!("no active playback");
-        };
-        active_playback.stop()?;
+        if let Some(active_playback) = active_playback {
+            active_playback.stop()?;
+        }
         self.start_at_index(target_index)
     }
 

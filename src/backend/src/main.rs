@@ -2130,23 +2130,29 @@ mod tests {
     }
 
     #[test]
-    fn queue_entry_requires_active_playback() {
+    fn queue_entry_starts_a_playlist_that_was_only_restored() {
         let player = MediaPlayer::with_engine(Box::new(FakeAudioEngine));
         player
             .play_playlist(
                 1,
-                vec![(10, "first.wav".to_string())],
+                vec![
+                    (10, "first.wav".to_string()),
+                    (11, "second.wav".to_string()),
+                ],
                 None,
                 0,
                 "restore_paused",
             )
             .expect("playlist should load");
+        assert_eq!(player.state(), "paused");
 
-        let error = player
-            .execute("queue-entry", "0")
-            .expect_err("queue entry should require active playback");
+        player
+            .execute("queue-entry", "1")
+            .expect("tapping an entry should start it");
 
-        assert!(error.to_string().contains("no active playback"));
+        assert_eq!(player.state(), "playing");
+        assert_eq!(player.media_path(), "second.wav");
+        assert_eq!(player.playlist_entry_id(), Some(11));
     }
 
     #[test]
