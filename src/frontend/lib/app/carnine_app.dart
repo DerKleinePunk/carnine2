@@ -2,6 +2,7 @@ import 'package:carnine_frontend/app/app_theme.dart';
 import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_controller.dart';
 import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_overlay.dart';
 import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_scope.dart';
+import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
@@ -13,7 +14,10 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 /// The widget owns global Material configuration only. Feature navigation and
 /// screen state live below this layer so the application bootstrap stays small.
 class CarnineApp extends StatefulWidget {
-  const CarnineApp({super.key});
+  const CarnineApp({this.uiStateStore, super.key});
+
+  /// Keeps the page shown last across restarts; tests leave it out.
+  final UiStateStore? uiStateStore;
 
   @override
   State<CarnineApp> createState() => _CarnineAppState();
@@ -64,7 +68,10 @@ class _CarnineAppState extends State<CarnineApp> {
               ],
             ),
           ),
-          home: DashboardScreen(languageController: _languageController),
+          home: DashboardScreen(
+            languageController: _languageController,
+            uiStateStore: widget.uiStateStore,
+          ),
         );
       },
     );

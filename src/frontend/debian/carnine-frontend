@@ -1,15 +1,16 @@
 #!/bin/sh
 set -eu
 
-export CARNINE_FLUTTER_PI=1
+export CARNINE_EMBEDDED=1
 
-BUILD_MODE=""
-if [ -f /opt/carnine/frontend/.carnine-build-mode ]; then
-  BUILD_MODE="$(cat /opt/carnine/frontend/.carnine-build-mode)"
-fi
+# The bundle ships its own engine and libraries under lib/; the runtime mode is
+# fixed by the engine emb bundled, so there is no mode switch here.
+BUNDLE_DIR=/opt/carnine/frontend
+export LD_LIBRARY_PATH="$BUNDLE_DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
-case "$BUILD_MODE" in
-  release) exec /opt/carnine/frontend/flutter-pi --release /opt/carnine/frontend ;;
-  profile) exec /opt/carnine/frontend/flutter-pi --profile /opt/carnine/frontend ;;
-  *) exec /opt/carnine/frontend/flutter-pi /opt/carnine/frontend ;;
-esac
+# -f: take the display's native mode; without it the view keeps its default
+# 1920x720 size regardless of the panel. -c: touch only, no pointer to draw.
+# CARNINE_HOMESCREEN_ARGS adds embedder flags from a systemd drop-in without a
+# rebuild, e.g. "-d --drm-pipeline-depth 2"; it is split on whitespace.
+# shellcheck disable=SC2086
+exec "$BUNDLE_DIR/homescreen" -b "$BUNDLE_DIR" -f -c ${CARNINE_HOMESCREEN_ARGS:-}

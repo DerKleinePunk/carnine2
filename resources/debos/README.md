@@ -34,9 +34,11 @@ podman run --rm -it --device /dev/kvm --mount "type=bind,source=$(pwd),destinati
 Vor dem Debos-Lauf muss `build_pi.sh` ausgeführt werden. Das Script baut die
 beiden ARM64-Debian-Pakete und legt sie als `resources/debos/carnine-backend.deb`
 und `resources/debos/carnine-frontend.deb` für das Image-Rezept ab. Das
-Frontend-Paket enthält das `flutter-pi`-Bundle inklusive Runtime und startet
-direkt über DRM/KMS; X11 oder Wayland werden nicht benötigt. Der Benutzer
-`carnine` erhält dafür die Gruppen `render`, `video` und `input`.
+Frontend-Paket enthält das ivi-homescreen-Bundle (emb_cli, ADR-020) inklusive
+Engine und startet direkt über DRM/KMS; X11 oder Wayland werden nicht benötigt.
+Den DRM-Zugriff vermittelt `seatd`, das `install-deb` als Abhängigkeit des
+Frontend-Pakets mitinstalliert. Der Benutzer `carnine` erhält die Gruppen
+`render`, `video` und `input`.
 Das Image installiert außerdem `fontconfig` und `fonts-liberation` als
 Systemfont-Ersatz für die vom Flutter-Engine erwartete Arial-Schrift.
 

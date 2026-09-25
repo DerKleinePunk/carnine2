@@ -535,6 +535,8 @@ Erledigt:
 - Debian-/Debos-Audioabhaengigkeiten und ARM64-Paketierung validiert
 - vollstaendigen Linux-Build fuer Backend, Paket und Flutter-Bundle validiert
 - lokale Entwicklerstarts mit schreibbaren Pfaden und WSLg-PulseAudio dokumentiert
+- FLAC-Wiedergabe auf dem Raspberry Pi von 44,1 bis 192 kHz und mit 5.1-Quelle
+  validiert (siehe "FLAC auf dem Pi")
 
 Noch offen:
 
@@ -556,6 +558,11 @@ Noch offen:
   siehe unten)
 - konkrete Laufzeituebernahme aenderbarer Audio- und Medienkonfiguration ohne
   Neustart
+- `Play` mit Pfad setzt eine bereits geladene, auch pausierte Wiedergabe fort
+  und ignoriert den neuen Pfad (`MediaPlayer::play` ruft zuerst `resume()`).
+  Bis das geklaert ist, vor einem Titelwechsel per Pfad erst `stop` senden
+- `GetPlayerState` meldet waehrend der Wiedergabe `duration_ms=0`, obwohl die
+  Bibliothek die Dauer kennt (bei MP3 und FLAC gleich)
 
 ## Audio-Regressionsmessungen
 
@@ -630,3 +637,33 @@ pruefen - `resources/debos/debug-pi-audio.sh` gibt beides mit aus:
   und `hw_ptr` monoton weiterlaufen. Springt eines von beiden, wurde der Stream
   neu aufgesetzt - das ist ein XRUN und der ist sonst unsichtbar, weil cpal
   `EPIPE` still behandelt und den Error-Callback nicht ruft.
+
+## FLAC auf dem Pi
+
+Am 2026-09-25 auf dem Test-Pi mit externem Verstaerker am Display geprueft.
+Die Testdateien liegen dort unter `/var/lib/carnine/media/Flac-Test/`; alle
+vier wurden beim Rescan mit Titel, Interpret, Dauer und Cover erkannt, auch das
+in die Datei eingebettete Cover.
+
+| Datei | Format | Ergebnis | CPU frei |
+|---|---|---|---|
+| `I-Robot-441.flac` | 44,1 kHz, Stereo, 24 Bit | laeuft | ~94 % |
+| `I-Robot-48k.flac` | 48 kHz, Stereo, 24 Bit | laeuft | ~96 % |
+| `1 - I Robot.flac` | 192 kHz, Stereo, 24 Bit, eingebettetes Cover | laeuft | ~89 % |
+| `04 - Kraftwerk - Numbers.flac` | 88,2 kHz, 5.1, 24 Bit | laeuft | ~93 % |
+
+Nach Gehoer akustisch einwandfrei, im Log weder Warnungen noch Fehler. Das
+Backend startet FFmpeg fest mit `-ar 44100 -ac 2`, jede Quelle wird also auf
+44,1 kHz Stereo gewandelt; der 5.1-Downmix bezieht den Center mit ein. Die
+FLACs klingen leiser als die MP3s der Bibliothek. Das ist unter Windows
+genauso: hochaufloesende Aufnahmen sind meist mit mehr Dynamik gemastert, und
+der Downmix senkt den Pegel zusaetzlich ab. Fuer die Messe kein Thema; falls es
+spaeter stoert, ist ReplayGain oder Lautheitsangleichung der Weg.
+
+Mehrkanalausgabe (5.1) ist als Idee in `17-ideas-roadmap.md` festgehalten.
+Dafuer muessten Kanalzahl und Kanal-Layout von FFmpeg bis zur cpal-Ausgabe
+durchgereicht werden. Das ist auch die Voraussetzung dafuer,
+Navigationsansagen nur auf die vorderen Lautsprecher zu legen. Hardware-Wege:
+HDMI (bis 8 Kanaele LPCM) ueber einen Audio-Extractor, eine
+USB-Mehrkanal-Soundkarte oder ein Car-DSP mit Mehrkanaleingang. S/PDIF
+traegt nur Stereo-PCM.

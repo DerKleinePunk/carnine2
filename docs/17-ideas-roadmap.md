@@ -62,6 +62,7 @@ These are the next concrete work items after the current backend and image integ
 - [ ] Equalizer/SoundCurve
 - [ ] Video playback
 - [ ] Separate volume groups and full audio-system policy
+- [ ] Multichannel (5.1) output: pass channel count and layout from FFmpeg through to cpal instead of the fixed `-ac 2` stereo downmix, so navigation prompts can go to the front speakers only; hardware still open (HDMI audio extractor, USB multichannel card, or car DSP), see `20-media-backend-plan.md` "FLAC auf dem Pi"
 - [ ] Conflict handling for concurrent control clients
 - [ ] Robust recognition of moved files using hashes or other content identity
 

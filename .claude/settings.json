@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(gh issue *)"
+      "Bash(gh issue *)",
+      "Bash(git push *)",
+      "Bash(git -C /mnt/wsl/code/* push *)"
     ]
   }
 }

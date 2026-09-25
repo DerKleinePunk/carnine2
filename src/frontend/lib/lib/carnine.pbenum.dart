@@ -173,5 +173,86 @@ class AudioEventType extends $pb.ProtobufEnum {
   const AudioEventType._(super.value, super.name);
 }
 
+class FixState extends $pb.ProtobufEnum {
+  static const FixState FIX_STATE_UNSPECIFIED =
+      FixState._(0, _omitEnumNames ? '' : 'FIX_STATE_UNSPECIFIED');
+
+  /// Source is alive but has no valid position; PositionFix.location is unset.
+  static const FixState FIX_STATE_NO_FIX =
+      FixState._(1, _omitEnumNames ? '' : 'FIX_STATE_NO_FIX');
+  static const FixState FIX_STATE_FIX =
+      FixState._(2, _omitEnumNames ? '' : 'FIX_STATE_FIX');
+
+  static const $core.List<FixState> values = <FixState>[
+    FIX_STATE_UNSPECIFIED,
+    FIX_STATE_NO_FIX,
+    FIX_STATE_FIX,
+  ];
+
+  static final $core.List<FixState?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 2);
+  static FixState? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const FixState._(super.value, super.name);
+}
+
+class PositionSourceKind extends $pb.ProtobufEnum {
+  static const PositionSourceKind POSITION_SOURCE_KIND_UNSPECIFIED =
+      PositionSourceKind._(
+          0, _omitEnumNames ? '' : 'POSITION_SOURCE_KIND_UNSPECIFIED');
+  static const PositionSourceKind POSITION_SOURCE_NONE =
+      PositionSourceKind._(1, _omitEnumNames ? '' : 'POSITION_SOURCE_NONE');
+  static const PositionSourceKind POSITION_SOURCE_SERIAL =
+      PositionSourceKind._(2, _omitEnumNames ? '' : 'POSITION_SOURCE_SERIAL');
+  static const PositionSourceKind POSITION_SOURCE_REPLAY =
+      PositionSourceKind._(3, _omitEnumNames ? '' : 'POSITION_SOURCE_REPLAY');
+
+  static const $core.List<PositionSourceKind> values = <PositionSourceKind>[
+    POSITION_SOURCE_KIND_UNSPECIFIED,
+    POSITION_SOURCE_NONE,
+    POSITION_SOURCE_SERIAL,
+    POSITION_SOURCE_REPLAY,
+  ];
+
+  static final $core.List<PositionSourceKind?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static PositionSourceKind? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const PositionSourceKind._(super.value, super.name);
+}
+
+class PlaceType extends $pb.ProtobufEnum {
+  static const PlaceType PLACE_TYPE_UNSPECIFIED =
+      PlaceType._(0, _omitEnumNames ? '' : 'PLACE_TYPE_UNSPECIFIED');
+  static const PlaceType PLACE_TYPE_PLACE =
+      PlaceType._(1, _omitEnumNames ? '' : 'PLACE_TYPE_PLACE');
+  static const PlaceType PLACE_TYPE_POI =
+      PlaceType._(2, _omitEnumNames ? '' : 'PLACE_TYPE_POI');
+  static const PlaceType PLACE_TYPE_MOUNTAIN_PEAK =
+      PlaceType._(3, _omitEnumNames ? '' : 'PLACE_TYPE_MOUNTAIN_PEAK');
+  static const PlaceType PLACE_TYPE_WATER_NAME =
+      PlaceType._(4, _omitEnumNames ? '' : 'PLACE_TYPE_WATER_NAME');
+  static const PlaceType PLACE_TYPE_TRANSPORTATION_NAME =
+      PlaceType._(5, _omitEnumNames ? '' : 'PLACE_TYPE_TRANSPORTATION_NAME');
+
+  static const $core.List<PlaceType> values = <PlaceType>[
+    PLACE_TYPE_UNSPECIFIED,
+    PLACE_TYPE_PLACE,
+    PLACE_TYPE_POI,
+    PLACE_TYPE_MOUNTAIN_PEAK,
+    PLACE_TYPE_WATER_NAME,
+    PLACE_TYPE_TRANSPORTATION_NAME,
+  ];
+
+  static final $core.List<PlaceType?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 5);
+  static PlaceType? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const PlaceType._(super.value, super.name);
+}
+
 const $core.bool _omitEnumNames =
     $core.bool.fromEnvironment('protobuf.omit_enum_names');

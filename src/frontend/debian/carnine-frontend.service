@@ -1,9 +1,9 @@
 [Unit]
 Description=Carnine Flutter Frontend
-After=systemd-udev-settle.service carnine-backend.service plymouth-start.service
+After=systemd-udev-settle.service seatd.service carnine-backend.service plymouth-start.service
 Before=getty@tty1.service
 Conflicts=getty@tty1.service
-Wants=carnine-backend.service
+Wants=seatd.service carnine-backend.service
 
 [Service]
 Type=notify
@@ -12,7 +12,7 @@ TimeoutStartSec=30s
 User=carnine
 Group=carnine
 SupplementaryGroups=render video input
-Environment=CARNINE_FLUTTER_PI=1
+Environment=CARNINE_EMBEDDED=1
 Environment=CARNINE_LOG_PATH=/var/log/carnine/frontend.log
 CacheDirectory=carnine-frontend
 Environment=HOME=/var/cache/carnine-frontend
@@ -21,6 +21,9 @@ ExecStart=/usr/bin/carnine-frontend
 ExecStopPost=-+/usr/bin/systemd-run --on-active=5s --unit=carnine-getty-fallback -- /usr/bin/systemctl start getty@tty1.service
 Restart=on-failure
 RestartSec=3
+# The settings page restarts the frontend by exiting with 75 (AppWindow.restartExitCode).
+RestartForceExitStatus=75
+SuccessExitStatus=75
 
 [Install]
 WantedBy=multi-user.target

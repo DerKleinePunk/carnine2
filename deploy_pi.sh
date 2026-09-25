@@ -46,7 +46,11 @@ sudo systemctl stop carnine-frontend.service carnine-backend.service
 # dpkg silently keeps a locally-modified conffile (e.g. from live debugging on
 # the device) instead of installing the packaged version, which can leave the
 # service running with stale/incompatible systemd unit settings.
-sudo dpkg --force-confnew -i "$REMOTE_DIR/carnine-backend.deb" "$REMOTE_DIR/carnine-frontend.deb"
+# apt-get rather than dpkg -i so new runtime dependencies (e.g. seatd for
+# ivi-homescreen) are pulled in instead of leaving the packages half-configured.
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+  -o Dpkg::Options::=--force-confnew \
+  "$REMOTE_DIR/carnine-backend.deb" "$REMOTE_DIR/carnine-frontend.deb"
 sudo install -o root -g carnine -m 0660 "$REMOTE_DIR/carnine.toml" /etc/carnine/config.toml
 sudo rm -f /etc/asound.conf
 sudo systemctl daemon-reload

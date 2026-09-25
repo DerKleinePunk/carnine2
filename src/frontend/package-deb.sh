@@ -2,9 +2,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BUNDLE_DIR="${1:?Usage: package-deb.sh <flutter-pi-bundle> <output-deb>}"
-OUTPUT_DEB="${2:?Usage: package-deb.sh <flutter-pi-bundle> <output-deb>}"
-VERSION="${3:?Usage: package-deb.sh <flutter-pi-bundle> <output-deb> <version>}"
+BUNDLE_DIR="${1:?Usage: package-deb.sh <ivi-homescreen-bundle> <output-deb>}"
+OUTPUT_DEB="${2:?Usage: package-deb.sh <ivi-homescreen-bundle> <output-deb>}"
+VERSION="${3:?Usage: package-deb.sh <ivi-homescreen-bundle> <output-deb> <version>}"
 PACKAGE_ROOT="$(mktemp -d)"
 trap 'rm -rf "$PACKAGE_ROOT"' EXIT
 
