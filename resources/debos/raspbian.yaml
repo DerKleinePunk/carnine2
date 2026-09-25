@@ -286,12 +286,21 @@ actions:
     source: ../config/carnine.toml
     destination: /etc/carnine/config.toml
 
+  - action: overlay
+    description: Install Carnine configuration drop-ins (map setup)
+    origin: recipe
+    source: ../config/config.d
+    destination: /etc/carnine/config.d
+
   - action: run
     description: Set Carnine configuration permissions
     chroot: true
     command: |
       chown root:carnine /etc/carnine/config.toml
       chmod 0660 /etc/carnine/config.toml
+      chown -R root:carnine /etc/carnine/config.d
+      chmod 0750 /etc/carnine/config.d
+      chmod 0640 /etc/carnine/config.d/*.toml
 
   - action: install-deb
     description: Install Carnine backend
@@ -304,6 +313,19 @@ actions:
     origin: recipe
     packages:
       - carnine-frontend.deb
+
+  - action: install-deb
+    description: Install Valhalla routing (ADR-021)
+    origin: recipe
+    packages:
+      - carnine-valhalla.deb
+
+  - action: run
+    description: Create the map data directories deploy_maps.sh fills
+    chroot: true
+    command: |
+      install -d -o carnine -g carnine -m 0750 /var/lib/carnine/maps
+      install -d -o root -g root -m 0755 /var/lib/valhalla
 
   - action: run
     description: Enable a permanent debug console on tty2
@@ -394,6 +416,7 @@ actions:
     command: |
       systemctl enable carnine-backend.service
       systemctl enable carnine-frontend.service
+      systemctl enable valhalla.service
 
   - action: run
     description: Force systemd first boot menchanism

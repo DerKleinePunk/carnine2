@@ -1,0 +1,11 @@
+Package: carnine-valhalla
+Version: 3.9.0
+Section: misc
+Priority: optional
+Architecture: arm64
+Maintainer: Carnine Project
+Depends: libc6, libcurl4t64, libczmq4, libgcc-s1, libgeotiff5, liblz4-1, libprotobuf-lite32t64, libstdc++6, libtiff6, libzmq5, zlib1g
+Description: Valhalla routing service for the Carnine map page
+ valhalla_service 3.9.0 built natively for the Raspberry Pi, with its
+ configuration and systemd unit. The routing tiles are installed separately
+ by deploy_maps.sh (ADR-021).

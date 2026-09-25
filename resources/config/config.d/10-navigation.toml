@@ -1,0 +1,15 @@
+# Map setup of a Carnine device (ADR-021), installed as
+# /etc/carnine/config.d/10-navigation.toml. A drop-in rather than part of
+# config.toml, so that deploy_pi.sh, which overwrites config.toml, keeps it.
+# The files below come with deploy_maps.sh; until then the backend logs that
+# the replay did not start and runs without a position fix.
+[navigation]
+# "replay" plays the recorded tour in a loop for the trade fair stand;
+# "serial" reads a GPS mouse from serial_device instead.
+position_source = "replay"
+replay_file = "/var/lib/carnine/maps/GPS-Adnan-Tour.txt"
+replay_loop = true
+# serial_device = "/dev/ttyACM0"
+valhalla_url = "http://127.0.0.1:8002"
+map_region = "Hessen"
+names_database = "/var/lib/carnine/maps/germany_names.db"

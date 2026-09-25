@@ -1,0 +1,20 @@
+[Unit]
+Description=Valhalla routing for the carnine2 map page
+After=network.target
+# The routing tiles are not part of the image; deploy_maps.sh brings them.
+# Until then the unit stays inactive instead of restarting every few seconds.
+ConditionPathExists=/var/lib/valhalla/valhalla_tiles.tar
+
+[Service]
+Type=simple
+DynamicUser=yes
+# libprime_server is shipped beside the binary, not in the system library path.
+Environment=LD_LIBRARY_PATH=/opt/valhalla/lib
+# One worker: each further one keeps its own tile cache.
+ExecStart=/opt/valhalla/bin/valhalla_service /etc/valhalla/valhalla.json 1
+Restart=on-failure
+RestartSec=5
+Nice=5
+
+[Install]
+WantedBy=multi-user.target

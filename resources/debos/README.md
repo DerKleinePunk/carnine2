@@ -42,6 +42,49 @@ Frontend-Pakets mitinstalliert. Der Benutzer `carnine` erhält die Gruppen
 Das Image installiert außerdem `fontconfig` und `fonts-liberation` als
 Systemfont-Ersatz für die vom Flutter-Engine erwartete Arial-Schrift.
 
+### Karte und Navigation (ADR-021)
+
+Das Rezept installiert zusätzlich `resources/debos/carnine-valhalla.deb`. Das
+Paket enthält `valhalla_service` 3.9.0, `libprime_server`, die Konfiguration
+`/etc/valhalla/valhalla.json` und `valhalla.service`. Die übrigen
+Laufzeitbibliotheken zieht `install-deb` über die Paketabhängigkeiten nach.
+Valhalla wird nicht im Build gebaut, das dauert auf dem Pi Stunden. Das Paket
+entsteht aus einem Pi, auf dem Valhalla schon läuft:
+
+```sh
+resources/valhalla/package-deb.sh pi@carnine-pc resources/debos/carnine-valhalla.deb
+```
+
+Statt `user@host` geht auch ein Verzeichnis mit `valhalla_service` und
+`libprime_server.so.0*`.
+
+Außerdem legt das Rezept `/etc/carnine/config.d/10-navigation.toml` aus
+`resources/config/config.d/` ab, mit Replay-Tour, Valhalla und
+Namensdatenbank. `deploy_pi.sh` überschreibt nur `config.toml`, das Drop-in
+bleibt erhalten.
+
+**Die Kartendaten sind nicht im Image.** Kacheln, Namensdatenbank, Tour und
+Valhalla-Kacheln sind zusammen etwa 7,5 GB groß und würden das Image mehr als
+verdreifachen. Nach dem ersten Start bringt sie `deploy_maps.sh` auf das Gerät:
+
+```sh
+./deploy_maps.sh pi@carnine-pc
+```
+
+Das Skript liest aus `~/develop/carnine-maps` (anders mit `CARNINE_MAPS_DIR`),
+prüft dort `SHA256SUMS` und startet danach Valhalla, Backend und Frontend neu.
+
+Bis die Daten da sind, gilt:
+
+- `valhalla.service` bleibt inaktiv, weil seine Bedingung
+  `ConditionPathExists` noch nicht erfüllt ist.
+- Das Backend meldet, dass das Replay nicht gestartet wurde, und läuft ohne
+  GPS-Fix weiter.
+- Die Kartenseite zeigt ihren Fehlerhinweis.
+
+Die SD-Karte braucht deshalb mindestens 16 GB, besser 32 GB.
+Messestand und Testgerät haben 64 GB.
+
 Für den Waveshare-Entwicklungs-Pi kann der native Displaymodus aktiviert werden:
 
 ```sh

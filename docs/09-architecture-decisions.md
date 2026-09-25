@@ -1082,7 +1082,10 @@ logic to protect.
 - New backend dependencies: an HTTP client for Valhalla, NMEA parsing,
   serial port access, rusqlite with FTS5 for the names database.
 - Map data (MBTiles, names, Valhalla tiles) must be deployed to the target
-  and needs a larger SD card than the 4 GB one in the test device.
+  and needs a larger SD card than the 4 GB one in the test device. The image
+  ships Valhalla as `carnine-valhalla.deb` and the `[navigation]` drop-in, but
+  not the data: about 7.5 GB come separately through `deploy_maps.sh`
+  (`resources/debos/README.md`).
 - The example client `media_grpc_client` gets a command for every new RPC.
 
 ---

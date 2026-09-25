@@ -1,0 +1,18 @@
+#!/bin/sh
+set -e
+
+if command -v deb-systemd-helper >/dev/null 2>&1; then
+    deb-systemd-helper enable valhalla.service >/dev/null || true
+fi
+
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl daemon-reload >/dev/null 2>&1 || true
+fi
+
+# Inside the image build there is no running systemd, and without tiles the
+# unit's condition keeps it inactive anyway.
+if command -v deb-systemd-invoke >/dev/null 2>&1; then
+    deb-systemd-invoke restart valhalla.service >/dev/null || true
+fi
+
+exit 0

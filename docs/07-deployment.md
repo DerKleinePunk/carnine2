@@ -81,7 +81,10 @@ no package owns and no deployment touches:
 - With `CARNINE_CONFIG`, drop-ins come from the `.d` directory beside that
   file; `run_wsl.sh`, for example, uses `build/wsl-dev/config.d`.
 
-The map setup of a device is the typical case:
+The map setup of a device is the typical case. The image installs it from
+`resources/config/config.d/10-navigation.toml`; the map data itself comes
+separately with `./deploy_maps.sh [user@host]`, see
+`resources/debos/README.md`:
 
 ```toml
 # /etc/carnine/config.d/10-navigation.toml
