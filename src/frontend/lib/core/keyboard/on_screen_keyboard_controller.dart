@@ -8,7 +8,7 @@ import 'keyboard_layout.dart';
 ///
 /// Writes go directly into the bound [TextEditingController] - the keyboard
 /// never touches Flutter's platform text-input/IME channel, since the
-/// target hardware (flutter-pi on a bare Debian rootfs) has no system
+/// target hardware (ivi-homescreen on a bare Debian rootfs) has no system
 /// keyboard to coordinate with in the first place.
 class OnScreenKeyboardController extends ChangeNotifier {
   TextEditingController? _activeController;

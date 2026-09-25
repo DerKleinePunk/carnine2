@@ -3,7 +3,7 @@
 **Date:** 2026-05-24  
 **Decision:** Go/No-Go für ivi-homescreen Runtime als Ersatz für Flutter Linux Runner  
 **Owner:** Architecture / Spike Team  
-**Status:** EVALUATION PENDING
+**Status:** NOT CARRIED OUT – superseded by ADR-020 (September 2026): carnine2 switched to ivi-homescreen via emb_cli without this protocol, and flutter-pi is no longer used. Kept as background only.
 
 ---
 

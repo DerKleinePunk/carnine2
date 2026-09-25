@@ -122,14 +122,15 @@ takes hours.
 
 | File in `~/develop/carnine-maps` | Made by (map project) | Notes |
 |---|---|---|
-| `hessen.mbtiles` | `scripts/tilemaker.sh hessen` | tilemaker in Docker, OpenMapTiles schema, `scripts/tilemaker/config-openmaptiles-z17.json`; source `germany-latest.osm.pbf` from Geofabrik, cut to the Hessen bounding box. Installed as `map.mbtiles`. Names only as `name:latin`, see §8.11 in [08 – Cross-cutting Concepts](08-crosscutting.md). |
+| `hessen.mbtiles` | `scripts/tilemaker.sh hessen` | tilemaker in a container (docker or podman, `CONTAINER_CMD`), OpenMapTiles schema, `scripts/tilemaker/config-openmaptiles-z17.json` together with the map project's own `scripts/tilemaker/process-openmaptiles.lua` (residential areas by size instead of from z8; the original Lua builds something else); source `germany-latest.osm.pbf` from Geofabrik, cut to the Hessen bounding box. Installed as `map.mbtiles`; the file in use is from 2026-09-23. Names only as `name:latin`, see §8.11 in [08 – Cross-cutting Concepts](08-crosscutting.md). |
 | `germany_names.db` | `scripts/extract_names_to_sqlite.py`, run by `tilemaker.sh` as `<region>_names.db` | FTS5 index for `SearchPlaces`. As the name says, the file in use comes from the full-Germany run (`./tilemaker.sh` without a region), so search covers more than the tiles show. |
-| `valhalla_tiles.tar` | `scripts/valhalla/build_valhalla_from_pbf.sh`, called at the end of `tilemaker.sh` | Routing tiles for the local Valhalla. The current file (5 GB, built 2026-09-24) covers all of Germany: read from its level-2 tile names on 2026-09-25, 895 of 1068 tiles lie in the German bounding box, the rest along ferry lines to Scandinavia and the Baltic, as in a Geofabrik Germany extract. So routes work beyond the Hessen tiles, into areas the map does not draw. |
+| `valhalla_tiles.tar` | `scripts/valhalla/build_valhalla_from_pbf.sh`, called at the end of `tilemaker.sh` | Routing tiles for the local Valhalla. The current file (5 GB) is from a build on 2026-04-11 (container, an older Valhalla), which Valhalla 3.9.0 reads; on 2026-09-24 only the program was rebuilt. It covers all of Germany: read from its level-2 tile names on 2026-09-25, 895 of 1068 tiles lie in the German bounding box, the rest along ferry lines to Scandinavia and the Baltic, as in a Geofabrik Germany extract. So routes work beyond the Hessen tiles, into areas the map does not draw. |
 | `GPS-Adnan-Tour.txt` | `scripts/GpsTest/` | Recorded NMEA tour replayed on the stand. New tours: record a drive, see [Recording drives](#recording-drives). |
 
 The Valhalla program itself is not part of the data: it is built natively on
-a Pi (`docs/valhalla-offline-setup.md` in the map project, "Native
-Pi-Binaries") and packaged as `carnine-valhalla.deb` with
+a Pi with `scripts/valhalla/build_valhalla_on_pi.sh` from the map project
+(unit `scripts/valhalla/valhalla.service` beside it, described in
+`docs/valhalla-offline-setup.md`, "Stand auf den Test-Pis") and packaged as `carnine-valhalla.deb` with
 `resources/valhalla/package-deb.sh`.
 
 After building new data:

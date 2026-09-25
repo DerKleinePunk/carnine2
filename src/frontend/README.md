@@ -29,30 +29,15 @@ protoc -I ../proto --dart_out=grpc:lib/lib ../proto/carnine.proto
 
 ## ARM64 Debian package
 
-Build the Raspberry Pi bundle and package it together with the `flutter-pi`
-runtime:
-
-```bash
-flutterpi_tool build --arch=arm64 --cpu=pi4 --release \
-	--dart-define="CARNINE_VERSION=$(cat ../../VERSION)"
-bash package-deb.sh build/flutter-pi/pi4-64 carnine-frontend.deb "$(cat ../../VERSION)"
-```
+The frontend is cross-built with `emb_cli` and runs under ivi-homescreen
+(ADR-020); flutter-pi is no longer used. `build_pi.sh` in the repository root
+builds the bundle and packages it with `package-deb.sh
+<ivi-homescreen-bundle> <output-deb> <version>`; the steps and the emb
+workspace it needs are in `docs/07-deployment.md`, section 3.3.
 
 The package installs the application under `/opt/carnine/frontend` and
 provides `carnine-frontend.service`. It uses DRM/KMS directly, so no X11 or
 Wayland session is required.
-
-`--release` produces a CPU-tuned, AOT-compiled build in `build/flutter-pi/pi4-64`
-(much faster app startup). For a debug build (JIT, Dart VM service enabled for
-live debugging on the device), drop `--release`/use `--debug` instead; that
-build lands in `build/flutter-pi/aarch64-generic` instead, since debug mode
-doesn't support CPU-tuned targets. `build_pi.sh` (via `CARNINE_FRONTEND_BUILD_MODE`)
-handles this distinction automatically.
-
-The Carnine Dart application does not use Vulkan, GStreamer, or Flutter audio.
-The bundled `flutter-pi` binary must nevertheless be built without those
-optional features before their runtime libraries can be removed from the
-Debian package dependencies.
 
 The application fonts `NotoSansSC` and `NotoSansJP` are bundled with the
 application. The image also installs `fontconfig` and `fonts-liberation` as a

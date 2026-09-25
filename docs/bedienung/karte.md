@@ -9,7 +9,7 @@ auch ohne Backend.
 ## Karte bewegen
 
 - **Ein Finger:** verschieben. Das beendet den Folgemodus (siehe unten).
-- **Zwei Finger** oder **Doppeltipp:** zoomen (Stufe 8–17).
+- **Zwei Finger** oder **Doppeltipp:** zoomen. Hinein geht es bis Stufe 17, hinaus bis etwa ganz Hessen.
 - Drehen per Geste ist ausgeschaltet.
 - Tipp auf die Karte entfernt eine Ortsmarkierung.
 

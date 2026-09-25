@@ -976,22 +976,27 @@ instead of one, compensating in practice for flutter-pi's missing retry.
 - If flutter-pi is ever forked/patched to retry commits and surface real
   presentation feedback, the Dart-side frame-forcing mitigation in
   `main.dart` can be simplified back to a single verified callback.
+- Since ADR-020 the frontend runs under ivi-homescreen, not flutter-pi. The
+  Plymouth and `getty@tty1` part of this decision does not depend on the
+  embedder and stays. The frame forcing in `main.dart` answers a flutter-pi
+  bug and can go once the display is confirmed to come up reliably without
+  it under ivi-homescreen.
 
 ---
 
 ## ADR-020: Frontend Embedder - ivi-homescreen via emb_cli instead of flutter-pi
 
-**Status:** Accepted (September 2026), trial on `feature/emb-cli`
+**Status:** Accepted (September 2026); the switch is complete, flutter-pi is no longer used
 
 **Context:**
 The offline map (`local_map` from `DerKleinePunk/flutter_local_map`) is
 planned as the navigation page for the trade fair on 6 November 2026. It has
 been developed and measured on the Pi 4 under ivi-homescreen, cross-built
-with `emb_cli` (Flutter 3.47.x, backend `drm-kms-egl`), and its load times are
-too slow under flutter-pi. flutter-pi also lags behind current Flutter
-releases with no date for catching up, and it has the silent,
-non-retried DRM commit failure described in ADR-019. The go/no-go protocol in
-`docs/19-ivi-homescreen-evaluation.md` was never carried out.
+with `emb_cli` (Flutter 3.47.x, backend `drm-kms-egl`). flutter-pi lags
+behind current Flutter releases with no date for catching up, and it has the
+silent, non-retried DRM commit failure described in ADR-019. The go/no-go
+protocol in `docs/19-ivi-homescreen-evaluation.md` was not carried out; this
+decision replaces it.
 
 **Decision:**
 Build the frontend with `emb cross --target rpi4-trixie --backend drm-kms-egl`
@@ -1017,11 +1022,13 @@ the one pinned in the emb workspace, not the one on `PATH`.
   on `libseat`. The frontend package depends on it.
 - emb's AOT step has no `--dart-define`; `build_pi.sh` stamps the version into
   a staged copy of the frontend instead.
-- Known open risk: under ivi-homescreen the map demo stopped presenting frames
-  after a long run (page-flip events reported lost). It must be ruled out on
-  the target before the fair; ADR-019's frame-forcing mitigation stays until
-  ivi-homescreen's commit behavior is confirmed.
-- Rollback is switching back to `main`'s `build_pi.sh` and frontend package.
+- Under ivi-homescreen the map demo once stopped presenting frames after a
+  long run (page-flip events reported lost). Long runs on the test Pi on
+  2026-09-24 and 2026-09-25 (freeze-watch, music and map for hours) showed
+  no freeze. ADR-019's frame forcing in `main.dart` was a flutter-pi
+  workaround; whether ivi-homescreen still needs it is open.
+- There is no rollback path any more: `main` builds with emb_cli too, and the
+  flutter-pi packaging is gone.
 
 ---
 
