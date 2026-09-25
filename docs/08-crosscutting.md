@@ -126,3 +126,53 @@ This section describes architectural principles, patterns, and technologies that
 ### Handoff to Flutter
 - **Implementation**: Flutter UI implementation follows approved Stitch templates.
 - **Change Process**: Significant UI changes are first updated in Stitch, then implemented in Flutter.
+
+## 8.11 Map Style
+
+The maps page draws the MBTiles vector tiles with
+`src/frontend/assets/maps/style_carnine_dark.json`, rendered by
+`vector_map_tiles` and `vector_tile_renderer` 6.1 through `local_map`.
+
+### Field Names in the Tiles
+- The Hessen tiles are built with tilemaker in the OpenMapTiles schema, and
+  names are stored **only as `name:latin`**. There is no `name` field.
+- A text field of `{name}` therefore draws nothing. Until 2026-09-25 this is
+  why the map showed not a single place, street or water name (#28).
+- Labels use `["coalesce", ["get", "name:latin"], ["get", "name"]]`, so tiles
+  that do carry `name` also work.
+- To see what a tile really contains, decode one tile from the MBTiles file.
+  The `vector_layers` list in the metadata can be incomplete.
+
+### Style ID and the Tile Cache
+- `vector_map_tiles` caches tiles already filtered for a style in
+  `/tmp/.vector_map`, keyed by tile and **style `id`**. The filter keeps only
+  the layers and fields that style uses.
+- A changed style with the same `id` gets the old filtered data. It then
+  renders like the old one, although the log reports the new layer count
+  ("Style aktiv: N Ebenen").
+- Raise the number in `id` (currently `carnine-dark-2`) whenever layers,
+  filters or queried fields change. Colour-only changes do not need a new id.
+- This matters on the Pi as well: without a new id, an update keeps showing
+  the old cached tiles until they expire.
+
+### Supported Style Features
+`vector_tile_renderer` 6.1 understands `get`, `has`, `coalesce`, `match`,
+`case`, `step`, `interpolate`, `zoom`, comparisons, `in`/`!in` and
+`all`/`any`. `line-dasharray` is not supported.
+
+### Colour Rules
+- Background and surfaces follow `AppColors.surface` (`#0e0e0e`).
+- Roads and areas are never cyan or magenta. `AppColors.primary` marks the
+  route and the own position, and `AppColors.secondary` marks the
+  destination; both must stay the brightest things on the map.
+
+### Checking a Change
+- Locally with `./run_wsl.sh` (07-deployment.md §3.4). WSLg renders in
+  software, so this judges appearance only, not speed.
+- Speed on the Pi with the map in navigation mode and music playing, logged
+  by `~/freeze/watch.log`. Reference from 2026-09-25 with `carnine-dark-2`
+  (32 layers), which matches the old 21-layer style:
+  - about 3350 commits per minute
+  - no lost page flips
+  - homescreen at about 72 % of one core
+  - load 1.6–1.8, 37–38 °C, no throttling
