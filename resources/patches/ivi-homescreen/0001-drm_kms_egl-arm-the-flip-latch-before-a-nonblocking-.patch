@@ -1,0 +1,171 @@
+From bd11c49c81f32de607f35de553614cc3dd910b0f Mon Sep 17 00:00:00 2001
+From: der kleine punk <roboter@mine-robo.de>
+Date: Sat, 26 Sep 2026 19:38:58 +0200
+Subject: [PATCH] drm_kms_egl: arm the flip latch before a nonblocking commit
+
+-flip_pending_ was raised after drmModeAtomicCommit/drmModePageFlip
+ returned; the flip reader thread can handle the PAGE_FLIP_EVENT first
+ (OnFlipComplete clears the latch, DeliverVsync finds no baton yet), and
+ the late store then leaves the latch up for a flip that already retired
+-every later baton parks in SubmitBaton behind IsSourcePending() and the
+ engine never renders again; input and Dart keep running, nothing is
+ logged, a VT switch (OnSessionPaused clears the latch, resume drains
+ the baton) brings it back
+-seen on a Pi 4 (vc4, scene path) under load: panning a large vector
+ map, 59 -> 17 fps, then no frame for 11 minutes
+-arm the latch before every NONBLOCK commit and drop it on failure: the
+ scene path, PresentLayers, PresentFramed, PresentDirectOverlay, and the
+ legacy Present (which also records pending_bo_/fb_ first); the queued
+ flip issued from the flip handler runs on the reader thread and cannot
+ race its own event
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ shell/backend/drm_kms_egl/drm_backend.cc    | 20 +++++++++++------
+ shell/backend/drm_kms_egl/drm_compositor.cc | 25 +++++++++++++++++----
+ shell/backend/drm_kms_egl/drm_compositor.h  |  2 ++
+ 3 files changed, 36 insertions(+), 11 deletions(-)
+
+diff --git a/shell/backend/drm_kms_egl/drm_backend.cc b/shell/backend/drm_kms_egl/drm_backend.cc
+index a3e7e459..f6911be0 100644
+--- a/shell/backend/drm_kms_egl/drm_backend.cc
++++ b/shell/backend/drm_kms_egl/drm_backend.cc
+@@ -1876,20 +1876,26 @@ bool DrmBackend::Present() {
+   if (cfg_.debug_backend) {
+     flip_submit_ns_ = LibFlutterEngine->GetCurrentTime();
+   }
++  // The kernel owns next_bo/next_fb until the page-flip-complete event fires;
++  // current_bo_/current_fb_ remain the live scanout until then. Record them
++  // and arm the latch before the flip: the reader thread can handle its event
++  // before drmModePageFlip returns here, and a latch raised afterwards would
++  // stay up for a flip that already retired, parking every later baton.
++  pending_bo_ = next_bo;
++  pending_fb_ = next_fb;
++  flip_pending_.store(true, std::memory_order_release);
+   if (drmModePageFlip(drm_dev_->fd(), crtc_id_, next_fb,
+                       DRM_MODE_PAGE_FLIP_EVENT,
+                       static_cast<IFlipSink*>(this)) != 0) {
+-    ihs::log::warn("[DrmBackend] drmModePageFlip: {}", std::strerror(errno));
++    const int err = errno;
++    flip_pending_.store(false, std::memory_order_release);
++    pending_bo_ = nullptr;
++    pending_fb_ = 0;
++    ihs::log::warn("[DrmBackend] drmModePageFlip: {}", std::strerror(err));
+     drmModeRmFB(drm_dev_->fd(), next_fb);
+     gbm_surface_release_buffer(gbm_surface_, next_bo);
+     return false;
+   }
+-
+-  // The kernel now owns next_bo/next_fb until the page-flip-complete event
+-  // fires. current_bo_/current_fb_ remain the live scanout until then.
+-  pending_bo_ = next_bo;
+-  pending_fb_ = next_fb;
+-  flip_pending_.store(true, std::memory_order_release);
+   trace_present("flipped");
+   return true;
+ }
+diff --git a/shell/backend/drm_kms_egl/drm_compositor.cc b/shell/backend/drm_kms_egl/drm_compositor.cc
+index 2dfa9b50..66bb680b 100644
+--- a/shell/backend/drm_kms_egl/drm_compositor.cc
++++ b/shell/backend/drm_kms_egl/drm_compositor.cc
+@@ -1535,6 +1535,12 @@ bool DrmCompositor::StageCursorInto(drm::AtomicRequest& req) {
+ #endif
+ }
+ 
++void DrmCompositor::ArmFlipLatch(const bool blocking) {
++  if (!blocking) {
++    flip_pending_.store(true, std::memory_order_release);
++  }
++}
++
+ void DrmCompositor::SettleAtomicCommit(const bool blocking) {
+   if (blocking) {
+     // A blocking commit (initial modeset or a cursor first-enable) lands
+@@ -1549,9 +1555,8 @@ void DrmCompositor::SettleAtomicCommit(const bool blocking) {
+     }
+     flip_pending_.store(false, std::memory_order_release);
+     (void)backend_->vsync_.DeliverParkedBaton();
+-  } else {
+-    flip_pending_.store(true, std::memory_order_release);
+   }
++  // NONBLOCK: the latch was armed before the commit (see ArmFlipLatch).
+ }
+ 
+ // ─── Framed-mode present (primary BG + overlay content) ─────────────────
+@@ -1974,7 +1979,14 @@ bool DrmCompositor::PresentFramed(const FlutterLayer** layers,
+                     commit_flags);
+   }
+ 
++  // Arm the flip latch before a NONBLOCK commit, not after it: the flip
++  // reader thread can deliver its PAGE_FLIP_EVENT (clearing the latch and
++  // finding no baton yet) before this thread gets back from commit(). Setting
++  // it afterwards then leaves the latch up for a flip that already retired,
++  // every later baton parks behind it, and the engine never renders again.
++  ArmFlipLatch(blocking);
+   if (auto r = req.commit(commit_flags, static_cast<IFlipSink*>(this)); !r) {
++    flip_pending_.store(false, std::memory_order_release);
+     if (r.error() == std::errc::permission_denied) {
+       // EACCES races: paused_ might be set already (steady-state pause)
+       // or not yet (kernel revoked before libseat's disable_seat reached
+@@ -2619,8 +2631,10 @@ bool DrmCompositor::PresentLayers(const FlutterLayer** layers,
+   // before the kernel-side commit.
+   const uint64_t t2 = profile ? NsNow() : 0;
+ 
++  ArmFlipLatch(blocking);  // before the commit, see PresentFramed
+   if (auto commit_ok = req.commit(commit_flags, static_cast<IFlipSink*>(this));
+       !commit_ok) {
++    flip_pending_.store(false, std::memory_order_release);
+     if (commit_ok.error() == std::errc::permission_denied) {
+       // EACCES race with libseat pause; warn only when paused_ hasn't
+       // toggled yet so unexpected revokes still surface.
+@@ -3509,11 +3523,13 @@ bool DrmCompositor::PresentLayersViaScene(const FlutterLayer** layers,
+   // cheap on repeat.
+   scene_->set_output_metadata(output_hdr);
+ 
++  ArmFlipLatch(blocking_modeset);  // before the commit, see PresentFramed
+   auto report = [this, commit_flags] {
+     const EglCurrentGuard keep_context;
+     return scene_->commit(commit_flags, static_cast<IFlipSink*>(this));
+   }();
+   if (!report) {
++    flip_pending_.store(false, std::memory_order_release);
+     if (report.error() == std::errc::permission_denied) {
+       if (!paused_.load(std::memory_order_acquire)) {
+         ihs::log::warn(
+@@ -3585,9 +3601,8 @@ bool DrmCompositor::PresentLayersViaScene(const FlutterLayer** layers,
+     }
+     flip_pending_.store(false, std::memory_order_release);
+     (void)backend_->vsync_.DeliverParkedBaton();
+-  } else {
+-    flip_pending_.store(true, std::memory_order_release);
+   }
++  // NONBLOCK: the latch was armed before the commit.
+ 
+   // LayerScene owns its commit and can't accept a staged cursor plane, so
+   // (in staged mode) self-commit the cursor here to keep it visible. The
+@@ -4070,7 +4085,9 @@ bool DrmCompositor::PresentDirectOverlay(const FlutterLayer** layers,
+                : (DRM_MODE_PAGE_FLIP_EVENT | DRM_MODE_ATOMIC_NONBLOCK);
+   const uint64_t t2 = profile ? NsNow() : 0;
+ 
++  ArmFlipLatch(blocking);  // before the commit, see PresentFramed
+   if (auto r = req.commit(commit_flags, static_cast<IFlipSink*>(this)); !r) {
++    flip_pending_.store(false, std::memory_order_release);
+     if (r.error() == std::errc::permission_denied) {
+       if (!paused_.load(std::memory_order_acquire)) {
+         ihs::log::warn(
+diff --git a/shell/backend/drm_kms_egl/drm_compositor.h b/shell/backend/drm_kms_egl/drm_compositor.h
+index c0236d2f..487349ae 100644
+--- a/shell/backend/drm_kms_egl/drm_compositor.h
++++ b/shell/backend/drm_kms_egl/drm_compositor.h
+@@ -336,6 +336,8 @@ class DrmCompositor : public IFlipSink {
+   // PAGE_FLIP_EVENT: clear flip_pending_ and return the vsync baton
+   // inline; the genuine first modeset also latches plane_mode_set_ and
+   // verifies the pipe. A steady-state nonblock flip arms flip_pending_.
++  // Raises flip_pending_ ahead of a NONBLOCK commit (no-op when blocking).
++  void ArmFlipLatch(bool blocking);
+   void SettleAtomicCommit(bool blocking);
+ 
+   // GL fallback: composites all layers into FBO 0 and calls
+-- 
+2.43.0
+
