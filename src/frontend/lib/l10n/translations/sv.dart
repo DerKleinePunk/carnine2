@@ -191,6 +191,12 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.mapsNoPosition: 'Ingen GPS-position',
   AppTextKey.mapsRouteError: 'Rutten kunde inte beräknas',
   AppTextKey.mapsSearchNoResults: 'Inga träffar',
+  AppTextKey.mapsTypePlace: 'Ort',
+  AppTextKey.mapsTypeRegion: 'Område',
+  AppTextKey.mapsTypePoi: 'POI',
+  AppTextKey.mapsTypePeak: 'Topp',
+  AppTextKey.mapsTypeWater: 'Vatten',
+  AppTextKey.mapsTypeStreet: 'Gata',
   AppTextKey.mapsNoMapData: 'Inga kartdata installerade',
   AppTextKey.mapsMapUnavailable: 'Kartan kan inte visas',
 };

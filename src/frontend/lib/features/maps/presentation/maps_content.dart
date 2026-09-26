@@ -118,7 +118,13 @@ class _Overlays extends StatelessWidget {
           child: Center(child: _buttons(l10n)),
         ),
         if (_map.route != null)
-          Positioned(left: 24, right: 100, bottom: 20, child: _tripBar()),
+          Positioned(left: 24, right: 100, bottom: 20, child: _tripBar())
+        else if (_map.locationName case final name?)
+          Positioned(
+            left: 24,
+            bottom: 20,
+            child: MapStatusPill(text: name.label, icon: Icons.near_me),
+          ),
       ],
     );
   }
@@ -135,6 +141,7 @@ class _Overlays extends StatelessWidget {
       results: controller.results,
       searching: controller.searching,
       message: message,
+      near: _map.position?.position,
       onChanged: controller.search,
       onSelected: controller.selectDestination,
     );

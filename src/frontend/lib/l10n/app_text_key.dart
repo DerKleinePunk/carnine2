@@ -181,6 +181,12 @@ enum AppTextKey {
   mapsNoPosition,
   mapsRouteError,
   mapsSearchNoResults,
+  mapsTypePlace,
+  mapsTypeRegion,
+  mapsTypePoi,
+  mapsTypePeak,
+  mapsTypeWater,
+  mapsTypeStreet,
   mapsNoMapData,
   mapsMapUnavailable,
 }

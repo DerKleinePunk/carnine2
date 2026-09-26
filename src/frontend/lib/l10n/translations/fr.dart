@@ -199,6 +199,12 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.mapsNoPosition: 'Aucune position GPS',
   AppTextKey.mapsRouteError: 'Impossible de calculer l’itinéraire',
   AppTextKey.mapsSearchNoResults: 'Aucun résultat',
+  AppTextKey.mapsTypePlace: 'Lieu',
+  AppTextKey.mapsTypeRegion: 'Région',
+  AppTextKey.mapsTypePoi: 'POI',
+  AppTextKey.mapsTypePeak: 'Sommet',
+  AppTextKey.mapsTypeWater: 'Plan d’eau',
+  AppTextKey.mapsTypeStreet: 'Rue',
   AppTextKey.mapsNoMapData: 'Aucune donnée cartographique installée',
   AppTextKey.mapsMapUnavailable: 'La carte ne peut pas être affichée',
 };

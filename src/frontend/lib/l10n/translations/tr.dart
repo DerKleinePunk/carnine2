@@ -194,6 +194,12 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.mapsNoPosition: 'GPS konumu yok',
   AppTextKey.mapsRouteError: 'Rota hesaplanamadı',
   AppTextKey.mapsSearchNoResults: 'Sonuç yok',
+  AppTextKey.mapsTypePlace: 'Yer',
+  AppTextKey.mapsTypeRegion: 'Bölge',
+  AppTextKey.mapsTypePoi: 'İlgi noktası',
+  AppTextKey.mapsTypePeak: 'Zirve',
+  AppTextKey.mapsTypeWater: 'Su',
+  AppTextKey.mapsTypeStreet: 'Sokak',
   AppTextKey.mapsNoMapData: 'Harita verisi yüklü değil',
   AppTextKey.mapsMapUnavailable: 'Harita görüntülenemiyor',
 };

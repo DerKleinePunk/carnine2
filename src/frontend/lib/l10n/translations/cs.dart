@@ -192,6 +192,12 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.mapsNoPosition: 'Žádná poloha GPS',
   AppTextKey.mapsRouteError: 'Trasu nelze vypočítat',
   AppTextKey.mapsSearchNoResults: 'Žádné výsledky',
+  AppTextKey.mapsTypePlace: 'Místo',
+  AppTextKey.mapsTypeRegion: 'Oblast',
+  AppTextKey.mapsTypePoi: 'Bod zájmu',
+  AppTextKey.mapsTypePeak: 'Vrchol',
+  AppTextKey.mapsTypeWater: 'Vodní plocha',
+  AppTextKey.mapsTypeStreet: 'Ulice',
   AppTextKey.mapsNoMapData: 'Nejsou nainstalována mapová data',
   AppTextKey.mapsMapUnavailable: 'Mapu nelze zobrazit',
 };

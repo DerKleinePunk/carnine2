@@ -86,6 +86,23 @@ class GrpcPlaceSearch implements PlaceSearch {
   }
 }
 
+/// [ReverseGeocoder] on `NavigationService.GetLocationName`: the library's
+/// controller asks it for "where am I" while no route is set.
+class GrpcReverseGeocoder implements ReverseGeocoder {
+  GrpcReverseGeocoder(this._channel);
+
+  final NavigationChannel _channel;
+
+  @override
+  Future<LocationName?> nameAt(LatLng position) async {
+    final name = await _channel.stub.getLocationName(
+      pb.GetLocationNameRequest(position: latLonToProto(position)),
+      options: CallOptions(timeout: _callTimeout),
+    );
+    return locationNameFromProto(name);
+  }
+}
+
 /// [PositionSource] on `NavigationService.StreamPositions`.
 ///
 /// The stream runs while someone listens. When it breaks (backend restart,

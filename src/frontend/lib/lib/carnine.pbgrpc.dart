@@ -1125,6 +1125,16 @@ class NavigationServiceClient extends $grpc.Client {
     return $createUnaryCall(_$searchPlaces, request, options: options);
   }
 
+  /// Street, locality and district at a position, for "where am I" without a
+  /// route. Empty fields when nothing is known there or the names database
+  /// predates September 2026; UNAVAILABLE without a names database.
+  $grpc.ResponseFuture<$0.LocationName> getLocationName(
+    $0.GetLocationNameRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getLocationName, request, options: options);
+  }
+
   $grpc.ResponseFuture<$0.Route> computeRoute(
     $0.ComputeRouteRequest request, {
     $grpc.CallOptions? options,
@@ -1179,6 +1189,11 @@ class NavigationServiceClient extends $grpc.Client {
           '/carnine.NavigationService/SearchPlaces',
           ($0.SearchPlacesRequest value) => value.writeToBuffer(),
           $0.SearchPlacesResponse.fromBuffer);
+  static final _$getLocationName =
+      $grpc.ClientMethod<$0.GetLocationNameRequest, $0.LocationName>(
+          '/carnine.NavigationService/GetLocationName',
+          ($0.GetLocationNameRequest value) => value.writeToBuffer(),
+          $0.LocationName.fromBuffer);
   static final _$computeRoute =
       $grpc.ClientMethod<$0.ComputeRouteRequest, $0.Route>(
           '/carnine.NavigationService/ComputeRoute',
@@ -1228,6 +1243,14 @@ abstract class NavigationServiceBase extends $grpc.Service {
             ($core.List<$core.int> value) =>
                 $0.SearchPlacesRequest.fromBuffer(value),
             ($0.SearchPlacesResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.GetLocationNameRequest, $0.LocationName>(
+        'GetLocationName',
+        getLocationName_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.GetLocationNameRequest.fromBuffer(value),
+        ($0.LocationName value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.ComputeRouteRequest, $0.Route>(
         'ComputeRoute',
         computeRoute_Pre,
@@ -1286,6 +1309,14 @@ abstract class NavigationServiceBase extends $grpc.Service {
 
   $async.Future<$0.SearchPlacesResponse> searchPlaces(
       $grpc.ServiceCall call, $0.SearchPlacesRequest request);
+
+  $async.Future<$0.LocationName> getLocationName_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.GetLocationNameRequest> $request) async {
+    return getLocationName($call, await $request);
+  }
+
+  $async.Future<$0.LocationName> getLocationName(
+      $grpc.ServiceCall call, $0.GetLocationNameRequest request);
 
   $async.Future<$0.Route> computeRoute_Pre($grpc.ServiceCall $call,
       $async.Future<$0.ComputeRouteRequest> $request) async {

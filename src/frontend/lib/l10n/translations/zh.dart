@@ -179,6 +179,12 @@ const Map<AppTextKey, String> zhTranslations = <AppTextKey, String>{
   AppTextKey.mapsNoPosition: '无 GPS 位置',
   AppTextKey.mapsRouteError: '无法计算路线',
   AppTextKey.mapsSearchNoResults: '无结果',
+  AppTextKey.mapsTypePlace: '地点',
+  AppTextKey.mapsTypeRegion: '地区',
+  AppTextKey.mapsTypePoi: '兴趣点',
+  AppTextKey.mapsTypePeak: '山峰',
+  AppTextKey.mapsTypeWater: '水域',
+  AppTextKey.mapsTypeStreet: '道路',
   AppTextKey.mapsNoMapData: '未安装地图数据',
   AppTextKey.mapsMapUnavailable: '无法显示地图',
 };

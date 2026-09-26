@@ -184,6 +184,12 @@ const Map<AppTextKey, String> jaTranslations = <AppTextKey, String>{
   AppTextKey.mapsNoPosition: 'GPS 位置がありません',
   AppTextKey.mapsRouteError: 'ルートを計算できませんでした',
   AppTextKey.mapsSearchNoResults: '該当なし',
+  AppTextKey.mapsTypePlace: '地名',
+  AppTextKey.mapsTypeRegion: '地域',
+  AppTextKey.mapsTypePoi: 'スポット',
+  AppTextKey.mapsTypePeak: '山頂',
+  AppTextKey.mapsTypeWater: '水域',
+  AppTextKey.mapsTypeStreet: '道路',
   AppTextKey.mapsNoMapData: '地図データがインストールされていません',
   AppTextKey.mapsMapUnavailable: '地図を表示できません',
 };

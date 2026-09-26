@@ -195,6 +195,12 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.mapsNoPosition: 'Ingen GPS-position',
   AppTextKey.mapsRouteError: 'Ruten kunne ikke beregnes',
   AppTextKey.mapsSearchNoResults: 'Ingen resultater',
+  AppTextKey.mapsTypePlace: 'Sted',
+  AppTextKey.mapsTypeRegion: 'Område',
+  AppTextKey.mapsTypePoi: 'POI',
+  AppTextKey.mapsTypePeak: 'Tinde',
+  AppTextKey.mapsTypeWater: 'Vand',
+  AppTextKey.mapsTypeStreet: 'Gade',
   AppTextKey.mapsNoMapData: 'Ingen kortdata installeret',
   AppTextKey.mapsMapUnavailable: 'Kortet kan ikke vises',
 };

@@ -190,6 +190,12 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.mapsNoPosition: 'No GPS position',
   AppTextKey.mapsRouteError: 'Route could not be calculated',
   AppTextKey.mapsSearchNoResults: 'No results',
+  AppTextKey.mapsTypePlace: 'Place',
+  AppTextKey.mapsTypeRegion: 'Region',
+  AppTextKey.mapsTypePoi: 'POI',
+  AppTextKey.mapsTypePeak: 'Peak',
+  AppTextKey.mapsTypeWater: 'Water',
+  AppTextKey.mapsTypeStreet: 'Street',
   AppTextKey.mapsNoMapData: 'No map data installed',
   AppTextKey.mapsMapUnavailable: 'The map cannot be displayed',
 };

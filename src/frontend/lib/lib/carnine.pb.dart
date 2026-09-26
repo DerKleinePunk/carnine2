@@ -3496,6 +3496,7 @@ class Place extends $pb.GeneratedMessage {
     $core.int? zoom,
     PlaceType? type,
     $core.String? detail,
+    $core.String? area,
   }) {
     final result = create();
     if (name != null) result.name = name;
@@ -3503,6 +3504,7 @@ class Place extends $pb.GeneratedMessage {
     if (zoom != null) result.zoom = zoom;
     if (type != null) result.type = type;
     if (detail != null) result.detail = detail;
+    if (area != null) result.area = area;
     return result;
   }
 
@@ -3526,6 +3528,7 @@ class Place extends $pb.GeneratedMessage {
     ..aE<PlaceType>(4, _omitFieldNames ? '' : 'type',
         enumValues: PlaceType.values)
     ..aOS(5, _omitFieldNames ? '' : 'detail')
+    ..aOS(6, _omitFieldNames ? '' : 'area')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -3592,6 +3595,17 @@ class Place extends $pb.GeneratedMessage {
   $core.bool hasDetail() => $_has(4);
   @$pb.TagNumber(5)
   void clearDetail() => $_clearField(5);
+
+  /// Locality the hit belongs to ("Hauptstraße" in "Alsfeld"; for a place the
+  /// larger one nearby). Unset for regions and with older names databases.
+  @$pb.TagNumber(6)
+  $core.String get area => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set area($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasArea() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearArea() => $_clearField(6);
 }
 
 class SearchPlacesRequest extends $pb.GeneratedMessage {
@@ -3720,6 +3734,142 @@ class SearchPlacesResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(1)
   $pb.PbList<Place> get places => $_getList(0);
+}
+
+class GetLocationNameRequest extends $pb.GeneratedMessage {
+  factory GetLocationNameRequest({
+    LatLon? position,
+  }) {
+    final result = create();
+    if (position != null) result.position = position;
+    return result;
+  }
+
+  GetLocationNameRequest._();
+
+  factory GetLocationNameRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetLocationNameRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetLocationNameRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOM<LatLon>(1, _omitFieldNames ? '' : 'position',
+        subBuilder: LatLon.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetLocationNameRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetLocationNameRequest copyWith(
+          void Function(GetLocationNameRequest) updates) =>
+      super.copyWith((message) => updates(message as GetLocationNameRequest))
+          as GetLocationNameRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetLocationNameRequest create() => GetLocationNameRequest._();
+  @$core.override
+  GetLocationNameRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetLocationNameRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetLocationNameRequest>(create);
+  static GetLocationNameRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  LatLon get position => $_getN(0);
+  @$pb.TagNumber(1)
+  set position(LatLon value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPosition() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPosition() => $_clearField(1);
+  @$pb.TagNumber(1)
+  LatLon ensurePosition() => $_ensure(0);
+}
+
+class LocationName extends $pb.GeneratedMessage {
+  factory LocationName({
+    $core.String? street,
+    $core.String? locality,
+    $core.String? district,
+  }) {
+    final result = create();
+    if (street != null) result.street = street;
+    if (locality != null) result.locality = locality;
+    if (district != null) result.district = district;
+    return result;
+  }
+
+  LocationName._();
+
+  factory LocationName.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory LocationName.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'LocationName',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'street')
+    ..aOS(2, _omitFieldNames ? '' : 'locality')
+    ..aOS(3, _omitFieldNames ? '' : 'district')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LocationName clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LocationName copyWith(void Function(LocationName) updates) =>
+      super.copyWith((message) => updates(message as LocationName))
+          as LocationName;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static LocationName create() => LocationName._();
+  @$core.override
+  LocationName createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static LocationName getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<LocationName>(create);
+  static LocationName? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get street => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set street($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasStreet() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearStreet() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get locality => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set locality($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasLocality() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLocality() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get district => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set district($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasDistrict() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearDistrict() => $_clearField(3);
 }
 
 class ComputeRouteRequest extends $pb.GeneratedMessage {

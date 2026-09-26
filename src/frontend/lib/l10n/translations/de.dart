@@ -196,6 +196,12 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.mapsNoPosition: 'Keine GPS-Position',
   AppTextKey.mapsRouteError: 'Route konnte nicht berechnet werden',
   AppTextKey.mapsSearchNoResults: 'Keine Treffer',
+  AppTextKey.mapsTypePlace: 'Ort',
+  AppTextKey.mapsTypeRegion: 'Gebiet',
+  AppTextKey.mapsTypePoi: 'POI',
+  AppTextKey.mapsTypePeak: 'Berg',
+  AppTextKey.mapsTypeWater: 'Gewässer',
+  AppTextKey.mapsTypeStreet: 'Straße',
   AppTextKey.mapsNoMapData: 'Keine Kartendaten installiert',
   AppTextKey.mapsMapUnavailable: 'Die Karte kann nicht angezeigt werden',
 };

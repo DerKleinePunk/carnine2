@@ -58,7 +58,18 @@ GeocoderResult placeFromProto(pb.Place place) => GeocoderResult(
   zoom: place.zoom,
   type: _placeTypeName(place.type),
   detail: place.hasDetail() ? place.detail : null,
+  area: place.hasArea() ? place.area : null,
 );
+
+/// `null` when the backend knows nothing at the position.
+LocationName? locationNameFromProto(pb.LocationName name) {
+  final result = LocationName(
+    street: name.hasStreet() ? name.street : null,
+    locality: name.hasLocality() ? name.locality : null,
+    district: name.hasDistrict() ? name.district : null,
+  );
+  return result.isEmpty ? null : result;
+}
 
 String _placeTypeName(pb.PlaceType type) => switch (type) {
   pb.PlaceType.PLACE_TYPE_POI => 'poi',

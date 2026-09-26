@@ -193,6 +193,12 @@ const Map<AppTextKey, String> ptTranslations = <AppTextKey, String>{
   AppTextKey.mapsNoPosition: 'Sem posição GPS',
   AppTextKey.mapsRouteError: 'Não foi possível calcular a rota',
   AppTextKey.mapsSearchNoResults: 'Sem resultados',
+  AppTextKey.mapsTypePlace: 'Local',
+  AppTextKey.mapsTypeRegion: 'Região',
+  AppTextKey.mapsTypePoi: 'POI',
+  AppTextKey.mapsTypePeak: 'Pico',
+  AppTextKey.mapsTypeWater: 'Água',
+  AppTextKey.mapsTypeStreet: 'Rua',
   AppTextKey.mapsNoMapData: 'Nenhum dado de mapa instalado',
   AppTextKey.mapsMapUnavailable: 'Não é possível exibir o mapa',
 };

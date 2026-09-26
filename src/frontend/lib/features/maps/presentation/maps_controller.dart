@@ -31,6 +31,7 @@ class MapsController extends ChangeNotifier {
     map = LocalMapController(
       routingProvider: _routing,
       positionSource: _positions,
+      reverseGeocoder: GrpcReverseGeocoder(_channel),
     );
     unawaited(_pollStatus());
     _statusTimer = Timer.periodic(statusInterval, (_) => _pollStatus());

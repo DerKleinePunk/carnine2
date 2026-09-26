@@ -89,7 +89,24 @@ void main() {
     );
     expect(place.type, 'transportation_name');
     expect(place.detail, isNull);
+    expect(place.area, isNull);
     expect(place.zoom, 12);
+  });
+
+  test('placeFromProto keeps the area the hit belongs to', () {
+    final place = placeFromProto(
+      pb.Place(name: 'Hauptstraße', area: 'Alsfeld'),
+    );
+    expect(place.area, 'Alsfeld');
+  });
+
+  test('locationNameFromProto is null when the backend knows nothing', () {
+    expect(locationNameFromProto(pb.LocationName()), isNull);
+    final name = locationNameFromProto(
+      pb.LocationName(street: 'Obergasse', locality: 'Alsfeld'),
+    );
+    expect(name?.label, 'Obergasse, Alsfeld');
+    expect(name?.district, isNull);
   });
 
   group('navigationFailureFrom', () {

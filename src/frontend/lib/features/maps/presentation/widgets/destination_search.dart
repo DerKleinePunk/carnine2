@@ -1,8 +1,10 @@
 import 'package:carnine_frontend/core/keyboard/on_screen_text_field.dart';
+import 'package:carnine_frontend/features/maps/presentation/format/route_format.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:carnine_frontend/styles/colors.dart';
 import 'package:carnine_frontend/styles/text_styles.dart';
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart' show Distance;
 import 'package:local_map/local_map.dart';
 
 /// Destination search on the on-screen keyboard, with the hits below.
@@ -17,11 +19,15 @@ class DestinationSearch extends StatefulWidget {
     required this.onChanged,
     required this.onSelected,
     this.message,
+    this.near,
     super.key,
   });
 
   final List<GeocoderResult> results;
   final bool searching;
+
+  /// Own position, for the distance in each row; none without a fix.
+  final LatLng? near;
   final ValueChanged<String> onChanged;
   final ValueChanged<GeocoderResult> onSelected;
 
@@ -78,6 +84,7 @@ class _DestinationSearchState extends State<DestinationSearch> {
               results: widget.results,
               searching: widget.searching,
               message: widget.message,
+              near: widget.near,
               onSelected: _select,
             ),
         ],
@@ -114,6 +121,7 @@ class _Results extends StatelessWidget {
     required this.results,
     required this.searching,
     required this.message,
+    required this.near,
     required this.onSelected,
   });
 
@@ -123,6 +131,7 @@ class _Results extends StatelessWidget {
   final List<GeocoderResult> results;
   final bool searching;
   final String? message;
+  final LatLng? near;
   final ValueChanged<GeocoderResult> onSelected;
 
   @override
@@ -167,21 +176,30 @@ class _Results extends StatelessWidget {
       padding: EdgeInsets.zero,
       itemExtent: _rowHeight,
       itemCount: results.length,
-      itemBuilder: (context, i) =>
-          _ResultRow(place: results[i], onTap: () => onSelected(results[i])),
+      itemBuilder: (context, i) => _ResultRow(
+        place: results[i],
+        near: near,
+        onTap: () => onSelected(results[i]),
+      ),
     );
   }
 }
 
 class _ResultRow extends StatelessWidget {
-  const _ResultRow({required this.place, required this.onTap});
+  const _ResultRow({
+    required this.place,
+    required this.near,
+    required this.onTap,
+  });
 
   final GeocoderResult place;
+  final LatLng? near;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final detail = place.detail;
+    final l10n = AppLocalizations.of(context);
+    final detail = _line(l10n);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -206,15 +224,14 @@ class _ResultRow extends StatelessWidget {
                         color: AppColors.onSurface,
                       ),
                     ),
-                    if (detail != null)
-                      Text(
-                        detail,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.labelLarge.copyWith(
-                          color: AppColors.onSurfaceVariant,
-                        ),
+                    Text(
+                      detail,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.labelLarge.copyWith(
+                        color: AppColors.onSurfaceVariant,
                       ),
+                    ),
                   ],
                 ),
               ),
@@ -224,6 +241,36 @@ class _ResultRow extends StatelessWidget {
       ),
     );
   }
+
+  /// "Straße · Alsfeld · 3,2 km": without the area the thousand
+  /// Hauptstraßen could not be told apart.
+  String _line(AppLocalizations l10n) {
+    final from = near;
+    final String distance;
+    if (from == null) {
+      distance = '';
+    } else {
+      final (value, unit) = formatRouteDistance(
+        const Distance()(from, place.location),
+        decimalSeparator: l10n.decimalSeparator,
+      );
+      distance = '$value $unit';
+    }
+    return [
+      l10n.text(_typeKey(place)),
+      ?place.area,
+      if (distance.isNotEmpty) distance,
+    ].join(' · ');
+  }
+
+  static AppTextKey _typeKey(GeocoderResult place) => switch (place.type) {
+    _ when place.isRegion => AppTextKey.mapsTypeRegion,
+    'poi' => AppTextKey.mapsTypePoi,
+    'mountain_peak' => AppTextKey.mapsTypePeak,
+    'water_name' => AppTextKey.mapsTypeWater,
+    'transportation_name' => AppTextKey.mapsTypeStreet,
+    _ => AppTextKey.mapsTypePlace,
+  };
 
   static IconData _icon(String type) => switch (type) {
     'poi' => Icons.place,

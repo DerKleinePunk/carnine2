@@ -1121,9 +1121,11 @@ const Place$json = {
       '10': 'type'
     },
     {'1': 'detail', '3': 5, '4': 1, '5': 9, '9': 0, '10': 'detail', '17': true},
+    {'1': 'area', '3': 6, '4': 1, '5': 9, '9': 1, '10': 'area', '17': true},
   ],
   '8': [
     {'1': '_detail'},
+    {'1': '_area'},
   ],
 };
 
@@ -1131,8 +1133,8 @@ const Place$json = {
 final $typed_data.Uint8List placeDescriptor = $convert.base64Decode(
     'CgVQbGFjZRISCgRuYW1lGAEgASgJUgRuYW1lEisKCGxvY2F0aW9uGAIgASgLMg8uY2FybmluZS'
     '5MYXRMb25SCGxvY2F0aW9uEhIKBHpvb20YAyABKA1SBHpvb20SJgoEdHlwZRgEIAEoDjISLmNh'
-    'cm5pbmUuUGxhY2VUeXBlUgR0eXBlEhsKBmRldGFpbBgFIAEoCUgAUgZkZXRhaWyIAQFCCQoHX2'
-    'RldGFpbA==');
+    'cm5pbmUuUGxhY2VUeXBlUgR0eXBlEhsKBmRldGFpbBgFIAEoCUgAUgZkZXRhaWyIAQESFwoEYX'
+    'JlYRgGIAEoCUgBUgRhcmVhiAEBQgkKB19kZXRhaWxCBwoFX2FyZWE=');
 
 @$core.Deprecated('Use searchPlacesRequestDescriptor instead')
 const SearchPlacesRequest$json = {
@@ -1181,6 +1183,69 @@ const SearchPlacesResponse$json = {
 final $typed_data.Uint8List searchPlacesResponseDescriptor = $convert.base64Decode(
     'ChRTZWFyY2hQbGFjZXNSZXNwb25zZRImCgZwbGFjZXMYASADKAsyDi5jYXJuaW5lLlBsYWNlUg'
     'ZwbGFjZXM=');
+
+@$core.Deprecated('Use getLocationNameRequestDescriptor instead')
+const GetLocationNameRequest$json = {
+  '1': 'GetLocationNameRequest',
+  '2': [
+    {
+      '1': 'position',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.carnine.LatLon',
+      '9': 0,
+      '10': 'position',
+      '17': true
+    },
+  ],
+  '8': [
+    {'1': '_position'},
+  ],
+};
+
+/// Descriptor for `GetLocationNameRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getLocationNameRequestDescriptor =
+    $convert.base64Decode(
+        'ChZHZXRMb2NhdGlvbk5hbWVSZXF1ZXN0EjAKCHBvc2l0aW9uGAEgASgLMg8uY2FybmluZS5MYX'
+        'RMb25IAFIIcG9zaXRpb26IAQFCCwoJX3Bvc2l0aW9u');
+
+@$core.Deprecated('Use locationNameDescriptor instead')
+const LocationName$json = {
+  '1': 'LocationName',
+  '2': [
+    {'1': 'street', '3': 1, '4': 1, '5': 9, '9': 0, '10': 'street', '17': true},
+    {
+      '1': 'locality',
+      '3': 2,
+      '4': 1,
+      '5': 9,
+      '9': 1,
+      '10': 'locality',
+      '17': true
+    },
+    {
+      '1': 'district',
+      '3': 3,
+      '4': 1,
+      '5': 9,
+      '9': 2,
+      '10': 'district',
+      '17': true
+    },
+  ],
+  '8': [
+    {'1': '_street'},
+    {'1': '_locality'},
+    {'1': '_district'},
+  ],
+};
+
+/// Descriptor for `LocationName`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List locationNameDescriptor = $convert.base64Decode(
+    'CgxMb2NhdGlvbk5hbWUSGwoGc3RyZWV0GAEgASgJSABSBnN0cmVldIgBARIfCghsb2NhbGl0eR'
+    'gCIAEoCUgBUghsb2NhbGl0eYgBARIfCghkaXN0cmljdBgDIAEoCUgCUghkaXN0cmljdIgBAUIJ'
+    'Cgdfc3RyZWV0QgsKCV9sb2NhbGl0eUILCglfZGlzdHJpY3Q=');
 
 @$core.Deprecated('Use computeRouteRequestDescriptor instead')
 const ComputeRouteRequest$json = {

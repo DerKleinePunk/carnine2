@@ -20,6 +20,8 @@ dependencies:
   logging: ^1.2.0
   window_manager: ^0.5.1
   characters: ^1.4.1
+  # Entfernungen (Distance); dieselbe Version wie in local_map.
+  latlong2: ^0.10.1
   # Offline-Karte (MBTiles, Navigationsmodus), eigenes Open-Source-Paket.
   # Die drei dependency_overrides unten sind Pflicht, siehe dessen README.
   local_map:
