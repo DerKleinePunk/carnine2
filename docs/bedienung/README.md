@@ -1,7 +1,7 @@
 # Bedienungsanleitung carnine2
 
 Für Entwickler und Tester. Beschreibt, was man auf dem Bildschirm sieht und
-was jedes Bedienelement tut – Stand **0.4.0** (2026-09-25). Die Anleitung für
+was jedes Bedienelement tut – Stand **0.5.0** (2026-09-26). Die Anleitung für
 Messebesucher entsteht getrennt.
 
 Wenn sich im Frontend etwas an der Bedienung ändert, gehört die Änderung
@@ -11,7 +11,7 @@ dieser Seiten in denselben Commit.
 
 1. [Aufbau des Bildschirms](#aufbau-des-bildschirms) (diese Seite)
 2. [Medien](medien.md) – Player, Warteschlange, Bibliothek, Playlists, USB-Import
-3. [Karten](karte.md) – Zielsuche, Route, Navigationsmodus
+3. [Karten](karte.md) – Zielsuche, Route, Navigationsmodus, Standort
 4. [Optionen](optionen.md) – Sprache, Logs, Neustart, Beenden
 5. [Bildschirmtastatur](tastatur.md)
 6. [Verhalten über Neustarts und ohne Backend](verhalten.md) – was gespeichert
