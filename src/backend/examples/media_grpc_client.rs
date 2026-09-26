@@ -17,11 +17,12 @@ use carnine::{
     audio_service_client::AudioServiceClient, get_cover_art_request::Target as CoverArtTarget,
     media_service_client::MediaServiceClient, navigation_service_client::NavigationServiceClient,
     system_service_client::SystemServiceClient, AddPlaylistEntryRequest, ComputeRouteRequest,
-    CreatePlaylistRequest, Empty, FixState, GetCoverArtRequest, GetPlaylistRequest,
-    GetReplayRouteRequest, ImportMusicVolumeRequest, LatLon, LibraryEventType, NavigationStatus,
-    PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PositionFix, PositionSourceKind,
-    RepeatMode, RescanMediaRequest, Route, SearchMediaRequest, SearchPlacesRequest,
-    SetRepeatModeRequest, SetShuffleModeRequest, SetTrackRecordingRequest, SystemMetrics, UiState,
+    CreatePlaylistRequest, Empty, FixState, GetCoverArtRequest, GetLocationNameRequest,
+    GetPlaylistRequest, GetReplayRouteRequest, ImportMusicVolumeRequest, LatLon, LibraryEventType,
+    NavigationStatus, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PositionFix,
+    PositionSourceKind, RepeatMode, RescanMediaRequest, Route, SearchMediaRequest,
+    SearchPlacesRequest, SetRepeatModeRequest, SetShuffleModeRequest, SetTrackRecordingRequest,
+    SystemMetrics, UiState,
 };
 
 #[tokio::main]
@@ -78,6 +79,7 @@ async fn main() -> Result<()> {
         "nav-status" => get_navigation_status(&endpoint).await?,
         "positions" => stream_positions(&endpoint).await?,
         "places" => search_places(&endpoint).await?,
+        "location-name" => location_name(&endpoint).await?,
         "route" => compute_route(&endpoint).await?,
         "replay-route" => replay_route(&endpoint).await?,
         "track-recording" => set_track_recording(&endpoint).await?,
@@ -464,14 +466,33 @@ async fn search_places(endpoint: &str) -> Result<()> {
             .map(|location| (location.latitude, location.longitude))
             .unwrap_or_default();
         println!(
-            "{:<22} {:<40} {latitude:.5},{longitude:.5} z{} {}",
+            "{:<22} {:<40} {:<24} {latitude:.5},{longitude:.5} z{} {}",
             format!("{:?}", place.r#type()),
             place.name,
+            place.area.as_deref().unwrap_or("-"),
             place.zoom,
             place.detail.as_deref().unwrap_or("")
         );
     }
     println!("{} hit(s)", response.places.len());
+    Ok(())
+}
+
+/// `location-name [lat,lon]`: street, locality and district at a point, or
+/// at the backend's current fix.
+async fn location_name(endpoint: &str) -> Result<()> {
+    let position = env::args()
+        .nth(3)
+        .map(|value| parse_lat_lon(&value))
+        .transpose()?;
+    let mut client = NavigationServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let name = client
+        .get_location_name(GetLocationNameRequest { position })
+        .await?
+        .into_inner();
+    println!("street:   {}", name.street.as_deref().unwrap_or("-"));
+    println!("locality: {}", name.locality.as_deref().unwrap_or("-"));
+    println!("district: {}", name.district.as_deref().unwrap_or("-"));
     Ok(())
 }
 

@@ -2,6 +2,7 @@
 //! (ADR-021).
 
 pub mod clock;
+pub mod location_name;
 pub mod nmea;
 pub mod places;
 pub mod position;

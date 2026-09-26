@@ -12,15 +12,16 @@ use tokio_stream::wrappers::WatchStream;
 use tonic::{Request, Response, Status};
 use tracing::{info, warn};
 
+use super::location_name;
 use super::places::{self, PlaceRecord};
 use super::position::{Fix, PositionHub, PositionState, SourceKind};
 use super::track::TrackRecorder;
 use super::valhalla::{RouteData, RoutingError, Valhalla};
 use crate::carnine::navigation_service_server::NavigationService;
 use crate::carnine::{
-    ComputeRouteRequest, Empty, FixState, GetReplayRouteRequest, LatLon, Maneuver,
-    NavigationStatus, Place, PlaceType, PositionFix, PositionSourceKind, Route,
-    SearchPlacesRequest, SearchPlacesResponse, ServiceVersion, SetTrackRecordingRequest,
+    ComputeRouteRequest, Empty, FixState, GetLocationNameRequest, GetReplayRouteRequest, LatLon,
+    LocationName, Maneuver, NavigationStatus, Place, PlaceType, PositionFix, PositionSourceKind,
+    Route, SearchPlacesRequest, SearchPlacesResponse, ServiceVersion, SetTrackRecordingRequest,
 };
 
 /// How long the router probe may take before it counts as unavailable. The
@@ -240,6 +241,7 @@ fn place(record: PlaceRecord) -> Place {
         zoom: record.zoom,
         r#type: place_type(&record.kind) as i32,
         detail: record.detail.filter(|detail| !detail.is_empty()),
+        area: record.area.filter(|area| !area.is_empty()),
         name: record.name,
     }
 }
@@ -326,6 +328,39 @@ impl NavigationService for NavigationServiceImpl {
                 })?;
         Ok(Response::new(SearchPlacesResponse {
             places: hits.into_iter().map(place).collect(),
+        }))
+    }
+
+    async fn get_location_name(
+        &self,
+        request: Request<GetLocationNameRequest>,
+    ) -> Result<Response<LocationName>, Status> {
+        let Some(database) = self.names_database.clone() else {
+            return Err(Status::unavailable("no names database configured"));
+        };
+        let (lat, lon) = match request.into_inner().position {
+            Some(position) => coordinate(Some(position), "position")?,
+            None => match self.positions.current().fix {
+                Some(fix) if fix.valid => (fix.latitude, fix.longitude),
+                _ => {
+                    return Err(Status::failed_precondition(
+                        "no position given and no GPS fix",
+                    ))
+                }
+            },
+        };
+        let name = tokio::task::spawn_blocking(move || location_name::name_at(&database, lat, lon))
+            .await
+            .map_err(|err| Status::internal(format!("location lookup panicked: {err}")))?
+            .map_err(|err| {
+                warn!(error = %format!("{err:#}"), "location lookup failed");
+                Status::unavailable(format!("location lookup failed: {err:#}"))
+            })?
+            .unwrap_or_default();
+        Ok(Response::new(LocationName {
+            street: name.street,
+            locality: name.locality,
+            district: name.district,
         }))
     }
 
@@ -608,10 +643,49 @@ mod tests {
             zoom: 12,
             kind: "place".to_string(),
             detail: Some(String::new()),
+            area: Some("Vogelsbergkreis".to_string()),
         });
         assert_eq!(wire.r#type, PlaceType::Place as i32);
         assert_eq!(wire.detail, None, "an empty detail is left out");
         assert_eq!(wire.zoom, 12);
+        assert_eq!(wire.area.as_deref(), Some("Vogelsbergkreis"));
+    }
+
+    #[tokio::test]
+    async fn location_name_needs_a_database_and_a_position() {
+        let service = NavigationServiceImpl::new(
+            PositionHub::new(SourceKind::None),
+            "http://127.0.0.1:9".to_string(),
+            String::new(),
+        );
+        let status = service
+            .get_location_name(Request::new(GetLocationNameRequest { position: None }))
+            .await
+            .expect_err("no database configured");
+        assert_eq!(status.code(), tonic::Code::Unavailable);
+
+        let db = super::places::tests::TempDb::new();
+        rusqlite::Connection::open(&db.path)
+            .expect("create db")
+            .execute_batch("CREATE TABLE names_meta (id INTEGER PRIMARY KEY)")
+            .expect("schema");
+        let service = service.with_names_database(Some(db.path.clone()));
+        let status = service
+            .get_location_name(Request::new(GetLocationNameRequest { position: None }))
+            .await
+            .expect_err("no fix");
+        assert_eq!(status.code(), tonic::Code::FailedPrecondition);
+        let name = service
+            .get_location_name(Request::new(GetLocationNameRequest {
+                position: Some(LatLon {
+                    latitude: 50.75,
+                    longitude: 9.27,
+                }),
+            }))
+            .await
+            .expect("an old database answers with nothing")
+            .into_inner();
+        assert_eq!(name, LocationName::default());
     }
 
     #[tokio::test]

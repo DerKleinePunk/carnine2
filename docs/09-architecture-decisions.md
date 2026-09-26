@@ -1053,7 +1053,13 @@ Add `NavigationService` to `carnine.proto`:
   is active (none, serial GPS mouse, NMEA replay) and whether it has a fix.
 - `SearchPlaces` - name search over `germany_names.db` (rusqlite, FTS5).
   `near` is part of the request from the start; the backend may ignore it
-  in v1.
+  in v1. Since 2026-09-26 ranked as `OfflineGeocoder` in local_map 0.5.0,
+  with each hit's `area` (the locality it belongs to) and `near` searching
+  50 km around first, given a names database built since September 2026.
+- `GetLocationName` (added 2026-09-26) - street, locality and district at a
+  position (default: current fix), for "where am I" without a route. The
+  library's `ReverseGeocoder` interface in the frontend asks it, so the
+  names database keeps a single reader, the backend.
 - `ComputeRoute` - origin (default: current fix) to destination, with the
   instruction language (BCP-47, default `de-DE`).
 - `GetReplayRoute` - the route of the running NMEA replay, map-matched with
