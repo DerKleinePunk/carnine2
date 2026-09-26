@@ -176,6 +176,7 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.mapsSearchPlaceholder: 'Add meg az úticélt',
   AppTextKey.mapsNextTurnLabel: 'Következő kanyar',
   AppTextKey.mapsArrivalLabel: 'Érkezés',
+  AppTextKey.mapsArrivalTomorrowLabel: 'Érkezés holnap',
   AppTextKey.mapsDurationLabel: 'Időtartam',
   AppTextKey.mapsDistanceLabel: 'Távolság',
   AppTextKey.mapsCancelRouteAction: 'MÉGSE',

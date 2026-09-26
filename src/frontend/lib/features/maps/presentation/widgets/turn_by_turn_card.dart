@@ -1,3 +1,4 @@
+import 'package:carnine_frontend/features/maps/presentation/format/route_format.dart';
 import 'package:carnine_frontend/features/maps/presentation/widgets/maneuver_icon.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:carnine_frontend/styles/colors.dart';
@@ -19,7 +20,10 @@ class TurnByTurnCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final (value, unit) = formatDistance(meters);
+    final (value, unit) = formatRouteDistance(
+      meters,
+      decimalSeparator: l10n.decimalSeparator,
+    );
     // Street name if the router has one, else the whole instruction.
     final names = maneuver.streetNames;
     final target = names.isNotEmpty ? names.first : maneuver.instruction;

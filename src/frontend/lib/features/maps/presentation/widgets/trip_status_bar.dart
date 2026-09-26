@@ -1,3 +1,4 @@
+import 'package:carnine_frontend/features/maps/presentation/format/route_format.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:carnine_frontend/styles/colors.dart';
 import 'package:carnine_frontend/styles/text_styles.dart';
@@ -30,7 +31,11 @@ class TripStatusBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final now = (clock ?? DateTime.now()).toLocal();
-    final arrival = now.add(Duration(seconds: remainingSeconds));
+    final (arrival, days) = formatArrival(now, remainingSeconds);
+    final (distance, distanceUnit) = formatRouteDistance(
+      remainingMeters,
+      decimalSeparator: l10n.decimalSeparator,
+    );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
@@ -49,8 +54,13 @@ class TripStatusBar extends StatelessWidget {
       child: Row(
         children: [
           _TripStat(
-            label: l10n.text(AppTextKey.mapsArrivalLabel),
-            value: _hhmm(arrival),
+            label: l10n.text(
+              days == 1
+                  ? AppTextKey.mapsArrivalTomorrowLabel
+                  : AppTextKey.mapsArrivalLabel,
+            ),
+            // Two days and more (rare within Germany) as "+2".
+            parts: [(arrival, days > 1 ? '+$days' : null)],
           ),
           const SizedBox(width: 20),
           Container(
@@ -61,8 +71,7 @@ class TripStatusBar extends StatelessWidget {
           const SizedBox(width: 20),
           _TripStat(
             label: l10n.text(AppTextKey.mapsDurationLabel),
-            value: '${(remainingSeconds / 60).round()}',
-            unit: 'min',
+            parts: formatRouteDuration(remainingSeconds),
             valueColor: AppColors.primary,
           ),
           const SizedBox(width: 28),
@@ -70,8 +79,7 @@ class TripStatusBar extends StatelessWidget {
           const SizedBox(width: 28),
           _TripStat(
             label: l10n.text(AppTextKey.mapsDistanceLabel),
-            value: (remainingMeters / 1000).toStringAsFixed(1),
-            unit: 'km',
+            parts: [(distance, distanceUnit)],
             alignEnd: true,
           ),
           const SizedBox(width: 20),
@@ -80,9 +88,6 @@ class TripStatusBar extends StatelessWidget {
       ),
     );
   }
-
-  static String _hhmm(DateTime t) =>
-      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 }
 
 class _CancelButton extends StatelessWidget {
@@ -114,15 +119,15 @@ class _CancelButton extends StatelessWidget {
 class _TripStat extends StatelessWidget {
   const _TripStat({
     required this.label,
-    required this.value,
-    this.unit,
+    required this.parts,
     this.valueColor = AppColors.onSurface,
     this.alignEnd = false,
   });
 
   final String label;
-  final String value;
-  final String? unit;
+
+  /// Value/unit pairs, several for "4 h 49 min"; the unit may be missing.
+  final List<(String, String?)> parts;
   final Color valueColor;
   final bool alignEnd;
 
@@ -152,16 +157,18 @@ class _TripStat extends StatelessWidget {
                   : null,
             ),
             children: [
-              TextSpan(text: value),
-              if (unit != null)
-                TextSpan(
-                  text: ' $unit',
-                  style: AppTextStyles.bodyLarge.copyWith(
-                    color: AppColors.onSurfaceVariant,
-                    fontWeight: FontWeight.w300,
-                    fontSize: 13,
+              for (final (index, (value, unit)) in parts.indexed) ...[
+                TextSpan(text: index == 0 ? value : ' $value'),
+                if (unit != null)
+                  TextSpan(
+                    text: ' $unit',
+                    style: AppTextStyles.bodyLarge.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                      fontWeight: FontWeight.w300,
+                      fontSize: 13,
+                    ),
                   ),
-                ),
+              ],
             ],
           ),
         ),

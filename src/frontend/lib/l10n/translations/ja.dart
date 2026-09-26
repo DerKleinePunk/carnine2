@@ -167,6 +167,7 @@ const Map<AppTextKey, String> jaTranslations = <AppTextKey, String>{
   AppTextKey.mapsSearchPlaceholder: '目的地を入力',
   AppTextKey.mapsNextTurnLabel: '次の曲がり角',
   AppTextKey.mapsArrivalLabel: '到着',
+  AppTextKey.mapsArrivalTomorrowLabel: '明日到着',
   AppTextKey.mapsDurationLabel: '所要時間',
   AppTextKey.mapsDistanceLabel: '距離',
   AppTextKey.mapsCancelRouteAction: 'キャンセル',

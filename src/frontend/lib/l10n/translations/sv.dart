@@ -174,6 +174,7 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.mapsSearchPlaceholder: 'Ange destination',
   AppTextKey.mapsNextTurnLabel: 'Nästa sväng',
   AppTextKey.mapsArrivalLabel: 'Ankomst',
+  AppTextKey.mapsArrivalTomorrowLabel: 'Ankomst i morgon',
   AppTextKey.mapsDurationLabel: 'Varaktighet',
   AppTextKey.mapsDistanceLabel: 'Avstånd',
   AppTextKey.mapsCancelRouteAction: 'AVBRYT',

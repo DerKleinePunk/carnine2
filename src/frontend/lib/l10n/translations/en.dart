@@ -173,6 +173,7 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.mapsSearchPlaceholder: 'Enter destination',
   AppTextKey.mapsNextTurnLabel: 'Next Turn',
   AppTextKey.mapsArrivalLabel: 'Arrival',
+  AppTextKey.mapsArrivalTomorrowLabel: 'Arrival tomorrow',
   AppTextKey.mapsDurationLabel: 'Duration',
   AppTextKey.mapsDistanceLabel: 'Distance',
   AppTextKey.mapsCancelRouteAction: 'CANCEL',

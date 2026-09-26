@@ -91,6 +91,13 @@ class AppLocalizations {
     return languageValues?[key] ?? fallbackValues?[key] ?? key.name;
   }
 
+  /// Decimal separator of the language: a point in English, Chinese and
+  /// Japanese, a comma in all other supported languages.
+  String get decimalSeparator => switch (locale.languageCode) {
+    'en' || 'zh' || 'ja' => '.',
+    _ => ',',
+  };
+
   String dashboardContentFor(String section) {
     return text(
       AppTextKey.dashboardContentFor,

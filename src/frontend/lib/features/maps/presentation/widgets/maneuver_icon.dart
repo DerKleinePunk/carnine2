@@ -22,13 +22,3 @@ IconData maneuverIcon(int? type) => switch (type) {
   28 || 29 => Icons.directions_boat,
   _ => Icons.straight,
 };
-
-/// Distance for the turn card: metres rounded to 10 below 1 km, else km
-/// with one decimal. Returns value and unit separately for the two-style
-/// layout of the template.
-(String, String) formatDistance(double meters) {
-  if (meters < 1000) {
-    return ('${(meters / 10).round() * 10}', 'm');
-  }
-  return ((meters / 1000).toStringAsFixed(1), 'km');
-}

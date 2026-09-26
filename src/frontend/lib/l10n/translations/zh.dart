@@ -162,6 +162,7 @@ const Map<AppTextKey, String> zhTranslations = <AppTextKey, String>{
   AppTextKey.mapsSearchPlaceholder: '输入目的地',
   AppTextKey.mapsNextTurnLabel: '下一个转弯',
   AppTextKey.mapsArrivalLabel: '到达时间',
+  AppTextKey.mapsArrivalTomorrowLabel: '明天到达',
   AppTextKey.mapsDurationLabel: '时长',
   AppTextKey.mapsDistanceLabel: '距离',
   AppTextKey.mapsCancelRouteAction: '取消',

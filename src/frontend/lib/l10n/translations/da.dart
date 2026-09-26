@@ -178,6 +178,7 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.mapsSearchPlaceholder: 'Angiv destination',
   AppTextKey.mapsNextTurnLabel: 'Næste sving',
   AppTextKey.mapsArrivalLabel: 'Ankomst',
+  AppTextKey.mapsArrivalTomorrowLabel: 'Ankomst i morgen',
   AppTextKey.mapsDurationLabel: 'Varighed',
   AppTextKey.mapsDistanceLabel: 'Afstand',
   AppTextKey.mapsCancelRouteAction: 'ANNULLER',

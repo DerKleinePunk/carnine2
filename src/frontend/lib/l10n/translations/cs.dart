@@ -175,6 +175,7 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.mapsSearchPlaceholder: 'Zadejte cíl',
   AppTextKey.mapsNextTurnLabel: 'Další zatáčka',
   AppTextKey.mapsArrivalLabel: 'Příjezd',
+  AppTextKey.mapsArrivalTomorrowLabel: 'Příjezd zítra',
   AppTextKey.mapsDurationLabel: 'Doba trvání',
   AppTextKey.mapsDistanceLabel: 'Vzdálenost',
   AppTextKey.mapsCancelRouteAction: 'ZRUŠIT',

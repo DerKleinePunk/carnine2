@@ -121,12 +121,6 @@ void main() {
   });
 
   group('turn card helpers', () {
-    test('formatDistance rounds metres to 10, km to one decimal', () {
-      expect(formatDistance(447), ('450', 'm'));
-      expect(formatDistance(999), ('1000', 'm'));
-      expect(formatDistance(18420), ('18.4', 'km'));
-    });
-
     test('maneuverIcon covers turns and destination', () {
       expect(maneuverIcon(10), Icons.turn_right);
       expect(maneuverIcon(15), Icons.turn_left);

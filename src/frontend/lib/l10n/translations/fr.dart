@@ -182,6 +182,7 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.mapsSearchPlaceholder: 'Entrer une destination',
   AppTextKey.mapsNextTurnLabel: 'Prochain virage',
   AppTextKey.mapsArrivalLabel: 'Arrivée',
+  AppTextKey.mapsArrivalTomorrowLabel: 'Arrivée demain',
   AppTextKey.mapsDurationLabel: 'Durée',
   AppTextKey.mapsDistanceLabel: 'Distance',
   AppTextKey.mapsCancelRouteAction: 'ANNULER',

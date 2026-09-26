@@ -179,6 +179,7 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.mapsSearchPlaceholder: 'Ziel eingeben',
   AppTextKey.mapsNextTurnLabel: 'Nächste Abbiegung',
   AppTextKey.mapsArrivalLabel: 'Ankunft',
+  AppTextKey.mapsArrivalTomorrowLabel: 'Ankunft morgen',
   AppTextKey.mapsDurationLabel: 'Dauer',
   AppTextKey.mapsDistanceLabel: 'Distanz',
   AppTextKey.mapsCancelRouteAction: 'ABBRECHEN',

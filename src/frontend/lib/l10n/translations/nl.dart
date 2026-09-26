@@ -175,6 +175,7 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.mapsSearchPlaceholder: 'Bestemming invoeren',
   AppTextKey.mapsNextTurnLabel: 'Volgende afslag',
   AppTextKey.mapsArrivalLabel: 'Aankomst',
+  AppTextKey.mapsArrivalTomorrowLabel: 'Aankomst morgen',
   AppTextKey.mapsDurationLabel: 'Duur',
   AppTextKey.mapsDistanceLabel: 'Afstand',
   AppTextKey.mapsCancelRouteAction: 'ANNULEREN',

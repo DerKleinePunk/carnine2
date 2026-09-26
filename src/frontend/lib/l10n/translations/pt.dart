@@ -176,6 +176,7 @@ const Map<AppTextKey, String> ptTranslations = <AppTextKey, String>{
   AppTextKey.mapsSearchPlaceholder: 'Inserir destino',
   AppTextKey.mapsNextTurnLabel: 'Próxima curva',
   AppTextKey.mapsArrivalLabel: 'Chegada',
+  AppTextKey.mapsArrivalTomorrowLabel: 'Chegada amanhã',
   AppTextKey.mapsDurationLabel: 'Duração',
   AppTextKey.mapsDistanceLabel: 'Distância',
   AppTextKey.mapsCancelRouteAction: 'CANCELAR',

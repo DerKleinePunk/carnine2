@@ -177,6 +177,7 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.mapsSearchPlaceholder: 'Varış noktası girin',
   AppTextKey.mapsNextTurnLabel: 'Sıradaki dönüş',
   AppTextKey.mapsArrivalLabel: 'Varış',
+  AppTextKey.mapsArrivalTomorrowLabel: 'Varış yarın',
   AppTextKey.mapsDurationLabel: 'Süre',
   AppTextKey.mapsDistanceLabel: 'Mesafe',
   AppTextKey.mapsCancelRouteAction: 'İPTAL',

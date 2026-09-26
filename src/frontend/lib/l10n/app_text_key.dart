@@ -164,6 +164,7 @@ enum AppTextKey {
   mapsSearchPlaceholder,
   mapsNextTurnLabel,
   mapsArrivalLabel,
+  mapsArrivalTomorrowLabel,
   mapsDurationLabel,
   mapsDistanceLabel,
   mapsCancelRouteAction,
