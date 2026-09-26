@@ -9,7 +9,8 @@ set -euo pipefail
 #
 # The source folder (CARNINE_MAPS_DIR, default ~/develop/carnine-maps) holds:
 #   hessen.mbtiles       vector tiles, installed as map.mbtiles
-#   germany_names.db     place names for the search
+#   germany_names.db     place names for the search (CARNINE_NAMES_DATABASE);
+#                        it must come from the same tiles, see docs/07
 #   GPS-Adnan-Tour.txt   NMEA tour the trade fair stand replays
 #   valhalla_tiles.tar   Valhalla routing tiles
 # SHA256SUMS beside them, if present, is checked before anything is copied.
@@ -33,7 +34,7 @@ done
 
 MAPS_DIR="${CARNINE_MAPS_DIR:-$HOME/develop/carnine-maps}"
 MAP_TILES="${CARNINE_MAP_TILES:-$MAPS_DIR/hessen.mbtiles}"
-NAMES_DATABASE="$MAPS_DIR/germany_names.db"
+NAMES_DATABASE="${CARNINE_NAMES_DATABASE:-$MAPS_DIR/germany_names.db}"
 REPLAY_TOUR="$MAPS_DIR/GPS-Adnan-Tour.txt"
 VALHALLA_TILES="$MAPS_DIR/valhalla_tiles.tar"
 
@@ -53,6 +54,17 @@ fi
 copy() {
   rsync -t --partial --info=progress2 --rsync-path="sudo rsync" "$1" "$TARGET:$2"
 }
+
+# The frontend reads the tiles and the backend the names while they are
+# replaced; stopping both first keeps them off half-copied files. The names
+# database comes without WAL since local_map 0.5.0, and a -wal/-shm left from
+# the old one makes SQLite call the new file malformed.
+if [[ "$RESTART" -eq 1 ]]; then
+  ssh "$TARGET" "sudo systemctl stop carnine-frontend.service carnine-backend.service &&
+    sudo rm -f /var/lib/carnine/maps/germany_names.db-wal /var/lib/carnine/maps/germany_names.db-shm"
+else
+  echo "Note: with --no-restart, delete germany_names.db-wal/-shm on $TARGET before the next start."
+fi
 
 echo "Copying map data to $TARGET..."
 copy "$MAP_TILES" /var/lib/carnine/maps/map.mbtiles
