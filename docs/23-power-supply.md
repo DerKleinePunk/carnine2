@@ -48,7 +48,9 @@ not work out and are not used.
   ([documentation, "Power supply"](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html));
   the same page warns under "Back-powering" that power fed in elsewhere
   bypasses the Pi's protection circuitry. Michael's earlier car PCs were
-  wired the same way.
+  wired the same way. The +5 V pin of the supply's header is therefore not
+  connected to the Pi, on purpose; the Pi gets its power only through
+  USB-C.
 
 The serial lines run at **3.3 V**, so they connect to the Pi directly,
 without a level shifter.
@@ -110,8 +112,8 @@ connecting. As Michael described it on 2026-09-27:
   free.
   - **Rel1:** a wire jumper from a +5 V terminal to COM; NO feeds the
     display's USB hub and the HDMI splitter.
-  - **Rel2:** assumed to be wired the same way, +5 V jumpered to COM and
-    NO to the USB-C cable of the Pi; not confirmed.
+  - **Rel2:** wired the same way, +5 V jumpered to COM, NO to the USB-C
+    cable of the Pi.
   - **Rel3:** a wire jumper from the Dauerplus terminal (KL30) to COM; NO
     goes to the amplifier's remote input (REM), the control pin that turns
     it on and off.
@@ -121,16 +123,16 @@ connecting. As Michael described it on 2026-09-27:
 > the vehicle, with its own fuse. Never switch that power through one of
 > the board's relays: it cannot carry the current and burns.
 
-**TODO:** whether the board has its own fuse or reverse-polarity
-protection; Michael is asking the board's developer.
+**TODO** (Michael is asking; not documented until answered):
 
-Still open, not documented until answered:
-
-- how Rel2 sits in the 5 V path to the Pi's USB-C socket (assumed above);
-- wire sizes for KL30, ground, KL15 and the relay outputs;
+- whether the board has its own fuse or reverse-polarity protection (asked
+  the board's developer);
 - the relay type and contact rating;
-- whether +5 V on the pin header is connected to the Pi; if so, the Pi must
-  not also be fed through USB-C.
+- a source that explains why the Pi should be fed through USB-C rather
+  than the header; until then the link to the Raspberry Pi documentation
+  above stands, for what it says and no more.
+
+Still open: wire sizes for KL30, ground, KL15 and the relay outputs.
 
 ### Wiring to the Pi 4
 
