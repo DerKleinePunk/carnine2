@@ -400,20 +400,18 @@ the steps are listed for provisioning a new build host.
    git clone --recursive https://github.com/toyota-connected/ivi-homescreen.git $W/app/ivi-homescreen
    emb flutter -w $W --flutter-version 3.47.5
    cd $W/app/ivi-homescreen
-   git switch -c carnine 13ad6563
-   git am /path/to/carnine2/resources/patches/ivi-homescreen/*.patch
+   git switch -c carnine 92c2353a
    emb cross . --target rpi4-trixie --backend drm-kms-egl -D DISABLE_PLUGINS=ON --fetch-only -w $W
    ```
 
-   The checkout is pinned to 13ad6563 on `v3.0` plus the patches in
-   `resources/patches/ivi-homescreen/`. `0001` arms the page-flip latch before
-   a nonblocking commit: without it the display froze for good under load
-   (first caught on 2026-09-26 while panning the Germany map; the app kept
-   running, a VT switch thawed it). Upstream has the same order up to at least
-   3d7a9671, so moving the pin does not replace the patch. `build_pi.sh` stops
-   when a patch is missing from the checkout; `CARNINE_SKIP_EMBEDDER_PATCHES=1`
-   skips that check, e.g. for an upstream commit that already carries the
-   fix (upstream #652/#654/#655).
+   The checkout is pinned to 92c2353a on `v3.0`, without local patches. The
+   display froze for good under load on 2026-09-26 (panning the Germany map;
+   the app kept running, a VT switch thawed it): page-flip state was published
+   after a nonblocking commit (ivi-homescreen #649). Upstream fixed it in #652,
+   #654, #655 and #658 and added #659, which recovers a display whose flip
+   event got lost. Both Pis ran 522e1d4b (#658, before #659) for about four
+   hours on 2026-09-27 under synthetic pan/zoom without a freeze. A pin older
+   than 15ab00f3 brings the freeze back.
 
    The fetch downloads the Arm GNU toolchain and a RaspiOS trixie sysroot
    (several GB, cached under `~/.cache/emb`). The build also compiles a
