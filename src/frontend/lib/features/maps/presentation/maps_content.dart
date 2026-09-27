@@ -32,6 +32,11 @@ class MapsContent extends StatelessWidget {
     // with touchload: about half the time in long frames of all at once,
     // the map fills a little later.
     rasterTilesPerFrame: 2,
+    // Rasters the tiles of the next minute along the heading in idle frames
+    // (only with a fix, a heading and more than 3 m/s). Measured on the Pi 4
+    // (jeep-pi, 2026-09-27): no frame over 100 ms any more, about 50 MB more
+    // resident, capped by Flutter's image cache.
+    prefetchAheadSeconds: 60,
   );
 
   static const _layerStyle = MapLayerStyle(
