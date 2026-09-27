@@ -50,9 +50,9 @@ not work out and are not used.
   bypasses the Pi's protection circuitry. The
   [HAT design guide](https://github.com/raspberrypi/hats/blob/master/designguide.md),
   section "Back Powering the Pi via the GPIO Header", allows 5 V ±5 % on
-  header pins 2 and 4, but on the older models those pins sit behind the
-  input's polyfuse and reverse-current diode, and the 3B+ and 4B have no
-  such diode at all. Whoever feeds the header is responsible for that
+  header pins 2 and 4. On the A+, B+, 2B and 3B those pins sit behind the
+  input's polyfuse and reverse-current diode, so feeding them bypasses
+  both; the 3B+ and 4B have no such input diode at all. Whoever feeds the header is responsible for that
   protection (a diode or an equivalent guarantee that both supplies can be
   connected at once, and a 5 V / 2.5 A source). carnine2 avoids this by
   feeding only USB-C. Michael's earlier car PCs were wired the same way. The +5 V pin of the supply's header is therefore not
