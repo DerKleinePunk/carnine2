@@ -17,13 +17,39 @@ off, gives the Pi time to shut down, and power-cycles a Pi that hangs.
 ## Board
 
 **AuPrV1_1 "Nenntronic"**, 70 × 60 mm, from 2023-02: ATmega88P, three
-relays, IR receiver; input 9–30 V, output 5.15 V / 4 A. Two of these exist.
+relays, IR receiver, DC/DC converter XP Power JCM3012S05. Two of these exist.
 Drawings: [board](hardware/power-supply/AuPrV1_1-board.pdf),
 [layout](hardware/power-supply/AuPrV1_1-layout.jpg),
 [connectors](hardware/power-supply/AuPrV1_1-connectors.jpg) (old names
 `MichaelNenninger_Power_a3.pdf`, `RaspberryNetzteil*.jpg`). The old project
 also has a UPS board and a "MicroPower" board; both were experiments that did
 not work out and are not used.
+
+![AuPrV1_1 from above, installed, terminal strip on the right](hardware/power-supply/AuPrV1_1-photo-top.jpg)
+
+The photo (2026-09-27, turned by 180°) shows the installed board with the
+converter and the three relays; the labels on both can be read:
+
+- **Converter:** XP Power **JCM3012S05**, printed "Input: 9-18 VDC,
+  Output: 5 VDC 6.00A". The
+  [JCM30 datasheet](https://www.xppower.com/portals/0/pdfs/SF_JCM30.pdf)
+  gives for it 9–18 V in (12 V nominal), 5.0 V / 6.0 A out (30 W), 89 %
+  efficiency, 2810 mA input current at full load and nominal input, and an
+  input surge of 25 V for 100 ms. The old project's figures, input 9–30 V
+  and output 5.15 V / 4 A, do not match the converter. Whether the board
+  trims the output to 5.15 V is not known.
+- **Relays (3×):** Hongfa **HFD3/5-S**, printed "2A 30VDC, 0.5A 125VAC".
+  According to the
+  [HFD3 datasheet](http://www.hongfaamerica.com/hq/PDF/HFD3_en.pdf) that is
+  a 5 V coil, single side stable, SMT, with two changeover contacts (2C),
+  rated 2 A at 30 V DC and 0.5 A at 125 V AC for a resistive load. The
+  board's developer confirms 30 V / 2 A.
+
+> **Warning: 18 V is the input limit.** The converter is made for a 12 V
+> system: 9–18 V, briefly 25 V for 100 ms. A car's voltage often rises
+> above 14 V while the battery charges, which is within that range, but the
+> board is **not suitable for a 24 V system**. Nothing is known about an
+> overvoltage protection on the board.
 
 ### AuPrV1_1 connections
 
@@ -41,9 +67,11 @@ not work out and are not used.
   the USB socket (jumper towards the socket: programming) or to the pin
   header (other side: running on the Pi). In the wrong position the Pi
   receives the supply's output but its commands never arrive.
-- **Pi power:** the Pi is fed from the supply through its USB-C socket at
-  5.1 V, not through the 5 V pins of its GPIO header, so it does not drop
-  into undervoltage under full load. Raspberry Pi names USB-C as the Pi 4's
+- **Pi power:** the Pi is fed from the supply through its USB-C socket,
+  not through the 5 V pins of its GPIO header. The converter is rated
+  5.0 V; Raspberry Pi asks for a 5.1 V supply, and the Pi logs an
+  undervoltage below 4.63 V (±5 %). Whether the Pi reports undervoltage on
+  this supply under full load has not been checked. Raspberry Pi names USB-C as the Pi 4's
   power input and recommends a USB-C supply for it
   ([documentation, "Power supply"](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html));
   the same page warns under "Back-powering" that power fed in elsewhere
@@ -77,7 +105,7 @@ side (pin header at the top):
 | 10 | Zündung | **KL15**, plus switched by the ignition; the firmware reads it |
 | 11 | Dauerplus | **KL30**, battery plus, always on; feeds the supply |
 | 12 | Masse | **KL31**, vehicle ground |
-| 13–15 | +5 V | 5.15 V output, up to 4 A in total |
+| 13–15 | +5 V | converter output, 5 V, up to 6 A in total |
 
 Pin header, from left to right: RXD, TXD, Dig1, Dig2, Dig3, GND, +5 V,
 Analog1, Analog2, Analog3. RXD, TXD, Dig3 and GND go to the Pi (see
@@ -110,10 +138,10 @@ connecting. As Michael described it on 2026-09-27:
 - **Mounting:** the board sits right next to the Pi, so the line to the Pi
   stays short: about 20 cm.
 - **Wires:** all of them are 0.75 mm², KL30, KL15, ground, the relay
-  outputs and the line to the Pi. Little current flows: the rated output
-  of 5.15 V / 4 A is about 20 W, roughly 2 A at 12 V in (an estimate from
-  the rating, not measured), and the amplifier's remote line carries only
-  a control current.
+  outputs and the line to the Pi. At most the converter's full load flows
+  in: 2810 mA at 12 V according to its datasheet; at the lower limit of
+  9 V that would be about 3.7 A (30 W / 89 % / 9 V, an estimate, not
+  measured). The amplifier's remote line carries only a control current.
 - **Relays are potential-free contacts.** The board does not put any
   voltage on them; which voltage a relay switches is set by the wiring, so
   the board can serve other uses as well. Each relay has three terminals,
@@ -133,11 +161,18 @@ connecting. As Michael described it on 2026-09-27:
 > the vehicle, with its own fuse. Never switch that power through one of
 > the board's relays: it cannot carry the current and burns.
 
-**TODO** (Michael is asking; not documented until answered):
+> **Warning: resistive loads only, up to 2 A.** The relays are rated 2 A at
+> 30 V DC and, according to the board's developer, are not meant for
+> inductive loads such as motors, coils, solenoid valves or other relays.
 
-- whether the board has its own fuse or reverse-polarity protection (asked
-  the board's developer);
-- the relay type and contact rating;
+**Open, not measured:** Rel2 carries the whole current of the Pi 4 through
+USB-C, Rel1 that of the display's USB hub and the HDMI splitter. The Pi 4's
+recommended supply delivers 3 A. Whether the current through each relay
+stays below 2 A has not been measured. Whether the board connects the
+relay's two contact sets in parallel is not known either.
+
+**TODO** (Michael is asking; not documented until answered): whether the
+board has its own fuse or reverse-polarity protection.
 
 ### Wiring to the Pi 4
 
