@@ -33,7 +33,7 @@ not work out and are not used.
   Zündung (KL15), Dauerplus (KL30), Masse, 3 × +5 V out.
 - **Pin header (top), towards the Pi:** RXD, TXD, Dig1, Dig2, Dig3, GND,
   +5 V, Analog1–3.
-- **Relays:** Rel1 = relay 0 in the firmware (display and HDMI splitter),
+- **Relays:** Rel1 = relay 0 in the firmware (display: USB hub and HDMI splitter),
   Rel2 = relay 1 (Pi power), Rel3 = relay 2 (amplifier), confirmed by
   Michael. The order matters: the displays must be on before the Pi boots.
 - **USB socket and jumper (top right):** the board has its own USB-serial
@@ -62,9 +62,9 @@ side (pin header at the top):
 
 | Position | Label | Use |
 |---|---|---|
-| 1–3 | Rel1 | relay 0: display and HDMI splitter, 12 V; NC, COM, NO |
+| 1–3 | Rel1 | relay 0: USB hub of the display and HDMI splitter, 5 V; NC, COM, NO |
 | 4–6 | Rel2 | relay 1: Pi power; NC, COM, NO |
-| 7–9 | Rel3 | relay 2: amplifier, 12 V; NC, COM, NO |
+| 7–9 | Rel3 | relay 2: amplifier's remote input (REM), 12 V; NC, COM, NO |
 | 10 | Zündung | **KL15**, plus switched by the ignition; the firmware reads it |
 | 11 | Dauerplus | **KL30**, battery plus, always on; feeds the supply |
 | 12 | Masse | **KL31**, vehicle ground |
@@ -86,32 +86,49 @@ The KL15, KL30 and KL31 names are the usual German terminal numbers
 
 ![AuPrV1_1 in the car](hardware/power-supply/car-wiring.svg)
 
-As Michael described it on 2026-09-27:
+carnine2 is an open-source project and is not described for a particular
+vehicle. The supply connects to the car radio's ISO connector; its pin
+assignment depends on the vehicle and is checked with a meter before
+connecting. As Michael described it on 2026-09-27:
 
-- **KL30, KL15 and ground come from the car radio's ISO connector.** Ground
-  is assumed to come from there as well, since everything else does; this
-  is not confirmed.
+- **KL30, KL15 and ground come from the ISO connector,** with the wires
+  going straight into the screw terminals, without another plug. Ground is
+  assumed to come from there as well, since everything else does; this is
+  not confirmed.
 - **Measure before connecting.** Which ISO pins carry permanent and
   switched plus differs between makers. With the ignition off only KL30
   must carry 12 V; with the ignition on both do.
 - **Fuses** are not part of this setup: the radio connector is taken to be
   fused by the vehicle.
-- **Relays:** each has three terminals, from left to right NC, COM and NO
-  (terminal strip at the bottom); NO closes when the relay is on. NC is not
-  used, so the loads go to COM and NO. Rel1 and Rel3 switch 12 V to the display with HDMI splitter
-  and to the amplifier.
+- **Mounting:** the board sits right next to the Pi, so the line to the Pi
+  stays short: about 20 cm, 0.75 mm².
+- **Relays are potential-free contacts.** The board does not put any
+  voltage on them; which voltage a relay switches is set by the wiring, so
+  the board can serve other uses as well. Each relay has three terminals,
+  from left to right NC, COM and NO (terminal strip at the bottom); NO
+  closes when the relay is on. On all three, COM and NO are used and NC is
+  free.
+  - **Rel1:** a wire jumper from a +5 V terminal to COM; NO feeds the
+    display's USB hub and the HDMI splitter.
+  - **Rel2:** assumed to be wired the same way, +5 V jumpered to COM and
+    NO to the USB-C cable of the Pi; not confirmed.
+  - **Rel3:** a wire jumper from the Dauerplus terminal (KL30) to COM; NO
+    goes to the amplifier's remote input (REM), the control pin that turns
+    it on and off.
+
+> **Warning:** Rel3 switches only the amplifier's remote input. A car
+> amplifier takes its power through a separate heavy cable straight from
+> the vehicle, with its own fuse. Never switch that power through one of
+> the board's relays: it cannot carry the current and burns.
+
+**TODO:** whether the board has its own fuse or reverse-polarity
+protection; Michael is asking the board's developer.
 
 Still open, not documented until answered:
 
-- the vehicle, and so the actual ISO pin assignment;
-- whether the wires go straight from the ISO connector into the screw
-  terminals, or through another plug (type, pin assignment);
-- whether the board has its own fuse or reverse-polarity protection;
-- wire sizes for KL30, ground, KL15, the relay outputs and the 5 V line to
-  the Pi, and the length of that line;
+- how Rel2 sits in the 5 V path to the Pi's USB-C socket (assumed above);
+- wire sizes for KL30, ground, KL15 and the relay outputs;
 - the relay type and contact rating;
-- where the 12 V at COM of Rel1 and Rel3 comes from, and how Rel2 sits in
-  the 5 V path to the Pi's USB-C socket;
 - whether +5 V on the pin header is connected to the Pi; if so, the Pi must
   not also be fed through USB-C.
 
@@ -205,7 +222,7 @@ stream; a receiver must skip them.
 | State | Entered when | Does | Leaves when |
 |---|---|---|---|
 | IDLE | power-off finished | microcontroller sleeps | KL15 on → POWERON |
-| POWERON | KL15 on | relay 0 on (display, HDMI splitter) | after the power-on delay → PIBOOT; KL15 off → IDLE |
+| POWERON | KL15 on | relay 0 on (display) | after the power-on delay → PIBOOT; KL15 off → IDLE |
 | PIBOOT | delay over | relay 1 on (Pi power), boot timer 60 s (V2.2.12: 30 s) | timer over → RUN; KL15 off at that point → POWEROFF |
 | RUN | Pi booted | watchdog active | KL15 off → POWEROFF (15 s); no alive → POWEROFF (5 s) |
 | POWEROFF | KL15 off, `$`, or watchdog | amplifier off, count down | timer over **or Dig3 active** → all relays off → IDLE |

@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="620" viewBox="0 0 1120 620" font-family="DejaVu Sans, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="660" viewBox="0 0 1120 660" font-family="DejaVu Sans, Arial, sans-serif">
 <defs>
 <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker>
 </defs>
-<rect width="1120" height="620" fill="#ffffff"/>
+<rect width="1120" height="660" fill="#ffffff"/>
 <text x="40" y="38" font-size="22" font-weight="bold" fill="#111">AuPrV1_1 power supply in the car</text>
 <text x="40" y="62" font-size="14" fill="#444">Solid: confirmed by Michael. Dashed: assumed or not known yet, see "Connection in the car" in docs/23-power-supply.md.</text>
 
@@ -19,49 +19,71 @@
 <text x="52" y="364" font-size="12" fill="#8a4b00">measure before connecting</text>
 
 <!-- wires to board -->
+<text x="345" y="185" font-size="11" text-anchor="middle" fill="#555">straight in, no plug</text>
 <path d="M270,193 L420,193" stroke="#c0392b" stroke-width="3" marker-end="url(#arr)"/>
 <path d="M270,233 L420,233" stroke="#e67e22" stroke-width="3" marker-end="url(#arr)"/>
 <path d="M270,273 L420,273" stroke="#222" stroke-width="3" stroke-dasharray="10 5" marker-end="url(#arr)"/>
-<text x="345" y="185" font-size="11" text-anchor="middle" fill="#888">plug? size?</text>
 
 <!-- board -->
-<rect x="420" y="110" width="300" height="400" rx="8" fill="#e9f3e9" stroke="#6a9a6a" stroke-width="2"/>
+<rect x="420" y="110" width="300" height="470" rx="8" fill="#e9f3e9" stroke="#6a9a6a" stroke-width="2"/>
 <text x="570" y="138" font-size="16" font-weight="bold" text-anchor="middle" fill="#2f5f2f">AuPrV1_1</text>
-<text x="570" y="158" font-size="12" text-anchor="middle" fill="#555">board fuse / reverse protection: open</text>
+<text x="570" y="158" font-size="12" text-anchor="middle" fill="#555">TODO: board fuse / reverse protection?</text>
 <text x="436" y="198" font-size="13" fill="#c0392b">Dauerplus (KL30)</text>
 <text x="436" y="238" font-size="13" fill="#e67e22">Zündung (KL15)</text>
 <text x="436" y="278" font-size="13" fill="#222">Masse (KL31)</text>
 <line x1="436" y1="300" x2="704" y2="300" stroke="#6a9a6a"/>
-<text x="704" y="330" font-size="13" text-anchor="end" fill="#222" font-weight="bold">Rel1: COM · NO</text>
-<text x="704" y="380" font-size="13" text-anchor="end" fill="#222" font-weight="bold">Rel2: COM · NO</text>
-<text x="704" y="430" font-size="13" text-anchor="end" fill="#222" font-weight="bold">Rel3: COM · NO</text>
-<text x="704" y="480" font-size="13" text-anchor="end" fill="#222" font-weight="bold">header: RXD TXD Dig3 GND</text>
-<text x="436" y="330" font-size="11" fill="#555">NC unused on all relays</text>
-<text x="436" y="350" font-size="11" fill="#888">12 V to COM of</text>
-<text x="436" y="366" font-size="11" fill="#888">Rel1/Rel3: source open</text>
+<text x="436" y="318" font-size="11" fill="#555">potential-free, NC unused</text>
 
+<!-- relay contacts: COM and NO -->
+<g font-size="13" font-weight="bold" fill="#222">
+<text x="470" y="355">Rel1</text><text x="470" y="415">Rel2</text><text x="470" y="475">Rel3</text>
+</g>
+<g font-size="11" fill="#555" text-anchor="middle">
+<text x="590" y="336">COM</text><text x="680" y="336">NO</text>
+</g>
+<circle cx="590" cy="350" r="8" fill="#bdbdbd"/><circle cx="680" cy="350" r="8" fill="#bdbdbd"/>
+<circle cx="590" cy="410" r="8" fill="#bdbdbd"/><circle cx="680" cy="410" r="8" fill="#bdbdbd"/>
+<circle cx="590" cy="470" r="8" fill="#bdbdbd"/><circle cx="680" cy="470" r="8" fill="#bdbdbd"/>
 
+<!-- +5 V terminal and jumpers -->
+<text x="436" y="550" font-size="13" font-weight="bold" fill="#8e44ad">+5 V terminal</text>
+<circle cx="560" cy="545" r="8" fill="#8e44ad"/>
+<path d="M560,537 L560,350 L582,350" stroke="#8e44ad" stroke-width="2.5" fill="none"/>
+<path d="M560,410 L582,410" stroke="#8e44ad" stroke-width="2.5" stroke-dasharray="6 4" fill="none"/>
+<text x="572" y="530" font-size="11" fill="#8e44ad">jumpers to COM</text>
+<circle cx="630" cy="193" r="6" fill="#c0392b"/>
+<path d="M630,199 L630,450 L598,462" stroke="#c0392b" stroke-width="2.5" fill="none"/>
+<text x="638" y="215" font-size="11" fill="#c0392b">jumper</text>
+<text x="638" y="229" font-size="11" fill="#c0392b">to Rel3 COM</text>
+
+<!-- warning -->
+<rect x="40" y="400" width="340" height="96" rx="6" fill="#fdecea" stroke="#c0392b" stroke-width="2"/>
+<text x="52" y="424" font-size="13" font-weight="bold" fill="#a02a1e">⚠ Never switch the amplifier's power</text>
+<text x="52" y="444" font-size="13" font-weight="bold" fill="#a02a1e">through a relay.</text>
+<text x="52" y="466" font-size="12" fill="#a02a1e">Its power input comes straight from the car</text>
+<text x="52" y="484" font-size="12" fill="#a02a1e">with its own fuse; Rel3 only drives REM.</text>
 <!-- loads -->
-<rect x="820" y="300" width="260" height="46" rx="6" fill="#fff" stroke="#1f6fd1" stroke-width="2"/>
-<text x="834" y="320" font-size="14" font-weight="bold" fill="#1f6fd1">Display + HDMI splitter</text>
-<text x="834" y="338" font-size="12" fill="#444">12 V, first on (relay 0)</text>
-<path d="M720,325 L818,325" stroke="#1f6fd1" stroke-width="3" marker-end="url(#arr)"/>
+<rect x="820" y="318" width="270" height="64" rx="6" fill="#fff" stroke="#1f6fd1" stroke-width="2"/>
+<text x="834" y="340" font-size="14" font-weight="bold" fill="#1f6fd1">USB hub of the display</text>
+<text x="834" y="358" font-size="14" font-weight="bold" fill="#1f6fd1">+ HDMI splitter</text>
+<text x="834" y="375" font-size="12" fill="#444">5 V, first on (relay 0)</text>
+<path d="M688,350 L818,350" stroke="#1f6fd1" stroke-width="3" marker-end="url(#arr)"/>
 
-<rect x="820" y="354" width="260" height="46" rx="6" fill="#fff" stroke="#1e8a3a" stroke-width="2"/>
-<text x="834" y="374" font-size="14" font-weight="bold" fill="#1e8a3a">Raspberry Pi 4, USB-C</text>
-<text x="834" y="392" font-size="12" fill="#444">5.1 V (relay 1); path via Rel2 open</text>
-<path d="M720,377 L818,377" stroke="#1e8a3a" stroke-width="3" stroke-dasharray="10 5" marker-end="url(#arr)"/>
+<rect x="820" y="388" width="270" height="46" rx="6" fill="#fff" stroke="#1e8a3a" stroke-width="2"/>
+<text x="834" y="408" font-size="14" font-weight="bold" fill="#1e8a3a">Raspberry Pi 4, USB-C</text>
+<text x="834" y="426" font-size="12" fill="#444">5.1 V (relay 1), ~20 cm, 0.75 mm²</text>
+<path d="M688,410 L818,410" stroke="#1e8a3a" stroke-width="3" stroke-dasharray="10 5" marker-end="url(#arr)"/>
 
-<rect x="820" y="408" width="260" height="46" rx="6" fill="#fff" stroke="#8e44ad" stroke-width="2"/>
-<text x="834" y="428" font-size="14" font-weight="bold" fill="#8e44ad">Amplifier</text>
-<text x="834" y="446" font-size="12" fill="#444">12 V (relay 2)</text>
-<path d="M720,431 L818,431" stroke="#8e44ad" stroke-width="3" marker-end="url(#arr)"/>
+<rect x="820" y="448" width="270" height="46" rx="6" fill="#fff" stroke="#c07a2b" stroke-width="2"/>
+<text x="834" y="468" font-size="14" font-weight="bold" fill="#c07a2b">Amplifier: REM input only</text>
+<text x="834" y="486" font-size="12" fill="#444">12 V signal (relay 2)</text>
+<path d="M688,470 L818,470" stroke="#c07a2b" stroke-width="3" marker-end="url(#arr)"/>
 
-<rect x="820" y="462" width="260" height="46" rx="6" fill="#fff" stroke="#555" stroke-width="2"/>
-<text x="834" y="482" font-size="14" font-weight="bold" fill="#333">Pi 4 GPIO header</text>
-<text x="834" y="500" font-size="12" fill="#444">pins 32, 33, 29, GND (pi4-wiring.svg)</text>
-<path d="M720,485 L818,485" stroke="#555" stroke-width="3" marker-end="url(#arr)"/>
+<rect x="820" y="518" width="270" height="46" rx="6" fill="#fff" stroke="#555" stroke-width="2"/>
+<text x="834" y="538" font-size="14" font-weight="bold" fill="#333">Pi 4 GPIO header</text>
+<text x="834" y="556" font-size="12" fill="#444">RXD TXD Dig3 GND (pi4-wiring.svg)</text>
+<path d="M720,541 L818,541" stroke="#555" stroke-width="3" marker-end="url(#arr)"/>
 
-<text x="40" y="560" font-size="12" fill="#666">Relay numbers are the firmware's (commands 1–6). Fuses beyond the vehicle's own, wire sizes and the relay type are not documented.</text>
-<text x="40" y="580" font-size="12" fill="#666">Own drawing for carnine2, docs/23-power-supply.md, from Michael's answers of 2026-09-27.</text>
+<text x="40" y="610" font-size="12" fill="#666">Relay numbers are the firmware's (commands 1–6). The voltage each relay switches is set by the wiring, not by the board.</text>
+<text x="40" y="630" font-size="12" fill="#666">Own drawing for carnine2, docs/23-power-supply.md, from Michael's answers of 2026-09-27.</text>
 </svg>
