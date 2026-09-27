@@ -32,6 +32,8 @@ The deployment architecture emphasizes reliability and minimal resource consumpt
   • Adapter: MCP2515 (SPI) or isolated CAN HAT (e.g. PiCAN 2, Kvaser)
   • Protocol: CAN 2.0B, 500 kbps or 1 Mbps (vehicle‑specific)
   • Connection: SPI bus or USB
+  • Prepared, not planned yet: MCP2515 on SPI0 with its interrupt on
+    GPIO 25, see [24 – CAN Adapter (MCP2515 on SPI0)](24-can-adapter-mcp2515.md)
 - **GPS receiver** (optional, `position_source = "serial"`): any NMEA 0183
   receiver on USB or a UART, see [GPS receiver](#gps-receiver) below
 - **Vehicle power supply** (optional): the AuPrV1_1 board switches the Pi

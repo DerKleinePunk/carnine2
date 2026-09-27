@@ -191,7 +191,7 @@ unrouted airwires, so the drawings do not settle it.
 
 The supply gets its own UART, **uart5**, so Bluetooth keeps the Pi's default
 UART; uart4 is not used because GPIO 8/9 belong to SPI0, which a CAN adapter
-(MCP2515) needs.
+(MCP2515, see [24 – CAN Adapter](24-can-adapter-mcp2515.md)) needs.
 
 ![Pi 4 header with the four pins for the supply](hardware/power-supply/pi4-wiring.svg)
 

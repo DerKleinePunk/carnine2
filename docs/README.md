@@ -31,7 +31,8 @@ This directory contains the architecture documentation of the project, structure
 22. [21 – Protobuf Event Contract](21-protobuf-event-contract.md)
 23. [22 – Waveshare 1024x600 Display under Full KMS](22-waveshare-display-1024x600.md)
 24. [23 – Vehicle Power Supply (Ignition, Shutdown, Watchdog)](23-power-supply.md)
-25. [25 – Demo and Touch Tools](25-demo-and-touch-tools.md) – drive the Pi's UI for filming and load tests
+25. [24 – CAN Adapter (MCP2515 on SPI0)](24-can-adapter-mcp2515.md)
+26. [25 – Demo and Touch Tools](25-demo-and-touch-tools.md) – drive the Pi's UI for filming and load tests
 
 ## User Guide
 
