@@ -48,26 +48,53 @@ use carnine::{
     GetCoverArtRequest, GetCoverArtResponse, GetPlaylistRequest, ImportMusicVolumeRequest,
     LibraryEvent, LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest,
     PlayQueueEntryRequest, PlayRequest, PlayerEvent, PlayerEventType, PlayerState, Playlist,
-    PlaylistEntry, RepeatMode, RescanMediaRequest, SearchMediaRequest, SearchMediaResponse,
-    ServiceVersion, SetRepeatModeRequest, SetShuffleModeRequest, SetVolumeRequest, SystemMetrics,
-    UiState, UpdateConfigurationRequest, VolumeResponse,
+    PlaylistEntry, PowerSupplyState, PowerSupplyStatus, RepeatMode, RescanMediaRequest,
+    SearchMediaRequest, SearchMediaResponse, ServiceVersion, SetRepeatModeRequest,
+    SetShuffleModeRequest, SetVolumeRequest, SystemMetrics, UiState, UpdateConfigurationRequest,
+    VolumeResponse,
 };
 
 #[derive(Debug, Default)]
 pub struct SystemServiceImpl {
     metrics: Arc<system_metrics::SystemMetricsHandle>,
     database_path: PathBuf,
+    power_supply: power_supply::PowerSupplyHub,
 }
 
 /// Page names are identifiers like "maps"; anything longer is not one.
 const MAX_UI_PAGE_NAME_LEN: usize = 64;
 
 impl SystemServiceImpl {
-    pub fn new(metrics: Arc<system_metrics::SystemMetricsHandle>, database_path: PathBuf) -> Self {
+    pub fn new(
+        metrics: Arc<system_metrics::SystemMetricsHandle>,
+        database_path: PathBuf,
+        power_supply: power_supply::PowerSupplyHub,
+    ) -> Self {
         Self {
             metrics,
             database_path,
+            power_supply,
         }
+    }
+}
+
+fn power_supply_to_proto(status: &power_supply::PowerSupplyStatus) -> PowerSupplyStatus {
+    use power_supply::SupplyState;
+    let state = match status.state {
+        None => PowerSupplyState::Unspecified,
+        Some(SupplyState::Idle) => PowerSupplyState::Idle,
+        Some(SupplyState::PowerOn) => PowerSupplyState::PowerOn,
+        Some(SupplyState::PiBoot) => PowerSupplyState::PiBoot,
+        Some(SupplyState::Run) => PowerSupplyState::Run,
+        Some(SupplyState::PowerOff) => PowerSupplyState::PowerOff,
+    };
+    PowerSupplyStatus {
+        configured: status.configured,
+        connected: status.connected,
+        ignition: status.ignition,
+        state: state as i32,
+        input_voltage_volts: status.voltage_tenths.map(|tenths| f64::from(tenths) / 10.0),
+        alive_count: status.alive.map(u32::from),
     }
 }
 
@@ -94,6 +121,9 @@ fn service_version() -> ServiceVersion {
 impl carnine::system_service_server::SystemService for SystemServiceImpl {
     type StreamSystemMetricsStream =
         Pin<Box<dyn tokio_stream::Stream<Item = Result<SystemMetrics, Status>> + Send + 'static>>;
+    type StreamPowerSupplyStatusStream = Pin<
+        Box<dyn tokio_stream::Stream<Item = Result<PowerSupplyStatus, Status>> + Send + 'static>,
+    >;
 
     async fn report_ui_ready(
         &self,
@@ -124,6 +154,26 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
         let updates = tokio_stream::wrappers::BroadcastStream::new(self.metrics.subscribe())
             .filter_map(|metrics| async move { metrics.ok().map(Ok) });
         Ok(Response::new(Box::pin(snapshot.chain(updates))))
+    }
+
+    async fn get_power_supply_status(
+        &self,
+        _request: Request<Empty>,
+    ) -> Result<Response<PowerSupplyStatus>, Status> {
+        Ok(Response::new(power_supply_to_proto(
+            &self.power_supply.current(),
+        )))
+    }
+
+    async fn stream_power_supply_status(
+        &self,
+        _request: Request<Empty>,
+    ) -> Result<Response<Self::StreamPowerSupplyStatusStream>, Status> {
+        info!("power supply status stream opened");
+        // WatchStream yields the current value first, then every change.
+        let updates = tokio_stream::wrappers::WatchStream::new(self.power_supply.subscribe())
+            .map(|status| Ok(power_supply_to_proto(&status)));
+        Ok(Response::new(Box::pin(updates)))
     }
 
     async fn get_ui_state(&self, _request: Request<Empty>) -> Result<Response<UiState>, Status> {
@@ -1322,8 +1372,10 @@ async fn main() -> Result<()> {
         .as_ref()
         .map(|address| address.parse())
         .transpose()?;
+    let power_supply_hub = power_supply::PowerSupplyHub::new(configuration.power_supply.enabled);
     if configuration.power_supply.enabled {
         power_supply::spawn(
+            power_supply_hub.clone(),
             configuration.power_supply.device.clone(),
             configuration.power_supply.baud,
         );
@@ -1343,6 +1395,7 @@ async fn main() -> Result<()> {
     let system_service = SystemServiceImpl::new(
         Arc::clone(&system_metrics),
         configuration.media.database_path.clone(),
+        power_supply_hub.clone(),
     );
     let media_service = MediaServiceImpl::new_runtime(
         configuration.media.database_path.clone(),
@@ -1588,7 +1641,11 @@ mod tests {
             std::env::temp_dir().join(format!("carnine-ui-state-{}.sqlite3", std::process::id()));
         let _ = std::fs::remove_file(&database_path);
         let metrics = Arc::new(system_metrics::SystemMetricsHandle::new());
-        let service = SystemServiceImpl::new(Arc::clone(&metrics), database_path.clone());
+        let service = SystemServiceImpl::new(
+            Arc::clone(&metrics),
+            database_path.clone(),
+            crate::power_supply::PowerSupplyHub::new(false),
+        );
 
         let initial = SystemService::get_ui_state(&service, Request::new(Empty {}))
             .await
@@ -1615,7 +1672,11 @@ mod tests {
         assert_eq!(too_long.code(), tonic::Code::InvalidArgument);
 
         // A new instance stands for the backend after a restart.
-        let restarted = SystemServiceImpl::new(metrics, database_path.clone());
+        let restarted = SystemServiceImpl::new(
+            metrics,
+            database_path.clone(),
+            crate::power_supply::PowerSupplyHub::new(false),
+        );
         let restored = SystemService::get_ui_state(&restarted, Request::new(Empty {}))
             .await
             .expect("UI state should load")
@@ -1625,9 +1686,52 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn system_service_reports_the_power_supply() {
+        let hub = crate::power_supply::PowerSupplyHub::new(false);
+        let service = SystemServiceImpl::new(
+            Arc::new(system_metrics::SystemMetricsHandle::new()),
+            PathBuf::new(),
+            hub.clone(),
+        );
+        let absent = SystemService::get_power_supply_status(&service, Request::new(Empty {}))
+            .await
+            .expect("status should be answerable without a supply")
+            .into_inner();
+        assert!(!absent.configured);
+        assert_eq!(absent.ignition, None);
+
+        let mut stream =
+            SystemService::stream_power_supply_status(&service, Request::new(Empty {}))
+                .await
+                .expect("status stream should open")
+                .into_inner();
+        let first = stream.next().await.expect("current status first").unwrap();
+        assert!(!first.configured);
+
+        hub.set(crate::power_supply::PowerSupplyStatus {
+            configured: true,
+            connected: true,
+            ignition: Some(false),
+            state: Some(crate::power_supply::SupplyState::PowerOff),
+            voltage_tenths: Some(134),
+            alive: Some(2),
+        });
+        let changed = stream.next().await.expect("the change").unwrap();
+        assert!(changed.configured && changed.connected);
+        assert_eq!(changed.ignition, Some(false));
+        assert_eq!(changed.state(), crate::PowerSupplyState::PowerOff);
+        assert_eq!(changed.input_voltage_volts, Some(13.4));
+        assert_eq!(changed.alive_count, Some(2));
+    }
+
+    #[tokio::test]
     async fn system_service_serves_the_sampled_metrics() {
         let metrics = Arc::new(system_metrics::SystemMetricsHandle::new());
-        let service = SystemServiceImpl::new(Arc::clone(&metrics), PathBuf::new());
+        let service = SystemServiceImpl::new(
+            Arc::clone(&metrics),
+            PathBuf::new(),
+            crate::power_supply::PowerSupplyHub::new(false),
+        );
 
         // Before the first sample the snapshot is empty but still answerable,
         // so a client that connects during startup does not get an error.

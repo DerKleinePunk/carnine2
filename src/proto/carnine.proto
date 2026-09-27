@@ -51,6 +51,12 @@ service SystemService {
   // Pushes a snapshot on every CPU sample (system.metrics_interval_seconds),
   // starting with the current one.
   rpc StreamSystemMetrics (Empty) returns (stream SystemMetrics);
+  // What the car power supply (AuPrV1_1, docs/23-power-supply.md) last
+  // reported. Answers with configured = false on a device without one.
+  rpc GetPowerSupplyStatus (Empty) returns (PowerSupplyStatus);
+  // Starts with the current status, then pushes one on every change of
+  // connection, ignition, state or input voltage.
+  rpc StreamPowerSupplyStatus (Empty) returns (stream PowerSupplyStatus);
   // What the UI keeps across restarts, stored in the media database next to
   // the resume state. Unknown values are the UI's to ignore.
   rpc GetUiState (Empty) returns (UiState);
@@ -377,6 +383,36 @@ message SystemMetrics {
   // and repeats unchanged across several CPU samples.
   repeated DiskUsage disks = 9;
   int64 disks_sampled_at_unix_ms = 10;
+}
+
+// The power supply's state machine (STATE_* in firmware/powersupply/).
+enum PowerSupplyState {
+  POWER_SUPPLY_STATE_UNSPECIFIED = 0;
+  // Everything off, waiting for the ignition.
+  POWER_SUPPLY_STATE_IDLE = 1;
+  // Display and HDMI splitter on, power-on delay running.
+  POWER_SUPPLY_STATE_POWER_ON = 2;
+  // The Pi has power and time to boot; the watchdog does not count yet.
+  POWER_SUPPLY_STATE_PI_BOOT = 3;
+  // Normal operation; the watchdog counts.
+  POWER_SUPPLY_STATE_RUN = 4;
+  // Ignition off (or the watchdog fired): amplifier off, the Pi's power goes
+  // off when the supply's timer runs out.
+  POWER_SUPPLY_STATE_POWER_OFF = 5;
+}
+
+message PowerSupplyStatus {
+  // power_supply.enabled in the configuration. Without it every other field
+  // stays unset.
+  bool configured = 1;
+  // The supply sent a telegram within the last three seconds.
+  bool connected = 2;
+  // Ignition (KL15). Absent until the supply has reported it.
+  optional bool ignition = 3;
+  PowerSupplyState state = 4;
+  optional double input_voltage_volts = 5;
+  // The watchdog's alive counter, 0..3; in RUN normally 2.
+  optional uint32 alive_count = 6;
 }
 
 message LatLon {

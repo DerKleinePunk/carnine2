@@ -20,9 +20,9 @@ use carnine::{
     CreatePlaylistRequest, Empty, FixState, GetCoverArtRequest, GetLocationNameRequest,
     GetPlaylistRequest, GetReplayRouteRequest, ImportMusicVolumeRequest, LatLon, LibraryEventType,
     NavigationStatus, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PositionFix,
-    PositionSourceKind, RepeatMode, RescanMediaRequest, Route, SearchMediaRequest,
-    SearchPlacesRequest, SetRepeatModeRequest, SetShuffleModeRequest, SetTrackRecordingRequest,
-    SystemMetrics, UiState,
+    PositionSourceKind, PowerSupplyState, PowerSupplyStatus, RepeatMode, RescanMediaRequest, Route,
+    SearchMediaRequest, SearchPlacesRequest, SetRepeatModeRequest, SetShuffleModeRequest,
+    SetTrackRecordingRequest, SystemMetrics, UiState,
 };
 
 #[tokio::main]
@@ -74,6 +74,8 @@ async fn main() -> Result<()> {
         "shuffle" => set_shuffle_mode(&mut client).await?,
         "metrics" => get_system_metrics(&endpoint).await?,
         "metrics-stream" => stream_system_metrics(&endpoint).await?,
+        "power-supply" => get_power_supply_status(&endpoint).await?,
+        "power-supply-stream" => stream_power_supply_status(&endpoint).await?,
         "ui-state" => get_ui_state(&endpoint).await?,
         "save-ui-state" => save_ui_state(&endpoint).await?,
         "nav-status" => get_navigation_status(&endpoint).await?,
@@ -530,6 +532,60 @@ fn print_position(fix: &PositionFix) {
         ),
         _ => println!("no fix source={source}"),
     }
+}
+
+async fn get_power_supply_status(endpoint: &str) -> Result<()> {
+    let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let status = client.get_power_supply_status(Empty {}).await?.into_inner();
+    print_power_supply_status(&status);
+    Ok(())
+}
+
+/// Prints the current status plus as many changes as requested (default 5),
+/// e.g. while switching the ignition off and on at the supply.
+async fn stream_power_supply_status(endpoint: &str) -> Result<()> {
+    let count = event_count(5)?;
+    let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let mut stream = client
+        .stream_power_supply_status(Empty {})
+        .await?
+        .into_inner();
+    read_events(&mut stream, count, |status| {
+        print_power_supply_status(&status)
+    })
+    .await
+}
+
+fn print_power_supply_status(status: &PowerSupplyStatus) {
+    if !status.configured {
+        println!("power supply not configured");
+        return;
+    }
+    let state = match status.state() {
+        PowerSupplyState::Idle => "idle",
+        PowerSupplyState::PowerOn => "power-on",
+        PowerSupplyState::PiBoot => "pi-boot",
+        PowerSupplyState::Run => "run",
+        PowerSupplyState::PowerOff => "power-off",
+        PowerSupplyState::Unspecified => "-",
+    };
+    let ignition = match status.ignition {
+        Some(true) => "on",
+        Some(false) => "off",
+        None => "-",
+    };
+    println!(
+        "connected={} ignition={ignition} state={state} voltage={} alive={}",
+        status.connected,
+        status
+            .input_voltage_volts
+            .map(|volts| format!("{volts:.1}V"))
+            .unwrap_or_else(|| "-".to_string()),
+        status
+            .alive_count
+            .map(|count| count.to_string())
+            .unwrap_or_else(|| "-".to_string()),
+    );
 }
 
 fn print_system_metrics(metrics: &SystemMetrics) {
