@@ -33,16 +33,22 @@ not work out and are not used.
   Zündung (KL15), Dauerplus (KL30), Masse, 3 × +5 V out.
 - **Pin header (top), towards the Pi:** RXD, TXD, Dig1, Dig2, Dig3, GND,
   +5 V, Analog1–3.
-- **Relays in the firmware:** relay 0 = display and HDMI splitter, relay 1 =
-  Pi power, relay 2 = amplifier. That these are Rel1–Rel3 in this order is
-  assumed from the numbering, not checked.
+- **Relays:** Rel1 = relay 0 in the firmware (display and HDMI splitter),
+  Rel2 = relay 1 (Pi power), Rel3 = relay 2 (amplifier), confirmed by
+  Michael. The order matters: the displays must be on before the Pi boots.
 - **USB socket and jumper (top right):** the board has its own USB-serial
   converter. A jumper connects the microcontroller's serial line either to
   the USB socket (jumper towards the socket: programming) or to the pin
   header (other side: running on the Pi). In the wrong position the Pi
   receives the supply's output but its commands never arrive.
-- **Pi power:** later the Pi is fed from the supply through its USB-C
-  socket at 5.1 V, so it does not drop into undervoltage under full load.
+- **Pi power:** the Pi is fed from the supply through its USB-C socket at
+  5.1 V, not through the 5 V pins of its GPIO header, so it does not drop
+  into undervoltage under full load. Raspberry Pi names USB-C as the Pi 4's
+  power input and recommends a USB-C supply for it
+  ([documentation, "Power supply"](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html));
+  the same page warns under "Back-powering" that power fed in elsewhere
+  bypasses the Pi's protection circuitry. Michael's earlier car PCs were
+  wired the same way.
 
 The serial lines run at **3.3 V**, so they connect to the Pi directly,
 without a level shifter.
@@ -56,9 +62,9 @@ side (pin header at the top):
 
 | Position | Label | Use |
 |---|---|---|
-| 1–3 | Rel1 | relay contacts, three per relay |
-| 4–6 | Rel2 | relay contacts |
-| 7–9 | Rel3 | relay contacts |
+| 1–3 | Rel1 | relay 0: display and HDMI splitter, 12 V |
+| 4–6 | Rel2 | relay 1: Pi power |
+| 7–9 | Rel3 | relay 2: amplifier, 12 V |
 | 10 | Zündung | **KL15**, plus switched by the ignition; the firmware reads it |
 | 11 | Dauerplus | **KL30**, battery plus, always on; feeds the supply |
 | 12 | Masse | **KL31**, vehicle ground |
@@ -66,8 +72,9 @@ side (pin header at the top):
 
 Pin header, from left to right: RXD, TXD, Dig1, Dig2, Dig3, GND, +5 V,
 Analog1, Analog2, Analog3. RXD, TXD, Dig3 and GND go to the Pi (see
-[Wiring to the Pi 4](#wiring-to-the-pi-4)); Dig1, Dig2 and Analog1–3 are not
-used by carnine2. The board drawing
+[Wiring to the Pi 4](#wiring-to-the-pi-4)); Dig3 carries the Pi's halt
+signal for the kernel shutdown. Dig1, Dig2 and Analog1–3 are free and have
+no function yet. The board drawing
 ([AuPrV1_1-board.pdf](hardware/power-supply/AuPrV1_1-board.pdf)) shows two
 more pads after Analog3, labelled 3.3 V and "unbenutzt" (unused), which
 the connector drawing leaves out.
@@ -77,29 +84,36 @@ The KL15, KL30 and KL31 names are the usual German terminal numbers
 
 ### Connection in the car
 
-Not documented yet: where KL15, KL30 and ground are taken in the car, the
-plug between the car's wiring and the board, the fuses, the wire sizes, and
-the relay contacts. There are no documents for any of this; the old
-project's schematics are only Git LFS pointers without the files behind
-them. Asked on 2026-09-27, open until answered:
+![AuPrV1_1 in the car](hardware/power-supply/car-wiring.svg)
 
-- **Taps in the car:** vehicle, and where KL15, KL30 and ground come from
-  (radio connector, fuse box, battery, body ground point).
-- **Plug:** wires straight into the screw terminals, or a plug in between;
-  if so, its type and pin assignment.
-- **Fuses:** position (KL30 and KL15 feeds, the loads behind the relays),
-  type and rating; whether the board has its own fuse or reverse-polarity
-  protection.
-- **Wire sizes** for KL30, ground, KL15, the 5 V line to the Pi and the
-  relay outputs.
-- **Relays:** which of the three contacts is common, normally open and
-  normally closed; contact rating; whether the relays switch 12 V from the
-  car or the board's 5 V, and which of Rel1–Rel3 is relay 0, 1 and 2 in the
-  firmware.
-- **Pi power path:** from a +5 V terminal through a relay to the Pi's USB-C
-  socket, or switched on the board; whether +5 V on the pin header is
-  connected to the Pi as well (then the Pi must not be fed a second time
-  through USB-C).
+As Michael described it on 2026-09-27:
+
+- **KL30, KL15 and ground come from the car radio's ISO connector.** Ground
+  is assumed to come from there as well, since everything else does; this
+  is not confirmed.
+- **Measure before connecting.** Which ISO pins carry permanent and
+  switched plus differs between makers. With the ignition off only KL30
+  must carry 12 V; with the ignition on both do.
+- **Fuses** are not part of this setup: the radio connector is taken to be
+  fused by the vehicle.
+- **Relays:** each has COM, NO (closes when the relay is on) and NC; NC is
+  not used. Rel1 and Rel3 switch 12 V to the display with HDMI splitter
+  and to the amplifier.
+
+Still open, not documented until answered:
+
+- the vehicle, and so the actual ISO pin assignment;
+- whether the wires go straight from the ISO connector into the screw
+  terminals, or through another plug (type, pin assignment);
+- whether the board has its own fuse or reverse-polarity protection;
+- wire sizes for KL30, ground, KL15, the relay outputs and the 5 V line to
+  the Pi, and the length of that line;
+- which of the three terminals of each relay is COM, NO and NC, and the
+  relay type and contact rating;
+- where the 12 V at COM of Rel1 and Rel3 comes from, and how Rel2 sits in
+  the 5 V path to the Pi's USB-C socket;
+- whether +5 V on the pin header is connected to the Pi; if so, the Pi must
+  not also be fed through USB-C.
 
 ### Wiring to the Pi 4
 
