@@ -1,0 +1,28 @@
+# Social media demo: music, then a route from Steinau an der Straße to
+# Frankfurt am Main typed on the on-screen keyboard. The car stands in Steinau
+# (demo.sh prepare). Run with: resources/tools/demo/demo.sh run resources/tools/demo/frankfurt.demo
+
+say Kamera läuft? Start auf der Startseite
+wait 3000
+
+say Musik
+page media
+wait 2500
+play /var/lib/carnine/media/demo/1-Here We Go Now (Single Edit).mp3
+wait 7000
+
+say Karte
+page maps
+wait 4000
+
+say Ziel eintippen
+tap 560 82              # destination search field
+wait 1200
+type Frankfurt am Main
+wait 2500
+tap 560 154             # first hit
+wait 3000
+
+say Route steht
+wait 8000
+say Ende
