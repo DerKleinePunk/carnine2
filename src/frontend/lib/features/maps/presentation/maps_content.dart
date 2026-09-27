@@ -28,6 +28,10 @@ class MapsContent extends StatelessWidget {
     initialZoom: 13,
     vectorStyleAssets: const ['assets/maps/style_carnine_dark.json'],
     initialVectorStyleIndex: 0,
+    // At most two new tiles are rasterized per frame. Measured on the Pi 4
+    // with touchload: about half the time in long frames of all at once,
+    // the map fills a little later.
+    rasterTilesPerFrame: 2,
   );
 
   static const _layerStyle = MapLayerStyle(
