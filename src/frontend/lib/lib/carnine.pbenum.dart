@@ -39,6 +39,11 @@ class LibraryEventType extends $pb.ProtobufEnum {
   static const LibraryEventType PLAYLIST_ENTRY_ADDED =
       LibraryEventType._(10, _omitEnumNames ? '' : 'PLAYLIST_ENTRY_ADDED');
 
+  /// A volume announced with LIBRARY_MUSIC_FOUND is no longer mounted;
+  /// source_path names it.
+  static const LibraryEventType LIBRARY_MUSIC_GONE =
+      LibraryEventType._(11, _omitEnumNames ? '' : 'LIBRARY_MUSIC_GONE');
+
   static const $core.List<LibraryEventType> values = <LibraryEventType>[
     LIBRARY_EVENT_TYPE_UNSPECIFIED,
     LIBRARY_SCAN_STARTED,
@@ -51,10 +56,11 @@ class LibraryEventType extends $pb.ProtobufEnum {
     LIBRARY_IMPORT_COMPLETED,
     PLAYLIST_CREATED,
     PLAYLIST_ENTRY_ADDED,
+    LIBRARY_MUSIC_GONE,
   ];
 
   static final $core.List<LibraryEventType?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 10);
+      $pb.ProtobufEnum.$_initByValueList(values, 11);
   static LibraryEventType? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

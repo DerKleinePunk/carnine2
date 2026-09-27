@@ -8,6 +8,9 @@ enum LibraryScanEventKind {
   error,
   scanCompleted,
   musicFound,
+
+  /// A volume announced with [musicFound] is no longer mounted.
+  musicGone,
   importStarted,
   importProgress,
   importCompleted,
@@ -25,6 +28,7 @@ LibraryScanEventKind libraryScanEventKindFrom(LibraryEventType raw) {
     LibraryEventType.LIBRARY_SCAN_COMPLETED =>
       LibraryScanEventKind.scanCompleted,
     LibraryEventType.LIBRARY_MUSIC_FOUND => LibraryScanEventKind.musicFound,
+    LibraryEventType.LIBRARY_MUSIC_GONE => LibraryScanEventKind.musicGone,
     LibraryEventType.LIBRARY_IMPORT_STARTED =>
       LibraryScanEventKind.importStarted,
     LibraryEventType.LIBRARY_IMPORT_PROGRESS =>

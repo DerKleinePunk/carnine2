@@ -276,6 +276,12 @@ class LibraryController extends ChangeNotifier {
           _pendingImport = event;
           notifyListeners();
         }
+      case LibraryScanEventKind.musicGone:
+        // The stick was pulled: its offer goes, another volume's stays.
+        if (_pendingImport?.sourcePath == event.sourcePath) {
+          _pendingImport = null;
+          notifyListeners();
+        }
       case LibraryScanEventKind.playlistCreated:
       case LibraryScanEventKind.playlistEntryAdded:
         // Handled by PlaylistController, not the library search results.

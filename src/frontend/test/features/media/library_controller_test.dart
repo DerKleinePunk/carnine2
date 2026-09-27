@@ -175,6 +175,64 @@ void main() {
     },
   );
 
+  group('a pulled stick', () {
+    LibraryScanEvent found(String path) => LibraryScanEvent(
+      kind: LibraryScanEventKind.musicFound,
+      scanId: 0,
+      processed: 0,
+      imported: 0,
+      path: '',
+      message: '',
+      sourceLabel: 'MUSIK',
+      sourcePath: path,
+      matchingFiles: 3,
+    );
+    LibraryScanEvent gone(String path) => LibraryScanEvent(
+      kind: LibraryScanEventKind.musicGone,
+      scanId: 0,
+      processed: 0,
+      imported: 0,
+      path: '',
+      message: '',
+      sourcePath: path,
+    );
+
+    test(
+      'withdraws its offer, and plugged back in it is offered once',
+      () async {
+        await controller.start();
+        var offers = 0;
+        controller.addListener(() {
+          if (controller.pendingImport != null) {
+            offers++;
+          }
+        });
+
+        repository.libraryEventsController.add(found('/media/usb0'));
+        await Future<void>.delayed(Duration.zero);
+        repository.libraryEventsController.add(gone('/media/usb0'));
+        await Future<void>.delayed(Duration.zero);
+        expect(controller.pendingImport, isNull);
+
+        repository.libraryEventsController.add(found('/media/usb0'));
+        await Future<void>.delayed(Duration.zero);
+        expect(controller.pendingImport?.sourcePath, '/media/usb0');
+        expect(offers, 2, reason: 'once before the pull, once after');
+      },
+    );
+
+    test('leaves the offer of another volume alone', () async {
+      await controller.start();
+      repository.libraryEventsController.add(found('/media/usb0'));
+      await Future<void>.delayed(Duration.zero);
+
+      repository.libraryEventsController.add(gone('/media/usb1'));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.pendingImport?.sourcePath, '/media/usb0');
+    });
+  });
+
   test('dismissPendingImport clears it without importing anything', () async {
     await controller.start();
     repository.libraryEventsController.add(

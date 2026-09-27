@@ -30,6 +30,7 @@ const LibraryEventType$json = {
     {'1': 'LIBRARY_IMPORT_COMPLETED', '2': 8},
     {'1': 'PLAYLIST_CREATED', '2': 9},
     {'1': 'PLAYLIST_ENTRY_ADDED', '2': 10},
+    {'1': 'LIBRARY_MUSIC_GONE', '2': 11},
   ],
 };
 
@@ -40,7 +41,7 @@ final $typed_data.Uint8List libraryEventTypeDescriptor = $convert.base64Decode(
     'UllfRVJST1IQAxIaChZMSUJSQVJZX1NDQU5fQ09NUExFVEVEEAQSFwoTTElCUkFSWV9NVVNJQ1'
     '9GT1VORBAFEhoKFkxJQlJBUllfSU1QT1JUX1NUQVJURUQQBhIbChdMSUJSQVJZX0lNUE9SVF9Q'
     'Uk9HUkVTUxAHEhwKGExJQlJBUllfSU1QT1JUX0NPTVBMRVRFRBAIEhQKEFBMQVlMSVNUX0NSRU'
-    'FURUQQCRIYChRQTEFZTElTVF9FTlRSWV9BRERFRBAK');
+    'FURUQQCRIYChRQTEFZTElTVF9FTlRSWV9BRERFRBAKEhYKEkxJQlJBUllfTVVTSUNfR09ORRAL');
 
 @$core.Deprecated('Use playerEventTypeDescriptor instead')
 const PlayerEventType$json = {
