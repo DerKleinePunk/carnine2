@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="560" viewBox="0 0 1120 560" font-family="DejaVu Sans, Arial, sans-serif">
+<rect width="1120" height="560" fill="#ffffff"/>
+<text x="40" y="38" font-size="22" font-weight="bold" fill="#111">AuPrV1_1 power supply: terminals and pin header</text>
+<text x="40" y="62" font-size="14" fill="#444">Board seen from the component side, as in AuPrV1_1-connectors.jpg: pin header at the top, screw terminals at the bottom.</text>
+<!-- board -->
+<rect x="80" y="90" width="960" height="380" rx="8" fill="#e9f3e9" stroke="#6a9a6a"/>
+<text x="560" y="290" font-size="16" text-anchor="middle" fill="#6a9a6a">AuPrV1_1 "Nenntronic", 70 × 60 mm</text>
+<!-- pin header, 10 pins -->
+<text x="300" y="112" font-size="12" fill="#555">pin header, towards the Pi (3.3 V logic)</text>
+<g font-size="13" text-anchor="middle">
+<circle cx="320" cy="140" r="9" fill="#1f6fd1"/><text x="320" y="176" fill="#1f6fd1" font-weight="bold">RXD</text>
+<circle cx="370" cy="140" r="9" fill="#1e8a3a"/><text x="370" y="176" fill="#1e8a3a" font-weight="bold">TXD</text>
+<circle cx="420" cy="140" r="9" fill="#bdbdbd"/><text x="420" y="176" fill="#555">Dig1</text>
+<circle cx="470" cy="140" r="9" fill="#bdbdbd"/><text x="470" y="176" fill="#555">Dig2</text>
+<circle cx="520" cy="140" r="9" fill="#c0392b"/><text x="520" y="176" fill="#c0392b" font-weight="bold">Dig3</text>
+<circle cx="570" cy="140" r="9" fill="#222222"/><text x="570" y="176" fill="#222" font-weight="bold">GND</text>
+<circle cx="620" cy="140" r="9" fill="#bdbdbd"/><text x="620" y="176" fill="#555">+5 V</text>
+<circle cx="670" cy="140" r="9" fill="#bdbdbd"/><text x="670" y="176" fill="#555">An1</text>
+<circle cx="720" cy="140" r="9" fill="#bdbdbd"/><text x="720" y="176" fill="#555">An2</text>
+<circle cx="770" cy="140" r="9" fill="#bdbdbd"/><text x="770" y="176" fill="#555">An3</text>
+</g>
+<text x="320" y="200" font-size="12" fill="#444">coloured: wired to the Pi 4, see pi4-wiring.svg</text>
+<!-- screw terminals, 15 positions -->
+<g font-size="12" text-anchor="middle">
+<rect x="110" y="390" width="900" height="50" rx="4" fill="#ffffff" stroke="#888"/>
+<!-- relays -->
+<circle cx="140" cy="415" r="11" fill="#bdbdbd"/><circle cx="200" cy="415" r="11" fill="#bdbdbd"/><circle cx="260" cy="415" r="11" fill="#bdbdbd"/>
+<circle cx="320" cy="415" r="11" fill="#bdbdbd"/><circle cx="380" cy="415" r="11" fill="#bdbdbd"/><circle cx="440" cy="415" r="11" fill="#bdbdbd"/>
+<circle cx="500" cy="415" r="11" fill="#bdbdbd"/><circle cx="560" cy="415" r="11" fill="#bdbdbd"/><circle cx="620" cy="415" r="11" fill="#bdbdbd"/>
+<!-- supply -->
+<circle cx="680" cy="415" r="11" fill="#e67e22"/>
+<circle cx="740" cy="415" r="11" fill="#c0392b"/>
+<circle cx="800" cy="415" r="11" fill="#222222"/>
+<circle cx="860" cy="415" r="11" fill="#8e44ad"/><circle cx="920" cy="415" r="11" fill="#8e44ad"/><circle cx="980" cy="415" r="11" fill="#8e44ad"/>
+</g>
+<g font-size="14" text-anchor="middle" font-weight="bold">
+<path d="M130,452 L270,452" stroke="#555" stroke-width="2"/><text x="200" y="475" fill="#333">Rel1</text>
+<path d="M310,452 L450,452" stroke="#555" stroke-width="2"/><text x="380" y="475" fill="#333">Rel2</text>
+<path d="M490,452 L630,452" stroke="#555" stroke-width="2"/><text x="560" y="475" fill="#333">Rel3</text>
+<text x="680" y="475" fill="#e67e22">KL15</text>
+<text x="740" y="475" fill="#c0392b">KL30</text>
+<text x="800" y="475" fill="#222">KL31</text>
+<path d="M850,452 L990,452" stroke="#8e44ad" stroke-width="2"/><text x="920" y="475" fill="#8e44ad">3 × +5 V out</text>
+</g>
+<g font-size="12" text-anchor="middle" fill="#444">
+<text x="680" y="378">Zündung</text>
+<text x="740" y="360">Dauerplus</text><path d="M740,365 L740,400" stroke="#aaa" stroke-width="1"/>
+<text x="800" y="378">Masse</text>
+</g>
+<text x="380" y="378" font-size="12" text-anchor="middle" fill="#444">3 contacts per relay</text>
+<text x="40" y="510" font-size="12" fill="#666">KL15 = switched with the ignition, KL30 = battery plus (always on), KL31 = vehicle ground. Input 9–30 V, output 5.15 V / 4 A.</text>
+<text x="40" y="530" font-size="12" fill="#666">Own drawing for carnine2, docs/23-power-supply.md, from the board drawing AuPrV1_1-board.pdf.</text>
+</svg>

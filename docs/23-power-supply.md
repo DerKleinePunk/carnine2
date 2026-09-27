@@ -1,6 +1,6 @@
 # 23 – Vehicle Power Supply (Ignition, Shutdown, Watchdog)
 
-**Status:** not integrated yet (2026-09-25). The hardware and its firmware
+**Status:** not integrated yet (2026-09-27). The hardware and its firmware
 come from the predecessor project
 [DerKleinePunk/carnine](https://github.com/DerKleinePunk/carnine); the
 firmware is now in [firmware/powersupply/](../firmware/powersupply/README.md)
@@ -47,6 +47,60 @@ not work out and are not used.
 The serial lines run at **3.3 V**, so they connect to the Pi directly,
 without a level shifter.
 
+### Terminals and pin header
+
+![AuPrV1_1 terminals and pin header](hardware/power-supply/auprv1-terminals.svg)
+
+Screw terminals, from left to right with the board seen from the component
+side (pin header at the top):
+
+| Position | Label | Use |
+|---|---|---|
+| 1–3 | Rel1 | relay contacts, three per relay |
+| 4–6 | Rel2 | relay contacts |
+| 7–9 | Rel3 | relay contacts |
+| 10 | Zündung | **KL15**, plus switched by the ignition; the firmware reads it |
+| 11 | Dauerplus | **KL30**, battery plus, always on; feeds the supply |
+| 12 | Masse | **KL31**, vehicle ground |
+| 13–15 | +5 V | 5.15 V output, up to 4 A in total |
+
+Pin header, from left to right: RXD, TXD, Dig1, Dig2, Dig3, GND, +5 V,
+Analog1, Analog2, Analog3. RXD, TXD, Dig3 and GND go to the Pi (see
+[Wiring to the Pi 4](#wiring-to-the-pi-4)); Dig1, Dig2 and Analog1–3 are not
+used by carnine2. The board drawing
+([AuPrV1_1-board.pdf](hardware/power-supply/AuPrV1_1-board.pdf)) shows two
+more pads after Analog3, labelled 3.3 V and "unbenutzt" (unused), which
+the connector drawing leaves out.
+
+The KL15, KL30 and KL31 names are the usual German terminal numbers
+(DIN 72552).
+
+### Connection in the car
+
+Not documented yet: where KL15, KL30 and ground are taken in the car, the
+plug between the car's wiring and the board, the fuses, the wire sizes, and
+the relay contacts. There are no documents for any of this; the old
+project's schematics are only Git LFS pointers without the files behind
+them. Asked on 2026-09-27, open until answered:
+
+- **Taps in the car:** vehicle, and where KL15, KL30 and ground come from
+  (radio connector, fuse box, battery, body ground point).
+- **Plug:** wires straight into the screw terminals, or a plug in between;
+  if so, its type and pin assignment.
+- **Fuses:** position (KL30 and KL15 feeds, the loads behind the relays),
+  type and rating; whether the board has its own fuse or reverse-polarity
+  protection.
+- **Wire sizes** for KL30, ground, KL15, the 5 V line to the Pi and the
+  relay outputs.
+- **Relays:** which of the three contacts is common, normally open and
+  normally closed; contact rating; whether the relays switch 12 V from the
+  car or the board's 5 V, and which of Rel1–Rel3 is relay 0, 1 and 2 in the
+  firmware.
+- **Pi power path:** from a +5 V terminal through a relay to the Pi's USB-C
+  socket, or switched on the board; whether +5 V on the pin header is
+  connected to the Pi as well (then the Pi must not be fed a second time
+  through USB-C).
+
 ### Wiring to the Pi 4
 
 The supply gets its own UART, **uart5**, so Bluetooth keeps the Pi's default
@@ -92,7 +146,8 @@ board's own USB socket with the jumper towards it: build here, copy the
 `.bin` to Windows, write it from there, set the jumper back. The command `U`
 resets the chip into the bootloader. Done on 2026-09-25 on the test board:
 it ran an older firmware before (a text line every second, no telegrams, no
-reaction to commands); with V2.2.12 the telegrams come and `v` answers. Which bootloader and
+reaction to commands); with V2.2.12 the telegrams come and `v` answers. The test board runs V2.3.0
+now; `v` reports it. Which bootloader and
 protocol that is, is being asked; if it is a standard one, flashing and later
 updates could run from the Pi itself. Putting on or updating the bootloader
 itself is separate from the firmware.
