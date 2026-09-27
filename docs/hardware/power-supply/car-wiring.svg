@@ -66,12 +66,12 @@
 <rect x="820" y="318" width="270" height="64" rx="6" fill="#fff" stroke="#1f6fd1" stroke-width="2"/>
 <text x="834" y="340" font-size="14" font-weight="bold" fill="#1f6fd1">USB hub of the display</text>
 <text x="834" y="358" font-size="14" font-weight="bold" fill="#1f6fd1">+ HDMI splitter</text>
-<text x="834" y="375" font-size="12" fill="#444">5 V, first on (relay 0)</text>
+<text x="834" y="375" font-size="12" fill="#444">5.1 V, first on (relay 0)</text>
 <path d="M688,350 L818,350" stroke="#1f6fd1" stroke-width="3" marker-end="url(#arr)"/>
 
 <rect x="820" y="388" width="270" height="46" rx="6" fill="#fff" stroke="#1e8a3a" stroke-width="2"/>
 <text x="834" y="408" font-size="14" font-weight="bold" fill="#1e8a3a">Raspberry Pi 4, USB-C</text>
-<text x="834" y="426" font-size="12" fill="#444">5 V (relay 1), ~20 cm, 0.75 mm²</text>
+<text x="834" y="426" font-size="12" fill="#444">5.1 V (relay 1), ~20 cm, 0.75 mm²</text>
 <path d="M688,410 L818,410" stroke="#1e8a3a" stroke-width="3" marker-end="url(#arr)"/>
 
 <rect x="820" y="448" width="270" height="46" rx="6" fill="#fff" stroke="#c07a2b" stroke-width="2"/>

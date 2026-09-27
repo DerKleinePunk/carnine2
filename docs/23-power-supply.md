@@ -36,8 +36,10 @@ converter and the three relays; the labels on both can be read:
   gives for it 9–18 V in (12 V nominal), 5.0 V / 6.0 A out (30 W), 89 %
   efficiency, 2810 mA input current at full load and nominal input, and an
   input surge of 25 V for 100 ms. The old project's figures, input 9–30 V
-  and output 5.15 V / 4 A, do not match the converter. Whether the board
-  trims the output to 5.15 V is not known.
+  and output 5.15 V / 4 A, do not match the converter. The board raises
+  the converter's 5.0 V to **5.1 V** through a circuit change; Michael
+  measured 5.1 V at the output of the supplies. How that change looks is
+  not documented yet (TODO below).
 - **Relays (3×):** Hongfa **HFD3/5-S**, printed "2A 30VDC, 0.5A 125VAC".
   According to the
   [HFD3 datasheet](http://www.hongfaamerica.com/hq/PDF/HFD3_en.pdf) that is
@@ -68,10 +70,12 @@ converter and the three relays; the labels on both can be read:
   header (other side: running on the Pi). In the wrong position the Pi
   receives the supply's output but its commands never arrive.
 - **Pi power:** the Pi is fed from the supply through its USB-C socket,
-  not through the 5 V pins of its GPIO header. The converter is rated
-  5.0 V; Raspberry Pi asks for a 5.1 V supply, and the Pi logs an
-  undervoltage below 4.63 V (±5 %). Whether the Pi reports undervoltage on
-  this supply under full load has not been checked. Raspberry Pi names USB-C as the Pi 4's
+  not through the 5 V pins of its GPIO header. Raspberry Pi asks for a
+  5.1 V supply, and the Pi logs an undervoltage below 4.63 V (±5 %). The
+  converter is rated 5.0 V; the board raises it to 5.1 V so that this
+  undervoltage does not occur (Michael measured 5.1 V at the output).
+  Not measured yet: the voltage under load, and `vcgencmd get_throttled`
+  with the Pi running on the supply. Raspberry Pi names USB-C as the Pi 4's
   power input and recommends a USB-C supply for it
   ([documentation, "Power supply"](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html));
   the same page warns under "Back-powering" that power fed in elsewhere
@@ -105,7 +109,7 @@ side (pin header at the top):
 | 10 | Zündung | **KL15**, plus switched by the ignition; the firmware reads it |
 | 11 | Dauerplus | **KL30**, battery plus, always on; feeds the supply |
 | 12 | Masse | **KL31**, vehicle ground |
-| 13–15 | +5 V | converter output, 5 V, up to 6 A in total |
+| 13–15 | +5 V | converter output, 5.1 V (measured), up to 6 A in total |
 
 Pin header, from left to right: RXD, TXD, Dig1, Dig2, Dig3, GND, +5 V,
 Analog1, Analog2, Analog3. RXD, TXD, Dig3 and GND go to the Pi (see
@@ -169,10 +173,16 @@ connecting. As Michael described it on 2026-09-27:
 USB-C, Rel1 that of the display's USB hub and the HDMI splitter. The Pi 4's
 recommended supply delivers 3 A. Whether the current through each relay
 stays below 2 A has not been measured. Whether the board connects the
-relay's two contact sets in parallel is not known either.
+relay's two contact sets in parallel is not known either. In the layout
+drawing only one set per relay (pads A1, S1, B1) has visible tracks to the
+terminals; the other set (A2, S2, B2) shows none, but those pads lie in a
+copper pour in the connector drawing, and both drawings still contain
+unrouted airwires, so the drawings do not settle it.
 
-**TODO** (Michael is asking; not documented until answered): whether the
-board has its own fuse or reverse-polarity protection.
+**TODO** (Michael is asking; not documented until answered):
+
+- whether the board has its own fuse or reverse-polarity protection;
+- document the circuit change that raises the output to 5.1 V.
 
 ### Wiring to the Pi 4
 
