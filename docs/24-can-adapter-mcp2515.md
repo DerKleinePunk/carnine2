@@ -3,8 +3,9 @@
 **Status:** preparation only (2026-09-27). No CAN adapter is planned for
 now, and nothing in carnine2 talks CAN yet. This page fixes the pins so
 that nothing else takes them, and collects what is needed to bring up
-`can0` once an adapter is chosen. Open points are marked **TODO**; they
-depend on the module and the car and are not guessed here.
+`can0` once an adapter is chosen. Open points are marked **TODO**. They
+depend on the car and on the module bought for it, so they are found out
+before fitting, not guessed here.
 
 ## Why
 
@@ -72,8 +73,9 @@ MCP2515 data sheet (table 13-1):
 An MCP2515 at 3.3 V fits the Pi directly. At 5 V it needs level shifting
 on these lines.
 
-**TODO (Michael):** which module, what its MCP2515 runs on, and whether its
-transceiver needs 5 V.
+**TODO (vehicle-dependent, find out before fitting):** which module is
+used, whether its MCP2515 runs on 3.3 V or 5 V, and whether its transceiver
+needs 5 V. That decides whether level shifting is needed.
 
 ## Device tree
 
@@ -99,8 +101,8 @@ dtoverlay=mcp2515-can0,oscillator=<Hz>,interrupt=25
 - `oscillator` must match the crystal on the module. A wrong value gives
   a wrong bit rate, and the adapter then cannot talk to the bus.
 
-**TODO (Michael):** which crystal the module has (e.g. 8 or 16 MHz), that
-gives `oscillator=`.
+**TODO (vehicle-dependent, find out before fitting):** the crystal on the
+chosen module (e.g. 8 or 16 MHz). It gives `oscillator=`.
 
 The image does not load the overlay today.
 
@@ -120,9 +122,9 @@ ip -details link show can0
   driver uses; it must match `oscillator=`.
 - [07 – Deployment View](07-deployment.md) has an example with 500000.
 
-**TODO (Michael):** the bit rate in the car and where the bus is tapped.
-07 says "500 kbps or 1 Mbps (vehicle-specific)"; this depends on the car
-and on which of its buses is used.
+**TODO (vehicle-dependent, find out before fitting):** the bit rate of the
+bus and where it is tapped. 07 says "500 kbps or 1 Mbps (vehicle-specific)";
+it differs from car to car and between the buses of one car.
 
 ## Testing
 
