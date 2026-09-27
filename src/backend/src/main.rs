@@ -53,7 +53,7 @@ use carnine::{
     LibraryEvent, LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest,
     PlayQueueEntryRequest, PlayRequest, PlayerEvent, PlayerEventType, PlayerState, Playlist,
     PlaylistEntry, PowerSupplyState, PowerSupplyStatus, RepeatMode, RescanMediaRequest,
-    SearchMediaRequest, SearchMediaResponse, ServiceVersion, SetRepeatModeRequest,
+    SearchMediaRequest, SearchMediaResponse, SeekRequest, ServiceVersion, SetRepeatModeRequest,
     SetShuffleModeRequest, SetVolumeRequest, SystemMetrics, UiState, UpdateConfigurationRequest,
     VolumeResponse,
 };
@@ -741,6 +741,16 @@ impl MediaService for MediaServiceImpl {
         _request: Request<Empty>,
     ) -> Result<Response<CommandResponse>, Status> {
         self.command("previous", String::new())
+    }
+
+    async fn seek(
+        &self,
+        request: Request<SeekRequest>,
+    ) -> Result<Response<CommandResponse>, Status> {
+        let response = self.command("seek", request.into_inner().delta_ms.to_string())?;
+        // docs/20: a seek's position is saved at once, the power may go next.
+        self.save_resume_state_after_setting("the position");
+        Ok(response)
     }
 
     async fn restart_current_track(
@@ -1534,7 +1544,7 @@ mod tests {
         get_cover_art_request::Target as CoverArtTarget, media_service_server::MediaService,
         system_service_server::SystemService, AddPlaylistEntryRequest, AudioEventType,
         CreatePlaylistRequest, Empty, GetCoverArtRequest, GetPlaylistRequest, LibraryEventType,
-        PlayerEventType, RepeatMode, RescanMediaRequest, SetRepeatModeRequest,
+        PlayerEventType, RepeatMode, RescanMediaRequest, SeekRequest, SetRepeatModeRequest,
         SetShuffleModeRequest, SystemMetrics, UiState,
     };
     use crate::config;
@@ -2693,6 +2703,67 @@ mod tests {
         );
 
         let _ = std::fs::remove_dir_all(&directory);
+    }
+
+    #[tokio::test]
+    async fn seek_moves_the_track_and_saves_the_position_at_once() {
+        let database_path =
+            std::env::temp_dir().join(format!("carnine-seek-{}.sqlite3", std::process::id()));
+        let _ = std::fs::remove_file(&database_path);
+        let service =
+            playlist_test_service(database_path.clone(), PathBuf::from("/tmp/carnine-covers"));
+
+        let status = service
+            .seek(Request::new(SeekRequest { delta_ms: 30_000 }))
+            .await
+            .expect_err("nothing is loaded");
+        assert_eq!(status.code(), tonic::Code::FailedPrecondition);
+
+        // A loose file: the resume state refers to playlists by foreign key,
+        // and this database has none.
+        let track = std::env::temp_dir().join(format!("carnine-seek-{}.mp3", std::process::id()));
+        std::fs::write(&track, b"not really audio").expect("track should be writable");
+        service
+            .player
+            .execute("play", &track.to_string_lossy())
+            .expect("the file should start");
+        // Paused, so the position stands still while the test reads it back.
+        service
+            .player
+            .execute("pause", "")
+            .expect("the file should pause");
+        // Under a loaded test run, play and pause can lie seconds apart.
+        let paused_at = service.player.position_ms();
+        service
+            .seek(Request::new(SeekRequest { delta_ms: 10_000 }))
+            .await
+            .expect("seek should work");
+        let response = service
+            .seek(Request::new(SeekRequest { delta_ms: 30_000 }))
+            .await
+            .expect("seek should work")
+            .into_inner();
+
+        assert!(response.success);
+        let state = service
+            .get_player_state(Request::new(Empty {}))
+            .await
+            .expect("player state should load")
+            .into_inner();
+        assert_eq!(state.position_ms, paused_at + 40_000);
+        let saved = database::Database::open(&database_path)
+            .expect("database should open")
+            .load_resume_state()
+            .expect("resume state should load")
+            .expect("the seek saved a resume state");
+        assert_eq!(
+            saved.position_ms,
+            paused_at + 40_000,
+            "saved without waiting for a stop"
+        );
+
+        let _ = std::fs::remove_file(&database_path);
+        let _ = std::fs::remove_file(&track);
     }
 
     #[tokio::test]

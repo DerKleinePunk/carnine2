@@ -131,6 +131,11 @@ impl MediaPlayer {
             "next" => self.next(),
             "previous" => self.previous(),
             "restart" => self.switch_track(0),
+            "seek" => parameters
+                .trim()
+                .parse::<i64>()
+                .with_context(|| format!("invalid seek delta: {parameters}"))
+                .and_then(|delta_ms| self.seek(delta_ms)),
             "queue-entry" => self.play_queue_entry(parameters),
             unknown => Err(anyhow!("unknown media command: {unknown}")),
         };
@@ -499,6 +504,71 @@ impl MediaPlayer {
         Ok("playback started".to_string())
     }
 
+    /// Moves the current track by `delta_ms`, relative so a client with a
+    /// slightly stale position still lands where it meant. Below the start it
+    /// stops at 0; past a known duration it stops at the end, so the track
+    /// finishes as if it had played out and repeat and shuffle take over. A
+    /// paused track stays paused at the new position. The queue is untouched.
+    pub fn seek(&self, delta_ms: i64) -> Result<String> {
+        let state = *self
+            .state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let path = self.media_path();
+        if matches!(state, PlaybackState::Stopped) || path.is_empty() {
+            bail!("no active playback to seek in");
+        }
+        let mut target_ms = self.position_ms().saturating_add(delta_ms).max(0);
+        let duration_ms = self.duration_ms();
+        if duration_ms > 0 {
+            target_ms = target_ms.min(duration_ms);
+        }
+        let active_playback = self
+            .playback
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take();
+        if let Some(active_playback) = active_playback {
+            active_playback.stop()?;
+        }
+        *self
+            .position_ms
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = target_ms;
+        *self
+            .started_at
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
+        if matches!(state, PlaybackState::Playing) {
+            match self.engine.start_at(&path, target_ms) {
+                Ok(started_playback) => {
+                    *self
+                        .playback
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(started_playback);
+                    *self
+                        .started_at
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(Instant::now());
+                }
+                Err(error) => {
+                    // Nothing plays any more; paused at the target, Play
+                    // tries again from there.
+                    *self
+                        .state
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner()) = PlaybackState::Paused;
+                    return Err(error);
+                }
+            }
+        }
+        self.publish(
+            PlayerEventType::PlayerPositionChanged,
+            "playback position sought",
+        );
+        Ok(format!("position {target_ms} ms"))
+    }
+
     fn next(&self) -> Result<String> {
         self.switch_track(1)
     }
@@ -798,7 +868,7 @@ fn shuffled_order(len: usize, pinned_first: Option<usize>) -> Vec<usize> {
 #[cfg(test)]
 mod tests {
     use std::sync::atomic::{AtomicBool, Ordering};
-    use std::sync::Arc;
+    use std::sync::{Arc, Mutex};
 
     use super::MediaPlayer;
     use crate::audio_engine::{AudioEngine, Playback};
@@ -830,10 +900,20 @@ mod tests {
 
     struct FakeAudioEngine {
         finished: Arc<AtomicBool>,
+        /// Every start as (path, position in ms).
+        starts: Arc<Mutex<Vec<(String, i64)>>>,
     }
 
     impl AudioEngine for FakeAudioEngine {
-        fn start(&self, _input_path: &str) -> Result<Box<dyn Playback>> {
+        fn start(&self, input_path: &str) -> Result<Box<dyn Playback>> {
+            self.start_at(input_path, 0)
+        }
+
+        fn start_at(&self, input_path: &str, position_ms: i64) -> Result<Box<dyn Playback>> {
+            self.starts
+                .lock()
+                .unwrap()
+                .push((input_path.to_string(), position_ms));
             self.finished.store(false, Ordering::Release);
             Ok(Box::new(FakePlayback {
                 finished: Arc::clone(&self.finished),
@@ -845,11 +925,157 @@ mod tests {
     /// the test, to deterministically simulate a natural track end without
     /// real audio/ffmpeg.
     fn player_with_finish_control() -> (MediaPlayer, Arc<AtomicBool>) {
+        let (player, finished, _) = player_with_start_log();
+        (player, finished)
+    }
+
+    type StartLog = Arc<Mutex<Vec<(String, i64)>>>;
+
+    fn player_with_start_log() -> (MediaPlayer, Arc<AtomicBool>, StartLog) {
         let finished = Arc::new(AtomicBool::new(false));
+        let starts = StartLog::default();
         let engine = FakeAudioEngine {
             finished: Arc::clone(&finished),
+            starts: Arc::clone(&starts),
         };
-        (MediaPlayer::with_engine(Box::new(engine)), finished)
+        (MediaPlayer::with_engine(Box::new(engine)), finished, starts)
+    }
+
+    /// A two-track playlist playing its first track from `position_ms`.
+    fn playing_at(position_ms: i64) -> (MediaPlayer, StartLog) {
+        let (player, _, starts) = player_with_start_log();
+        player
+            .play_playlist(
+                7,
+                vec![
+                    (11, "/music/first.mp3".to_string()),
+                    (12, "/music/second.mp3".to_string()),
+                ],
+                Some(11),
+                position_ms,
+                "auto-play",
+            )
+            .expect("playlist should start");
+        (player, starts)
+    }
+
+    fn last_start(starts: &StartLog) -> (String, i64) {
+        starts.lock().unwrap().last().cloned().expect("a start")
+    }
+
+    #[test]
+    fn seek_forward_restarts_the_track_further_on() {
+        let (player, starts) = playing_at(10_000);
+        let mut events = player.subscribe_events();
+
+        player.execute("seek", "30000").expect("seek should work");
+
+        assert_eq!(
+            last_start(&starts),
+            ("/music/first.mp3".to_string(), 40_000)
+        );
+        assert_eq!(player.state(), "playing");
+        assert_eq!(player.position_ms() / 1000, 40);
+        let event = events.try_recv().expect("the new position is published");
+        assert_eq!(event.event, PlayerEventType::PlayerPositionChanged as i32);
+        assert_eq!(event.state.expect("state").position_ms / 1000, 40);
+    }
+
+    #[test]
+    fn seek_back_keeps_the_queue_and_stops_at_the_start() {
+        let (player, starts) = playing_at(40_000);
+        player.execute("seek", "-30000").expect("seek should work");
+        assert_eq!(last_start(&starts).1, 10_000);
+
+        player.execute("seek", "-30000").expect("seek should work");
+
+        assert_eq!(last_start(&starts).1, 0, "below the start it stops at 0");
+        assert_eq!(player.playlist_entry_id(), Some(11), "still the same entry");
+        assert_eq!(player.playlist_id(), Some(7));
+        player.execute("next", "").expect("the queue is intact");
+        assert_eq!(last_start(&starts).0, "/music/second.mp3");
+    }
+
+    #[test]
+    fn seek_past_the_end_stops_at_the_known_duration() {
+        let (player, starts) = playing_at(150_000);
+        player.set_duration_lookup(Box::new(|_| Some(175_000)));
+
+        player.execute("seek", "30000").expect("seek should work");
+
+        assert_eq!(
+            last_start(&starts).1,
+            175_000,
+            "at the end, so the track finishes and repeat/shuffle decide what follows"
+        );
+    }
+
+    #[test]
+    fn seek_without_a_known_duration_leaves_the_end_to_the_decoder() {
+        let (player, starts) = playing_at(150_000);
+
+        player.execute("seek", "30000").expect("seek should work");
+
+        assert_eq!(last_start(&starts).1, 180_000);
+    }
+
+    #[test]
+    fn seek_while_paused_moves_the_position_and_stays_paused() {
+        let (player, starts) = playing_at(10_000);
+        player.execute("pause", "").expect("playback should pause");
+        let starts_before = starts.lock().unwrap().len();
+
+        player.execute("seek", "30000").expect("seek should work");
+
+        assert_eq!(player.state(), "paused");
+        assert_eq!(player.position_ms() / 1000, 40);
+        assert_eq!(
+            starts.lock().unwrap().len(),
+            starts_before,
+            "nothing starts"
+        );
+        player.execute("play", "").expect("play should resume");
+        assert_eq!(
+            last_start(&starts).1 / 1000,
+            40,
+            "resumes at the new position"
+        );
+    }
+
+    #[test]
+    fn seek_in_a_playlist_restored_paused_moves_its_resume_position() {
+        let (player, _, starts) = player_with_start_log();
+        player
+            .play_playlist(
+                7,
+                vec![(11, "/music/first.mp3".to_string())],
+                Some(11),
+                5_000,
+                "restore_paused",
+            )
+            .expect("playlist should load");
+
+        player.execute("seek", "30000").expect("seek should work");
+        player.execute("play", "").expect("play should start");
+
+        assert_eq!(
+            last_start(&starts),
+            ("/music/first.mp3".to_string(), 35_000)
+        );
+    }
+
+    #[test]
+    fn seek_without_playback_fails_cleanly() {
+        let player = player();
+        let error = player
+            .execute("seek", "30000")
+            .expect_err("nothing to seek in");
+        assert!(error.to_string().contains("no active playback"));
+
+        let (player, _) = playing_at(0);
+        player.execute("stop", "").expect("stop should work");
+        assert!(player.execute("seek", "30000").is_err());
+        assert!(player.execute("seek", "thirty").is_err());
     }
 
     #[test]

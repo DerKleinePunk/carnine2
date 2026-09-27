@@ -21,8 +21,8 @@ use carnine::{
     GetPlaylistRequest, GetReplayRouteRequest, ImportMusicVolumeRequest, LatLon, LibraryEventType,
     NavigationStatus, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PositionFix,
     PositionSourceKind, PowerSupplyState, PowerSupplyStatus, RepeatMode, RescanMediaRequest, Route,
-    SearchMediaRequest, SearchPlacesRequest, SetRepeatModeRequest, SetShuffleModeRequest,
-    SetTrackRecordingRequest, SystemMetrics, UiState,
+    SearchMediaRequest, SearchPlacesRequest, SeekRequest, SetRepeatModeRequest,
+    SetShuffleModeRequest, SetTrackRecordingRequest, SystemMetrics, UiState,
 };
 
 #[tokio::main]
@@ -56,6 +56,7 @@ async fn main() -> Result<()> {
         "stop" => send_stop(&mut client).await?,
         "playlist" => play_playlist(&mut client).await?,
         "queue-entry" => play_queue_entry(&mut client).await?,
+        "seek" => seek(&mut client).await?,
         "player-events" => stream_player_events(&mut client).await?,
         "library-events" => stream_library_events(&mut client).await?,
         "library-smoke" => library_event_smoke(&endpoint).await?,
@@ -112,6 +113,16 @@ async fn play_queue_entry(client: &mut MediaServiceClient<Channel>) -> Result<()
         .play_queue_entry(PlayQueueEntryRequest { index })
         .await?
         .into_inner();
+    println!("{}: {}", response.success, response.message);
+    Ok(())
+}
+
+async fn seek(client: &mut MediaServiceClient<Channel>) -> Result<()> {
+    let delta_ms = env::args()
+        .nth(3)
+        .context("seek requires a delta in milliseconds, e.g. 30000 or -30000")?
+        .parse::<i64>()?;
+    let response = client.seek(SeekRequest { delta_ms }).await?.into_inner();
     println!("{}: {}", response.success, response.message);
     Ok(())
 }

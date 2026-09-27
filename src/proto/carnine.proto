@@ -13,6 +13,10 @@ service MediaService {
   rpc Stop (Empty) returns (CommandResponse);
   rpc Next (Empty) returns (CommandResponse);
   rpc Previous (Empty) returns (CommandResponse);
+  // Moves the current track by delta_ms, relative to where it is now; the
+  // queue stays. Stops at the start and at a known end; a paused track stays
+  // paused. FAILED_PRECONDITION without a loaded track.
+  rpc Seek (SeekRequest) returns (CommandResponse);
   rpc RestartCurrentTrack (Empty) returns (CommandResponse);
   rpc PlayQueueEntry (PlayQueueEntryRequest) returns (CommandResponse);
   rpc PlayPlaylist (PlayPlaylistRequest) returns (CommandResponse);
@@ -230,6 +234,10 @@ message PlaylistEntry {
 
 message PlayPlaylistRequest {
   uint64 playlist_id = 1;
+}
+
+message SeekRequest {
+  int64 delta_ms = 1;
 }
 
 message PlayQueueEntryRequest {
