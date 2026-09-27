@@ -9,7 +9,8 @@ Before=shutdown.target reboot.target halt.target poweroff.target
 Type=simple
 User=carnine
 Group=carnine
-# dialout: the GPS receiver on /dev/gps (ttyACM/ttyUSB are root:dialout).
+# dialout: the GPS receiver on /dev/gps and the power supply on
+# /dev/powersupply (ttyACM/ttyUSB/ttyAMA are root:dialout).
 SupplementaryGroups=audio dialout
 # Setting the clock from GPS time (navigation.set_system_clock) - no RTC, and
 # no NTP in the car.

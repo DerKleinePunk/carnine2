@@ -1,9 +1,7 @@
 //! The backend's own position: one hub holding the latest state, fed either by
 //! a GPS mouse (NMEA over a serial device) or by replaying a recorded tour.
 
-use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::os::fd::AsRawFd;
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -16,6 +14,7 @@ use tracing::{error, info, warn};
 use super::clock::ClockSetter;
 use super::nmea::{self, Rmc, Sentence};
 use super::track::TrackRecorder;
+use crate::serial_line::{configure_line, set_blocking};
 
 /// Pause between two replayed fixes when the recording gives no usable time.
 const DEFAULT_REPLAY_INTERVAL: Duration = Duration::from_secs(1);
@@ -336,63 +335,6 @@ fn read_serial(
     }
 }
 
-/// Puts a terminal into raw mode at `baud`, so the kernel neither edits nor
-/// echoes the receiver's lines. Returns `false`, without error, for anything
-/// that is not a terminal.
-fn configure_line(file: &File, baud: u32) -> Result<bool> {
-    let speed = baud_constant(baud).with_context(|| format!("unsupported line speed {baud}"))?;
-    let fd = file.as_raw_fd();
-    // SAFETY: termios is plain old data; tcgetattr fills it before any use.
-    let mut settings: libc::termios = unsafe { std::mem::zeroed() };
-    // SAFETY: fd stays open for the duration of the call, settings is valid.
-    if unsafe { libc::tcgetattr(fd, &mut settings) } != 0 {
-        let err = std::io::Error::last_os_error();
-        if err.raw_os_error() == Some(libc::ENOTTY) {
-            return Ok(false);
-        }
-        return Err(err).context("reading the line settings");
-    }
-    // SAFETY: settings came from tcgetattr; the calls only modify it.
-    unsafe {
-        libc::cfmakeraw(&mut settings);
-        libc::cfsetispeed(&mut settings, speed);
-        libc::cfsetospeed(&mut settings, speed);
-    }
-    settings.c_cflag |= libc::CLOCAL | libc::CREAD;
-    settings.c_cc[libc::VMIN] = 1;
-    settings.c_cc[libc::VTIME] = 0;
-    // SAFETY: fd is open, settings is a valid termios.
-    if unsafe { libc::tcsetattr(fd, libc::TCSANOW, &settings) } != 0 {
-        return Err(std::io::Error::last_os_error()).context("applying the line settings");
-    }
-    // Whatever arrived at the wrong speed before is garbage.
-    // SAFETY: fd is open.
-    unsafe { libc::tcflush(fd, libc::TCIFLUSH) };
-    Ok(true)
-}
-
-fn baud_constant(baud: u32) -> Option<libc::speed_t> {
-    Some(match baud {
-        4800 => libc::B4800,
-        9600 => libc::B9600,
-        19200 => libc::B19200,
-        38400 => libc::B38400,
-        57600 => libc::B57600,
-        115200 => libc::B115200,
-        _ => return None,
-    })
-}
-
-fn set_blocking(file: &File) -> Result<()> {
-    let fd = file.as_raw_fd();
-    // SAFETY: fd is open; F_GETFL/F_SETFL only touch its status flags.
-    let flags = unsafe { libc::fcntl(fd, libc::F_GETFL) };
-    if flags < 0 || unsafe { libc::fcntl(fd, libc::F_SETFL, flags & !libc::O_NONBLOCK) } < 0 {
-        return Err(std::io::Error::last_os_error()).context("switching to blocking reads");
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -570,41 +512,6 @@ $GPRMC,141502.000,A,5024.5968,N,00921.8742,E,22.35,184.27,010518,,,A*5C
         )
         .is_err());
         assert_eq!(hub.current().fix, None);
-    }
-
-    #[test]
-    fn configure_line_sets_raw_mode_and_speed_on_a_terminal() {
-        // A pseudo-terminal stands in for the serial adapter.
-        // SAFETY: plain libc calls on a descriptor this test owns.
-        let master = unsafe { libc::posix_openpt(libc::O_RDWR | libc::O_NOCTTY) };
-        assert!(master >= 0, "posix_openpt");
-        assert_eq!(unsafe { libc::grantpt(master) }, 0);
-        assert_eq!(unsafe { libc::unlockpt(master) }, 0);
-        let mut name = [0 as libc::c_char; 128];
-        assert_eq!(
-            unsafe { libc::ptsname_r(master, name.as_mut_ptr(), name.len()) },
-            0
-        );
-        let slave_path = unsafe { std::ffi::CStr::from_ptr(name.as_ptr()) }
-            .to_str()
-            .unwrap()
-            .to_string();
-        let slave = std::fs::OpenOptions::new()
-            .read(true)
-            .custom_flags(libc::O_NOCTTY)
-            .open(&slave_path)
-            .unwrap();
-
-        assert!(configure_line(&slave, 4800).unwrap());
-        let mut settings: libc::termios = unsafe { std::mem::zeroed() };
-        assert_eq!(
-            unsafe { libc::tcgetattr(slave.as_raw_fd(), &mut settings) },
-            0
-        );
-        assert_eq!(unsafe { libc::cfgetispeed(&settings) }, libc::B4800);
-        assert_eq!(settings.c_lflag & (libc::ICANON | libc::ECHO), 0);
-        assert!(configure_line(&slave, 4801).is_err());
-        unsafe { libc::close(master) };
     }
 
     #[test]

@@ -19,6 +19,9 @@ pub struct Config {
     /// Optional: without it navigation runs with no position source.
     #[serde(default)]
     pub navigation: NavigationConfig,
+    /// Optional: without it the backend does not talk to a power supply.
+    #[serde(default)]
+    pub power_supply: PowerSupplyConfig,
 }
 
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
@@ -163,7 +166,7 @@ pub struct NavigationConfig {
     pub names_database: Option<PathBuf>,
 }
 
-/// Line speeds a GPS receiver is set to in practice.
+/// Line speeds the serial devices (GPS receivers, the power supply) use.
 pub const SERIAL_BAUD_RATES: [u32; 6] = [4800, 9600, 19200, 38400, 57600, 115200];
 
 fn default_serial_baud() -> u32 {
@@ -191,6 +194,40 @@ impl Default for NavigationConfig {
             valhalla_url: default_valhalla_url(),
             map_region: String::new(),
             names_database: None,
+        }
+    }
+}
+
+/// The car power supply AuPrV1_1 (docs/23-power-supply.md) on a serial line.
+/// Its watchdog cuts the Pi off when the backend stops sending signs of life.
+#[derive(Debug, Clone, Deserialize, serde::Serialize)]
+pub struct PowerSupplyConfig {
+    /// Off unless a supply is connected: on a device without one the backend
+    /// would only retry opening the device.
+    #[serde(default)]
+    pub enabled: bool,
+    /// The link the backend package's udev rule creates for uart5.
+    #[serde(default = "default_power_supply_device")]
+    pub device: PathBuf,
+    /// The firmware's fixed line speed.
+    #[serde(default = "default_power_supply_baud")]
+    pub baud: u32,
+}
+
+fn default_power_supply_device() -> PathBuf {
+    PathBuf::from("/dev/powersupply")
+}
+
+fn default_power_supply_baud() -> u32 {
+    38400
+}
+
+impl Default for PowerSupplyConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            device: default_power_supply_device(),
+            baud: default_power_supply_baud(),
         }
     }
 }
@@ -262,6 +299,17 @@ impl Config {
             anyhow::bail!(
                 "navigation.serial_baud {} is not one of {:?}",
                 navigation.serial_baud,
+                SERIAL_BAUD_RATES
+            );
+        }
+        let power_supply = &self.power_supply;
+        if power_supply.enabled && power_supply.device.as_os_str().is_empty() {
+            anyhow::bail!("power_supply.enabled needs power_supply.device");
+        }
+        if !SERIAL_BAUD_RATES.contains(&power_supply.baud) {
+            anyhow::bail!(
+                "power_supply.baud {} is not one of {:?}",
+                power_supply.baud,
                 SERIAL_BAUD_RATES
             );
         }
@@ -554,6 +602,26 @@ mod tests {
         config.navigation.serial_baud = 4800;
 
         config.navigation.valhalla_url = "https://example.org".to_string();
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn power_supply_is_off_by_default_and_checks_its_line() {
+        let (mut config, _) =
+            Config::load_with_env(|_| None).expect("repository config should load");
+        assert!(!config.power_supply.enabled);
+        assert_eq!(
+            config.power_supply.device,
+            std::path::PathBuf::from("/dev/powersupply")
+        );
+        assert_eq!(config.power_supply.baud, 38400);
+
+        config.power_supply.enabled = true;
+        assert!(config.validate().is_ok());
+        config.power_supply.baud = 38401;
+        assert!(config.validate().is_err());
+        config.power_supply.baud = 38400;
+        config.power_supply.device = std::path::PathBuf::new();
         assert!(config.validate().is_err());
     }
 

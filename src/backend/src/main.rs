@@ -31,6 +31,8 @@ mod cpal_audio_engine;
 mod database;
 mod media_player;
 mod navigation;
+mod power_supply;
+mod serial_line;
 mod server_transport;
 mod storage_events;
 mod system_metrics;
@@ -561,12 +563,14 @@ impl ConfigService for ConfigServiceImpl {
             .map_err(|error| Status::invalid_argument(error.to_string()))?;
         let mut updated = configuration_from_proto(&configuration)
             .map_err(|error| Status::invalid_argument(error.to_string()))?;
-        updated.navigation = self
-            .configuration
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .navigation
-            .clone();
+        {
+            let current = self
+                .configuration
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            updated.navigation = current.navigation.clone();
+            updated.power_supply = current.power_supply.clone();
+        }
         let toml = toml::to_string_pretty(&updated)
             .map_err(|error| Status::internal(error.to_string()))?;
         let temporary_path = self.path.with_extension("toml.tmp");
@@ -1170,8 +1174,9 @@ fn configuration_from_proto(configuration: &Configuration) -> Result<config::Con
             disk_paths: configuration.disk_paths.iter().map(PathBuf::from).collect(),
         },
         // Not part of the Configuration message; update_configuration carries
-        // the current section over so saving settings cannot drop it.
+        // the current sections over so saving settings cannot drop them.
         navigation: config::NavigationConfig::default(),
+        power_supply: config::PowerSupplyConfig::default(),
     };
     configuration.validate()?;
     Ok(configuration)
@@ -1317,6 +1322,14 @@ async fn main() -> Result<()> {
         .as_ref()
         .map(|address| address.parse())
         .transpose()?;
+    if configuration.power_supply.enabled {
+        power_supply::spawn(
+            configuration.power_supply.device.clone(),
+            configuration.power_supply.baud,
+        );
+    } else {
+        info!("power supply disabled");
+    }
     let carnine_service = CarnineServiceImpl;
     let system_metrics = Arc::new(system_metrics::SystemMetricsHandle::new());
     system_metrics::spawn(
@@ -1555,6 +1568,7 @@ mod tests {
             },
             system: config::SystemConfig::default(),
             navigation: config::NavigationConfig::default(),
+            power_supply: config::PowerSupplyConfig::default(),
         }
     }
 
@@ -1728,7 +1742,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn update_configuration_keeps_the_navigation_section() {
+    async fn update_configuration_keeps_the_navigation_and_power_supply_sections() {
         let path = std::env::temp_dir().join(format!(
             "carnine-config-navigation-test-{}.toml",
             std::process::id()
@@ -1738,6 +1752,7 @@ mod tests {
         current.navigation.position_source = config::PositionSourceSetting::Replay;
         current.navigation.replay_file = Some(PathBuf::from("/var/lib/carnine/tour.nmea"));
         current.navigation.map_region = "hessen".to_string();
+        current.power_supply.enabled = true;
         let service = ConfigServiceImpl::new(current, path.clone());
 
         // The settings page sends the Configuration message, which has no
@@ -1757,6 +1772,7 @@ mod tests {
             config::PositionSourceSetting::Replay
         );
         assert_eq!(saved.navigation.map_region, "hessen");
+        assert!(saved.power_supply.enabled);
         let _ = std::fs::remove_file(path);
     }
 

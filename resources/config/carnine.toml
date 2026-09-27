@@ -70,3 +70,13 @@ disk_paths = []
 # valhalla_url = "http://127.0.0.1:8002"
 # map_region = "hessen"
 # names_database = "/var/lib/carnine/maps/hessen_names.db"
+
+# Car power supply AuPrV1_1 (docs/23-power-supply.md). Off by default. With a
+# supply connected, the backend sends it a sign of life every second from
+# start-up on; without one, its watchdog cuts the Pi off soon after booting.
+# Switch it on in a drop-in such as /etc/carnine/config.d/20-power-supply.toml.
+# [power_supply]
+# enabled = true
+# /dev/powersupply is the link the backend package's udev rule creates (uart5).
+# device = "/dev/powersupply"
+# baud = 38400
