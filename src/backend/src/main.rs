@@ -7,7 +7,11 @@ use std::pin::Pin;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-use std::{fs, path::PathBuf, sync::Mutex};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    sync::Mutex,
+};
 
 use anyhow::{bail, Context, Result};
 use futures_util::StreamExt;
@@ -507,22 +511,25 @@ impl MediaServiceImpl {
         }
     }
 
-    /// Drops the offer when the volume it points at is gone - a stick pulled
-    /// out must not leave a client that connects afterwards offering to import
-    /// from it.
-    pub(crate) fn forget_absent_music_volumes(&self, present: &[PathBuf]) {
-        let Ok(mut pending) = self.pending_music_volume.lock() else {
-            return;
-        };
-        let still_there = pending.as_ref().is_some_and(|event| {
-            present
-                .iter()
-                .any(|path| path.as_os_str().to_string_lossy() == event.source_path)
-        });
-        if pending.is_some() && !still_there {
-            info!("the volume waiting for import is gone; dropping the offer");
-            *pending = None;
+    /// A mounted volume went away: tells the clients, so the offer they show
+    /// goes, and drops it for clients that connect afterwards - a stick
+    /// pulled out must not be offered for import.
+    pub(crate) fn music_volume_gone(&self, source_path: &Path) {
+        let source_path = source_path.display().to_string();
+        info!(path = %source_path, "music volume gone");
+        if let Ok(mut pending) = self.pending_music_volume.lock() {
+            if pending
+                .as_ref()
+                .is_some_and(|event| event.source_path == source_path)
+            {
+                *pending = None;
+            }
         }
+        let _ = self.library_events.send(LibraryEvent {
+            event: LibraryEventType::LibraryMusicGone as i32,
+            source_path,
+            ..Default::default()
+        });
     }
 
     fn import_music_volume(&self, source_path: PathBuf) -> anyhow::Result<Vec<LibraryEvent>> {
@@ -855,7 +862,20 @@ impl MediaService for MediaServiceImpl {
         _request: Request<Empty>,
     ) -> Result<Response<Self::StreamLibraryEventsStream>, Status> {
         let updates = tokio_stream::wrappers::BroadcastStream::new(self.library_events.subscribe())
-            .filter_map(|event| async move { event.ok().map(Ok) });
+            .filter_map(|event| async move {
+                match event {
+                    Ok(event) => Some(Ok(event)),
+                    Err(tokio_stream::wrappers::errors::BroadcastStreamRecvError::Lagged(
+                        count,
+                    )) => {
+                        warn!(
+                            count,
+                            "library event subscriber lagged; events were dropped"
+                        );
+                        None
+                    }
+                }
+            });
         // A volume found before this client connected is replayed first, the
         // way the player stream opens with its snapshot.
         let pending = tokio_stream::iter(self.take_pending_music_volume().map(Ok));
@@ -2632,19 +2652,26 @@ mod tests {
             .discover_music_volume("MUSIK".to_string(), directory.clone())
             .expect("discovery should succeed");
 
-        // The next inspection sees no MUSIK volume at all - the stick is out.
-        service.forget_absent_music_volumes(&[]);
+        let mut events = service.library_events.subscribe();
+
+        // The stick is out.
+        service.music_volume_gone(&directory);
 
         assert!(
             service.take_pending_music_volume().is_none(),
             "an offer for a volume that is gone must not survive"
         );
+        let event = events
+            .try_recv()
+            .expect("clients should hear the volume is gone");
+        assert_eq!(event.event, LibraryEventType::LibraryMusicGone as i32);
+        assert_eq!(event.source_path, directory.display().to_string());
 
         let _ = std::fs::remove_dir_all(&directory);
     }
 
     #[tokio::test]
-    async fn a_volume_that_is_still_there_stays_on_offer() {
+    async fn another_volume_going_leaves_the_offer_alone() {
         let directory =
             std::env::temp_dir().join(format!("carnine-kept-volume-{}", std::process::id()));
         std::fs::create_dir_all(&directory).expect("source directory should be creatable");
@@ -2658,11 +2685,11 @@ mod tests {
             .discover_music_volume("MUSIK".to_string(), directory.clone())
             .expect("discovery should succeed");
 
-        service.forget_absent_music_volumes(std::slice::from_ref(&directory));
+        service.music_volume_gone(std::path::Path::new("/media/carnine/OTHER"));
 
         assert!(
             service.take_pending_music_volume().is_some(),
-            "the volume is still mounted, so the offer has to stand"
+            "the offered volume is still mounted, so the offer has to stand"
         );
 
         let _ = std::fs::remove_dir_all(&directory);

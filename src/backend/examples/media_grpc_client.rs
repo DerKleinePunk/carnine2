@@ -255,15 +255,21 @@ async fn stream_library_events(client: &mut MediaServiceClient<Channel>) -> Resu
     let count = event_count(1)?;
     let mut stream = client.stream_library_events(Empty {}).await?.into_inner();
     read_events(&mut stream, count, |event| {
+        let name = LibraryEventType::try_from(event.event)
+            .map(|kind| kind.as_str_name())
+            .unwrap_or("?");
         println!(
-            "library event={} scan_id={} processed={} imported={} path={} message={} \
-             playlist_id={} playlist_name={}",
+            "library event={} ({name}) scan_id={} processed={} imported={} path={} message={} \
+             source_label={} source_path={} matching_files={} playlist_id={} playlist_name={}",
             event.event,
             event.scan_id,
             event.processed,
             event.imported,
             event.path,
             event.message,
+            event.source_label,
+            event.source_path,
+            event.matching_files,
             event.playlist_id,
             event.playlist_name
         );

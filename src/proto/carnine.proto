@@ -172,6 +172,9 @@ enum LibraryEventType {
   LIBRARY_IMPORT_COMPLETED = 8;
   PLAYLIST_CREATED = 9;
   PLAYLIST_ENTRY_ADDED = 10;
+  // A volume announced with LIBRARY_MUSIC_FOUND is no longer mounted;
+  // source_path names it.
+  LIBRARY_MUSIC_GONE = 11;
 }
 
 message LibraryEvent {
