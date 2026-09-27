@@ -94,16 +94,19 @@ assignment depends on the vehicle and is checked with a meter before
 connecting. As Michael described it on 2026-09-27:
 
 - **KL30, KL15 and ground come from the ISO connector,** with the wires
-  going straight into the screw terminals, without another plug. Ground is
-  assumed to come from there as well, since everything else does; this is
-  not confirmed.
+  going straight into the screw terminals, without another plug.
 - **Measure before connecting.** Which ISO pins carry permanent and
   switched plus differs between makers. With the ignition off only KL30
   must carry 12 V; with the ignition on both do.
 - **Fuses** are not part of this setup: the radio connector is taken to be
   fused by the vehicle.
 - **Mounting:** the board sits right next to the Pi, so the line to the Pi
-  stays short: about 20 cm, 0.75 mm².
+  stays short: about 20 cm.
+- **Wires:** all of them are 0.75 mm², KL30, KL15, ground, the relay
+  outputs and the line to the Pi. Little current flows: the rated output
+  of 5.15 V / 4 A is about 20 W, roughly 2 A at 12 V in (an estimate from
+  the rating, not measured), and the amplifier's remote line carries only
+  a control current.
 - **Relays are potential-free contacts.** The board does not put any
   voltage on them; which voltage a relay switches is set by the wiring, so
   the board can serve other uses as well. Each relay has three terminals,
@@ -131,8 +134,6 @@ connecting. As Michael described it on 2026-09-27:
 - a source that explains why the Pi should be fed through USB-C rather
   than the header; until then the link to the Raspberry Pi documentation
   above stands, for what it says and no more.
-
-Still open: wire sizes for KL30, ground, KL15 and the relay outputs.
 
 ### Wiring to the Pi 4
 

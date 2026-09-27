@@ -4,7 +4,7 @@
 </defs>
 <rect width="1120" height="660" fill="#ffffff"/>
 <text x="40" y="38" font-size="22" font-weight="bold" fill="#111">AuPrV1_1 power supply in the car</text>
-<text x="40" y="62" font-size="14" fill="#444">Solid: confirmed by Michael. Dashed: assumed or not known yet, see "Connection in the car" in docs/23-power-supply.md.</text>
+<text x="40" y="62" font-size="14" fill="#444">Confirmed by Michael. Open points are TODOs under "Connection in the car" in docs/23-power-supply.md.</text>
 
 <!-- ISO radio connector -->
 <rect x="40" y="110" width="230" height="200" rx="8" fill="#f4f4f4" stroke="#666" stroke-width="2"/>
@@ -13,16 +13,15 @@
 <text x="60" y="198" font-size="14" fill="#c0392b" font-weight="bold">KL30 permanent +12 V</text>
 <text x="60" y="238" font-size="14" fill="#e67e22" font-weight="bold">KL15 ignition +12 V</text>
 <text x="60" y="278" font-size="14" fill="#222" font-weight="bold">KL31 ground</text>
-<text x="155" y="298" font-size="11" text-anchor="middle" fill="#555">(assumed)</text>
 <rect x="40" y="322" width="230" height="58" rx="6" fill="#fff4e0" stroke="#e67e22"/>
 <text x="52" y="344" font-size="12" fill="#8a4b00" font-weight="bold">Pins differ between makers:</text>
 <text x="52" y="364" font-size="12" fill="#8a4b00">measure before connecting</text>
 
 <!-- wires to board -->
-<text x="345" y="185" font-size="11" text-anchor="middle" fill="#555">straight in, no plug</text>
+<text x="345" y="185" font-size="11" text-anchor="middle" fill="#555">0.75 mm², no plug</text>
 <path d="M270,193 L420,193" stroke="#c0392b" stroke-width="3" marker-end="url(#arr)"/>
 <path d="M270,233 L420,233" stroke="#e67e22" stroke-width="3" marker-end="url(#arr)"/>
-<path d="M270,273 L420,273" stroke="#222" stroke-width="3" stroke-dasharray="10 5" marker-end="url(#arr)"/>
+<path d="M270,273 L420,273" stroke="#222" stroke-width="3" marker-end="url(#arr)"/>
 
 <!-- board -->
 <rect x="420" y="110" width="300" height="470" rx="8" fill="#e9f3e9" stroke="#6a9a6a" stroke-width="2"/>
@@ -84,6 +83,6 @@
 <text x="834" y="556" font-size="12" fill="#444">RXD TXD Dig3 GND; +5 V not connected</text>
 <path d="M720,541 L818,541" stroke="#555" stroke-width="3" marker-end="url(#arr)"/>
 
-<text x="40" y="610" font-size="12" fill="#666">Relay numbers are the firmware's (commands 1–6). The voltage each relay switches is set by the wiring. TODO: relay type and rating.</text>
+<text x="40" y="610" font-size="12" fill="#666">All wires 0.75 mm². Relay numbers are the firmware's (commands 1–6). The voltage each relay switches is set by the wiring. TODO: relay type and rating.</text>
 <text x="40" y="630" font-size="12" fill="#666">Own drawing for carnine2, docs/23-power-supply.md, from Michael's answers of 2026-09-27.</text>
 </svg>
