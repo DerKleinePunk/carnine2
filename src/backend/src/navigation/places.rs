@@ -1,7 +1,7 @@
 //! Place search over the names database the map tools build next to the tiles
 //! (`extract_names_to_sqlite.py` in flutter_local_map: an FTS5 table `names`).
 //!
-//! Ranking follows the map library's `OfflineGeocoder` (local_map 0.5.0), so a
+//! Ranking follows the map library's `OfflineGeocoder` (local_map 0.5.1), so a
 //! search reads the same in the demo app and in carnine2: exact names before
 //! those that only start that way, within each places before POIs before
 //! peaks, water and streets, and with `near` each group ordered by distance.
@@ -147,7 +147,8 @@ pub fn search(
 
 /// Exact hits first ("Fulda" before "Fulda-Galerie", "Hauptstraße Alsfeld"
 /// for the one in Alsfeld), then those that only start that way; within each
-/// by rank, then by distance.
+/// by rank, then by distance. With `near` the rank is banded: inhabited
+/// places, then everything within [`NEAR_RADIUS_METERS`], then the rest.
 fn ranked(
     candidates: Vec<PlaceRecord>,
     query: &str,
@@ -174,7 +175,7 @@ fn ranked(
                     .area
                     .as_ref()
                     .is_some_and(|area| format!("{name} {}", area.to_lowercase()) == wanted);
-            let rank = if record.kind == "poi" && streets.contains(&street_key(&record)) {
+            let type_rank = if record.kind == "poi" && streets.contains(&street_key(&record)) {
                 5
             } else {
                 search_rank(&record.kind, record.detail.as_deref())
@@ -182,6 +183,21 @@ fn ranked(
             let distance = near.map_or(0.0, |origin| {
                 distance_meters(origin, (record.latitude, record.longitude))
             });
+            // With `near` the surroundings come before the rest of the
+            // country, or the station "Hauptstraße" in Freiburg beats the
+            // street in Alsfeld. Inhabited places stay in front: "Berlin"
+            // means the city, not the inn "Berlin" round the corner.
+            let rank = match near {
+                Some(_) if type_rank != 0 => {
+                    let band = if distance > NEAR_RADIUS_METERS {
+                        200
+                    } else {
+                        100
+                    };
+                    band + u16::from(type_rank)
+                }
+                _ => u16::from(type_rank),
+            };
             (!exact, rank, distance, record)
         })
         .collect();
@@ -552,6 +568,23 @@ pub(super) mod tests {
                 "secondary",
                 Some("Alsfeld"),
             ),
+            (
+                "Hauptstraße",
+                47.998,
+                7.842,
+                "poi",
+                "railway",
+                Some("Freiburg im Breisgau"),
+            ),
+            ("Berlin", 52.517, 13.389, "place", "city", None),
+            (
+                "Berlin",
+                50.749,
+                9.271,
+                "poi",
+                "restaurant",
+                Some("Alsfeld"),
+            ),
         ]);
         names_db(&rows)
     }
@@ -569,6 +602,60 @@ pub(super) mod tests {
         assert_eq!(
             hits[0].kind, "transportation_name",
             "the street before the bus stop of the same name"
+        );
+    }
+
+    #[test]
+    fn a_far_poi_goes_behind_the_street_nearby() {
+        // The station "Hauptstraße" in Freiburg ranks 1, the street in
+        // Alsfeld 4; with `near` the surroundings count first, and behind
+        // Alsfeld Freiburg still comes before the far streets.
+        let db = area_db();
+        let hits = search(&db.path, "Hauptstraße", 5, Some(ALSFELD)).expect("search");
+        assert_eq!(hits[0].kind, "transportation_name");
+        let areas: Vec<_> = hits
+            .iter()
+            .map(|hit| hit.area.as_deref().unwrap())
+            .collect();
+        assert_eq!(
+            areas[..4],
+            ["Alsfeld", "Alsfeld", "Alsfeld", "Freiburg im Breisgau"]
+        );
+        assert!(areas[4].starts_with("Nordort"), "{areas:?}");
+    }
+
+    #[test]
+    fn the_far_city_beats_the_poi_of_the_same_name_nearby() {
+        let db = area_db();
+        let hits = search(&db.path, "Berlin", 0, Some(ALSFELD)).expect("search");
+        let kinds: Vec<_> = hits.iter().map(|hit| hit.kind.as_str()).collect();
+        assert_eq!(kinds, ["place", "poi"]);
+    }
+
+    #[test]
+    fn with_near_the_surroundings_come_before_the_rest_of_the_country() {
+        // The library's test: from near Alsfeld, Kassel is ~64 km and
+        // Frankfurt ~81 km away, both beyond the radius, where the POI is
+        // ahead of the streets again.
+        let db = old_names_db(&[
+            ("Hauptstraße", 51.30, 9.50, 15, "transportation_name"),
+            ("Hauptstraße", 50.75, 9.27, 15, "transportation_name"),
+            ("Hauptstraße", 50.11, 8.68, 15, "transportation_name"),
+            ("Hauptbahnhof", 50.10, 8.66, 14, "poi"),
+        ]);
+        let hits = search(&db.path, "Haupt", 0, Some((50.74, 9.25))).expect("search");
+        let order: Vec<_> = hits
+            .iter()
+            .map(|hit| (hit.kind.as_str(), hit.latitude))
+            .collect();
+        assert_eq!(
+            order,
+            [
+                ("transportation_name", 50.75),
+                ("poi", 50.10),
+                ("transportation_name", 51.30),
+                ("transportation_name", 50.11),
+            ]
         );
     }
 
