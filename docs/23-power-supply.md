@@ -279,7 +279,7 @@ stream; a receiver must skip them.
 | POWERON | KL15 on | relay 0 on (display) | after the power-on delay → PIBOOT; KL15 off → IDLE |
 | PIBOOT | delay over | relay 1 on (Pi power), boot timer 60 s (V2.2.12: 30 s) | timer over → RUN; KL15 off at that point → POWEROFF |
 | RUN | Pi booted | watchdog active | KL15 off → POWEROFF (15 s); no alive → POWEROFF (5 s) |
-| POWEROFF | KL15 off, `$`, or watchdog | amplifier off, count down | timer over **or Dig3 active** → all relays off → IDLE |
+| POWEROFF | KL15 off, `$`, or watchdog | amplifier off, count down | timer over **or Dig3 active** → all relays off → IDLE; KL15 coming back does **not** cancel it |
 
 - **Watchdog:** the alive counter is capped at 3 and drops by one per second
   in RUN (not in service mode). `+` raises it, and so do most other
@@ -294,8 +294,9 @@ stream; a receiver must skip them.
 
 ## What carnine2 needs for it
 
-The image is prepared, and the backend sends the sign of life; the rest is
-still to be built.
+The image is prepared, the backend sends the sign of life and reports the
+supply's state up to the user interface; shutting down is still to be
+built.
 
 - **Image:** done – `uart5`, optional `gpio-poweroff`, `/dev/powersupply`
   (see [Wiring to the Pi 4](#wiring-to-the-pi-4)). The serial console is not
@@ -305,8 +306,8 @@ still to be built.
   `+` regularly, reads KL15, voltage and state, shuts the Pi down through
   logind when the supply goes to POWEROFF, and sends `$` when the Pi shuts
   down on its own. State over gRPC plus a command in `media_grpc_client`.
-  - **Built** (2026-09-27, commit 0b18bc9 on `feature/backend`, not yet
-    tested on a device): the section `[power_supply]`, off by default, with
+  - **Built** (2026-09-27, commit 0b18bc9 on `feature/backend`; according
+    to carnine2 tested on carnine-pc, PIBOOT → RUN holds): the section `[power_supply]`, off by default, with
     `enabled`, `device` (default `/dev/powersupply`) and `baud` (default
     38400); on the device it goes into a drop-in such as
     `/etc/carnine/config.d/20-power-supply.toml`, with an example in
@@ -316,8 +317,19 @@ still to be built.
     in the debug log) and skips the firmware's debug text. If the line
     fails, it reopens it after 3 s. The service reaches `ttyAMA5`
     (root:dialout) through `SupplementaryGroups=dialout`, as for the GPS.
-  - **Still open** (#36): state over gRPC, shutting down on POWEROFF,
-    sending `$` when the Pi shuts down on its own, service mode `!`/`?`.
+  - **Status** (commits 4561f5a, 483f6ee): `SystemService` has
+    `GetPowerSupplyStatus` and `StreamPowerSupplyStatus` (configured and
+    talking, ignition, state, input voltage, alive counter; silent after
+    3 s without a telegram), and `media_grpc_client` has `power-supply`
+    and `power-supply-stream`. The top bar shows ignition and input
+    voltage, in red before the supply switches off, and a plug icon when
+    it does not answer; ignition off or POWEROFF brings a notice. Without
+    a supply none of it appears. According to carnine2 the ignition test
+    with Michael passed.
+  - **Still open** (#36): shutting down on POWEROFF, and at once, because
+    the firmware finishes POWEROFF even when the ignition comes back
+    (see [States](#states)); sending `$` when the Pi shuts down on its own;
+    service mode `!`/`?`.
 - **Timing to check on the device:**
   - The alive `+` must start within about 63 s of the Pi getting power
     (V2.3.0: 60 s PIBOOT, RUN starts with the alive counter at 3), or the
