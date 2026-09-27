@@ -27,6 +27,7 @@
 <rect x="420" y="110" width="300" height="470" rx="8" fill="#e9f3e9" stroke="#6a9a6a" stroke-width="2"/>
 <text x="570" y="138" font-size="16" font-weight="bold" text-anchor="middle" fill="#2f5f2f">AuPrV1_1</text>
 <text x="570" y="158" font-size="12" text-anchor="middle" fill="#555">TODO: board fuse / reverse protection?</text>
+<text x="570" y="176" font-size="12" text-anchor="middle" fill="#a02a1e" font-weight="bold">input 9–18 V only (JCM3012S05)</text>
 <text x="436" y="198" font-size="13" fill="#c0392b">Dauerplus (KL30)</text>
 <text x="436" y="238" font-size="13" fill="#e67e22">Zündung (KL15)</text>
 <text x="436" y="278" font-size="13" fill="#222">Masse (KL31)</text>
@@ -65,7 +66,7 @@
 <rect x="820" y="318" width="270" height="64" rx="6" fill="#fff" stroke="#1f6fd1" stroke-width="2"/>
 <text x="834" y="340" font-size="14" font-weight="bold" fill="#1f6fd1">USB hub of the display</text>
 <text x="834" y="358" font-size="14" font-weight="bold" fill="#1f6fd1">+ HDMI splitter</text>
-<text x="834" y="375" font-size="12" fill="#444">5 V, first on (relay 0)</text>
+<text x="834" y="375" font-size="12" fill="#444">5.1 V, first on (relay 0)</text>
 <path d="M688,350 L818,350" stroke="#1f6fd1" stroke-width="3" marker-end="url(#arr)"/>
 
 <rect x="820" y="388" width="270" height="46" rx="6" fill="#fff" stroke="#1e8a3a" stroke-width="2"/>
@@ -83,6 +84,6 @@
 <text x="834" y="556" font-size="12" fill="#444">RXD TXD Dig3 GND; +5 V not connected</text>
 <path d="M720,541 L818,541" stroke="#555" stroke-width="3" marker-end="url(#arr)"/>
 
-<text x="40" y="610" font-size="12" fill="#666">All wires 0.75 mm². Relay numbers are the firmware's (commands 1–6). The voltage each relay switches is set by the wiring. TODO: relay type and rating.</text>
+<text x="40" y="610" font-size="12" fill="#666">All wires 0.75 mm². Relay numbers are the firmware's (commands 1–6). Relays HFD3/5-S: 2 A / 30 V DC, resistive loads only.</text>
 <text x="40" y="630" font-size="12" fill="#666">Own drawing for carnine2, docs/23-power-supply.md, from Michael's answers of 2026-09-27.</text>
 </svg>

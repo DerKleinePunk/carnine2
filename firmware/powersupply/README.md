@@ -35,9 +35,20 @@ zero-terminated. The warnings stay until the code is touched anyway.
 
 `build/RaspberryPower.bin` goes onto the chip with the Windows flashing tool
 through the bootloader on the serial line: copy the file to the Windows
-machine and write it from there. The firmware command `U` resets the chip
-into that bootloader. How the bootloader itself is put on or updated is a
-separate topic and not part of this firmware.
+machine and write it from there. How the bootloader itself is put on or
+updated is a separate topic and not part of this firmware.
+
+**Into the bootloader:** the command `U` or `u` on the serial line
+(`Interpret()` → `SwitchToBootLoaderOperation()` in `RaspberryPower.c`)
+waits a moment and resets the chip through the watchdog (`ResetTheChip()`);
+after the reset the bootloader runs for a short time. The command gets no
+ACK. With debug output on, and only while `USB_Connected()` reads pin PC0
+as high, the firmware first sends "Reboot for Bootloader".
+
+**`GetInfo`:** according to Michael the bootloader understands the command
+`GetInfo` followed by Enter (CR/LF). Not tried yet, and nothing is built
+for it. Open, to be tried together with Michael because the supply
+restarts: how long the bootloader window lasts and what `GetInfo` answers.
 
 Note: the firmware keeps two settings in the EEPROM (debug output, power-on
 delay) and writes defaults there on first start; flashing the program does

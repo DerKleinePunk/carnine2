@@ -17,13 +17,41 @@ off, gives the Pi time to shut down, and power-cycles a Pi that hangs.
 ## Board
 
 **AuPrV1_1 "Nenntronic"**, 70 × 60 mm, from 2023-02: ATmega88P, three
-relays, IR receiver; input 9–30 V, output 5.15 V / 4 A. Two of these exist.
+relays, IR receiver, DC/DC converter XP Power JCM3012S05. Two of these exist.
 Drawings: [board](hardware/power-supply/AuPrV1_1-board.pdf),
 [layout](hardware/power-supply/AuPrV1_1-layout.jpg),
 [connectors](hardware/power-supply/AuPrV1_1-connectors.jpg) (old names
 `MichaelNenninger_Power_a3.pdf`, `RaspberryNetzteil*.jpg`). The old project
 also has a UPS board and a "MicroPower" board; both were experiments that did
 not work out and are not used.
+
+![AuPrV1_1 from above, installed, terminal strip on the right](hardware/power-supply/AuPrV1_1-photo-top.jpg)
+
+The photo (2026-09-27, turned by 180°) shows the installed board with the
+converter and the three relays; the labels on both can be read:
+
+- **Converter:** XP Power **JCM3012S05**, printed "Input: 9-18 VDC,
+  Output: 5 VDC 6.00A". The
+  [JCM30 datasheet](https://www.xppower.com/portals/0/pdfs/SF_JCM30.pdf)
+  gives for it 9–18 V in (12 V nominal), 5.0 V / 6.0 A out (30 W), 89 %
+  efficiency, 2810 mA input current at full load and nominal input, and an
+  input surge of 25 V for 100 ms. The old project's figures, input 9–30 V
+  and output 5.15 V / 4 A, do not match the converter. The board raises
+  the converter's 5.0 V to **5.1 V** through a circuit change; Michael
+  measured 5.1 V at the output of the supplies. How that change looks is
+  not documented yet (TODO below).
+- **Relays (3×):** Hongfa **HFD3/5-S**, printed "2A 30VDC, 0.5A 125VAC".
+  According to the
+  [HFD3 datasheet](http://www.hongfaamerica.com/hq/PDF/HFD3_en.pdf) that is
+  a 5 V coil, single side stable, SMT, with two changeover contacts (2C),
+  rated 2 A at 30 V DC and 0.5 A at 125 V AC for a resistive load. The
+  board's developer confirms 30 V / 2 A.
+
+> **Warning: 18 V is the input limit.** The converter is made for a 12 V
+> system: 9–18 V, briefly 25 V for 100 ms. A car's voltage often rises
+> above 14 V while the battery charges, which is within that range, but the
+> board is **not suitable for a 24 V system**. Nothing is known about an
+> overvoltage protection on the board.
 
 ### AuPrV1_1 connections
 
@@ -41,9 +69,13 @@ not work out and are not used.
   the USB socket (jumper towards the socket: programming) or to the pin
   header (other side: running on the Pi). In the wrong position the Pi
   receives the supply's output but its commands never arrive.
-- **Pi power:** the Pi is fed from the supply through its USB-C socket at
-  5.1 V, not through the 5 V pins of its GPIO header, so it does not drop
-  into undervoltage under full load. Raspberry Pi names USB-C as the Pi 4's
+- **Pi power:** the Pi is fed from the supply through its USB-C socket,
+  not through the 5 V pins of its GPIO header. Raspberry Pi asks for a
+  5.1 V supply, and the Pi logs an undervoltage below 4.63 V (±5 %). The
+  converter is rated 5.0 V; the board raises it to 5.1 V so that this
+  undervoltage does not occur (Michael measured 5.1 V at the output).
+  Not measured yet: the voltage under load, and `vcgencmd get_throttled`
+  with the Pi running on the supply. Raspberry Pi names USB-C as the Pi 4's
   power input and recommends a USB-C supply for it
   ([documentation, "Power supply"](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html));
   the same page warns under "Back-powering" that power fed in elsewhere
@@ -77,7 +109,7 @@ side (pin header at the top):
 | 10 | Zündung | **KL15**, plus switched by the ignition; the firmware reads it |
 | 11 | Dauerplus | **KL30**, battery plus, always on; feeds the supply |
 | 12 | Masse | **KL31**, vehicle ground |
-| 13–15 | +5 V | 5.15 V output, up to 4 A in total |
+| 13–15 | +5 V | converter output, 5.1 V (measured), up to 6 A in total |
 
 Pin header, from left to right: RXD, TXD, Dig1, Dig2, Dig3, GND, +5 V,
 Analog1, Analog2, Analog3. RXD, TXD, Dig3 and GND go to the Pi (see
@@ -110,10 +142,10 @@ connecting. As Michael described it on 2026-09-27:
 - **Mounting:** the board sits right next to the Pi, so the line to the Pi
   stays short: about 20 cm.
 - **Wires:** all of them are 0.75 mm², KL30, KL15, ground, the relay
-  outputs and the line to the Pi. Little current flows: the rated output
-  of 5.15 V / 4 A is about 20 W, roughly 2 A at 12 V in (an estimate from
-  the rating, not measured), and the amplifier's remote line carries only
-  a control current.
+  outputs and the line to the Pi. At most the converter's full load flows
+  in: 2810 mA at 12 V according to its datasheet; at the lower limit of
+  9 V that would be about 3.7 A (30 W / 89 % / 9 V, an estimate, not
+  measured). The amplifier's remote line carries only a control current.
 - **Relays are potential-free contacts.** The board does not put any
   voltage on them; which voltage a relay switches is set by the wiring, so
   the board can serve other uses as well. Each relay has three terminals,
@@ -133,11 +165,24 @@ connecting. As Michael described it on 2026-09-27:
 > the vehicle, with its own fuse. Never switch that power through one of
 > the board's relays: it cannot carry the current and burns.
 
+> **Warning: resistive loads only, up to 2 A.** The relays are rated 2 A at
+> 30 V DC and, according to the board's developer, are not meant for
+> inductive loads such as motors, coils, solenoid valves or other relays.
+
+**Open, not measured:** Rel2 carries the whole current of the Pi 4 through
+USB-C, Rel1 that of the display's USB hub and the HDMI splitter. The Pi 4's
+recommended supply delivers 3 A. Whether the current through each relay
+stays below 2 A has not been measured. Whether the board connects the
+relay's two contact sets in parallel is not known either. In the layout
+drawing only one set per relay (pads A1, S1, B1) has visible tracks to the
+terminals; the other set (A2, S2, B2) shows none, but those pads lie in a
+copper pour in the connector drawing, and both drawings still contain
+unrouted airwires, so the drawings do not settle it.
+
 **TODO** (Michael is asking; not documented until answered):
 
-- whether the board has its own fuse or reverse-polarity protection (asked
-  the board's developer);
-- the relay type and contact rating;
+- whether the board has its own fuse or reverse-polarity protection;
+- document the circuit change that raises the output to 5.1 V.
 
 ### Wiring to the Pi 4
 
@@ -182,7 +227,9 @@ Linux (with a container when `avr-gcc` is not installed) into
 **Flashing** is done with a Windows program through the bootloader, over the
 board's own USB socket with the jumper towards it: build here, copy the
 `.bin` to Windows, write it from there, set the jumper back. The command `U`
-resets the chip into the bootloader. Done on 2026-09-25 on the test board:
+(or `u`) resets the chip, after which the bootloader runs for a short time;
+according to Michael it answers `GetInfo` plus Enter, not tried yet (see the
+[firmware README](../firmware/powersupply/README.md#flash)). Done on 2026-09-25 on the test board:
 it ran an older firmware before (a text line every second, no telegrams, no
 reaction to commands); with V2.2.12 the telegrams come and `v` answers. The test board runs V2.3.0
 now; `v` reports it. Which bootloader and
@@ -232,7 +279,7 @@ stream; a receiver must skip them.
 | POWERON | KL15 on | relay 0 on (display) | after the power-on delay → PIBOOT; KL15 off → IDLE |
 | PIBOOT | delay over | relay 1 on (Pi power), boot timer 60 s (V2.2.12: 30 s) | timer over → RUN; KL15 off at that point → POWEROFF |
 | RUN | Pi booted | watchdog active | KL15 off → POWEROFF (15 s); no alive → POWEROFF (5 s) |
-| POWEROFF | KL15 off, `$`, or watchdog | amplifier off, count down | timer over **or Dig3 active** → all relays off → IDLE |
+| POWEROFF | KL15 off, `$`, or watchdog | amplifier off, count down | timer over **or Dig3 active** → all relays off → IDLE; KL15 coming back does **not** cancel it |
 
 - **Watchdog:** the alive counter is capped at 3 and drops by one per second
   in RUN (not in service mode). `+` raises it, and so do most other
@@ -247,7 +294,9 @@ stream; a receiver must skip them.
 
 ## What carnine2 needs for it
 
-Nothing of this is built yet.
+The image is prepared, the backend sends the sign of life and reports the
+supply's state up to the user interface; shutting down is still to be
+built.
 
 - **Image:** done – `uart5`, optional `gpio-poweroff`, `/dev/powersupply`
   (see [Wiring to the Pi 4](#wiring-to-the-pi-4)). The serial console is not
@@ -257,6 +306,30 @@ Nothing of this is built yet.
   `+` regularly, reads KL15, voltage and state, shuts the Pi down through
   logind when the supply goes to POWEROFF, and sends `$` when the Pi shuts
   down on its own. State over gRPC plus a command in `media_grpc_client`.
+  - **Built** (2026-09-27, commit 0b18bc9 on `feature/backend`; according
+    to carnine2 tested on carnine-pc, PIBOOT → RUN holds): the section `[power_supply]`, off by default, with
+    `enabled`, `device` (default `/dev/powersupply`) and `baud` (default
+    38400); on the device it goes into a drop-in such as
+    `/etc/carnine/config.d/20-power-supply.toml`, with an example in
+    `resources/config/carnine.toml`. The backend sends `+` every second
+    from the moment the line is open, so it already counts in PIBOOT. It
+    reads the status telegrams, logs KL15 and the state (the voltage only
+    in the debug log) and skips the firmware's debug text. If the line
+    fails, it reopens it after 3 s. The service reaches `ttyAMA5`
+    (root:dialout) through `SupplementaryGroups=dialout`, as for the GPS.
+  - **Status** (commits 4561f5a, 483f6ee): `SystemService` has
+    `GetPowerSupplyStatus` and `StreamPowerSupplyStatus` (configured and
+    talking, ignition, state, input voltage, alive counter; silent after
+    3 s without a telegram), and `media_grpc_client` has `power-supply`
+    and `power-supply-stream`. The top bar shows ignition and input
+    voltage, in red before the supply switches off, and a plug icon when
+    it does not answer; ignition off or POWEROFF brings a notice. Without
+    a supply none of it appears. According to carnine2 the ignition test
+    with Michael passed.
+  - **Still open** (#36): shutting down on POWEROFF, and at once, because
+    the firmware finishes POWEROFF even when the ignition comes back
+    (see [States](#states)); sending `$` when the Pi shuts down on its own;
+    service mode `!`/`?`.
 - **Timing to check on the device:**
   - The alive `+` must start within about 63 s of the Pi getting power
     (V2.3.0: 60 s PIBOOT, RUN starts with the alive counter at 3), or the
