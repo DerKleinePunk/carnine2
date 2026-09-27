@@ -187,6 +187,17 @@ class GrpcMediaRepository implements MediaRepository {
   }
 
   @override
+  Future<void> seek(Duration delta) {
+    return _command(
+      'Seek',
+      () => _channel.stub.seek(
+        SeekRequest(deltaMs: Int64(delta.inMilliseconds)),
+        options: CallOptions(timeout: _commandTimeout),
+      ),
+    );
+  }
+
+  @override
   Future<void> restartCurrentTrack() {
     return _command(
       'RestartCurrentTrack',

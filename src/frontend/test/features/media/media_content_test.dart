@@ -113,6 +113,45 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets('the 30-second buttons seek, and only once a track is loaded', (
+    tester,
+  ) async {
+    setUpMediaView(tester);
+    await tester.pumpWidget(mediaHarness(controller));
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.forward_30));
+    await tester.pump();
+    expect(repository.commands, isEmpty, reason: 'nothing to seek in yet');
+
+    repository.playerEventsController.add(
+      PlayerEventUpdate(
+        kind: PlayerEventKind.snapshot,
+        state: const PlayerSnapshot(
+          status: PlaybackStatus.paused,
+          mediaPath: '/music/a.mp3',
+          position: Duration(seconds: 40),
+        ),
+        message: 'snapshot',
+      ),
+    );
+    // One frame for the event, one for the track looked up behind it.
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.forward_30));
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.replay_30));
+    await tester.pump();
+
+    expect(repository.commands, ['seek:30000', 'seek:-30000']);
+    expect(
+      tester.getSemantics(find.byIcon(Icons.replay_30)).label,
+      isNot(contains('—')),
+      reason: 'no longer marked as unavailable',
+    );
+  });
+
   testWidgets('tapping shuffle toggles it and calls SetShuffleMode', (
     tester,
   ) async {

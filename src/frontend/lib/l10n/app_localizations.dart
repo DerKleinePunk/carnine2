@@ -181,8 +181,7 @@ class AppLocalizations {
   }
 
   /// Appends [AppTextKey.mediaFeatureUnavailableHint] to an existing action
-  /// label, for controls that are visible but not yet wired to the backend
-  /// (shuffle, repeat, the +/-30s seek buttons).
+  /// label, for controls that are visible but not yet wired to the backend.
   String mediaUnavailableActionSemantic(AppTextKey actionLabelKey) {
     return '${text(actionLabelKey)} — ${text(AppTextKey.mediaFeatureUnavailableHint)}';
   }

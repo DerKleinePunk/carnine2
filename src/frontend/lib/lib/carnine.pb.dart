@@ -1672,6 +1672,60 @@ class PlayPlaylistRequest extends $pb.GeneratedMessage {
   void clearPlaylistId() => $_clearField(1);
 }
 
+class SeekRequest extends $pb.GeneratedMessage {
+  factory SeekRequest({
+    $fixnum.Int64? deltaMs,
+  }) {
+    final result = create();
+    if (deltaMs != null) result.deltaMs = deltaMs;
+    return result;
+  }
+
+  SeekRequest._();
+
+  factory SeekRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SeekRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SeekRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'deltaMs')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SeekRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SeekRequest copyWith(void Function(SeekRequest) updates) =>
+      super.copyWith((message) => updates(message as SeekRequest))
+          as SeekRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SeekRequest create() => SeekRequest._();
+  @$core.override
+  SeekRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SeekRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SeekRequest>(create);
+  static SeekRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get deltaMs => $_getI64(0);
+  @$pb.TagNumber(1)
+  set deltaMs($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasDeltaMs() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDeltaMs() => $_clearField(1);
+}
+
 class PlayQueueEntryRequest extends $pb.GeneratedMessage {
   factory PlayQueueEntryRequest({
     $core.int? index,

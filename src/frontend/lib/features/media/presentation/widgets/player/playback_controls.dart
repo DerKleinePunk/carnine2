@@ -7,17 +7,17 @@ import 'package:flutter/material.dart';
 
 /// Transport controls: shuffle, previous, rewind, play/pause, forward, next,
 /// repeat.
-///
-/// The +/-30s seek buttons stay visible in their template positions but
-/// permanently disabled - the backend contract still has no Seek RPC
-/// (`docs/20-media-backend-plan.md` explicitly defers it). Shuffle, repeat,
-/// previous/next and play/pause are wired to [controller].
+/// All of them are wired to [controller]; the +/-30s buttons seek relative
+/// to where the backend is (`MediaService.Seek`).
 class PlaybackControls extends StatelessWidget {
   const PlaybackControls({
     required this.controller,
     required this.scale,
     super.key,
   });
+
+  /// What the rewind and forward buttons move, matching their icons.
+  static const Duration seekStep = Duration(seconds: 30);
 
   static const double sideButtonSize = 48;
   static const double centerButtonSize = 80;
@@ -75,13 +75,11 @@ class PlaybackControls extends StatelessWidget {
         innerGapBox,
         ControlButton(
           icon: Icons.replay_30,
-          semanticLabel: l10n.mediaUnavailableActionSemantic(
-            AppTextKey.mediaRewind30Semantic,
-          ),
-          onTap: () {},
+          semanticLabel: l10n.text(AppTextKey.mediaRewind30Semantic),
+          onTap: () => controller.seekBy(-seekStep),
           size: buttonSize,
           iconSize: iconSize,
-          isEnabled: false,
+          isEnabled: controller.canSeek,
         ),
         innerGapBox,
         PlayPauseButton(
@@ -93,13 +91,11 @@ class PlaybackControls extends StatelessWidget {
         innerGapBox,
         ControlButton(
           icon: Icons.forward_30,
-          semanticLabel: l10n.mediaUnavailableActionSemantic(
-            AppTextKey.mediaForward30Semantic,
-          ),
-          onTap: () {},
+          semanticLabel: l10n.text(AppTextKey.mediaForward30Semantic),
+          onTap: () => controller.seekBy(seekStep),
           size: buttonSize,
           iconSize: iconSize,
-          isEnabled: false,
+          isEnabled: controller.canSeek,
         ),
         innerGapBox,
         ControlButton(

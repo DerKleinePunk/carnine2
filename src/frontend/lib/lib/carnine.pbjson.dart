@@ -547,6 +547,18 @@ const PlayPlaylistRequest$json = {
 final $typed_data.Uint8List playPlaylistRequestDescriptor = $convert.base64Decode(
     'ChNQbGF5UGxheWxpc3RSZXF1ZXN0Eh8KC3BsYXlsaXN0X2lkGAEgASgEUgpwbGF5bGlzdElk');
 
+@$core.Deprecated('Use seekRequestDescriptor instead')
+const SeekRequest$json = {
+  '1': 'SeekRequest',
+  '2': [
+    {'1': 'delta_ms', '3': 1, '4': 1, '5': 3, '10': 'deltaMs'},
+  ],
+};
+
+/// Descriptor for `SeekRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List seekRequestDescriptor = $convert
+    .base64Decode('CgtTZWVrUmVxdWVzdBIZCghkZWx0YV9tcxgBIAEoA1IHZGVsdGFNcw==');
+
 @$core.Deprecated('Use playQueueEntryRequestDescriptor instead')
 const PlayQueueEntryRequest$json = {
   '1': 'PlayQueueEntryRequest',

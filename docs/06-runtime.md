@@ -82,8 +82,8 @@ The backend restores the persistent playback context during startup:
 
 Playback progress is persisted only while playing. A periodic write occurs
 every ten seconds and stores the last known position from before the current
-interval. An explicit seek, when added to the control API, is stored
-immediately. A stop resets the current position to the beginning but does not
+interval. A seek (`MediaService.Seek`, relative to the current position) is
+stored immediately. A stop resets the current position to the beginning but does not
 modify the queue.
 
 ### Scenario 3d: Dashboard Page Restore

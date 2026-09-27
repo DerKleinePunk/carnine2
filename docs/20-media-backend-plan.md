@@ -136,7 +136,7 @@ Diese Punkte bleiben bewusst auf der Todo-Liste:
   Medienverzeichnis
 - Einstellungen fuer Medienordner und Resume-Modus
 - Queue bearbeiten, umsortieren und einzelne Eintraege entfernen
-- direkte Titelauswahl und Seek-RPC
+- direkte Titelauswahl (Seek-RPC seit #8)
 - Shuffle-Bedienung
 - M3U-Import und -Export
 - Party-Modus
@@ -350,8 +350,8 @@ Die Queue ohne aktive Playlist wird nicht dauerhaft gespeichert.
 
 Die Wiedergabeposition wird nur waehrend laufender Wiedergabe periodisch
 persistiert. Alle zehn Sekunden wird der zuletzt bekannte Stand vor dem
-aktuellen Intervall gespeichert. Ein expliziter Seek wird erst spaeter als
-RPC eingefuehrt; dann soll sein Zeitpunkt sofort gespeichert werden. Beim
+aktuellen Intervall gespeichert. Ein Seek (`MediaService.Seek`, relativ zur
+aktuellen Position, #8) wird sofort gespeichert. Beim
 Beenden gilt fuer den periodischen Stand der naechste planmaessige
 Speichervorgang.
 

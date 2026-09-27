@@ -125,6 +125,16 @@ class MediaServiceClient extends $grpc.Client {
     return $createUnaryCall(_$previous, request, options: options);
   }
 
+  /// Moves the current track by delta_ms, relative to where it is now; the
+  /// queue stays. Stops at the start and at a known end; a paused track stays
+  /// paused. FAILED_PRECONDITION without a loaded track.
+  $grpc.ResponseFuture<$0.CommandResponse> seek(
+    $0.SeekRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$seek, request, options: options);
+  }
+
   $grpc.ResponseFuture<$0.CommandResponse> restartCurrentTrack(
     $0.Empty request, {
     $grpc.CallOptions? options,
@@ -272,6 +282,10 @@ class MediaServiceClient extends $grpc.Client {
       '/carnine.MediaService/Previous',
       ($0.Empty value) => value.writeToBuffer(),
       $0.CommandResponse.fromBuffer);
+  static final _$seek = $grpc.ClientMethod<$0.SeekRequest, $0.CommandResponse>(
+      '/carnine.MediaService/Seek',
+      ($0.SeekRequest value) => value.writeToBuffer(),
+      $0.CommandResponse.fromBuffer);
   static final _$restartCurrentTrack =
       $grpc.ClientMethod<$0.Empty, $0.CommandResponse>(
           '/carnine.MediaService/RestartCurrentTrack',
@@ -399,6 +413,13 @@ abstract class MediaServiceBase extends $grpc.Service {
         false,
         false,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.CommandResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.SeekRequest, $0.CommandResponse>(
+        'Seek',
+        seek_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.SeekRequest.fromBuffer(value),
         ($0.CommandResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.Empty, $0.CommandResponse>(
         'RestartCurrentTrack',
@@ -578,6 +599,14 @@ abstract class MediaServiceBase extends $grpc.Service {
 
   $async.Future<$0.CommandResponse> previous(
       $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.CommandResponse> seek_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.SeekRequest> $request) async {
+    return seek($call, await $request);
+  }
+
+  $async.Future<$0.CommandResponse> seek(
+      $grpc.ServiceCall call, $0.SeekRequest request);
 
   $async.Future<$0.CommandResponse> restartCurrentTrack_Pre(
       $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {

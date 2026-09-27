@@ -153,6 +153,12 @@ class FakeMediaRepository implements MediaRepository {
   }
 
   @override
+  Future<void> seek(Duration delta) async {
+    commands.add('seek:${delta.inMilliseconds}');
+    await _maybeThrow();
+  }
+
+  @override
   Future<void> restartCurrentTrack() async {
     commands.add('restartCurrentTrack');
     await _maybeThrow();

@@ -47,6 +47,10 @@ abstract class MediaRepository {
   Future<void> stop();
   Future<void> next();
   Future<void> previous();
+
+  /// Moves the current track by [delta] (`Seek`, relative to where the
+  /// backend is now). The new position arrives on the player event stream.
+  Future<void> seek(Duration delta);
   Future<void> restartCurrentTrack();
   Future<void> playQueueEntry(int index);
 

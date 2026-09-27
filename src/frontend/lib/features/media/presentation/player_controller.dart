@@ -104,6 +104,9 @@ class PlayerController extends ChangeNotifier {
               : (activeQueueIndex ?? -1) < _queue.tracks.length - 1));
   bool get canGoPrevious => hasTrack && !isBusy && (activeQueueIndex ?? 0) > 0;
 
+  /// The backend stops a seek at the start and at the track's end itself.
+  bool get canSeek => hasTrack && !isBusy;
+
   Duration get duration => _currentTrack?.duration ?? Duration.zero;
 
   double get progress {
@@ -203,6 +206,13 @@ class PlayerController extends ChangeNotifier {
       return;
     }
     await _runCommand(_repository.next);
+  }
+
+  Future<void> seekBy(Duration delta) async {
+    if (!canSeek) {
+      return;
+    }
+    await _runCommand(() => _repository.seek(delta));
   }
 
   Future<void> playQueueEntry(int index) async {
