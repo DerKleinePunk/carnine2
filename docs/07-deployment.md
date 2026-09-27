@@ -410,7 +410,10 @@ the steps are listed for provisioning a new build host.
    a nonblocking commit: without it the display froze for good under load
    (first caught on 2026-09-26 while panning the Germany map; the app kept
    running, a VT switch thawed it). Upstream has the same order up to at least
-   3d7a9671, so moving the pin does not replace the patch.
+   3d7a9671, so moving the pin does not replace the patch. `build_pi.sh` stops
+   when a patch is missing from the checkout; `CARNINE_SKIP_EMBEDDER_PATCHES=1`
+   skips that check, e.g. for an upstream commit that already carries the
+   fix (upstream #652/#654/#655).
 
    The fetch downloads the Arm GNU toolchain and a RaspiOS trixie sysroot
    (several GB, cached under `~/.cache/emb`). The build also compiles a

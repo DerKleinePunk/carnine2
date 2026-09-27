@@ -63,6 +63,21 @@ if [[ ! -x "$FLUTTER_BIN" || ! -f "$EMB_EMBEDDER_DIR/.emb/raspberry-pi.emb.yaml"
   exit 1
 fi
 
+# The ivi-homescreen checkout must carry our patches (docs/07, 3.3); without
+# 0001 the display can freeze for good under load. A patch counts as applied
+# when it reverses cleanly. CARNINE_SKIP_EMBEDDER_PATCHES=1 skips the check,
+# e.g. to try an upstream commit that already contains the fix.
+if [[ "${CARNINE_SKIP_EMBEDDER_PATCHES:-0}" != "1" ]]; then
+  for patch in "$ROOT_DIR"/resources/patches/ivi-homescreen/*.patch; do
+    [[ -e "$patch" ]] || continue
+    if ! git -C "$EMB_EMBEDDER_DIR" apply --reverse --check "$patch" 2>/dev/null; then
+      echo "[pi] ERROR: ivi-homescreen patch not applied: $(basename "$patch")"
+      echo "[pi] Hint: cd $EMB_EMBEDDER_DIR && git am $patch (see docs/07-deployment.md, 3.3)"
+      exit 1
+    fi
+  done
+fi
+
 echo "[pi] Building backend (aarch64-unknown-linux-gnu, release)..."
 (
   cd "$BACKEND_DIR"
