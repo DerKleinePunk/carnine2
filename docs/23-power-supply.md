@@ -47,8 +47,15 @@ not work out and are not used.
   power input and recommends a USB-C supply for it
   ([documentation, "Power supply"](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html));
   the same page warns under "Back-powering" that power fed in elsewhere
-  bypasses the Pi's protection circuitry. Michael's earlier car PCs were
-  wired the same way. The +5 V pin of the supply's header is therefore not
+  bypasses the Pi's protection circuitry. The
+  [HAT design guide](https://github.com/raspberrypi/hats/blob/master/designguide.md),
+  section "Back Powering the Pi via the GPIO Header", allows 5 V ±5 % on
+  header pins 2 and 4, but on the older models those pins sit behind the
+  input's polyfuse and reverse-current diode, and the 3B+ and 4B have no
+  such diode at all. Whoever feeds the header is responsible for that
+  protection (a diode or an equivalent guarantee that both supplies can be
+  connected at once, and a 5 V / 2.5 A source). carnine2 avoids this by
+  feeding only USB-C. Michael's earlier car PCs were wired the same way. The +5 V pin of the supply's header is therefore not
   connected to the Pi, on purpose; the Pi gets its power only through
   USB-C.
 
@@ -131,9 +138,6 @@ connecting. As Michael described it on 2026-09-27:
 - whether the board has its own fuse or reverse-polarity protection (asked
   the board's developer);
 - the relay type and contact rating;
-- a source that explains why the Pi should be fed through USB-C rather
-  than the header; until then the link to the Raspberry Pi documentation
-  above stands, for what it says and no more.
 
 ### Wiring to the Pi 4
 
