@@ -227,7 +227,9 @@ Linux (with a container when `avr-gcc` is not installed) into
 **Flashing** is done with a Windows program through the bootloader, over the
 board's own USB socket with the jumper towards it: build here, copy the
 `.bin` to Windows, write it from there, set the jumper back. The command `U`
-resets the chip into the bootloader. Done on 2026-09-25 on the test board:
+(or `u`) resets the chip, after which the bootloader runs for a short time;
+according to Michael it answers `GetInfo` plus Enter, not tried yet (see the
+[firmware README](../firmware/powersupply/README.md#flash)). Done on 2026-09-25 on the test board:
 it ran an older firmware before (a text line every second, no telegrams, no
 reaction to commands); with V2.2.12 the telegrams come and `v` answers. The test board runs V2.3.0
 now; `v` reports it. Which bootloader and
