@@ -62,9 +62,9 @@ side (pin header at the top):
 
 | Position | Label | Use |
 |---|---|---|
-| 1–3 | Rel1 | relay 0: display and HDMI splitter, 12 V |
-| 4–6 | Rel2 | relay 1: Pi power |
-| 7–9 | Rel3 | relay 2: amplifier, 12 V |
+| 1–3 | Rel1 | relay 0: display and HDMI splitter, 12 V; NC, COM, NO |
+| 4–6 | Rel2 | relay 1: Pi power; NC, COM, NO |
+| 7–9 | Rel3 | relay 2: amplifier, 12 V; NC, COM, NO |
 | 10 | Zündung | **KL15**, plus switched by the ignition; the firmware reads it |
 | 11 | Dauerplus | **KL30**, battery plus, always on; feeds the supply |
 | 12 | Masse | **KL31**, vehicle ground |
@@ -96,8 +96,9 @@ As Michael described it on 2026-09-27:
   must carry 12 V; with the ignition on both do.
 - **Fuses** are not part of this setup: the radio connector is taken to be
   fused by the vehicle.
-- **Relays:** each has COM, NO (closes when the relay is on) and NC; NC is
-  not used. Rel1 and Rel3 switch 12 V to the display with HDMI splitter
+- **Relays:** each has three terminals, from left to right NC, COM and NO
+  (terminal strip at the bottom); NO closes when the relay is on. NC is not
+  used, so the loads go to COM and NO. Rel1 and Rel3 switch 12 V to the display with HDMI splitter
   and to the amplifier.
 
 Still open, not documented until answered:
@@ -108,8 +109,7 @@ Still open, not documented until answered:
 - whether the board has its own fuse or reverse-polarity protection;
 - wire sizes for KL30, ground, KL15, the relay outputs and the 5 V line to
   the Pi, and the length of that line;
-- which of the three terminals of each relay is COM, NO and NC, and the
-  relay type and contact rating;
+- the relay type and contact rating;
 - where the 12 V at COM of Rel1 and Rel3 comes from, and how Rel2 sits in
   the 5 V path to the Pi's USB-C socket;
 - whether +5 V on the pin header is connected to the Pi; if so, the Pi must
