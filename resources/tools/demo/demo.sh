@@ -19,6 +19,7 @@
 #   cli ARGS...               any media_grpc_client command
 # Coordinates are logical pixels on the 1024x600 panel, taken from the
 # frontend layout (side_menu.dart, keyboard_panel.dart, destination_search.dart).
+# Full description: docs/25-demo-and-touch-tools.md.
 # The remote commands are meant to expand here, before they go over SSH.
 # shellcheck disable=SC2029
 set -euo pipefail
@@ -209,5 +210,5 @@ case ${1:-} in
   prepare) prepare ;;
   run) run "${2:?demo file}" ;;
   restore) restore ;;
-  *) sed -n '2,21p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+  *) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
 esac

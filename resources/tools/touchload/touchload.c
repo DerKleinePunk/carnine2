@@ -8,6 +8,7 @@
 // rail out. Prints one line per round with the UTC time.
 //
 // ivi-homescreen picks the virtual panel up while it runs; no restart needed.
+// See docs/25-demo-and-touch-tools.md.
 // Build (static, no dependencies on the Pi) and run:
 //   aarch64-linux-gnu-gcc -O2 -Wall -static -o touchload touchload.c -lm
 //   scp touchload pi@carnine-pc:  &&  ssh pi@carnine-pc sudo ./touchload 45 1 500
