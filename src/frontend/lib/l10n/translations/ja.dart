@@ -192,4 +192,7 @@ const Map<AppTextKey, String> jaTranslations = <AppTextKey, String>{
   AppTextKey.mapsTypeStreet: '道路',
   AppTextKey.mapsNoMapData: '地図データがインストールされていません',
   AppTextKey.mapsMapUnavailable: '地図を表示できません',
+  AppTextKey.powerSupplyIgnitionOff: 'イグニッションオフ – 電源がまもなく切れます',
+  AppTextKey.powerSupplySwitchingOff: '電源がまもなく切れます',
+  AppTextKey.powerSupplyNotResponding: '電源が応答しません',
 };

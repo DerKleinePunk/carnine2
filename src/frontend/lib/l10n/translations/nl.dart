@@ -87,8 +87,7 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.mediaUsbImportBanner:
       'USB-stick "{label}" gevonden - {count} nummer(s) overnemen?',
   AppTextKey.mediaUsbImportAction: 'Overnemen',
-  AppTextKey.mediaUsbImportSemantic:
-      '{count} nummer(s) van {label} overnemen',
+  AppTextKey.mediaUsbImportSemantic: '{count} nummer(s) van {label} overnemen',
   AppTextKey.mediaScanRunning: 'Scannen...',
   AppTextKey.mediaScanProgressLine:
       '{processed} verwerkt, {imported} geïmporteerd',
@@ -200,4 +199,7 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.mapsTypeStreet: 'Straat',
   AppTextKey.mapsNoMapData: 'Geen kaartgegevens geïnstalleerd',
   AppTextKey.mapsMapUnavailable: 'De kaart kan niet worden weergegeven',
+  AppTextKey.powerSupplyIgnitionOff: 'Contact uit – de voeding schakelt uit',
+  AppTextKey.powerSupplySwitchingOff: 'De voeding schakelt uit',
+  AppTextKey.powerSupplyNotResponding: 'Voeding reageert niet',
 };

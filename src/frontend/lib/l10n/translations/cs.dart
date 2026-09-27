@@ -200,4 +200,7 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.mapsTypeStreet: 'Ulice',
   AppTextKey.mapsNoMapData: 'Nejsou nainstalována mapová data',
   AppTextKey.mapsMapUnavailable: 'Mapu nelze zobrazit',
+  AppTextKey.powerSupplyIgnitionOff: 'Zapalování vypnuto – zdroj se vypíná',
+  AppTextKey.powerSupplySwitchingOff: 'Zdroj se vypíná',
+  AppTextKey.powerSupplyNotResponding: 'Zdroj neodpovídá',
 };

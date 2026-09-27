@@ -201,4 +201,8 @@ const Map<AppTextKey, String> ptTranslations = <AppTextKey, String>{
   AppTextKey.mapsTypeStreet: 'Rua',
   AppTextKey.mapsNoMapData: 'Nenhum dado de mapa instalado',
   AppTextKey.mapsMapUnavailable: 'Não é possível exibir o mapa',
+  AppTextKey.powerSupplyIgnitionOff:
+      'Ignição desligada – a fonte de alimentação vai desligar',
+  AppTextKey.powerSupplySwitchingOff: 'A fonte de alimentação vai desligar',
+  AppTextKey.powerSupplyNotResponding: 'A fonte de alimentação não responde',
 };

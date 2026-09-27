@@ -187,4 +187,7 @@ const Map<AppTextKey, String> zhTranslations = <AppTextKey, String>{
   AppTextKey.mapsTypeStreet: '道路',
   AppTextKey.mapsNoMapData: '未安装地图数据',
   AppTextKey.mapsMapUnavailable: '无法显示地图',
+  AppTextKey.powerSupplyIgnitionOff: '点火已关闭 – 电源即将关闭',
+  AppTextKey.powerSupplySwitchingOff: '电源即将关闭',
+  AppTextKey.powerSupplyNotResponding: '电源无响应',
 };

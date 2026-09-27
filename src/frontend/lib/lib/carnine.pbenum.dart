@@ -173,6 +173,52 @@ class AudioEventType extends $pb.ProtobufEnum {
   const AudioEventType._(super.value, super.name);
 }
 
+/// The power supply's state machine (STATE_* in firmware/powersupply/).
+class PowerSupplyState extends $pb.ProtobufEnum {
+  static const PowerSupplyState POWER_SUPPLY_STATE_UNSPECIFIED =
+      PowerSupplyState._(
+          0, _omitEnumNames ? '' : 'POWER_SUPPLY_STATE_UNSPECIFIED');
+
+  /// Everything off, waiting for the ignition.
+  static const PowerSupplyState POWER_SUPPLY_STATE_IDLE =
+      PowerSupplyState._(1, _omitEnumNames ? '' : 'POWER_SUPPLY_STATE_IDLE');
+
+  /// Display and HDMI splitter on, power-on delay running.
+  static const PowerSupplyState POWER_SUPPLY_STATE_POWER_ON =
+      PowerSupplyState._(
+          2, _omitEnumNames ? '' : 'POWER_SUPPLY_STATE_POWER_ON');
+
+  /// The Pi has power and time to boot; the watchdog does not count yet.
+  static const PowerSupplyState POWER_SUPPLY_STATE_PI_BOOT =
+      PowerSupplyState._(3, _omitEnumNames ? '' : 'POWER_SUPPLY_STATE_PI_BOOT');
+
+  /// Normal operation; the watchdog counts.
+  static const PowerSupplyState POWER_SUPPLY_STATE_RUN =
+      PowerSupplyState._(4, _omitEnumNames ? '' : 'POWER_SUPPLY_STATE_RUN');
+
+  /// Ignition off (or the watchdog fired): amplifier off, the Pi's power goes
+  /// off when the supply's timer runs out.
+  static const PowerSupplyState POWER_SUPPLY_STATE_POWER_OFF =
+      PowerSupplyState._(
+          5, _omitEnumNames ? '' : 'POWER_SUPPLY_STATE_POWER_OFF');
+
+  static const $core.List<PowerSupplyState> values = <PowerSupplyState>[
+    POWER_SUPPLY_STATE_UNSPECIFIED,
+    POWER_SUPPLY_STATE_IDLE,
+    POWER_SUPPLY_STATE_POWER_ON,
+    POWER_SUPPLY_STATE_PI_BOOT,
+    POWER_SUPPLY_STATE_RUN,
+    POWER_SUPPLY_STATE_POWER_OFF,
+  ];
+
+  static final $core.List<PowerSupplyState?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 5);
+  static PowerSupplyState? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const PowerSupplyState._(super.value, super.name);
+}
+
 class FixState extends $pb.ProtobufEnum {
   static const FixState FIX_STATE_UNSPECIFIED =
       FixState._(0, _omitEnumNames ? '' : 'FIX_STATE_UNSPECIFIED');

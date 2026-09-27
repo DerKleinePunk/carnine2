@@ -3102,6 +3102,126 @@ class SystemMetrics extends $pb.GeneratedMessage {
   void clearDisksSampledAtUnixMs() => $_clearField(10);
 }
 
+class PowerSupplyStatus extends $pb.GeneratedMessage {
+  factory PowerSupplyStatus({
+    $core.bool? configured,
+    $core.bool? connected,
+    $core.bool? ignition,
+    PowerSupplyState? state,
+    $core.double? inputVoltageVolts,
+    $core.int? aliveCount,
+  }) {
+    final result = create();
+    if (configured != null) result.configured = configured;
+    if (connected != null) result.connected = connected;
+    if (ignition != null) result.ignition = ignition;
+    if (state != null) result.state = state;
+    if (inputVoltageVolts != null) result.inputVoltageVolts = inputVoltageVolts;
+    if (aliveCount != null) result.aliveCount = aliveCount;
+    return result;
+  }
+
+  PowerSupplyStatus._();
+
+  factory PowerSupplyStatus.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory PowerSupplyStatus.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'PowerSupplyStatus',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'configured')
+    ..aOB(2, _omitFieldNames ? '' : 'connected')
+    ..aOB(3, _omitFieldNames ? '' : 'ignition')
+    ..aE<PowerSupplyState>(4, _omitFieldNames ? '' : 'state',
+        enumValues: PowerSupplyState.values)
+    ..aD(5, _omitFieldNames ? '' : 'inputVoltageVolts')
+    ..aI(6, _omitFieldNames ? '' : 'aliveCount', fieldType: $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PowerSupplyStatus clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PowerSupplyStatus copyWith(void Function(PowerSupplyStatus) updates) =>
+      super.copyWith((message) => updates(message as PowerSupplyStatus))
+          as PowerSupplyStatus;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PowerSupplyStatus create() => PowerSupplyStatus._();
+  @$core.override
+  PowerSupplyStatus createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static PowerSupplyStatus getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<PowerSupplyStatus>(create);
+  static PowerSupplyStatus? _defaultInstance;
+
+  /// power_supply.enabled in the configuration. Without it every other field
+  /// stays unset.
+  @$pb.TagNumber(1)
+  $core.bool get configured => $_getBF(0);
+  @$pb.TagNumber(1)
+  set configured($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasConfigured() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearConfigured() => $_clearField(1);
+
+  /// The supply sent a telegram within the last three seconds.
+  @$pb.TagNumber(2)
+  $core.bool get connected => $_getBF(1);
+  @$pb.TagNumber(2)
+  set connected($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasConnected() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearConnected() => $_clearField(2);
+
+  /// Ignition (KL15). Absent until the supply has reported it.
+  @$pb.TagNumber(3)
+  $core.bool get ignition => $_getBF(2);
+  @$pb.TagNumber(3)
+  set ignition($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasIgnition() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearIgnition() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  PowerSupplyState get state => $_getN(3);
+  @$pb.TagNumber(4)
+  set state(PowerSupplyState value) => $_setField(4, value);
+  @$pb.TagNumber(4)
+  $core.bool hasState() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearState() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.double get inputVoltageVolts => $_getN(4);
+  @$pb.TagNumber(5)
+  set inputVoltageVolts($core.double value) => $_setDouble(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasInputVoltageVolts() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearInputVoltageVolts() => $_clearField(5);
+
+  /// The watchdog's alive counter, 0..3; in RUN normally 2.
+  @$pb.TagNumber(6)
+  $core.int get aliveCount => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set aliveCount($core.int value) => $_setUnsignedInt32(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasAliveCount() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearAliveCount() => $_clearField(6);
+}
+
 class LatLon extends $pb.GeneratedMessage {
   factory LatLon({
     $core.double? latitude,

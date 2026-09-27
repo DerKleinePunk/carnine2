@@ -187,7 +187,8 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.mapsRecenterSemantic: 'Centrer på position',
   AppTextKey.mapsSearchSemantic: 'Søg destination',
   AppTextKey.mapsSearchClearSemantic: 'Ryd søgning',
-  AppTextKey.mapsNavigationModeSemantic: 'Navigationstilstand: kørselsretning op',
+  AppTextKey.mapsNavigationModeSemantic:
+      'Navigationstilstand: kørselsretning op',
   AppTextKey.mapsNorthUpSemantic: 'Nord op',
   AppTextKey.mapsRouteCalculating: 'Beregner rute …',
   AppTextKey.mapsRoutingOffline: 'Navigation utilgængelig',
@@ -203,4 +204,8 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.mapsTypeStreet: 'Gade',
   AppTextKey.mapsNoMapData: 'Ingen kortdata installeret',
   AppTextKey.mapsMapUnavailable: 'Kortet kan ikke vises',
+  AppTextKey.powerSupplyIgnitionOff:
+      'Tænding slået fra – strømforsyningen slukker',
+  AppTextKey.powerSupplySwitchingOff: 'Strømforsyningen slukker',
+  AppTextKey.powerSupplyNotResponding: 'Strømforsyningen svarer ikke',
 };

@@ -186,7 +186,8 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.mapsRecenterSemantic: 'Wyśrodkuj na lokalizacji',
   AppTextKey.mapsSearchSemantic: 'Szukaj celu',
   AppTextKey.mapsSearchClearSemantic: 'Wyczyść wyszukiwanie',
-  AppTextKey.mapsNavigationModeSemantic: 'Tryb nawigacji: kierunek jazdy u góry',
+  AppTextKey.mapsNavigationModeSemantic:
+      'Tryb nawigacji: kierunek jazdy u góry',
   AppTextKey.mapsNorthUpSemantic: 'Północ u góry',
   AppTextKey.mapsRouteCalculating: 'Obliczanie trasy …',
   AppTextKey.mapsRoutingOffline: 'Nawigacja niedostępna',
@@ -202,4 +203,7 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.mapsTypeStreet: 'Ulica',
   AppTextKey.mapsNoMapData: 'Brak zainstalowanych danych mapy',
   AppTextKey.mapsMapUnavailable: 'Nie można wyświetlić mapy',
+  AppTextKey.powerSupplyIgnitionOff: 'Zapłon wyłączony – zasilacz się wyłącza',
+  AppTextKey.powerSupplySwitchingOff: 'Zasilacz się wyłącza',
+  AppTextKey.powerSupplyNotResponding: 'Zasilacz nie odpowiada',
 };

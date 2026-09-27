@@ -201,4 +201,8 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
   AppTextKey.mapsTypeStreet: 'Calle',
   AppTextKey.mapsNoMapData: 'No hay datos de mapa instalados',
   AppTextKey.mapsMapUnavailable: 'No se puede mostrar el mapa',
+  AppTextKey.powerSupplyIgnitionOff:
+      'Contacto apagado: la fuente de alimentación se apaga',
+  AppTextKey.powerSupplySwitchingOff: 'La fuente de alimentación se apaga',
+  AppTextKey.powerSupplyNotResponding: 'La fuente de alimentación no responde',
 };

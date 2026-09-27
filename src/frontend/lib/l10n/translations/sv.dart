@@ -199,4 +199,8 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.mapsTypeStreet: 'Gata',
   AppTextKey.mapsNoMapData: 'Inga kartdata installerade',
   AppTextKey.mapsMapUnavailable: 'Kartan kan inte visas',
+  AppTextKey.powerSupplyIgnitionOff:
+      'Tändningen av – strömförsörjningen stängs av',
+  AppTextKey.powerSupplySwitchingOff: 'Strömförsörjningen stängs av',
+  AppTextKey.powerSupplyNotResponding: 'Strömförsörjningen svarar inte',
 };

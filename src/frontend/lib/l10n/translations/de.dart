@@ -204,4 +204,7 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.mapsTypeStreet: 'Straße',
   AppTextKey.mapsNoMapData: 'Keine Kartendaten installiert',
   AppTextKey.mapsMapUnavailable: 'Die Karte kann nicht angezeigt werden',
+  AppTextKey.powerSupplyIgnitionOff: 'Zündung aus – das Netzteil schaltet ab',
+  AppTextKey.powerSupplySwitchingOff: 'Das Netzteil schaltet ab',
+  AppTextKey.powerSupplyNotResponding: 'Netzteil antwortet nicht',
 };

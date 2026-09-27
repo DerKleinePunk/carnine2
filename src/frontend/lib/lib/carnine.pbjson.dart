@@ -109,6 +109,26 @@ final $typed_data.Uint8List audioEventTypeDescriptor = $convert.base64Decode(
     'EhgKFEFVRElPX1NPVVJDRV9SRU1PVkVEEAcSGAoUQVVESU9fREVWSUNFX0NIQU5HRUQQCBIPCg'
     'tBVURJT19FUlJPUhAJ');
 
+@$core.Deprecated('Use powerSupplyStateDescriptor instead')
+const PowerSupplyState$json = {
+  '1': 'PowerSupplyState',
+  '2': [
+    {'1': 'POWER_SUPPLY_STATE_UNSPECIFIED', '2': 0},
+    {'1': 'POWER_SUPPLY_STATE_IDLE', '2': 1},
+    {'1': 'POWER_SUPPLY_STATE_POWER_ON', '2': 2},
+    {'1': 'POWER_SUPPLY_STATE_PI_BOOT', '2': 3},
+    {'1': 'POWER_SUPPLY_STATE_RUN', '2': 4},
+    {'1': 'POWER_SUPPLY_STATE_POWER_OFF', '2': 5},
+  ],
+};
+
+/// Descriptor for `PowerSupplyState`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List powerSupplyStateDescriptor = $convert.base64Decode(
+    'ChBQb3dlclN1cHBseVN0YXRlEiIKHlBPV0VSX1NVUFBMWV9TVEFURV9VTlNQRUNJRklFRBAAEh'
+    'sKF1BPV0VSX1NVUFBMWV9TVEFURV9JRExFEAESHwobUE9XRVJfU1VQUExZX1NUQVRFX1BPV0VS'
+    'X09OEAISHgoaUE9XRVJfU1VQUExZX1NUQVRFX1BJX0JPT1QQAxIaChZQT1dFUl9TVVBQTFlfU1'
+    'RBVEVfUlVOEAQSIAocUE9XRVJfU1VQUExZX1NUQVRFX1BPV0VSX09GRhAF');
+
 @$core.Deprecated('Use fixStateDescriptor instead')
 const FixState$json = {
   '1': 'FixState',
@@ -930,6 +950,64 @@ final $typed_data.Uint8List systemMetricsDescriptor = $convert.base64Decode(
     'NrVXNhZ2VSBWRpc2tzEjYKGGRpc2tzX3NhbXBsZWRfYXRfdW5peF9tcxgKIAEoA1IUZGlza3NT'
     'YW1wbGVkQXRVbml4TXNCGgoYX2NwdV90ZW1wZXJhdHVyZV9jZWxzaXVzQhQKEl9jcHVfdXNhZ2'
     'VfcGVyY2VudA==');
+
+@$core.Deprecated('Use powerSupplyStatusDescriptor instead')
+const PowerSupplyStatus$json = {
+  '1': 'PowerSupplyStatus',
+  '2': [
+    {'1': 'configured', '3': 1, '4': 1, '5': 8, '10': 'configured'},
+    {'1': 'connected', '3': 2, '4': 1, '5': 8, '10': 'connected'},
+    {
+      '1': 'ignition',
+      '3': 3,
+      '4': 1,
+      '5': 8,
+      '9': 0,
+      '10': 'ignition',
+      '17': true
+    },
+    {
+      '1': 'state',
+      '3': 4,
+      '4': 1,
+      '5': 14,
+      '6': '.carnine.PowerSupplyState',
+      '10': 'state'
+    },
+    {
+      '1': 'input_voltage_volts',
+      '3': 5,
+      '4': 1,
+      '5': 1,
+      '9': 1,
+      '10': 'inputVoltageVolts',
+      '17': true
+    },
+    {
+      '1': 'alive_count',
+      '3': 6,
+      '4': 1,
+      '5': 13,
+      '9': 2,
+      '10': 'aliveCount',
+      '17': true
+    },
+  ],
+  '8': [
+    {'1': '_ignition'},
+    {'1': '_input_voltage_volts'},
+    {'1': '_alive_count'},
+  ],
+};
+
+/// Descriptor for `PowerSupplyStatus`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List powerSupplyStatusDescriptor = $convert.base64Decode(
+    'ChFQb3dlclN1cHBseVN0YXR1cxIeCgpjb25maWd1cmVkGAEgASgIUgpjb25maWd1cmVkEhwKCW'
+    'Nvbm5lY3RlZBgCIAEoCFIJY29ubmVjdGVkEh8KCGlnbml0aW9uGAMgASgISABSCGlnbml0aW9u'
+    'iAEBEi8KBXN0YXRlGAQgASgOMhkuY2FybmluZS5Qb3dlclN1cHBseVN0YXRlUgVzdGF0ZRIzCh'
+    'NpbnB1dF92b2x0YWdlX3ZvbHRzGAUgASgBSAFSEWlucHV0Vm9sdGFnZVZvbHRziAEBEiQKC2Fs'
+    'aXZlX2NvdW50GAYgASgNSAJSCmFsaXZlQ291bnSIAQFCCwoJX2lnbml0aW9uQhYKFF9pbnB1dF'
+    '92b2x0YWdlX3ZvbHRzQg4KDF9hbGl2ZV9jb3VudA==');
 
 @$core.Deprecated('Use latLonDescriptor instead')
 const LatLon$json = {

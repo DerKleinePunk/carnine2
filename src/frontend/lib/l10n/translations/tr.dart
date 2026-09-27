@@ -202,4 +202,7 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.mapsTypeStreet: 'Sokak',
   AppTextKey.mapsNoMapData: 'Harita verisi yüklü değil',
   AppTextKey.mapsMapUnavailable: 'Harita görüntülenemiyor',
+  AppTextKey.powerSupplyIgnitionOff: 'Kontak kapalı – güç kaynağı kapanıyor',
+  AppTextKey.powerSupplySwitchingOff: 'Güç kaynağı kapanıyor',
+  AppTextKey.powerSupplyNotResponding: 'Güç kaynağı yanıt vermiyor',
 };

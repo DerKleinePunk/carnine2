@@ -198,4 +198,8 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.mapsTypeStreet: 'Street',
   AppTextKey.mapsNoMapData: 'No map data installed',
   AppTextKey.mapsMapUnavailable: 'The map cannot be displayed',
+  AppTextKey.powerSupplyIgnitionOff:
+      'Ignition off – the power supply is switching off',
+  AppTextKey.powerSupplySwitchingOff: 'The power supply is switching off',
+  AppTextKey.powerSupplyNotResponding: 'Power supply not responding',
 };

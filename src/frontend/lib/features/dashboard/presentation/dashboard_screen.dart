@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
 import 'package:carnine_frontend/features/maps/presentation/maps_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_controller.dart';
+import 'package:carnine_frontend/features/dashboard/presentation/power_supply_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/carnine_top_bar.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/dashboard_content.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/side_menu.dart';
@@ -18,6 +19,7 @@ class DashboardScreen extends StatefulWidget {
     this.controller,
     this.mediaController,
     this.mapsController,
+    this.powerSupplyController,
     this.uiStateStore,
     super.key,
   });
@@ -26,6 +28,7 @@ class DashboardScreen extends StatefulWidget {
   final DashboardController? controller;
   final MediaController? mediaController;
   final MapsController? mapsController;
+  final PowerSupplyController? powerSupplyController;
 
   /// Where the page shown last is kept; without it the dashboard always
   /// starts on the first page. Ignored when [controller] is given.
@@ -57,8 +60,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         language: () => widget.languageController.locale.languageCode,
       );
 
+  // What the car power supply reports, for the top bar and the notice.
+  late final PowerSupplyController _powerSupplyController =
+      widget.powerSupplyController ?? PowerSupplyController();
+
   bool get _ownsMediaController => widget.mediaController == null;
   bool get _ownsMapsController => widget.mapsController == null;
+  bool get _ownsPowerSupplyController => widget.powerSupplyController == null;
 
   DashboardGrpcStatus _lastHandledGrpcStatus = DashboardGrpcStatus.notConnected;
 
@@ -67,6 +75,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     _controller.addListener(_handleControllerChange);
     unawaited(_controller.restoreLastPage());
+    _powerSupplyController.start();
   }
 
   @override
@@ -80,6 +89,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
     if (_ownsMapsController) {
       _mapsController.dispose();
+    }
+    if (_ownsPowerSupplyController) {
+      _powerSupplyController.dispose();
     }
 
     super.dispose();
@@ -135,7 +147,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Expanded(
                 child: Column(
                   children: [
-                    const CarnineTopBar(),
+                    ListenableBuilder(
+                      listenable: _powerSupplyController,
+                      builder: (context, _) {
+                        final status = _powerSupplyController.status;
+                        return Column(
+                          children: [
+                            CarnineTopBar(powerSupply: status),
+                            PowerSupplyNotice(status: status),
+                          ],
+                        );
+                      },
+                    ),
                     Expanded(
                       child: DashboardContent(
                         selectedItem: _controller.selectedItem,

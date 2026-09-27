@@ -90,8 +90,7 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.mediaUsbImportBanner:
       'Clé USB « {label} » détectée - importer {count} titre(s) ?',
   AppTextKey.mediaUsbImportAction: 'Importer',
-  AppTextKey.mediaUsbImportSemantic:
-      'Importer {count} titre(s) depuis {label}',
+  AppTextKey.mediaUsbImportSemantic: 'Importer {count} titre(s) depuis {label}',
   AppTextKey.mediaScanRunning: 'Analyse en cours...',
   AppTextKey.mediaScanProgressLine: '{processed} analysés, {imported} importés',
   AppTextKey.mediaScanFailed: 'Échec de l\'analyse',
@@ -207,4 +206,8 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.mapsTypeStreet: 'Rue',
   AppTextKey.mapsNoMapData: 'Aucune donnée cartographique installée',
   AppTextKey.mapsMapUnavailable: 'La carte ne peut pas être affichée',
+  AppTextKey.powerSupplyIgnitionOff:
+      'Contact coupé – l\'alimentation s\'éteint',
+  AppTextKey.powerSupplySwitchingOff: 'L\'alimentation s\'éteint',
+  AppTextKey.powerSupplyNotResponding: 'L\'alimentation ne répond pas',
 };

@@ -201,4 +201,8 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.mapsTypeStreet: 'Utca',
   AppTextKey.mapsNoMapData: 'Nincsenek telepített térképadatok',
   AppTextKey.mapsMapUnavailable: 'A térkép nem jeleníthető meg',
+  AppTextKey.powerSupplyIgnitionOff:
+      'Gyújtás kikapcsolva – a tápegység kikapcsol',
+  AppTextKey.powerSupplySwitchingOff: 'A tápegység kikapcsol',
+  AppTextKey.powerSupplyNotResponding: 'A tápegység nem válaszol',
 };

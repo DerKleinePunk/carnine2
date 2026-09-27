@@ -961,6 +961,26 @@ class SystemServiceClient extends $grpc.Client {
         options: options);
   }
 
+  /// What the car power supply (AuPrV1_1, docs/23-power-supply.md) last
+  /// reported. Answers with configured = false on a device without one.
+  $grpc.ResponseFuture<$0.PowerSupplyStatus> getPowerSupplyStatus(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getPowerSupplyStatus, request, options: options);
+  }
+
+  /// Starts with the current status, then pushes one on every change of
+  /// connection, ignition, state or input voltage.
+  $grpc.ResponseStream<$0.PowerSupplyStatus> streamPowerSupplyStatus(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$streamPowerSupplyStatus, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
   /// What the UI keeps across restarts, stored in the media database next to
   /// the resume state. Unknown values are the UI's to ignore.
   $grpc.ResponseFuture<$0.UiState> getUiState(
@@ -994,6 +1014,16 @@ class SystemServiceClient extends $grpc.Client {
           '/carnine.SystemService/StreamSystemMetrics',
           ($0.Empty value) => value.writeToBuffer(),
           $0.SystemMetrics.fromBuffer);
+  static final _$getPowerSupplyStatus =
+      $grpc.ClientMethod<$0.Empty, $0.PowerSupplyStatus>(
+          '/carnine.SystemService/GetPowerSupplyStatus',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.PowerSupplyStatus.fromBuffer);
+  static final _$streamPowerSupplyStatus =
+      $grpc.ClientMethod<$0.Empty, $0.PowerSupplyStatus>(
+          '/carnine.SystemService/StreamPowerSupplyStatus',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.PowerSupplyStatus.fromBuffer);
   static final _$getUiState = $grpc.ClientMethod<$0.Empty, $0.UiState>(
       '/carnine.SystemService/GetUiState',
       ($0.Empty value) => value.writeToBuffer(),
@@ -1031,6 +1061,20 @@ abstract class SystemServiceBase extends $grpc.Service {
         true,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($0.SystemMetrics value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.PowerSupplyStatus>(
+        'GetPowerSupplyStatus',
+        getPowerSupplyStatus_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.PowerSupplyStatus value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.PowerSupplyStatus>(
+        'StreamPowerSupplyStatus',
+        streamPowerSupplyStatus_Pre,
+        false,
+        true,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.PowerSupplyStatus value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.Empty, $0.UiState>(
         'GetUiState',
         getUiState_Pre,
@@ -1069,6 +1113,22 @@ abstract class SystemServiceBase extends $grpc.Service {
   }
 
   $async.Stream<$0.SystemMetrics> streamSystemMetrics(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.PowerSupplyStatus> getPowerSupplyStatus_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return getPowerSupplyStatus($call, await $request);
+  }
+
+  $async.Future<$0.PowerSupplyStatus> getPowerSupplyStatus(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Stream<$0.PowerSupplyStatus> streamPowerSupplyStatus_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async* {
+    yield* streamPowerSupplyStatus($call, await $request);
+  }
+
+  $async.Stream<$0.PowerSupplyStatus> streamPowerSupplyStatus(
       $grpc.ServiceCall call, $0.Empty request);
 
   $async.Future<$0.UiState> getUiState_Pre(

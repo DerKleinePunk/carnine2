@@ -189,4 +189,7 @@ enum AppTextKey {
   mapsTypeStreet,
   mapsNoMapData,
   mapsMapUnavailable,
+  powerSupplyIgnitionOff,
+  powerSupplySwitchingOff,
+  powerSupplyNotResponding,
 }

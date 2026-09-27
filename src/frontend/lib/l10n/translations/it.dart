@@ -186,7 +186,8 @@ const Map<AppTextKey, String> itTranslations = <AppTextKey, String>{
   AppTextKey.mapsRecenterSemantic: 'Centra sulla posizione',
   AppTextKey.mapsSearchSemantic: 'Cerca destinazione',
   AppTextKey.mapsSearchClearSemantic: 'Cancella ricerca',
-  AppTextKey.mapsNavigationModeSemantic: 'Modalità navigazione: direzione in alto',
+  AppTextKey.mapsNavigationModeSemantic:
+      'Modalità navigazione: direzione in alto',
   AppTextKey.mapsNorthUpSemantic: 'Orienta il nord in alto',
   AppTextKey.mapsRouteCalculating: 'Calcolo del percorso …',
   AppTextKey.mapsRoutingOffline: 'Navigazione non disponibile',
@@ -202,4 +203,8 @@ const Map<AppTextKey, String> itTranslations = <AppTextKey, String>{
   AppTextKey.mapsTypeStreet: 'Strada',
   AppTextKey.mapsNoMapData: 'Nessun dato mappa installato',
   AppTextKey.mapsMapUnavailable: 'Impossibile visualizzare la mappa',
+  AppTextKey.powerSupplyIgnitionOff:
+      'Quadro spento – l\'alimentatore si spegne',
+  AppTextKey.powerSupplySwitchingOff: 'L\'alimentatore si spegne',
+  AppTextKey.powerSupplyNotResponding: 'L\'alimentatore non risponde',
 };
