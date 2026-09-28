@@ -234,6 +234,22 @@ actions:
         '#dtoverlay=gpio-poweroff,active_low=1,gpiopin=5' >> /boot/firmware/config.txt
       {{- end }}
 
+  # Ton ueber HDMI: Das Backend spielt auf das ALSA-Standardgeraet und regelt
+  # die Lautstaerke mit `amixer -c 0 set PCM`, beides meint Karte 0. Welche
+  # Karte 0 wird, haengt sonst an der Lade-Reihenfolge von vc4 (HDMI) und
+  # snd_bcm2835 (Klinke). index=2 legt die Klinke fest auf Karte 2, HDMI0
+  # wird Karte 0; den Regler PCM liefert vc4-hdmi.conf aus libasound2-data.
+  # Wer die Klinke will: diese Datei weglassen und in config.txt
+  # dtoverlay=vc4-kms-v3d,noaudio setzen, dann ist die Klinke die einzige
+  # Karte. index=0 reicht nicht sicher, vc4 laedt aus der Initramfs meist
+  # zuerst und belegt Karte 0. docs/07-deployment.md, Abschnitt Audio output.
+  - action: run
+    description: Keep HDMI as ALSA card 0 (headphone jack as card 2)
+    chroot: true
+    command: |
+      install -d /etc/modprobe.d
+      printf '%s\n' 'options snd_bcm2835 index=2' > /etc/modprobe.d/carnine-audio.conf
+
   # Das Waveshare-Panel laeuft unter Full KMS (vc4-kms-v3d aus der
   # pi-gen-config.txt). Sein EDID ist geklont und traegt ungerade
   # 1024x600-Timings (hsync_start 1029), die der vc4-Treiber ablehnt - er
