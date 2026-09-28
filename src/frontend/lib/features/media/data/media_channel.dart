@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:carnine_frontend/lib/carnine.pbgrpc.dart';
 import 'package:carnine_frontend/core/platform/grpc_endpoint.dart';
 import 'package:grpc/grpc.dart';
@@ -43,6 +45,10 @@ class MediaChannel {
 
   /// Tears down the current channel so the next [stub]/[connectionStates]
   /// access rebuilds it from scratch.
+  ///
+  /// The old channel is terminated without waiting: after the backend went
+  /// away, `shutdown()` - and with it the whole reconnect attempt - never
+  /// completed (#44). Its calls are dead anyway.
   Future<void> reconnect() async {
     _logger.info('Rebuilding media gRPC channel');
     final channel = _channel;
@@ -54,11 +60,15 @@ class MediaChannel {
       return;
     }
 
-    try {
-      await channel.shutdown();
-    } catch (error, stackTrace) {
-      _logger.warning('Error shutting down media channel', error, stackTrace);
-    }
+    unawaited(
+      channel.terminate().catchError((Object error, StackTrace stackTrace) {
+        _logger.warning(
+          'Error terminating media channel',
+          error,
+          stackTrace,
+        );
+      }),
+    );
   }
 
   Future<void> shutdown() async {
