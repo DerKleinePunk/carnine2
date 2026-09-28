@@ -66,7 +66,39 @@ flutter:
   assets:
     # Dunkler Kartenstyle fuer local_map (MapConfig.vectorStyleAssets).
     - assets/maps/style_carnine_dark.json
+    # SIL OFL 1.1 verlangt, dass die Lizenz mit den Schriften ausgeliefert wird.
+    - assets/fonts/OFL-Manrope.txt
+    - assets/fonts/OFL-SpaceGrotesk.txt
   fonts:
+    # Designschriften (docs/stitch_car_pc/aether_drive/DESIGN.md). Statische
+    # Schnitte aus den Variable Fonts von google/fonts, weil der Pi sie nicht
+    # installiert hat und Noto SC/JP kein Latin Extended-A abdeckt (#40).
+    - family: Manrope
+      fonts:
+        - asset: assets/fonts/Manrope-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Manrope-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Manrope-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Manrope-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Manrope-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Manrope-ExtraBold.ttf
+          weight: 800
+    - family: SpaceGrotesk
+      fonts:
+        - asset: assets/fonts/SpaceGrotesk-Light.ttf
+          weight: 300
+        - asset: assets/fonts/SpaceGrotesk-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/SpaceGrotesk-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/SpaceGrotesk-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/SpaceGrotesk-Bold.ttf
+          weight: 700
     - family: NotoSansSC
       fonts:
         - asset: assets/fonts/NotoSansSC-VF.otf

@@ -9,6 +9,8 @@
 *.webp filter=lfs diff=lfs merge=lfs -text
 *.ico filter=lfs diff=lfs merge=lfs -text
 *.mp4 filter=lfs diff=lfs merge=lfs -text
+*.ttf binary
+*.otf binary
 *.pdf binary
 *.zip binary
 *.tar binary
