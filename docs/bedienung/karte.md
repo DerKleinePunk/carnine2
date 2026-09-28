@@ -7,6 +7,8 @@ Suche, Standortname und Routen kommen vom Backend (Valhalla und
 Namensdatenbank). Die Karte selbst funktioniert auch ohne Backend. Das Image
 bringt Hessen mit, carnine-pc zeigt seit 26.09.2026 ganz Deutschland.
 
+![Karte ohne Route: Suchfeld oben, Knöpfe rechts, unten links der Standort](bilder/start.png)
+
 ## Karte bewegen
 
 - **Ein Finger:** verschieben. Das beendet den Folgemodus (siehe unten).
@@ -46,9 +48,13 @@ Kompass-Knopf die Position zurück.
 
    Bekannte Schwäche: Ein gleichnamiger POI weit weg (Bahnhof „Hauptstraße“
    in Freiburg) kann vor den Straßen in der Nähe stehen.
+
+   ![Zielsuche „Alsfeld“ mit Treffern „Ort · 54 km“ und „Ort · Kirtorf · 55 km“, darunter die Bildschirmtastatur](bilder/karte-suche.png)
 3. **Treffer antippen:** Die Route wird von der aktuellen Position aus
    berechnet („Route wird berechnet …“), danach zeigt die Karte die ganze
-   Route im Überblick.
+   Route im Überblick. Abbiegekarte und Leiste unten erscheinen schon jetzt.
+
+   ![Route im Überblick: türkise Linie bis zum Ziel, Abbiegekarte oben links, unten Ankunft, Dauer, Distanz und ABBRECHEN](bilder/karte-route.png)
 4. Für die Fahransicht den **Kompass-Knopf** antippen.
 
 Mögliche Meldungen: „Keine Treffer“, „Keine Route gefunden“, „Keine
@@ -56,6 +62,8 @@ GPS-Position“, „Route konnte nicht berechnet werden“, „Navigation nicht
 erreichbar“ (Backend weg, rot).
 
 ## Während der Fahrt
+
+![Navigationsmodus: Abbiegekarte oben links, unten Ankunft, Dauer, Fortschritt, Distanz und ABBRECHEN](bilder/karte-navigation.png)
 
 - **Abbiegekarte** oben links: Manöver-Symbol, Entfernung, „NÄCHSTE
   ABBIEGUNG“ und Straßenname.
@@ -74,8 +82,12 @@ gewählten Sprache.
 ## Wo bin ich?
 
 Ohne Route steht unten links, wo das Auto ist: **Straße, Ort (Ortsteil)**,
-z. B. „Willy-Brandt-Platz, Braunschweig (Bebelhof)“. Der Text wird nach je
-25 m Fahrt erneuert. Auf freiem Feld fehlt die Straße; weiß das Backend an der
+z. B. „Willy-Brandt-Platz, Braunschweig (Bebelhof)“ oder auf dem Land
+„L 3195, Rabenstein“. Die Straße ist bei Autobahnen und Landstraßen oft nur die
+Nummer („A 66, Salmünster“, siehe Bild oben). Der Ortsteil in Klammern kommt
+nur dazu, wenn einer nahe liegt und anders heißt als der Ort: ein Stadtteil
+bis 1,5 km, ein Bezirk bis 2 km, ein Viertel bis 800 m, eine Nachbarschaft bis
+500 m. Der Text wird nach je 25 m Fahrt erneuert. Auf freiem Feld fehlt die Straße; weiß das Backend an der
 Stelle nichts, verschwindet der Hinweis. Mit einer Namensdatenbank von vor
 September 2026 gibt es ihn gar nicht (und die Suche zeigt keinen Ort).
 

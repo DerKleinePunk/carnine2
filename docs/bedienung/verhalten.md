@@ -33,6 +33,8 @@ Frisch geflasht ist die Datenbank leer: Wiederholung steht dann auf aus.
 
 ## Wenn das Backend nicht erreichbar ist
 
+![Medien mit Banner „Die Verbindung zum Backend wurde unterbrochen. Es wird automatisch erneut verbunden.“ und ERNEUT VERSUCHEN](bilder/ohne-backend.png)
+
 - **Medien:** rotes Banner „Die Verbindung zum Backend wurde unterbrochen …“,
   Listen zeigen **Erneut versuchen**. Die Oberfläche verbindet sich von selbst
   wieder (alle 0,5 bis 5 s), danach ist alles wie vorher.
@@ -49,10 +51,12 @@ Sichtbar, aber ohne Funktion:
 - **NOTFALL** im Seitenmenü (#34)
 - Symbole Mobilfunk, Akku, Sonne in der Kopfleiste (#34)
 - Seiten **Start**, **Klima**, **Technik** (nur Entwickler-Test)
-- **−30 s / +30 s** im Player (#8), Springen in der Zeitleiste
+- Springen in der Zeitleiste des Players (dafür −30 s / +30 s)
 - **Nach Updates suchen** (#20)
 - **Karteneinstellungen** und **Darstellung** in den Optionen
 - Playlists umbenennen, löschen, Titel entfernen (#14)
+- Herunterfahren, wenn das Netzteil abschaltet: Die Kopfleiste kündigt es nur
+  an (#36, siehe [Kopfleiste](README.md#kopfleiste-oben-rechts))
 
 ## Dauertest einrichten
 

@@ -10,6 +10,8 @@ durch Antippen außerhalb von Feld und Tastatur.
 
 Ein Layout für alle Sprachen, **QWERTY** (nicht QWERTZ):
 
+![Bildschirmtastatur mit Buchstaben, ⇧ ist im leeren Feld schon an](bilder/tastatur.png)
+
 ```
 q w e r t y u i o p ⌫
  a s d f g h j k l
@@ -19,6 +21,8 @@ q w e r t y u i o p ⌫
 
 **123** schaltet auf Ziffern und Zeichen (`1–0`, `@ # $ _ & - + ( ) /`,
 `* " ' : ; ! ?`), **ABC** zurück. Beim Öffnen stehen immer die Buchstaben.
+
+![Tastatur auf der Ebene 123 mit Ziffern und Zeichen](bilder/tastatur-123.png)
 
 ## Umlaute und Sonderzeichen
 
@@ -37,6 +41,8 @@ loslassen:
 | n | ñ ń ň |
 | z | ź ż ž |
 | weitere | r: ř, t: ť, y: ý, d: ď, g: ğ, l: ł |
+
+![Lang gedrücktes „a“: Varianten a à á â ä ã å æ ą](bilder/tastatur-sonderzeichen.png)
 
 ## Sonstiges
 
