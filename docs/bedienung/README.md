@@ -1,7 +1,7 @@
 # Bedienungsanleitung carnine2
 
 Für Entwickler und Tester. Beschreibt, was man auf dem Bildschirm sieht und
-was jedes Bedienelement tut – Stand **0.5.0** (2026-09-26). Die Anleitung für
+was jedes Bedienelement tut – Stand **0.7.0** (2026-09-28). Die Anleitung für
 Messebesucher entsteht getrennt.
 
 Wenn sich im Frontend etwas an der Bedienung ändert, gehört die Änderung
@@ -18,11 +18,27 @@ dieser Seiten in denselben Commit.
    wird, was bei Verbindungsverlust passiert, was noch Platzhalter ist,
    Dauertest einrichten
 
+## Die häufigsten Abläufe
+
+- **Musik hören:** Seitenmenü → **Medien** → Kachel **SAMMLUNGEN** → bei einer
+  Playlist auf **▶**. Einzelne Titel startet man aus der **BIBLIOTHEK**
+  ([Medien](medien.md)).
+- **Ziel ansteuern:** Seitenmenü → **Karten** → oben **Ziel eingeben**,
+  Treffer antippen, dann den **Kompass-Knopf** für die Fahransicht
+  ([Karten](karte.md#ziel-suchen-und-route-starten)).
+- **Oberfläche neu starten:** **Optionen** → **System** → **Neustart**. Die Musik
+  läuft dabei weiter ([Optionen](optionen.md#system)).
+
 ## Aufbau des Bildschirms
 
 Die Oberfläche ist fest auf das 7-Zoll-Panel mit 1024 × 600 Pixeln ausgelegt.
 Links steht das Seitenmenü, rechts oben die Kopfleiste, darunter der Inhalt
 der gewählten Seite. Die Oberfläche startet immer auf Deutsch.
+
+![Seite Karten: links das Seitenmenü mit NOTFALL, oben rechts Kopfleiste und Uhr, darunter die Karte](bilder/start.png)
+
+*Die Bilder in dieser Anleitung stammen vom Test-Pi (Panel 1024 × 600,
+Replay-Tour in Hessen).*
 
 ### Seitenmenü (links)
 
@@ -46,9 +62,24 @@ Oben das Logo „CarNine / V8-ACTIVE“ (ohne Funktion), darunter die Seiten:
 
 ### Kopfleiste (oben rechts)
 
-Drei kleine Symbole (Mobilfunk, Akku, Sonne) und die Uhr. Die Symbole sind
-Attrappen ohne Datenquelle (#34). Die Uhr springt genau zum Minutenwechsel um. Nichts
-davon ist antippbar.
+Drei kleine Symbole (Mobilfunk, Akku, Sonne) und die Uhr. Die drei Symbole
+sind Attrappen ohne Datenquelle (#34). Die Uhr springt genau zum
+Minutenwechsel um. Nichts davon ist antippbar.
+
+Nur auf einem Gerät mit Netzteil-Modul im Auto
+([docs/23](../23-power-supply.md)) steht vor der Uhr zusätzlich das Netzteil:
+
+| Anzeige | Bedeutung |
+|---|---|
+| Schlüssel und Eingangsspannung, z. B. „12,6 V“ | Zündung an, Netzteil meldet sich |
+| durchgestrichener Schlüssel | Zündung aus |
+| Schlüssel und Spannung **rot** | das Netzteil schaltet gleich ab |
+| roter Stecker | Netzteil antwortet nicht |
+
+Schaltet das Netzteil ab, erscheint auf jeder Seite unter der Kopfleiste ein
+roter Streifen: „Zündung aus – das Netzteil schaltet ab“ oder „Das Netzteil
+schaltet ab“. Er sagt nur an, was kommt: Das Gerät fährt dabei noch nicht von
+selbst herunter (#36). Ohne Netzteil-Modul fehlt beides.
 
 ### Letzte Seite nach dem Start
 
