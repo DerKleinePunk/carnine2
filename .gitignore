@@ -41,3 +41,6 @@ resources/raspbian-1024x600.img.gz
 
 # FVM Version Cache
 .fvm/
+
+# Claude Code local settings (machine-specific, e.g. hooks)
+.claude/settings.local.json
