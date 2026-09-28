@@ -237,18 +237,23 @@ actions:
   # Ton ueber HDMI: Das Backend spielt auf das ALSA-Standardgeraet und regelt
   # die Lautstaerke mit `amixer -c 0 set PCM`, beides meint Karte 0. Welche
   # Karte 0 wird, haengt sonst an der Lade-Reihenfolge von vc4 (HDMI) und
-  # snd_bcm2835 (Klinke). index=2 legt die Klinke fest auf Karte 2, HDMI0
-  # wird Karte 0; den Regler PCM liefert vc4-hdmi.conf aus libasound2-data.
-  # Wer die Klinke will: diese Datei weglassen und in config.txt
-  # dtoverlay=vc4-kms-v3d,noaudio setzen, dann ist die Klinke die einzige
-  # Karte. index=0 reicht nicht sicher, vc4 laedt aus der Initramfs meist
-  # zuerst und belegt Karte 0. docs/07-deployment.md, Abschnitt Audio output.
+  # snd_bcm2835 (Klinke). slots im ALSA-Kernmodul snd reserviert die Plaetze:
+  # HDMI0 Karte 0, HDMI1 Karte 1, Klinke Karte 2; den Regler PCM auf HDMI
+  # liefert vc4-hdmi.conf aus libasound2-data. (snd_bcm2835 hat keinen
+  # Parameter index, eine Zeile dafuer ignoriert modprobe still.)
+  # snd laedt mit vc4 schon aus der Initramfs, und dracut nimmt
+  # /etc/modprobe.d bei hostonly=no nicht mit, daher install_items; die
+  # Initramfs baut `dracut --regenerate-all` weiter unten.
+  # Wer die Klinke will: slots=snd_bcm2835,vc4,vc4.
+  # docs/07-deployment.md, Abschnitt Audio output.
   - action: run
     description: Keep HDMI as ALSA card 0 (headphone jack as card 2)
     chroot: true
     command: |
-      install -d /etc/modprobe.d
-      printf '%s\n' 'options snd_bcm2835 index=2' > /etc/modprobe.d/carnine-audio.conf
+      install -d /etc/modprobe.d /etc/dracut.conf.d
+      printf '%s\n' 'options snd slots=vc4,vc4,snd_bcm2835' > /etc/modprobe.d/carnine-audio.conf
+      printf '%s\n' 'install_items+=" /etc/modprobe.d/carnine-audio.conf "' \
+        > /etc/dracut.conf.d/carnine-audio.conf
 
   # Das Waveshare-Panel laeuft unter Full KMS (vc4-kms-v3d aus der
   # pi-gen-config.txt). Sein EDID ist geklont und traegt ungerade
