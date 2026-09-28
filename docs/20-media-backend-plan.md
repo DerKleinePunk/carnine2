@@ -202,8 +202,10 @@ Die Konfiguration enthaelt mindestens:
 - Log-Verzeichnis und Log-Level
 
 Hardware- und deployment-spezifische Werte wie das ALSA-Geraet duerfen fuer
-den Zielrechner angepasst werden. Fuer den aktuell getesteten Pi ist HDMI 1
-als `plughw:0,0` eingetragen. Geheimnisse gehoeren nicht in diese Datei.
+den Zielrechner angepasst werden. Ein ALSA-Geraet gibt es in der
+Konfiguration bisher nicht: Das Backend spielt auf ALSA-Karte 0 und regelt dort
+`PCM`, siehe [07 – Audio output](07-deployment.md#audio-output). Geheimnisse
+gehoeren nicht in diese Datei.
 
 Die UI aendert diese Datei nicht direkt. Ein spaeterer typisierter
 `ConfigService` liest und schreibt die Konfiguration ueber das Backend. Das
