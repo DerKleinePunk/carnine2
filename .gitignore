@@ -16,7 +16,6 @@ build/
 **/build/
 build-logs/
 build/sysroots/
-pubspec.lock
 
 # Local logs
 src/backend/logs/
