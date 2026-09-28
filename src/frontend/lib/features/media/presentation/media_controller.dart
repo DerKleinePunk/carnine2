@@ -74,6 +74,11 @@ class MediaController extends ChangeNotifier {
   Duration _nextReconnectDelay = _initialReconnectDelay;
   bool _started = false;
 
+  /// Stream failures reported while already offline. [_reconnect] compares
+  /// it before and after re-opening the streams: a stream that dies while
+  /// the backend is still coming up must not be forgotten (#44).
+  int _failuresWhileOffline = 0;
+
   bool get isQueueExpanded => _isQueueExpanded;
   MediaLibraryAction? get openLibraryAction => _openLibraryAction;
   MediaConnectionStatus get connection => _connection;
@@ -136,6 +141,7 @@ class MediaController extends ChangeNotifier {
   /// failure. Owns the single reconnect loop for the whole media feature.
   void reportStreamFailure(Object error) {
     if (_connection == MediaConnectionStatus.offline) {
+      _failuresWhileOffline++;
       return;
     }
 
@@ -168,6 +174,7 @@ class MediaController extends ChangeNotifier {
 
   Future<void> _reconnect() async {
     _logger.info('Attempting to reconnect to the media backend');
+    final failuresBefore = _failuresWhileOffline;
 
     try {
       await _repository.reconnect();
@@ -175,6 +182,9 @@ class MediaController extends ChangeNotifier {
       await library.reconnect();
       await playlists.reconnect();
       await audio.reconnect();
+      if (_failuresWhileOffline != failuresBefore) {
+        throw StateError('A media stream failed while reconnecting');
+      }
       _connection = MediaConnectionStatus.online;
       _nextReconnectDelay = _initialReconnectDelay;
       notifyListeners();
