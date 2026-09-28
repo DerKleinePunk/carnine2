@@ -180,6 +180,7 @@ impl Database {
             })?)
     }
 
+    #[cfg(test)]
     pub fn upsert_media(&self, media: &MediaRecord) -> Result<i64> {
         self.connection.execute(
             "INSERT INTO media
@@ -206,6 +207,40 @@ impl Database {
             params![media.source_id, media.path],
             |row| row.get(0),
         )?)
+    }
+
+    /// Like [`Self::upsert_media`], but an existing row keeps its title, artist
+    /// and duration when `keep_metadata` is set, and its cover when
+    /// `keep_cover` is set. A new row always takes the given values.
+    fn upsert_scanned_media(
+        &self,
+        media: &MediaRecord,
+        keep_metadata: bool,
+        keep_cover: bool,
+    ) -> Result<()> {
+        self.connection.execute(
+            "INSERT INTO media
+                (source_id, path, title, artist, duration_ms, status, cover_path)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+             ON CONFLICT(source_id, path) DO UPDATE SET
+                title = CASE WHEN ?8 THEN media.title ELSE excluded.title END,
+                artist = CASE WHEN ?8 THEN media.artist ELSE excluded.artist END,
+                duration_ms = CASE WHEN ?8 THEN media.duration_ms ELSE excluded.duration_ms END,
+                status = excluded.status,
+                cover_path = CASE WHEN ?9 THEN media.cover_path ELSE excluded.cover_path END",
+            params![
+                media.source_id,
+                media.path,
+                media.title,
+                media.artist,
+                media.duration_ms,
+                media.status,
+                media.cover_path,
+                keep_metadata,
+                keep_cover
+            ],
+        )?;
+        Ok(())
     }
 
     pub fn search_media(&self, query: &str) -> Result<Vec<MediaRecord>> {
@@ -458,18 +493,27 @@ impl Database {
                 .and_then(|value| value.to_str())
                 .unwrap_or_default()
                 .to_string();
-            let metadata = read_audio_metadata(path).unwrap_or_default();
-            let cover_path = extract_cover_art(path, cover_cache_dir).unwrap_or(None);
-            self.upsert_media(&MediaRecord {
-                id: 0,
-                source_id,
-                path: path.to_string_lossy().into_owned(),
-                title: metadata.title.unwrap_or(fallback_title),
-                artist: metadata.artist.unwrap_or_default(),
-                duration_ms: metadata.duration_ms,
-                status: "AVAILABLE".to_string(),
-                cover_path,
-            })?;
+            // A failed read (ffprobe/ffmpeg missing or broken) must not wipe what
+            // an earlier scan stored; only a successful read replaces it.
+            let metadata = read_audio_metadata(path);
+            let cover = extract_cover_art(path, cover_cache_dir);
+            let keep_metadata = metadata.is_err();
+            let keep_cover = cover.is_err();
+            let metadata = metadata.unwrap_or_default();
+            self.upsert_scanned_media(
+                &MediaRecord {
+                    id: 0,
+                    source_id,
+                    path: path.to_string_lossy().into_owned(),
+                    title: metadata.title.unwrap_or(fallback_title),
+                    artist: metadata.artist.unwrap_or_default(),
+                    duration_ms: metadata.duration_ms,
+                    status: "AVAILABLE".to_string(),
+                    cover_path: cover.unwrap_or(None),
+                },
+                keep_metadata,
+                keep_cover,
+            )?;
         }
         Ok(discovered.len())
     }
@@ -689,6 +733,54 @@ mod tests {
         assert!(database.load_track_recording().unwrap());
         database.save_track_recording(false).unwrap();
         assert!(!database.load_track_recording().unwrap());
+    }
+
+    #[test]
+    fn failed_metadata_read_keeps_what_an_earlier_scan_stored() {
+        let database = Database::open(":memory:").expect("database should open");
+        let source_id = database
+            .upsert_source("/music", "AVAILABLE")
+            .expect("source should be stored");
+        let tagged = MediaRecord {
+            id: 0,
+            source_id,
+            path: "/music/11 Crazy.mp3".to_string(),
+            title: "Crazy".to_string(),
+            artist: "Aerosmith".to_string(),
+            duration_ms: 316_000,
+            status: "MISSING".to_string(),
+            cover_path: Some("/covers/crazy.jpg".to_string()),
+        };
+        database
+            .upsert_media(&tagged)
+            .expect("media should be stored");
+        let fallback = MediaRecord {
+            id: 0,
+            source_id,
+            path: tagged.path.clone(),
+            title: "11 Crazy".to_string(),
+            artist: String::new(),
+            duration_ms: 0,
+            status: "AVAILABLE".to_string(),
+            cover_path: None,
+        };
+
+        database
+            .upsert_scanned_media(&fallback, true, true)
+            .expect("rescan without tools should work");
+        let kept = &database.search_media("crazy").expect("search should work")[0];
+        assert_eq!(kept.title, "Crazy");
+        assert_eq!(kept.artist, "Aerosmith");
+        assert_eq!(kept.duration_ms, 316_000);
+        assert_eq!(kept.cover_path.as_deref(), Some("/covers/crazy.jpg"));
+        assert_eq!(kept.status, "AVAILABLE");
+
+        database
+            .upsert_scanned_media(&fallback, false, false)
+            .expect("rescan with tools should work");
+        let replaced = &database.search_media("crazy").expect("search should work")[0];
+        assert_eq!(replaced.title, "11 Crazy");
+        assert_eq!(replaced.cover_path, None);
     }
 
     #[test]
