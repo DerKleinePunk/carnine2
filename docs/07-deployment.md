@@ -271,6 +271,122 @@ A settings change through `ConfigService` rewrites `config.toml` with the
 merged values. The drop-ins are applied after it on the next start and still
 win.
 
+#### Audio output
+
+The backend has no audio device setting. It plays through cpal's
+`default_output_device()` (`src/backend/src/cpal_audio_engine.rs`), which on
+the Pi is ALSA's `default` device, and sets the volume with
+`amixer -c 0 set PCM` (`src/backend/src/audio_volume.rs`). Both therefore
+follow **ALSA card 0**. The Pi 4 has three cards (`config.txt` from pi-gen
+keeps `dtparam=audio=on`):
+
+| ALSA name | Output |
+|---|---|
+| `vc4hdmi0` | HDMI0, the port next to USB-C, where the panel is |
+| `vc4hdmi1` | HDMI1 |
+| `Headphones` | 3.5 mm jack (`snd_bcm2835`) |
+
+Without a setting, which one becomes card 0 depends on the order the modules
+load. On carnine-pc HDMI0 came first because `vc4` is in the initramfs (for
+the EDID override and Plymouth) and `snd_bcm2835` is not; on jeep-pi the jack
+came first. **The image therefore fixes HDMI0 as card 0** (step "Keep HDMI as
+ALSA card 0 (headphone jack as card 2)" in `resources/debos/raspbian.yaml`)
+by reserving the card slots per driver in the ALSA core module `snd`:
+
+```
+# /etc/modprobe.d/carnine-audio.conf
+options snd slots=vc4,vc4,snd_bcm2835
+```
+
+The two vc4 cards take 0 and 1, the jack stays available as card 2. Tried on
+jeep-pi, where the jack loads first: the line moved HDMI0 from card 1 to card
+0. Check after a reboot:
+
+```bash
+cat /proc/asound/cards                  # 0 [vc4hdmi0 ], 1 [vc4hdmi1 ], 2 [Headphones]
+cat /sys/module/snd/parameters/slots    # vc4,vc4,snd_bcm2835,...
+```
+
+Where `snd` already loads from the initramfs together with `vc4` (carnine-pc
+and the image), the file must be in the initramfs too, since dracut runs with
+`hostonly="no"` and does not take `/etc/modprobe.d` along by itself. The
+image step therefore also writes
+
+```
+# /etc/dracut.conf.d/carnine-audio.conf
+install_items+=" /etc/modprobe.d/carnine-audio.conf "
+```
+
+and the later `dracut --regenerate-all` builds it in. Check with
+`sudo lsinitrd -f etc/modprobe.d/carnine-audio.conf /boot/initrd.img-$(uname -r)`.
+On jeep-pi the file worked without this.
+
+On a device set up before this step, write both files by hand, keep a copy
+of the old initramfs, rebuild it for the running kernel and reboot:
+
+```bash
+sudo cp /boot/initrd.img-$(uname -r) /root/initrd.img-$(uname -r).bak
+sudo dracut --force /boot/initrd.img-$(uname -r) $(uname -r)
+sudo systemctl reboot
+```
+
+dracut copies the result to `/boot/firmware/initramfs8` itself, the file the
+firmware loads.
+On carnine-pc this gave `vc4,vc4,snd_bcm2835` in
+`/sys/module/snd/parameters/slots` and HDMI0 as card 0.
+`options snd_bcm2835 index=2` does **not** work: the driver has no `index`
+parameter (only `enable_hdmi`, `enable_headphones`, `force_bulk`,
+`num_channels`), and modprobe ignores the line without a word.
+
+**Using the jack instead** (a rebuilt image, or a car without speakers on
+HDMI): swap the order in the same file,
+
+```
+options snd slots=snd_bcm2835,vc4,vc4
+```
+
+so the jack becomes card 0, and rebuild the initramfs as above. Tried on
+carnine-pc, where `vc4` loads from the initramfs: 0 Headphones,
+1 vc4hdmi0, 2 vc4hdmi1, the backend played on the jack and used amixer.
+Two things differ from HDMI:
+
+- The jack's `PCM` is a mono hardware control with another curve: 46 % is
+  -53.45 dB there against -27.60 dB on HDMI, so the same percentage is
+  clearly quieter.
+- The stored volume applies to both outputs, so after switching the backend
+  starts at the same percentage.
+
+Choosing the output in the UI is planned for later
+([#48](https://github.com/DerKleinePunk/carnine2/issues/48)).
+
+The `PCM` control on an HDMI card does not come from the driver, which has
+no mixer: `/usr/share/alsa/cards/vc4-hdmi.conf` (package `libasound2-data`)
+builds the card's `default` device as plug → softvol `PCM` → IEC958, since
+vc4 only accepts `IEC958_SUBFRAME_LE` (see
+[20 – Media Backend Plan](20-media-backend-plan.md#der-plopp-kommt-von-der-hdmi-senke-nicht-aus-dem-backend)).
+No own `asound.conf` is needed for it. Two catches:
+
+- The softvol control only exists once the device has been opened. At boot
+  `alsa-restore` creates it from `/var/lib/alsa/asound.state`, where the
+  entry "PCM Playback Volume" has to be.
+- The backend decides **once at startup** whether it can use amixer. If
+  `PCM` is missing at that moment, the volume slider has no effect until the
+  backend is restarted. Choosing the device in the UI (#48) would have to
+  deal with this.
+
+On a device that has never played through HDMI, create and store the control
+once:
+
+```bash
+speaker-test -D default -c 2 -t sine -l 1
+sudo alsactl store
+amixer -c 0 get PCM                         # the control is there
+sudo systemctl restart carnine-backend
+```
+
+Then check in the UI that music plays on the panel and that the volume
+slider changes `amixer -c 0 get PCM`.
+
 #### Operating System
 - **OS**: Raspberry Pi OS (Debian‑based, 64‑bit preferred)
   • Kernel 5.10+ with `CONFIG_CAN=y`
