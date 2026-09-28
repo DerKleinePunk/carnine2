@@ -129,6 +129,36 @@ void main() {
     expect(controller.isScanning, isFalse);
   });
 
+  test(
+    'metadataToolMissing raises the flag until the next scan starts',
+    () async {
+      await controller.start();
+      LibraryScanEvent event(LibraryScanEventKind kind) => LibraryScanEvent(
+        kind: kind,
+        scanId: 0,
+        processed: 0,
+        imported: 0,
+        path: '',
+        message: '',
+        sourceLabel: '',
+        sourcePath: '',
+        matchingFiles: 0,
+      );
+
+      repository.libraryEventsController.add(
+        event(LibraryScanEventKind.metadataToolMissing),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.mediaToolsMissing, isTrue);
+
+      repository.libraryEventsController.add(
+        event(LibraryScanEventKind.scanStarted),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.mediaToolsMissing, isFalse);
+    },
+  );
+
   test('musicFound with matching files stages a pending import', () async {
     await controller.start();
 

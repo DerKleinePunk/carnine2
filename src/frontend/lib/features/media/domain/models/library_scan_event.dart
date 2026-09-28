@@ -16,6 +16,10 @@ enum LibraryScanEventKind {
   importCompleted,
   playlistCreated,
   playlistEntryAdded,
+
+  /// ffprobe/ffmpeg cannot run on the device: scans store file names only,
+  /// without artist, duration or cover. Cleared by the next [scanStarted].
+  metadataToolMissing,
   unknown,
 }
 
@@ -38,6 +42,8 @@ LibraryScanEventKind libraryScanEventKindFrom(LibraryEventType raw) {
     LibraryEventType.PLAYLIST_CREATED => LibraryScanEventKind.playlistCreated,
     LibraryEventType.PLAYLIST_ENTRY_ADDED =>
       LibraryScanEventKind.playlistEntryAdded,
+    LibraryEventType.LIBRARY_METADATA_TOOL_MISSING =>
+      LibraryScanEventKind.metadataToolMissing,
     _ => LibraryScanEventKind.unknown,
   };
 }

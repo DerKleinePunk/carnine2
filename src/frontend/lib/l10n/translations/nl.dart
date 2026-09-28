@@ -88,6 +88,8 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
       'USB-stick "{label}" gevonden - {count} nummer(s) overnemen?',
   AppTextKey.mediaUsbImportAction: 'Overnemen',
   AppTextKey.mediaUsbImportSemantic: '{count} nummer(s) van {label} overnemen',
+  AppTextKey.mediaToolsMissingBanner:
+      'ffmpeg ontbreekt: nummers worden zonder artiest, duur en hoes ingelezen. Installeer ffmpeg en scan daarna opnieuw.',
   AppTextKey.mediaScanRunning: 'Scannen...',
   AppTextKey.mediaScanProgressLine:
       '{processed} verwerkt, {imported} geïmporteerd',

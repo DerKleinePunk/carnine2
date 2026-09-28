@@ -6,6 +6,7 @@ import 'package:carnine_frontend/features/media/presentation/widgets/collections
 import 'package:carnine_frontend/features/media/presentation/widgets/create/playlist_create_page.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/library/library_page.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/media_connection_banner.dart';
+import 'package:carnine_frontend/features/media/presentation/widgets/media_tools_missing_banner.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/player/player_page.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/usb_import_banner.dart';
 import 'package:flutter/material.dart';
@@ -65,6 +66,8 @@ class _MediaContentState extends State<MediaContent> {
           children: [
             if (isOffline) MediaConnectionBanner(onRetry: _controller.retryNow),
             if (!isOffline) _AudioEventBannerSlot(audio: _controller.audio),
+            if (!isOffline)
+              _MediaToolsMissingBannerSlot(library: _controller.library),
             if (!isOffline) _UsbImportBannerSlot(library: _controller.library),
             Expanded(
               child: GestureDetector(
@@ -146,6 +149,28 @@ class _AudioEventBannerSlot extends StatelessWidget {
         return AudioEventBanner(
           messageKey: key,
           onDismiss: audio.dismissBanner,
+        );
+      },
+    );
+  }
+}
+
+class _MediaToolsMissingBannerSlot extends StatelessWidget {
+  const _MediaToolsMissingBannerSlot({required this.library});
+
+  final LibraryController library;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: library,
+      builder: (context, child) {
+        if (!library.mediaToolsMissing) {
+          return const SizedBox.shrink();
+        }
+        return MediaToolsMissingBanner(
+          onRescan: library.rescan,
+          isScanning: library.isScanning,
         );
       },
     );

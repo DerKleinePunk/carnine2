@@ -90,6 +90,8 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.mediaUsbImportAction: 'İçe aktar',
   AppTextKey.mediaUsbImportSemantic:
       '{label} konumundan {count} parça içe aktar',
+  AppTextKey.mediaToolsMissingBanner:
+      'ffmpeg eksik: parçalar sanatçı, süre ve kapak olmadan içe aktarılıyor. ffmpeg kurun, ardından yeniden tarayın.',
   AppTextKey.mediaScanRunning: 'Taranıyor...',
   AppTextKey.mediaScanProgressLine:
       '{processed} işlendi, {imported} içe aktarıldı',

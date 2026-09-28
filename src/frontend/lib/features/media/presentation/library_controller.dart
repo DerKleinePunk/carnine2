@@ -43,6 +43,7 @@ class LibraryController extends ChangeNotifier {
   String? _scanFailedPath;
   Timer? _scanWatchdog;
   LibraryScanEvent? _pendingImport;
+  bool _mediaToolsMissing = false;
 
   StreamSubscription<LibraryScanEvent>? _libraryEvents;
 
@@ -57,6 +58,10 @@ class LibraryController extends ChangeNotifier {
   /// A detected USB volume awaiting the user's "Übernehmen" confirmation
   /// before anything gets imported - `null` when there is none pending.
   LibraryScanEvent? get pendingImport => _pendingImport;
+
+  /// The backend cannot start ffprobe/ffmpeg, so the user has to install
+  /// ffmpeg and rescan. Replayed by the backend to every new subscriber.
+  bool get mediaToolsMissing => _mediaToolsMissing;
 
   /// Subscribes to the library event stream and loads the library. Safe to
   /// call again after [reconnect] tore the previous subscription down.
@@ -238,7 +243,13 @@ class LibraryController extends ChangeNotifier {
         _scanProcessed = 0;
         _scanImported = 0;
         _scanFailedPath = null;
+        // The backend checks the tools right after this event and re-sends
+        // metadataToolMissing if they are still missing.
+        _mediaToolsMissing = false;
         _armScanWatchdog();
+        notifyListeners();
+      case LibraryScanEventKind.metadataToolMissing:
+        _mediaToolsMissing = true;
         notifyListeners();
       case LibraryScanEventKind.progress:
       case LibraryScanEventKind.importProgress:

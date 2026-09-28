@@ -87,6 +87,8 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
       'USB drive "{label}" found - import {count} track(s)?',
   AppTextKey.mediaUsbImportAction: 'Import',
   AppTextKey.mediaUsbImportSemantic: 'Import {count} track(s) from {label}',
+  AppTextKey.mediaToolsMissingBanner:
+      'ffmpeg is missing: tracks are imported without artist, duration and cover. Install ffmpeg, then rescan.',
   AppTextKey.mediaScanRunning: 'Scan running...',
   AppTextKey.mediaScanProgressLine:
       '{processed} processed, {imported} imported',

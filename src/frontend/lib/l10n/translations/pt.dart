@@ -90,6 +90,8 @@ const Map<AppTextKey, String> ptTranslations = <AppTextKey, String>{
       'Pen USB "{label}" encontrado - importar {count} faixa(s)?',
   AppTextKey.mediaUsbImportAction: 'Importar',
   AppTextKey.mediaUsbImportSemantic: 'Importar {count} faixa(s) de {label}',
+  AppTextKey.mediaToolsMissingBanner:
+      'Falta o ffmpeg: as faixas são importadas sem artista, duração e capa. Instale o ffmpeg e volte a analisar.',
   AppTextKey.mediaScanRunning: 'Varredura em andamento...',
   AppTextKey.mediaScanProgressLine:
       '{processed} processados, {imported} importados',

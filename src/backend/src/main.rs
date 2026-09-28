@@ -4,7 +4,7 @@
 #![allow(clippy::result_large_err)]
 
 use std::pin::Pin;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{
@@ -248,6 +248,10 @@ pub struct MediaServiceImpl {
     /// service starts, seconds before the UI is up, and a live-only stream
     /// would drop it and never offer the import.
     pending_music_volume: Arc<Mutex<Option<LibraryEvent>>>,
+    /// Result of the last ffprobe/ffmpeg check, replayed to clients that
+    /// connect later so that the UI can tell the user to install ffmpeg.
+    media_tools_missing: Arc<AtomicBool>,
+    media_tools_probe: fn() -> bool,
 }
 
 pub struct ConfigServiceImpl {
@@ -301,6 +305,28 @@ impl MediaServiceImpl {
             library_events,
             next_scan_id: Arc::new(AtomicU64::new(1)),
             pending_music_volume: Arc::new(Mutex::new(None)),
+            media_tools_missing: Arc::new(AtomicBool::new(false)),
+            media_tools_probe: database::media_tools_available,
+        }
+    }
+
+    /// Runs the ffprobe/ffmpeg check and remembers the result; returns true
+    /// when the tools are missing.
+    fn check_media_tools(&self) -> bool {
+        let missing = !(self.media_tools_probe)();
+        if missing {
+            warn!("ffprobe/ffmpeg cannot be started; media is imported without artist, duration and cover");
+        }
+        self.media_tools_missing.store(missing, Ordering::Relaxed);
+        missing
+    }
+
+    fn media_tools_missing_event(scan_id: u64) -> LibraryEvent {
+        LibraryEvent {
+            event: LibraryEventType::LibraryMetadataToolMissing as i32,
+            scan_id,
+            message: "ffprobe/ffmpeg not found".to_string(),
+            ..Default::default()
         }
     }
 
@@ -311,14 +337,17 @@ impl MediaServiceImpl {
         resume_mode: String,
         cover_cache_dir: PathBuf,
     ) -> Result<Self> {
-        Ok(Self::from_player(
+        let service = Self::from_player(
             MediaPlayer::new()?,
             database_path,
             media_folders,
             supported_formats,
             resume_mode,
             cover_cache_dir,
-        ))
+        );
+        // Also at startup, so the UI shows the hint before anyone rescans.
+        service.check_media_tools();
+        Ok(service)
     }
 
     #[cfg(test)]
@@ -330,14 +359,17 @@ impl MediaServiceImpl {
         resume_mode: String,
         cover_cache_dir: PathBuf,
     ) -> Self {
-        Self::from_player(
+        let mut service = Self::from_player(
             player,
             database_path,
             media_folders,
             supported_formats,
             resume_mode,
             cover_cache_dir,
-        )
+        );
+        // Scan event sequences must not depend on the host having ffmpeg.
+        service.media_tools_probe = || true;
+        service
     }
 
     fn save_resume_state(&self) -> anyhow::Result<()> {
@@ -415,6 +447,9 @@ impl MediaServiceImpl {
             scan_id,
             ..Default::default()
         }];
+        if self.check_media_tools() {
+            events.push(Self::media_tools_missing_event(scan_id));
+        }
         let mut processed = 0_u64;
         let mut imported = 0_u64;
         for folder in &self.media_folders {
@@ -888,7 +923,17 @@ impl MediaService for MediaServiceImpl {
             });
         // A volume found before this client connected is replayed first, the
         // way the player stream opens with its snapshot.
-        let pending = tokio_stream::iter(self.take_pending_music_volume().map(Ok));
+        let tools_missing = self
+            .media_tools_missing
+            .load(Ordering::Relaxed)
+            .then(|| Self::media_tools_missing_event(0));
+        let pending = tokio_stream::iter(
+            tools_missing
+                .into_iter()
+                .chain(self.take_pending_music_volume())
+                .map(Ok)
+                .collect::<Vec<_>>(),
+        );
         Ok(Response::new(Box::pin(pending.chain(updates))))
     }
 
@@ -2333,6 +2378,73 @@ mod tests {
 
         assert_eq!(event.event, PlayerEventType::PlayerTrackChanged as i32);
         assert_eq!(event.state.expect("event state").media_path, "second.wav");
+    }
+
+    #[tokio::test]
+    async fn missing_media_tools_are_reported_on_scan_and_replayed() {
+        let folder =
+            std::env::temp_dir().join(format!("carnine-media-tools-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&folder);
+        std::fs::create_dir_all(&folder).expect("media folder should be created");
+        let mut service = MediaServiceImpl::with_player(
+            MediaPlayer::with_engine(Box::new(FakeAudioEngine)),
+            folder.join("media.sqlite3"),
+            vec![folder.clone()],
+            vec!["mp3".to_string()],
+            "restore_paused".to_string(),
+            PathBuf::from("/tmp/carnine-covers"),
+        );
+        service.media_tools_probe = || false;
+
+        let events = service
+            .rescan_media(Request::new(RescanMediaRequest {}))
+            .await
+            .expect("rescan should succeed")
+            .into_inner()
+            .collect::<Vec<_>>()
+            .await;
+        let kinds = events
+            .iter()
+            .map(|event| event.as_ref().expect("valid event").event)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            &kinds[..2],
+            &[
+                LibraryEventType::LibraryScanStarted as i32,
+                LibraryEventType::LibraryMetadataToolMissing as i32,
+            ]
+        );
+
+        let replayed = service
+            .stream_library_events(Request::new(Empty {}))
+            .await
+            .expect("library events should open")
+            .into_inner()
+            .next()
+            .await
+            .expect("replayed event should arrive")
+            .expect("replayed event should be valid");
+        assert_eq!(
+            replayed.event,
+            LibraryEventType::LibraryMetadataToolMissing as i32
+        );
+
+        service.media_tools_probe = || true;
+        let events = service
+            .rescan_media(Request::new(RescanMediaRequest {}))
+            .await
+            .expect("rescan should succeed")
+            .into_inner()
+            .collect::<Vec<_>>()
+            .await;
+        assert!(events.iter().all(|event| {
+            event.as_ref().expect("valid event").event
+                != LibraryEventType::LibraryMetadataToolMissing as i32
+        }));
+        assert!(!service
+            .media_tools_missing
+            .load(std::sync::atomic::Ordering::Relaxed));
+        let _ = std::fs::remove_dir_all(&folder);
     }
 
     #[tokio::test]

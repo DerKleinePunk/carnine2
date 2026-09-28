@@ -90,6 +90,8 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
       'Znaleziono nośnik USB "{label}" - zaimportować {count} utwór(y)?',
   AppTextKey.mediaUsbImportAction: 'Importuj',
   AppTextKey.mediaUsbImportSemantic: 'Zaimportuj {count} utwór(y) z {label}',
+  AppTextKey.mediaToolsMissingBanner:
+      'Brak ffmpeg: utwory są importowane bez wykonawcy, czasu trwania i okładki. Zainstaluj ffmpeg, a potem skanuj ponownie.',
   AppTextKey.mediaScanRunning: 'Skanowanie...',
   AppTextKey.mediaScanProgressLine:
       'Przetworzono {processed}, zaimportowano {imported}',

@@ -82,6 +82,8 @@ const Map<AppTextKey, String> zhTranslations = <AppTextKey, String>{
   AppTextKey.mediaUsbImportBanner: '检测到 U 盘 "{label}" - 是否导入 {count} 首曲目？',
   AppTextKey.mediaUsbImportAction: '导入',
   AppTextKey.mediaUsbImportSemantic: '从 {label} 导入 {count} 首曲目',
+  AppTextKey.mediaToolsMissingBanner:
+      '缺少 ffmpeg：曲目导入时没有艺术家、时长和封面。请安装 ffmpeg 后重新扫描。',
   AppTextKey.mediaScanRunning: '正在扫描...',
   AppTextKey.mediaScanProgressLine: '已处理 {processed} 项，已导入 {imported} 项',
   AppTextKey.mediaScanFailed: '扫描失败',

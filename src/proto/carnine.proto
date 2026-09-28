@@ -179,6 +179,10 @@ enum LibraryEventType {
   // A volume announced with LIBRARY_MUSIC_FOUND is no longer mounted;
   // source_path names it.
   LIBRARY_MUSIC_GONE = 11;
+  // ffprobe/ffmpeg cannot be started: scans import file names only, without
+  // artist, duration and cover. Sent after LIBRARY_SCAN_STARTED, and replayed
+  // to new subscribers while the last check failed.
+  LIBRARY_METADATA_TOOL_MISSING = 12;
 }
 
 message LibraryEvent {

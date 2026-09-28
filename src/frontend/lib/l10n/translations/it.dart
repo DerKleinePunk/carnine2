@@ -90,6 +90,8 @@ const Map<AppTextKey, String> itTranslations = <AppTextKey, String>{
       'Chiavetta USB "{label}" trovata - importare {count} brano/i?',
   AppTextKey.mediaUsbImportAction: 'Importa',
   AppTextKey.mediaUsbImportSemantic: 'Importa {count} brano/i da {label}',
+  AppTextKey.mediaToolsMissingBanner:
+      'ffmpeg mancante: i brani vengono importati senza artista, durata e copertina. Installa ffmpeg, poi riscansiona.',
   AppTextKey.mediaScanRunning: 'Scansione in corso...',
   AppTextKey.mediaScanProgressLine:
       '{processed} elaborati, {imported} importati',

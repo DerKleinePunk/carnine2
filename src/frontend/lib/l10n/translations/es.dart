@@ -90,6 +90,8 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
       'USB "{label}" detectado - ¿importar {count} pista(s)?',
   AppTextKey.mediaUsbImportAction: 'Importar',
   AppTextKey.mediaUsbImportSemantic: 'Importar {count} pista(s) de {label}',
+  AppTextKey.mediaToolsMissingBanner:
+      'Falta ffmpeg: las pistas se importan sin artista, duración ni carátula. Instala ffmpeg y vuelve a escanear.',
   AppTextKey.mediaScanRunning: 'Escaneo en curso...',
   AppTextKey.mediaScanProgressLine:
       '{processed} procesados, {imported} importados',

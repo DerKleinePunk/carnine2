@@ -484,6 +484,20 @@ impl Database {
     }
 }
 
+/// Whether ffprobe and ffmpeg can be started. Without them a scan still runs,
+/// because each file's metadata and cover errors are dropped, but every title
+/// ends up as its file name without artist, duration or cover.
+pub fn media_tools_available() -> bool {
+    ["ffprobe", "ffmpeg"].iter().all(|tool| {
+        Command::new(tool)
+            .arg("-version")
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .is_ok_and(|status| status.success())
+    })
+}
+
 fn read_audio_metadata(path: &Path) -> Result<AudioMetadata> {
     let output = Command::new("ffprobe")
         .args([

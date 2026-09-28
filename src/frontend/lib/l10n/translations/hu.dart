@@ -88,6 +88,8 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
       'USB-meghajtó "{label}" megtalálva - importálod a(z) {count} számot?',
   AppTextKey.mediaUsbImportAction: 'Importálás',
   AppTextKey.mediaUsbImportSemantic: '{count} szám importálása innen: {label}',
+  AppTextKey.mediaToolsMissingBanner:
+      'Hiányzik az ffmpeg: a számok előadó, hossz és borító nélkül kerülnek be. Telepítsd az ffmpeg-et, majd szkenneld újra.',
   AppTextKey.mediaScanRunning: 'Szkennelés...',
   AppTextKey.mediaScanProgressLine:
       '{processed} feldolgozva, {imported} importálva',

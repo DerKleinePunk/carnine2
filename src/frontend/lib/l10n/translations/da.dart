@@ -89,6 +89,8 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.mediaUsbImportAction: 'Importer',
   AppTextKey.mediaUsbImportSemantic:
       'Importer {count} nummer/numre fra {label}',
+  AppTextKey.mediaToolsMissingBanner:
+      'ffmpeg mangler: numre indlæses uden kunstner, varighed og cover. Installer ffmpeg, og scan derefter igen.',
   AppTextKey.mediaScanRunning: 'Scanner...',
   AppTextKey.mediaScanProgressLine:
       '{processed} behandlet, {imported} importeret',

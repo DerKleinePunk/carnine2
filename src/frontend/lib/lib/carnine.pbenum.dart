@@ -44,6 +44,13 @@ class LibraryEventType extends $pb.ProtobufEnum {
   static const LibraryEventType LIBRARY_MUSIC_GONE =
       LibraryEventType._(11, _omitEnumNames ? '' : 'LIBRARY_MUSIC_GONE');
 
+  /// ffprobe/ffmpeg cannot be started: scans import file names only, without
+  /// artist, duration and cover. Sent after LIBRARY_SCAN_STARTED, and replayed
+  /// to new subscribers while the last check failed.
+  static const LibraryEventType LIBRARY_METADATA_TOOL_MISSING =
+      LibraryEventType._(
+          12, _omitEnumNames ? '' : 'LIBRARY_METADATA_TOOL_MISSING');
+
   static const $core.List<LibraryEventType> values = <LibraryEventType>[
     LIBRARY_EVENT_TYPE_UNSPECIFIED,
     LIBRARY_SCAN_STARTED,
@@ -57,10 +64,11 @@ class LibraryEventType extends $pb.ProtobufEnum {
     PLAYLIST_CREATED,
     PLAYLIST_ENTRY_ADDED,
     LIBRARY_MUSIC_GONE,
+    LIBRARY_METADATA_TOOL_MISSING,
   ];
 
   static final $core.List<LibraryEventType?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 11);
+      $pb.ProtobufEnum.$_initByValueList(values, 12);
   static LibraryEventType? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

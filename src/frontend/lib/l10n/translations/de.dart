@@ -92,6 +92,8 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
       'USB-Stick "{label}" gefunden – {count} Titel übernehmen?',
   AppTextKey.mediaUsbImportAction: 'Übernehmen',
   AppTextKey.mediaUsbImportSemantic: '{count} Titel von {label} übernehmen',
+  AppTextKey.mediaToolsMissingBanner:
+      'ffmpeg fehlt: Titel werden ohne Interpret, Dauer und Cover eingelesen. Bitte ffmpeg installieren und danach neu einlesen.',
   AppTextKey.mediaScanRunning: 'Scan läuft...',
   AppTextKey.mediaScanProgressLine:
       '{processed} verarbeitet, {imported} importiert',

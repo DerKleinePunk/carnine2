@@ -89,6 +89,8 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
       'Nalezen USB disk "{label}" - importovat {count} skladeb?',
   AppTextKey.mediaUsbImportAction: 'Importovat',
   AppTextKey.mediaUsbImportSemantic: 'Importovat {count} skladeb z {label}',
+  AppTextKey.mediaToolsMissingBanner:
+      'Chybí ffmpeg: skladby se importují bez interpreta, délky a obalu. Nainstalujte ffmpeg a poté skenujte znovu.',
   AppTextKey.mediaScanRunning: 'Probíhá skenování...',
   AppTextKey.mediaScanProgressLine:
       'Zpracováno {processed}, importováno {imported}',

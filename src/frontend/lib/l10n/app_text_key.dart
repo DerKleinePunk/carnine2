@@ -84,6 +84,7 @@ enum AppTextKey {
   mediaUsbImportBanner,
   mediaUsbImportAction,
   mediaUsbImportSemantic,
+  mediaToolsMissingBanner,
   mediaScanRunning,
   mediaScanProgressLine,
   mediaScanFailed,

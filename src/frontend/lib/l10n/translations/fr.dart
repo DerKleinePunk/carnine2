@@ -91,6 +91,8 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
       'Clé USB « {label} » détectée - importer {count} titre(s) ?',
   AppTextKey.mediaUsbImportAction: 'Importer',
   AppTextKey.mediaUsbImportSemantic: 'Importer {count} titre(s) depuis {label}',
+  AppTextKey.mediaToolsMissingBanner:
+      'ffmpeg est manquant : les titres sont importés sans artiste, durée ni pochette. Installez ffmpeg, puis relancez l’analyse.',
   AppTextKey.mediaScanRunning: 'Analyse en cours...',
   AppTextKey.mediaScanProgressLine: '{processed} analysés, {imported} importés',
   AppTextKey.mediaScanFailed: 'Échec de l\'analyse',

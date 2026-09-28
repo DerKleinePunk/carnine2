@@ -431,6 +431,39 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets('missing ffmpeg shows a banner whose RESCAN starts a rescan', (
+    tester,
+  ) async {
+    setUpMediaView(tester);
+    await tester.pumpWidget(mediaHarness(controller));
+    await tester.pump();
+
+    repository.libraryEventsController.add(
+      const LibraryScanEvent(
+        kind: LibraryScanEventKind.metadataToolMissing,
+        scanId: 0,
+        processed: 0,
+        imported: 0,
+        path: '',
+        message: '',
+        sourceLabel: '',
+        sourcePath: '',
+        matchingFiles: 0,
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+    expect(find.textContaining('ffmpeg'), findsOneWidget);
+
+    await tester.tap(find.text('RESCAN'));
+    await tester.pump();
+    expect(controller.library.isScanning, isTrue);
+
+    await repository.rescanController.close();
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('dismissing the USB import banner imports nothing', (
     tester,
   ) async {

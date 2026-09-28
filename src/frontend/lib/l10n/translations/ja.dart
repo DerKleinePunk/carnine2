@@ -84,6 +84,8 @@ const Map<AppTextKey, String> jaTranslations = <AppTextKey, String>{
       'USBドライブ「{label}」が見つかりました - {count}曲を取り込みますか？',
   AppTextKey.mediaUsbImportAction: '取り込む',
   AppTextKey.mediaUsbImportSemantic: '{label}から{count}曲を取り込む',
+  AppTextKey.mediaToolsMissingBanner:
+      'ffmpegがありません：曲はアーティスト、長さ、カバーなしで取り込まれます。ffmpegをインストールしてから再スキャンしてください。',
   AppTextKey.mediaScanRunning: 'スキャン中...',
   AppTextKey.mediaScanProgressLine: '{processed} 件処理、{imported} 件インポート',
   AppTextKey.mediaScanFailed: 'スキャンに失敗しました',

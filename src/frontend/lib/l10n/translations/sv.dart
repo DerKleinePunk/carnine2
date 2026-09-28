@@ -87,6 +87,8 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
       'USB-enhet "{label}" hittad - importera {count} låt(ar)?',
   AppTextKey.mediaUsbImportAction: 'Importera',
   AppTextKey.mediaUsbImportSemantic: 'Importera {count} låt(ar) från {label}',
+  AppTextKey.mediaToolsMissingBanner:
+      'ffmpeg saknas: låtar läses in utan artist, längd och omslag. Installera ffmpeg och skanna sedan igen.',
   AppTextKey.mediaScanRunning: 'Skannar...',
   AppTextKey.mediaScanProgressLine:
       '{processed} bearbetade, {imported} importerade',
