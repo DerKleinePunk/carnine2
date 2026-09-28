@@ -4,8 +4,9 @@
 # player over gRPC (media_grpc_client through an SSH tunnel to the backend
 # socket).
 #
-# usage: demo.sh prepare     copy tools, music and the standstill position to
-#                            the Pi, switch the backend to it, start on "home"
+# usage: demo.sh prepare     copy tools and music to the Pi, plan the drive to
+#                            Frankfurt, switch the backend to the demo GPS
+#                            mouse standing in Steinau, start on "home"
 #        demo.sh run FILE    play a demo file (see frankfurt.demo)
 #        demo.sh restore     back to the Pi's own position source
 #
@@ -15,6 +16,7 @@
 #   tap X Y | swipe X Y DX DY [MS] | pinch CX CY FROM TO [MS] | wait MS
 #   type TEXT                 letters, space, capitals on the on-screen keyboard
 #   key done|backspace|space|shift
+#   drive                     the demo GPS mouse starts driving the planned route
 #   play PATH                 MediaService.Play with that file
 #   cli ARGS...               any media_grpc_client command
 # Coordinates are logical pixels on the 1024x600 panel, taken from the
@@ -32,11 +34,19 @@ BACKEND_DIR=$ROOT/src/backend
 CLIENT=$BACKEND_DIR/target/debug/examples/media_grpc_client
 REMOTE_DIR=/home/pi/demo
 MEDIA_DIR=/var/lib/carnine/media/demo
-NMEA_FILE=/var/lib/carnine/maps/demo-steinau.nmea
+TRACK_FILE=/var/lib/carnine/maps/demo-track.json
+GPS_PIPE=/var/lib/carnine/maps/demo-gps.fifo
+GPS_UNIT=carnine-demo-gps
 DROP_IN=/etc/carnine/config.d/90-demo.toml
-# Steinau an der Straße, from the names database (SearchPlaces "Steinau an der Straße").
+# Seconds of the drive per second of video, and fixes per second of video.
+FACTOR=${CARNINE_DEMO_FACTOR:-10}
+HZ=${CARNINE_DEMO_HZ:-2}
+# Steinau an der Straße and Frankfurt am Main, from the names database
+# (SearchPlaces); the destination is the first hit the demo taps.
 STEINAU_LAT=50.31165
 STEINAU_LON=9.45940
+FRANKFURT_LAT=50.11064715743284
+FRANKFURT_LON=8.682090640068054
 
 log() { printf '%s %s\n' "$(date +%T)" "$*"; }
 
@@ -65,18 +75,27 @@ prepare() {
   local build
   build=$(mktemp -d)
   aarch64-linux-gnu-gcc -O2 -Wall -static -o "$build/touchplay" "$HERE/touchplay.c"
-  "$HERE/standstill-nmea.sh" "$STEINAU_LAT" "$STEINAU_LON" 3600 >"$build/demo-steinau.nmea"
+  # A pipe stands in for the GPS mouse (demo_gps.py): unlike the replay
+  # source the map then loads no route of its own.
   printf '%s\n' '# Demo drop-in from resources/tools/demo/demo.sh; demo.sh restore removes it.' \
-    '[navigation]' 'position_source = "replay"' "replay_file = \"$NMEA_FILE\"" 'replay_loop = true' \
+    '[navigation]' 'position_source = "serial"' "serial_device = \"$GPS_PIPE\"" \
     >"$build/90-demo.toml"
-  ssh "$PI" "mkdir -p $REMOTE_DIR"
-  scp -q "$build/touchplay" "$build/demo-steinau.nmea" "$build/90-demo.toml" "$PI:$REMOTE_DIR/"
+  ssh "$PI" "mkdir -p $REMOTE_DIR && command -v python3 >/dev/null" \
+    || { echo "python3 missing on $PI (demo_gps.py)" >&2; exit 1; }
+  scp -q "$build/touchplay" "$build/90-demo.toml" "$HERE/demo_gps.py" "$PI:$REMOTE_DIR/"
   scp -q "$ROOT"/resources/musik/*.mp3 "$PI:$REMOTE_DIR/"
   rm -rf "$build"
-  log "music, standstill position and drop-in on the Pi"
-  ssh "$PI" "sudo install -d -o carnine -g carnine $MEDIA_DIR \
+  log "tools, music and drop-in on the Pi"
+  # Planned on the Pi's own Valhalla, so the drive is the route the UI shows.
+  ssh "$PI" "python3 $REMOTE_DIR/demo_gps.py plan $STEINAU_LAT $STEINAU_LON \
+      $FRANKFURT_LAT $FRANKFURT_LON $REMOTE_DIR/demo-track.json"
+  ssh "$PI" "sudo systemctl stop $GPS_UNIT 2>/dev/null; sudo systemctl reset-failed $GPS_UNIT 2>/dev/null; \
+    sudo install -d -o carnine -g carnine $MEDIA_DIR \
     && sudo install -o carnine -g carnine -m 0644 $REMOTE_DIR/*.mp3 $MEDIA_DIR/ \
-    && sudo install -o carnine -g carnine -m 0644 $REMOTE_DIR/demo-steinau.nmea $NMEA_FILE \
+    && sudo install -o carnine -g carnine -m 0644 $REMOTE_DIR/demo-track.json $TRACK_FILE \
+    && sudo rm -f $GPS_PIPE && sudo -u carnine mkfifo -m 0600 $GPS_PIPE \
+    && sudo systemd-run -q --unit=$GPS_UNIT --uid=carnine --gid=carnine \
+      python3 -u $REMOTE_DIR/demo_gps.py feed $TRACK_FILE $GPS_PIPE --factor $FACTOR --hz $HZ \
     && sudo install -m 0644 $REMOTE_DIR/90-demo.toml $DROP_IN \
     && sudo systemctl restart carnine-backend"
   wait_for_backend
@@ -90,8 +109,15 @@ prepare() {
   log "ready: the car stands in Steinau, the UI is on home"
 }
 
+# The GPS mouse leaves Steinau (demo file command drive). -n: run reads the
+# demo file on stdin, ssh would swallow the rest of it.
+drive() {
+  ssh -n "$PI" "sudo systemctl kill -s USR1 --kill-whom=main $GPS_UNIT"
+}
+
 restore() {
-  ssh "$PI" "sudo rm -f $DROP_IN && sudo systemctl restart carnine-backend"
+  ssh "$PI" "sudo systemctl stop $GPS_UNIT 2>/dev/null; sudo systemctl reset-failed $GPS_UNIT 2>/dev/null; \
+    sudo rm -f $DROP_IN $GPS_PIPE && sudo systemctl restart carnine-backend"
   wait_for_backend
   client nav-status | head -3
   log "backend back on its own position source"
@@ -194,6 +220,7 @@ run() {
       tap | swipe | pinch | wait) gesture "$line" ;;
       type) type_text "$rest" ;;
       key) key "$rest" ;;
+      drive) drive ;;
       play) client play "$rest" >/dev/null ;;
       cli) read -ra args <<<"$rest" && client "${args[@]}" ;;
       *) echo "unknown command: $line" >&2; exit 1 ;;
@@ -210,5 +237,5 @@ case ${1:-} in
   prepare) prepare ;;
   run) run "${2:?demo file}" ;;
   restore) restore ;;
-  *) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+  *) sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
 esac
