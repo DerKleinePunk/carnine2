@@ -165,6 +165,42 @@ ivi-homescreen then reports `mode=1024x600@60Hz` and
 `Display metadata: 1024x600 logical -> 1024x600 px, pixel_ratio=1`. The panel
 name stays `LEN L1950wD`, because only the timings were corrected.
 
+## Reading a panel's own EDID
+
+For another panel, such as the Waveshare 7C, we need its own EDID to decide
+whether it needs an override and which one. As long as `drm.edid_firmware` is
+set, sysfs shows the override file, not the panel, so the override has to go
+first. The display must be on **HDMI 0** (on the Pi 4 the port next to USB-C),
+the only connector the override and the path below refer to; the Pi 3 has only
+this one.
+
+1. Keep a copy of the command line:
+   `sudo cp /boot/firmware/cmdline.txt /boot/firmware/cmdline.txt.bak`
+2. In `/boot/firmware/cmdline.txt` (a single line) delete the whole
+   ` drm.edid_firmware=HDMI-A-1:edid/…` part, **whatever file name follows**:
+   `main` up to v0.9.1 sets `waveshare-1024x600.bin`, `feature/backend` since
+   24cfd6d `waveshare-7h-260929.bin`. Reboot.
+3. Note whether the image is sharp.
+4. Save the EDID and the kernel's view of it (`dmesg` needs root on Debian,
+   `kernel.dmesg_restrict=1`):
+   ```bash
+   cat /sys/class/drm/card*-HDMI-A-1/edid > ~/edid-panel.bin
+   sudo dmesg | grep -iE "edid|not supported" > ~/edid-panel-dmesg.txt
+   ```
+5. Restore: `sudo cp /boot/firmware/cmdline.txt.bak /boot/firmware/cmdline.txt`
+   and reboot.
+
+Without the override the image may be soft or, at worst, black. Without a
+picture and without SSH, put the SD card into a PC: the small **FIRMWARE**
+partition is FAT and opens on Windows too. Delete `cmdline.txt` there and
+rename `cmdline.txt.bak` to `cmdline.txt`.
+
+Both override files in the image announce HDMI audio. On a panel without
+speakers (the 7C) the Pi therefore sends sound over HDMI into nothing, with no
+error anywhere. Such a panel needs the sound on the Pi's jack, see
+[Ton über die Klinke](bedienung/ton-klinke.md) in the user guide and "Audio
+output" in [07 – Deployment](07-deployment.md#audio-output).
+
 ## Touch input
 
 The touch controller needs no configuration. On the test unit it enumerates
