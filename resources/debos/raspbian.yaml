@@ -446,6 +446,29 @@ actions:
     command: |
       echo {{ $target_hostname }} > /etc/hostname
       echo "127.0.1.1		{{ $target_hostname }}" >> "/etc/hosts"
+      # carnine-hostname.service appends the serial number on first boot
+      # (#62) and only while the name is still this one.
+      install -d /etc/carnine
+      echo {{ $target_hostname }} > /etc/carnine/image-hostname
+
+  - action: overlay
+    description: Install the first-boot hostname service
+    origin: recipe
+    source: carnine-hostname.service
+    destination: /etc/systemd/system/carnine-hostname.service
+
+  - action: overlay
+    description: Install the first-boot hostname script
+    origin: recipe
+    source: carnine-hostname.sh
+    destination: /usr/local/sbin/carnine-hostname
+
+  - action: run
+    description: Enable the first-boot hostname service
+    chroot: true
+    command: |
+      chmod 0755 /usr/local/sbin/carnine-hostname
+      systemctl enable carnine-hostname.service
 
   - action: run
     description: Setup network config

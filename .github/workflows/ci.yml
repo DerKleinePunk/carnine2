@@ -88,6 +88,22 @@ jobs:
         working-directory: src/frontend
         run: flutter test
 
+  image-scripts:
+    name: Image scripts (shellcheck, tests)
+    # The first-boot scripts run on the Pi, but their logic is plain shell and
+    # testable on a scratch tree - no image build needed (see the note above).
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: shellcheck
+        working-directory: resources/debos
+        run: shellcheck carnine-hostname.sh tests/carnine-hostname-test.sh
+
+      - name: carnine-hostname tests
+        working-directory: resources/debos
+        run: sh tests/carnine-hostname-test.sh
+
   backend-arm64:
     name: Backend release build (arm64, Raspberry Pi target)
     # Native arm64 runner, free for public repositories - no cross toolchain

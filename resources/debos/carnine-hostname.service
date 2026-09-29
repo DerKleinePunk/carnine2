@@ -1,0 +1,15 @@
+[Unit]
+Description=Give the device a hostname with its serial number on first boot
+ConditionPathExists=!/var/lib/carnine/hostname-set
+DefaultDependencies=no
+After=local-fs.target
+# Before the network comes up, so DHCP and mDNS already use the new name.
+Before=network-pre.target systemd-networkd.service avahi-daemon.service
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/carnine-hostname
+
+[Install]
+WantedBy=multi-user.target

@@ -102,6 +102,12 @@ debos -t display=waveshare-1024x600 raspbian.yaml
 Ohne diesen Parameter bleibt `display=auto` aktiv und die HDMI-Auflösung wird
 weiterhin automatisch anhand der Display-Erkennung gewählt.
 
+Der Hostname ist `carnine-pc`, änderbar mit `-t target_hostname:<name>`. Beim
+ersten Start hängt `carnine-hostname.service` die letzten vier Stellen der
+Seriennummer an, z. B. `carnine-pc-1a2b`, damit mehrere Geräte im selben Netz
+unterscheidbar sind (#62). Das passiert einmal. Ein inzwischen von Hand
+gesetzter Name bleibt. Tests: `sh tests/carnine-hostname-test.sh`.
+
 Für ein Gerät mit dem Kfz-Netzteil AuPrV1_1 kommt `-t power_supply:auprv1`
 dazu. Dann trägt das Rezept `dtoverlay=gpio-poweroff,active_low=1,gpiopin=5`
 ein, das Signal „Pi ist angehalten“ an Dig3. Ohne Netzteil darf das Overlay
