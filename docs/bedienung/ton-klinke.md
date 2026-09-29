@@ -10,6 +10,11 @@ unten kommt der Ton aus der **3,5-mm-Klinke am Raspberry Pi**. An der Software
 ändert sich nichts. Die technischen Hintergründe stehen in
 [07 – Deployment, „Audio output“](../07-deployment.md#audio-output).
 
+**Wer das Image selbst baut**, braucht die Schritte unten nicht: Mit
+`-t audio_output:jack` beim Bauen ist die Klinke gleich die erste Soundkarte
+(#64, siehe [resources/debos/README.md](../../resources/debos/README.md)).
+Die Schritte unten sind für ein fertiges Image, das auf HDMI steht.
+
 ## Was man braucht
 
 - einen **Raspberry Pi 4 oder Pi 3**. Der **Pi 5 hat keine Klinke**.
@@ -30,6 +35,9 @@ unten kommt der Ton aus der **3,5-mm-Klinke am Raspberry Pi**. An der Software
    sudo cp /boot/initrd.img-$(uname -r) /root/initrd.img-$(uname -r).bak
    sudo dracut --force /boot/initrd.img-$(uname -r) $(uname -r)
    ```
+   `dracut` braucht auf dem Pi 3 gut 1–2 Minuten und zeigt dabei nichts an,
+   einfach warten.
+
    Wer vor dem Neustart prüfen will (hilft bei der Fehlersuche): Dieser Befehl
    muss die **neue** Zeile zeigen. Steht dort noch die alte, hat dracut die
    Datei nicht übernommen, und nach dem Neustart bleibt HDMI die erste
@@ -88,5 +96,6 @@ Die Datei bitte an Michael schicken.
 
 Den Ausgang in der Oberfläche wählen zu können, ist geplant (#48).
 
-*Geprüft:* Das Umstellen auf die Klinke lief auf carnine-pc, damals einem
-Pi 4. Pi 3 und Waveshare 7C sind noch nicht geprüft.
+*Geprüft:* genau nach dieser Seite auf einem **Pi 3** (carnine-pc, 29.09.):
+danach 0 Headphones, 1 vc4hdmi, der Ton lief auf Karte 0, zurück auf HDMI ging
+ebenso. Vorher schon auf einem Pi 4. Am Waveshare 7C ist es noch nicht geprüft.
