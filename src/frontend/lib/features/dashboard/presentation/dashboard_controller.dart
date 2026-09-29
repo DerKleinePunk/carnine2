@@ -6,6 +6,7 @@ import 'package:carnine_frontend/features/dashboard/presentation/models/dashboar
 import 'package:carnine_frontend/lib/carnine.pb.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:grpc/grpc.dart';
 import 'package:logging/logging.dart';
 
 /// Presentation controller for dashboard state and user actions.
@@ -17,12 +18,25 @@ class DashboardController extends ChangeNotifier {
     CarnineGrpcService? grpcService,
     this._uiStateStore,
     Logger? logger,
-  })  : _grpcService = grpcService ?? CarnineGrpcService(),
-        _logger = logger ?? Logger('DashboardController');
+  }) : _grpcService = grpcService ?? CarnineGrpcService(),
+       _logger = logger ?? Logger('DashboardController');
 
   /// Waits this long after a switch before saving the page, so tapping
   /// through the menu does not call the backend for every page.
   static const Duration pageSaveDelay = Duration(seconds: 2);
+
+  /// Pauses between attempts to read the saved page while the backend is not
+  /// up yet; the last one repeats. The frontend can start before the backend,
+  /// e.g. when the car is switched on (#52).
+  static const List<Duration> restoreRetryDelays = <Duration>[
+    Duration(milliseconds: 250),
+    Duration(milliseconds: 500),
+    Duration(seconds: 1),
+    Duration(seconds: 2),
+  ];
+
+  /// Gives up restoring after this long without a backend.
+  static const Duration restoreGiveUpAfter = Duration(minutes: 2);
 
   static const List<DashboardNavItem> navItems = <DashboardNavItem>[
     DashboardNavItem(
@@ -68,6 +82,7 @@ class DashboardController extends ChangeNotifier {
   final Logger _logger;
   Timer? _pageSaveTimer;
   bool _userSelectedPage = false;
+  bool _disposed = false;
 
   int _selectedIndex = 0;
   DashboardGrpcStatus _grpcStatus = DashboardGrpcStatus.notConnected;
@@ -102,26 +117,59 @@ class DashboardController extends ChangeNotifier {
   }
 
   /// Opens the page saved last, unless the user picked one in the meantime.
+  ///
+  /// While the backend is unreachable it tries again with growing pauses
+  /// until it answers, the user picks a page or [restoreGiveUpAfter] passes.
   Future<void> restoreLastPage() async {
     final store = _uiStateStore;
     if (store == null) {
       return;
     }
-    try {
-      final name = await store.loadLastPage();
-      final index = navItems.indexWhere(
-        (item) =>
-            item.destination.name == name && _isRestorable(item.destination),
-      );
-      if (_userSelectedPage || index < 0 || index == _selectedIndex) {
+    var waited = Duration.zero;
+    for (var attempt = 0; ; attempt++) {
+      try {
+        final name = await store.loadLastPage();
+        _applyRestoredPage(name);
+        return;
+      } on GrpcError catch (error, stackTrace) {
+        if (error.code != StatusCode.unavailable ||
+            waited >= restoreGiveUpAfter) {
+          _logger.warning('Could not restore the last page', error, stackTrace);
+          return;
+        }
+        if (attempt == 0) {
+          _logger.info('Backend not reachable yet, retrying the last page');
+        }
+      } catch (error, stackTrace) {
+        _logger.warning('Could not restore the last page', error, stackTrace);
         return;
       }
-      _logger.info('Restoring dashboard page $name');
-      _selectedIndex = index;
-      notifyListeners();
-    } catch (error, stackTrace) {
-      _logger.warning('Could not restore the last page', error, stackTrace);
+      final delay =
+          restoreRetryDelays[attempt < restoreRetryDelays.length
+              ? attempt
+              : restoreRetryDelays.length - 1];
+      waited += delay;
+      await Future<void>.delayed(delay);
+      if (_disposed || _userSelectedPage) {
+        return;
+      }
     }
+  }
+
+  void _applyRestoredPage(String name) {
+    final index = navItems.indexWhere(
+      (item) =>
+          item.destination.name == name && _isRestorable(item.destination),
+    );
+    if (_disposed ||
+        _userSelectedPage ||
+        index < 0 ||
+        index == _selectedIndex) {
+      return;
+    }
+    _logger.info('Restoring dashboard page $name');
+    _selectedIndex = index;
+    notifyListeners();
   }
 
   /// Settings are a detour, not a place to come back to after a restart.
@@ -148,6 +196,7 @@ class DashboardController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     if (_pageSaveTimer?.isActive ?? false) {
       _pageSaveTimer?.cancel();
       unawaited(_savePage(selectedItem.destination));
@@ -185,9 +234,4 @@ class DashboardController extends ChangeNotifier {
   }
 }
 
-enum DashboardGrpcStatus {
-  notConnected,
-  connecting,
-  connected,
-  error,
-}
+enum DashboardGrpcStatus { notConnected, connecting, connected, error }

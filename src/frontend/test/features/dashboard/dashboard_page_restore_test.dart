@@ -5,6 +5,7 @@ import 'package:carnine_frontend/features/dashboard/presentation/dashboard_contr
 import 'package:carnine_frontend/features/dashboard/presentation/models/dashboard_nav_item.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:grpc/grpc.dart';
 
 class FakeUiStateStore implements UiStateStore {
   FakeUiStateStore({this.lastPage = ''});
@@ -13,9 +14,17 @@ class FakeUiStateStore implements UiStateStore {
   final List<String> saved = <String>[];
   Completer<void>? loadGate;
 
+  /// Errors thrown by the next calls to [loadLastPage], one per call.
+  final List<Object> loadErrors = <Object>[];
+  int loadCalls = 0;
+
   @override
   Future<String> loadLastPage() async {
+    loadCalls++;
     await loadGate?.future;
+    if (loadErrors.isNotEmpty) {
+      throw loadErrors.removeAt(0);
+    }
     return lastPage;
   }
 
@@ -63,6 +72,89 @@ void main() {
     await restoring;
 
     expect(controller.selectedItem.destination, DashboardDestination.media);
+  });
+
+  test('retries while the backend is not up yet (#52)', () {
+    fakeAsync((async) {
+      final store = FakeUiStateStore(lastPage: 'media')
+        ..loadErrors.addAll([
+          const GrpcError.unavailable('connection refused'),
+          const GrpcError.unavailable('connection refused'),
+        ]);
+      final controller = DashboardController(uiStateStore: store);
+
+      unawaited(controller.restoreLastPage());
+      async.elapse(const Duration(seconds: 1));
+
+      expect(store.loadCalls, 3);
+      expect(controller.selectedItem.destination, DashboardDestination.media);
+    });
+  });
+
+  test('a page picked while the backend is down wins', () {
+    fakeAsync((async) {
+      final store = FakeUiStateStore(lastPage: 'maps')
+        ..loadErrors.add(const GrpcError.unavailable('connection refused'));
+      final controller = DashboardController(uiStateStore: store);
+
+      unawaited(controller.restoreLastPage());
+      async.flushMicrotasks();
+      controller.selectItem(indexOf(DashboardDestination.media));
+      async.elapse(const Duration(seconds: 5));
+
+      expect(store.loadCalls, 1);
+      expect(controller.selectedItem.destination, DashboardDestination.media);
+    });
+  });
+
+  test('gives up after a while without a backend', () {
+    fakeAsync((async) {
+      final store = FakeUiStateStore(lastPage: 'maps')
+        ..loadErrors.addAll(
+          List.filled(1000, const GrpcError.unavailable('connection refused')),
+        );
+      final controller = DashboardController(uiStateStore: store);
+
+      unawaited(controller.restoreLastPage());
+      async.elapse(DashboardController.restoreGiveUpAfter * 2);
+      final calls = store.loadCalls;
+      async.elapse(const Duration(minutes: 5));
+
+      expect(store.loadCalls, calls);
+      expect(calls, lessThan(100));
+      expect(controller.selectedIndex, 0);
+    });
+  });
+
+  test('does not retry other errors', () {
+    fakeAsync((async) {
+      final store = FakeUiStateStore(lastPage: 'maps')
+        ..loadErrors.add(const GrpcError.unimplemented('getUiState'));
+      final controller = DashboardController(uiStateStore: store);
+
+      unawaited(controller.restoreLastPage());
+      async.elapse(const Duration(seconds: 10));
+
+      expect(store.loadCalls, 1);
+      expect(controller.selectedIndex, 0);
+    });
+  });
+
+  test('stops retrying once disposed', () {
+    fakeAsync((async) {
+      final store = FakeUiStateStore(lastPage: 'maps')
+        ..loadErrors.addAll(
+          List.filled(10, const GrpcError.unavailable('connection refused')),
+        );
+      final controller = DashboardController(uiStateStore: store);
+
+      unawaited(controller.restoreLastPage());
+      async.flushMicrotasks();
+      controller.dispose();
+      async.elapse(const Duration(seconds: 10));
+
+      expect(store.loadCalls, 1);
+    });
   });
 
   test('saves only the page the user settles on, never settings', () {
