@@ -255,6 +255,20 @@ actions:
       printf '%s\n' 'install_items+=" /etc/modprobe.d/carnine-audio.conf "' \
         > /etc/dracut.conf.d/carnine-audio.conf
 
+  # Den Regler PCM legt softvol erst beim ersten Oeffnen an, und die
+  # Steuerung gehoert dann dem Prozess, der sie angelegt hat, solange er das
+  # PCM offen haelt. Ohne asound.state ist das beim ersten Start das Backend:
+  # jedes `amixer set` endet mit EPERM ("Invalid command!"), der Regler bleibt
+  # auf 100 % (#61). Mit dieser Datei legt alsa-restore den Regler beim
+  # ersten Start an (50 %) und gibt ihn wieder frei. Ab dann schreibt
+  # alsactl store beim Ausschalten die Datei selbst.
+  # vc4hdmi0 ist der Pi 4, vc4hdmi der Pi 3.
+  - action: overlay
+    description: Seed the ALSA state so the HDMI volume control is free at first boot
+    origin: recipe
+    source: alsa/asound.state
+    destination: /var/lib/alsa/asound.state
+
   # Das Waveshare-Panel laeuft unter Full KMS (vc4-kms-v3d aus der
   # pi-gen-config.txt). Sein EDID ist geklont und traegt ungerade
   # 1024x600-Timings (hsync_start 1029), die der vc4-Treiber ablehnt - er

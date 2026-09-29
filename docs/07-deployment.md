@@ -409,7 +409,12 @@ No own `asound.conf` is needed for it. Two catches:
 
 - The softvol control only exists once the device has been opened. At boot
   `alsa-restore` creates it from `/var/lib/alsa/asound.state`, where the
-  entry "PCM Playback Volume" has to be.
+  entry "PCM Playback Volume" has to be. The image ships such a file
+  (`resources/debos/alsa/asound.state`, 50 %), and the backend starts after
+  `alsa-restore`. Without it the backend's first open creates the control,
+  and the kernel lets only the handle that created it write it while softvol
+  keeps it open: every `amixer set` then fails with "Invalid command!"
+  (EPERM) and the volume stays at 100 % for that whole session (#61).
 - The backend decides **once at startup** whether it can use amixer. If
   `PCM` is missing at that moment, the volume slider has no effect until the
   backend is restarted. Choosing the device in the UI (#48) would have to

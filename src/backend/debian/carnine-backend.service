@@ -1,6 +1,9 @@
 [Unit]
 Description=Carnine Backend
-After=network.target udisks2.service sound.target
+# alsa-restore creates the softvol control PCM; if the backend opened the
+# output first, the control would belong to it and amixer could not set it
+# (#61).
+After=network.target udisks2.service sound.target alsa-restore.service
 Wants=network.target
 Conflicts=shutdown.target reboot.target halt.target poweroff.target
 Before=shutdown.target reboot.target halt.target poweroff.target

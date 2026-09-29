@@ -1,0 +1,34 @@
+state.vc4hdmi0 {
+	control.6 {
+		iface MIXER
+		name 'PCM Playback Volume'
+		value.0 128
+		value.1 128
+		comment {
+			access 'read write user'
+			type INTEGER
+			count 2
+			range '0 - 255'
+			tlv '0000000100000008ffffec1400000014'
+			dbmin -5100
+			dbmax 0
+		}
+	}
+}
+state.vc4hdmi {
+	control.6 {
+		iface MIXER
+		name 'PCM Playback Volume'
+		value.0 128
+		value.1 128
+		comment {
+			access 'read write user'
+			type INTEGER
+			count 2
+			range '0 - 255'
+			tlv '0000000100000008ffffec1400000014'
+			dbmin -5100
+			dbmax 0
+		}
+	}
+}
