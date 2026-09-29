@@ -7,7 +7,7 @@ This section describes architectural principles, patterns, and technologies that
 ### Centralized Logging
 - **Framework**: Rust backend uses `tracing` with JSON output to systemd journal
 - **Flutter Frontend**: Uses `dart:developer` for debug logs, forwarded to backend via gRPC
-- **Aggregation**: All logs collected in `/var/log/carnine/` with rotation via `logrotate`
+- **Aggregation**: All logs collected in `/var/log/carnine/`. The backend caps its own `backend.log` at 50 MB and then moves it to `backend.log.1` (no `logrotate` needed, #59)
 - **Levels**: ERROR, WARN, INFO, DEBUG, VERBOSE (DEBUG/VERBOSE optional aktivierbar in Produktion für Troubleshooting)
 
 ### Health Monitoring

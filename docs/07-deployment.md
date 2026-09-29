@@ -63,7 +63,10 @@ following runtime directories:
 
 - `/etc/carnine`: owned by `root:carnine`, mode `0770`
 - `/var/lib/carnine`: owned by `carnine:carnine`, mode `0750`
-- `/var/log/carnine`: owned by `carnine:carnine`, mode `0750`
+- `/var/log/carnine`: owned by `carnine:carnine`, mode `0750`. The backend
+  writes `backend.log` there, capped at 50 MB: past that it moves to
+  `backend.log.1`, replacing an older one, so at most about 100 MB lie on the
+  card (#59)
 
 The runtime configuration `/etc/carnine/config.toml` is owned by
 `root:carnine` with mode `0660`. The directory permission is required because

@@ -58,6 +58,10 @@ jedem neuen Start einer Wiedergabe versucht das Backend das Gerät noch
 einmal; ein Ton über HDMI, der erst später da ist, wird so ohne Neustart
 genutzt.
 
+Reißt die Audioausgabe **während der Wiedergabe** ab, pausiert der Player an
+der aktuellen Stelle, und es erscheint „Audiofehler aufgetreten“. **▶** spielt
+an derselben Stelle weiter und öffnet die Ausgabe dabei neu (#59).
+
 ## Noch nicht verfügbar
 
 Sichtbar, aber ohne Funktion:

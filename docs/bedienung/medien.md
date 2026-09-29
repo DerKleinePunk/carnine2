@@ -168,7 +168,7 @@ Erscheinen oben auf der Medienseite.
 | **Verbindung unterbrochen** (rote Wolke) | Backend nicht erreichbar | **ERNEUT VERSUCHEN** verbindet sofort; sonst automatisch alle 0,5–5 s. Verdeckt die anderen Banner. |
 | **ffmpeg fehlt** (rotes Warndreieck) | Das Backend kann ffprobe/ffmpeg nicht starten. Titel werden dann ohne Interpret, Dauer und Cover eingelesen. | **RESCAN** startet einen neuen Scan, das Banner verschwindet dabei. Fehlt ffmpeg weiter, kommt es zurück. Es lässt sich nicht schließen. |
 | **USB-Stick „…“ gefunden – n Titel übernehmen?** | Stick mit dem Volume-Label **MUSIK** und passenden Dateien steckt | **ÜBERNEHMEN** kopiert die Titel und liest danach neu ein (Fortschritt in der Bibliothek); **SCHLIESSEN** verwirft den Hinweis. Verschwindet von selbst nur, wenn der Stick abgezogen wird; steckt man ihn wieder ein, kommt der Hinweis erneut. |
-| **Audiofehler aufgetreten** / **Audioausgabegerät gewechselt** | Meldung vom Backend, z. B. [ohne Audio-Gerät](verhalten.md#ohne-audio-gerät) | **SCHLIESSEN**, sonst nach 4 s weg |
+| **Audiofehler aufgetreten** / **Audioausgabegerät gewechselt** | Meldung vom Backend, z. B. [ohne Audio-Gerät](verhalten.md#ohne-audio-gerät) oder wenn der Ton während der Wiedergabe abreißt; der Player pausiert dann (#59) | **SCHLIESSEN**, sonst nach 4 s weg |
 | **Befehl fehlgeschlagen** / **Kein weiterer Titel in der Warteschlange** (Fehlersymbol) | Eine Taste des Players ging nicht durch, z. B. **Weiter** ohne Antwort vom Backend; der zweite Text bei **Weiter**/**Zurück** am Ende der Warteschlange (#32) | **SCHLIESSEN**, sonst nach 4 s weg |
 
 ![Banner „ffmpeg fehlt: Titel werden ohne Interpret, Dauer und Cover eingelesen …“ mit RESCAN über dem Player](bilder/medien-ffmpeg-fehlt.png)
