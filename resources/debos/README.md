@@ -115,6 +115,14 @@ nicht aktiv sein (Kernel-BUG beim Ausschalten), deshalb steht es sonst nur
 auskommentiert in `config.txt`. Den UART für das Netzteil (`uart5`, GPIO
 12/13) schaltet das Image immer ein, siehe `docs/23-power-supply.md`.
 
+Der Ton kommt ab Werk über HDMI0 (ALSA-Karte 0). Für ein Display ohne
+Lautsprecher, z. B. das Waveshare 7C, kommt `-t audio_output:jack` dazu. Dann
+wird die Klinke des Pi Karte 0 (`options snd slots=snd_bcm2835,vc4,vc4` in
+`/etc/modprobe.d/carnine-audio.conf`), und das Backend spielt und regelt dort.
+Erlaubt sind `hdmi` (Vorgabe) und `jack`, ein anderer Wert bricht den Bau ab
+(#64). Umstellen ohne neues Image: `docs/bedienung/ton-klinke.md`. Tests:
+`sh tests/carnine-audio-output-test.sh`.
+
 Das Waveshare-Profil läuft unter **Full KMS** (`vc4-kms-v3d`). Das Panel bringt
 ein geklontes EDID mit ungeraden Timings mit, die der vc4-Treiber ablehnt — er
 fällt dann auf 1920x1080 zurück und das Panel skaliert selbst herunter. Das

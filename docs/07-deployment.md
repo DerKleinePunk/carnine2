@@ -330,8 +330,8 @@ keeps `dtparam=audio=on`):
 Without a setting, which one becomes card 0 depends on the order the modules
 load. On carnine-pc HDMI0 came first because `vc4` is in the initramfs (for
 the EDID override and Plymouth) and `snd_bcm2835` is not; on jeep-pi the jack
-came first. **The image therefore fixes HDMI0 as card 0** (step "Keep HDMI as
-ALSA card 0 (headphone jack as card 2)" in `resources/debos/raspbian.yaml`)
+came first. **The image therefore fixes HDMI0 as card 0** (step "Choose ALSA
+card 0" in `resources/debos/raspbian.yaml`, `carnine-audio-output.sh`)
 by reserving the card slots per driver in the ALSA core module `snd`:
 
 ```
@@ -379,8 +379,9 @@ On carnine-pc this gave `vc4,vc4,snd_bcm2835` in
 parameter (only `enable_hdmi`, `enable_headphones`, `force_bulk`,
 `num_channels`), and modprobe ignores the line without a word.
 
-**Using the jack instead** (a rebuilt image, or a car without speakers on
-HDMI): swap the order in the same file,
+**Using the jack instead** (a panel without speakers, or a car without
+speakers on HDMI): build the image with `-t audio_output:jack` (#64), or on a
+running device swap the order in the same file,
 
 ```
 options snd slots=snd_bcm2835,vc4,vc4
@@ -389,6 +390,9 @@ options snd slots=snd_bcm2835,vc4,vc4
 so the jack becomes card 0, and rebuild the initramfs as above. Tried on
 carnine-pc, where `vc4` loads from the initramfs: 0 Headphones,
 1 vc4hdmi0, 2 vc4hdmi1, the backend played on the jack and used amixer.
+Again on 29.09.2026 on the Pi 3 by the steps in the user guide: 0 Headphones,
+1 vc4hdmi, `audio volume restored percent=65` (-33.24 dB on the jack), playback
+ran on card 0; dracut takes one to two minutes there.
 Two things differ from HDMI:
 
 - The jack's `PCM` is a mono hardware control with another curve: 46 % is

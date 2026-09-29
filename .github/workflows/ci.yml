@@ -98,11 +98,15 @@ jobs:
 
       - name: shellcheck
         working-directory: resources/debos
-        run: shellcheck carnine-hostname.sh tests/carnine-hostname-test.sh
+        run: shellcheck carnine-hostname.sh tests/carnine-hostname-test.sh carnine-audio-output.sh tests/carnine-audio-output-test.sh
 
       - name: carnine-hostname tests
         working-directory: resources/debos
         run: sh tests/carnine-hostname-test.sh
+
+      - name: carnine-audio-output tests
+        working-directory: resources/debos
+        run: sh tests/carnine-audio-output-test.sh
 
   backend-arm64:
     name: Backend release build (arm64, Raspberry Pi target)
