@@ -59,15 +59,14 @@ Die Schritte unten sind für ein fertiges Image, das auf HDMI steht.
    1. Den Lautstärkeknopf an den Boxen (oder am Verstärker) **ganz leise**
       drehen. Aktivboxen brauchen ihren eigenen Strom (Netzteil oder USB).
    2. Unter [Medien](medien.md) einen Titel abspielen und den Regler in
-      carnine2 auf **etwa 75–85 %** stellen.
+      carnine2 auf eine **mittlere Lautstärke** stellen, etwa 50 %.
    3. Erst dann den Knopf an den Boxen hochdrehen, bis es passt.
 
    So ist die Klinke gut ausgesteuert und rauscht weniger, als wenn carnine2
-   leise und die Boxen voll aufgedreht sind. An der Klinke sind 50 % sehr
-   leise. Das ist kein Fehler, die Klinke rechnet die Prozente anders als
-   HDMI. Die gespeicherte Lautstärke gilt für beide Ausgänge: Nach dem
-   Umstellen beginnt carnine2 mit demselben Prozentwert wie vorher, beim
-   ersten Start eines frischen Images mit 50 %.
+   leise und die Boxen voll aufgedreht sind. Gleiche Prozente klingen an der
+   Klinke und über HDMI etwa gleich laut (#65). Die gespeicherte Lautstärke
+   gilt für beide Ausgänge: Nach dem Umstellen beginnt carnine2 mit demselben
+   Prozentwert wie vorher, beim ersten Start eines frischen Images mit 50 %.
 
 ## Zurück auf HDMI
 

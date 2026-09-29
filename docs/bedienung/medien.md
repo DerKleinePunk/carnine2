@@ -49,6 +49,11 @@ Zufall und Wiederholung merkt sich das Backend, auch über einen Neustart.
 - Nach einem Neustart stellt das Backend den zuletzt gespeicherten Wert
   wieder her, auch 0. Gibt es keinen gespeicherten Wert, beginnt es bei 50 %
   (#47).
+- Die Prozente folgen dem Gehör: Gleiche Werte klingen über HDMI und an der
+  Klinke etwa gleich laut (#65). Beim ersten Start nach dem Update, das #65
+  enthält, rechnet das Backend den gespeicherten Wert einmal um. **Die
+  Lautstärke bleibt gleich, aber die Zahl am Regler wird kleiner**, z. B. 42
+  statt 65.
 
 ### Warteschlange
 
