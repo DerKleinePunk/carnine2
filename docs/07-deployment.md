@@ -102,6 +102,44 @@ map_region = "hessen"
 names_database = "/var/lib/carnine/maps/germany_names.db"
 ```
 
+#### Volume state on test setups
+
+The backend keeps the volume across restarts in the file named by
+`[audio] volume_state_path`, by default `/var/lib/carnine/audio-volume`
+(`resources/config/carnine.toml`). The directory must exist and be writable
+by the backend's user; the package creates `/var/lib/carnine`. On a test
+setup where it is missing, such as jeep-pi, either create that directory or
+point the key at a writable one in a drop-in, for example
+`config.d/20-audio.toml`.
+
+Without a saved value the volume starts at 50 % and the log notes the
+missing file (#47). Up to 0.8.0 the path was fixed in the code, and a missing
+directory brought the volume back at 0 % after every restart.
+
+#### Media database schema 6 (0.9.0)
+
+0.9.0 raises the schema of the media database (`[media] database_path`, by
+default `/var/lib/carnine/media.sqlite3`) from 5 to 6. The two new columns
+hold each file's size and modification time, so that a rescan skips
+unchanged files (#43). The backend migrates the file on its first start;
+there is nothing to do by hand.
+
+There is no way back with the migrated file: 0.8.0 refuses it with "database
+schema version 6 is newer than supported version 5". Before updating a
+device whose library, playlists or resume state matter, stop the services
+and keep a copy (the database has no WAL files, the one file is enough):
+
+```bash
+sudo systemctl stop carnine-frontend carnine-backend
+sudo cp -a /var/lib/carnine/media.sqlite3 /var/lib/carnine/media.sqlite3.0.8.0
+```
+
+To go back, stop the services, put the copy back and install 0.8.0.
+
+The first rescan after the update reads every file once, since no row has a
+size and time yet; with about 3600 tracks that took around an hour on a Pi 4
+before #43. Later rescans only read new and changed files.
+
 #### Where the map data comes from
 
 carnine2 does not build any map data. Tiles, names database, routing tiles

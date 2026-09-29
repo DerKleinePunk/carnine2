@@ -46,6 +46,9 @@ Zufall und Wiederholung merkt sich das Backend, auch über einen Neustart.
   vorherigen Wert wieder her.
 - **Schieberegler** 0–100 mit Prozentanzeige. Bis das Backend den echten Wert
   meldet, steht dort 100 %.
+- Nach einem Neustart stellt das Backend den zuletzt gespeicherten Wert
+  wieder her, auch 0. Gibt es keinen gespeicherten Wert, beginnt es bei 50 %
+  (#47).
 
 ### Warteschlange
 
@@ -72,6 +75,11 @@ oben links führt zurück zum Player.
 - **RESCAN** (↻ neben dem Suchfeld): liest den Musikordner neu ein;
   während eines Scans grau. Eine Statuszeile zeigt „Scan läuft...“ bzw.
   „x verarbeitet, y importiert“ oder „Scan fehlgeschlagen“.
+  Ein Scan liest nur neue und geänderte Dateien (erkannt an Größe und
+  Änderungszeit). Der erste Scan nach dem Update auf 0.9.0 liest einmal alles
+  und dauert entsprechend lange. Wird das Backend während eines Scans
+  beendet, bleiben alle Titel verfügbar, und der nächste Scan macht mit dem
+  Rest weiter (#43).
 - **Antippen eines Titels spielt ihn als Einzeltitel** (das ▶ am Zeilenende
   zeigt das nur an, es ist kein eigener Knopf). Die Bibliothek bleibt dabei
   offen, es geht nicht automatisch zum Player.
@@ -160,7 +168,8 @@ Erscheinen oben auf der Medienseite.
 | **Verbindung unterbrochen** (rote Wolke) | Backend nicht erreichbar | **ERNEUT VERSUCHEN** verbindet sofort; sonst automatisch alle 0,5–5 s. Verdeckt die anderen Banner. |
 | **ffmpeg fehlt** (rotes Warndreieck) | Das Backend kann ffprobe/ffmpeg nicht starten. Titel werden dann ohne Interpret, Dauer und Cover eingelesen. | **RESCAN** startet einen neuen Scan, das Banner verschwindet dabei. Fehlt ffmpeg weiter, kommt es zurück. Es lässt sich nicht schließen. |
 | **USB-Stick „…“ gefunden – n Titel übernehmen?** | Stick mit dem Volume-Label **MUSIK** und passenden Dateien steckt | **ÜBERNEHMEN** kopiert die Titel und liest danach neu ein (Fortschritt in der Bibliothek); **SCHLIESSEN** verwirft den Hinweis. Verschwindet von selbst nur, wenn der Stick abgezogen wird; steckt man ihn wieder ein, kommt der Hinweis erneut. |
-| **Audiofehler aufgetreten** / **Audioausgabegerät gewechselt** | Meldung vom Backend | **SCHLIESSEN**, sonst nach 4 s weg |
+| **Audiofehler aufgetreten** / **Audioausgabegerät gewechselt** | Meldung vom Backend, z. B. [ohne Audio-Gerät](verhalten.md#ohne-audio-gerät) | **SCHLIESSEN**, sonst nach 4 s weg |
+| **Befehl fehlgeschlagen** / **Kein weiterer Titel in der Warteschlange** (Fehlersymbol) | Eine Taste des Players ging nicht durch, z. B. **Weiter** ohne Antwort vom Backend; der zweite Text bei **Weiter**/**Zurück** am Ende der Warteschlange (#32) | **SCHLIESSEN**, sonst nach 4 s weg |
 
 ![Banner „ffmpeg fehlt: Titel werden ohne Interpret, Dauer und Cover eingelesen …“ mit RESCAN über dem Player](bilder/medien-ffmpeg-fehlt.png)
 
