@@ -112,19 +112,15 @@ class PlaylistController extends ChangeNotifier {
   void _onLibraryEvent(LibraryScanEvent event) {
     switch (event.kind) {
       case LibraryScanEventKind.playlistCreated:
-        if (_playlists.any((playlist) => playlist.id == event.playlistId)) {
-          return;
-        }
-        _playlists = [
-          ..._playlists,
+        if (_addPlaylist(
           MediaPlaylist(
             id: event.playlistId,
             name: event.playlistName,
             entries: const [],
           ),
-        ];
-        _listState = const MediaViewState.ready();
-        notifyListeners();
+        )) {
+          notifyListeners();
+        }
       case LibraryScanEventKind.playlistEntryAdded:
         // `ListPlaylists` never carries entries, so only the open detail
         // view (if it's the affected playlist) has anything to refresh.
@@ -233,7 +229,14 @@ class PlaylistController extends ChangeNotifier {
   /// (`database.rs`), so a plain append would put a newly created playlist
   /// in the wrong spot (and easily scrolled out of view) until the next
   /// full reload.
-  void _insertPlaylistSorted(MediaPlaylist playlist) {
+  ///
+  /// Both the create reply and the `playlistCreated` event land here, in
+  /// either order, so a playlist already in the list is left alone (#46).
+  /// Returns whether the list changed; it is then no longer empty either.
+  bool _addPlaylist(MediaPlaylist playlist) {
+    if (_playlists.any((existing) => existing.id == playlist.id)) {
+      return false;
+    }
     final name = playlist.name.toLowerCase();
     var index = _playlists.length;
     for (var i = 0; i < _playlists.length; i++) {
@@ -249,6 +252,8 @@ class PlaylistController extends ChangeNotifier {
       playlist,
       ..._playlists.sublist(index),
     ];
+    _listState = const MediaViewState.ready();
+    return true;
   }
 
   /// Seeds [_addedMediaIds] with [playlist]'s current entries, so a track
@@ -284,7 +289,7 @@ class PlaylistController extends ChangeNotifier {
 
     try {
       final playlist = await _repository.createPlaylist(trimmed);
-      _insertPlaylistSorted(playlist);
+      _addPlaylist(playlist);
       _seedAddedMediaIds(playlist);
       _pendingAddEntriesTarget = playlist;
       return playlist.id;

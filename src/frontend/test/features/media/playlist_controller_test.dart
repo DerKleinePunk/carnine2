@@ -3,6 +3,7 @@ import 'package:carnine_frontend/features/media/domain/models/library_scan_event
 import 'package:carnine_frontend/features/media/domain/models/media_availability.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_library_track.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_playlist.dart';
+import 'package:carnine_frontend/features/media/presentation/models/media_view_state.dart';
 import 'package:carnine_frontend/features/media/presentation/playlist_controller.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -232,6 +233,74 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(controller.playlists, hasLength(1));
+    },
+  );
+
+  LibraryScanEvent createdEvent(MediaPlaylist playlist) => LibraryScanEvent(
+    kind: LibraryScanEventKind.playlistCreated,
+    scanId: 0,
+    processed: 0,
+    imported: 0,
+    path: '',
+    message: '',
+    playlistId: playlist.id,
+    playlistName: playlist.name,
+  );
+
+  test('the very first playlist shows up without a restart (#46)', () async {
+    await controller.start();
+    expect(controller.listState.status, MediaViewStatus.empty);
+
+    await controller.createPlaylist('Kinder');
+
+    expect(controller.listState.isReady, isTrue);
+    expect(controller.playlists.map((playlist) => playlist.name), ['Kinder']);
+  });
+
+  test('a playlist_created event arriving before the create reply leaves one '
+      'entry at its sorted position (#46)', () async {
+    repository.playlists = const [
+      MediaPlaylist(id: 1, name: 'Alpha', entries: []),
+      MediaPlaylist(id: 2, name: 'Zulu', entries: []),
+    ];
+    await controller.start();
+    repository.beforeCreateReplies = (playlist) async {
+      repository.libraryEventsController.add(createdEvent(playlist));
+      await Future<void>.delayed(Duration.zero);
+    };
+
+    await controller.createPlaylist('Kinder');
+    repository.libraryEventsController.add(
+      createdEvent(repository.playlists.last),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(controller.playlists.map((playlist) => playlist.name), [
+      'Alpha',
+      'Kinder',
+      'Zulu',
+    ]);
+  });
+
+  test(
+    'a playlist_created event from another session is inserted sorted',
+    () async {
+      repository.playlists = const [
+        MediaPlaylist(id: 1, name: 'Alpha', entries: []),
+        MediaPlaylist(id: 2, name: 'Zulu', entries: []),
+      ];
+      await controller.start();
+
+      repository.libraryEventsController.add(
+        createdEvent(const MediaPlaylist(id: 3, name: 'Middle', entries: [])),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.playlists.map((playlist) => playlist.name), [
+        'Alpha',
+        'Middle',
+        'Zulu',
+      ]);
     },
   );
 

@@ -236,6 +236,10 @@ class FakeMediaRepository implements MediaRepository {
     return playlist;
   }
 
+  /// Runs after the backend created the playlist but before the reply
+  /// arrives, e.g. to deliver the `playlistCreated` event first.
+  Future<void> Function(MediaPlaylist playlist)? beforeCreateReplies;
+
   @override
   Future<MediaPlaylist> createPlaylist(String name) async {
     await _maybeThrow();
@@ -245,6 +249,7 @@ class FakeMediaRepository implements MediaRepository {
       entries: const [],
     );
     playlists = [...playlists, playlist];
+    await beforeCreateReplies?.call(playlist);
     return playlist;
   }
 
