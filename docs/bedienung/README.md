@@ -85,8 +85,11 @@ selbst herunter (#36). Ohne Netzteil-Modul fehlt beides.
 
 Die Oberfläche merkt sich die zuletzt gewählte Seite (außer **Optionen**) und
 öffnet sie beim nächsten Start wieder. Gespeichert wird 2 Sekunden nach dem
-Wechsel, beim Beenden sofort. Ist das Backend beim Start nicht erreichbar,
-bleibt sie ohne Meldung auf **Start**.
+Wechsel, beim Beenden sofort. Ist das Backend beim Start noch nicht
+erreichbar, etwa weil die Oberfläche beim Einschalten schneller ist, fragt sie
+bis zu 2 Minuten lang immer wieder nach und springt dann auf die gemerkte
+Seite. Wählt man in der Zeit selbst eine Seite, bleibt es bei dieser. Kommt
+das Backend nicht, bleibt sie ohne Meldung auf **Start** (#52, nach 0.8.0).
 
 ### Start, Klima, Technik
 

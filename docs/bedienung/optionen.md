@@ -38,7 +38,7 @@ Vier Kacheln; der Pfeil oben links in jeder Unterseite führt zurück zur
   Auf dem Pi übernimmt systemd den Neustart; Backend und Musik laufen weiter.
 - **Beenden** – der **Wartungsmodus**: fragt nach einem Passwort und beendet
   dann die Oberfläche. Das Passwort ist vorläufig fest im Code eingetragen
-  (`exit_password_dialog.dart`). **Bestätigen** oder **Fertig** auf der
+  (`exit_password_dialog.dart`, #51). **Bestätigen** oder **Fertig** auf der
   Tastatur prüft es, bei falscher Eingabe erscheint „Falsches Passwort“.
   **Abbrechen** oder Antippen außerhalb des Dialogs bricht ab.
 
