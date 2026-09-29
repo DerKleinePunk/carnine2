@@ -45,6 +45,7 @@ class PlayerController extends ChangeNotifier {
   bool _isCommandInFlight = false;
   bool _pendingStart = false;
   AppTextKey? _transientMessageKey;
+  Timer? _transientMessageTimer;
   int _lastNotifiedPositionSeconds = -1;
   MediaRepeatMode _repeatMode = MediaRepeatMode.off;
   bool _shuffleEnabled = false;
@@ -154,7 +155,21 @@ class PlayerController extends ChangeNotifier {
   void dispose() {
     _subscription?.cancel();
     _stopTicker();
+    _transientMessageTimer?.cancel();
     super.dispose();
+  }
+
+  /// How long a failed command's message stays on screen (#32), like the
+  /// audio event banner.
+  static const transientMessageDuration = Duration(seconds: 4);
+
+  void _showTransientMessage(AppTextKey key) {
+    _transientMessageKey = key;
+    _transientMessageTimer?.cancel();
+    _transientMessageTimer = Timer(
+      transientMessageDuration,
+      dismissTransientMessage,
+    );
   }
 
   Future<void> togglePlayPause() async {
@@ -205,7 +220,10 @@ class PlayerController extends ChangeNotifier {
     if (!canGoNext) {
       return;
     }
-    await _runCommand(_repository.next);
+    await _runCommand(
+      _repository.next,
+      preconditionKey: AppTextKey.mediaNoAdjacentTrack,
+    );
   }
 
   Future<void> seekBy(Duration delta) async {
@@ -258,10 +276,14 @@ class PlayerController extends ChangeNotifier {
     if (_shuffleEnabled && _repeatMode == MediaRepeatMode.off) {
       _pendingShuffleStepBack = true;
     }
-    await _runCommand(_repository.previous);
+    await _runCommand(
+      _repository.previous,
+      preconditionKey: AppTextKey.mediaNoAdjacentTrack,
+    );
   }
 
   void dismissTransientMessage() {
+    _transientMessageTimer?.cancel();
     if (_transientMessageKey == null) {
       return;
     }
@@ -273,7 +295,14 @@ class PlayerController extends ChangeNotifier {
   /// this for its side effects, but a caller that needs to know (e.g.
   /// navigating to the player only once a playlist actually started) can
   /// use the result instead of guessing from other state.
-  Future<bool> _runCommand(Future<void> Function() command) async {
+  ///
+  /// A rejected precondition means "no adjacent track" only for next and
+  /// previous, which pass [preconditionKey]; for any other command (e.g.
+  /// play without an audio output, #55) it is a plain failure.
+  Future<bool> _runCommand(
+    Future<void> Function() command, {
+    AppTextKey preconditionKey = AppTextKey.mediaCommandFailed,
+  }) async {
     _isCommandInFlight = true;
     notifyListeners();
     var succeeded = false;
@@ -288,9 +317,9 @@ class PlayerController extends ChangeNotifier {
       // boundary, a single slow call that hit its deadline, a bad request)
       // is local to this one command and must not tear down the channel.
       if (error.kind == MediaErrorKind.precondition) {
-        _transientMessageKey = AppTextKey.mediaNoAdjacentTrack;
+        _showTransientMessage(preconditionKey);
       } else {
-        _transientMessageKey = AppTextKey.mediaCommandFailed;
+        _showTransientMessage(AppTextKey.mediaCommandFailed);
         if (error.kind == MediaErrorKind.offline) {
           _onStreamFailure?.call(error);
         }
@@ -337,7 +366,7 @@ class PlayerController extends ChangeNotifier {
         _stopTicker();
         notifyListeners();
       case PlayerEventKind.error:
-        _transientMessageKey = AppTextKey.mediaCommandFailed;
+        _showTransientMessage(AppTextKey.mediaCommandFailed);
         _logger.severe('Player reported an error: ${event.message}');
         notifyListeners();
       case PlayerEventKind.unknown:

@@ -1,6 +1,7 @@
 import 'package:carnine_frontend/features/media/presentation/audio_controller.dart';
 import 'package:carnine_frontend/features/media/presentation/library_controller.dart';
 import 'package:carnine_frontend/features/media/presentation/media_controller.dart';
+import 'package:carnine_frontend/features/media/presentation/player_controller.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/audio_event_banner.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/collections/collections_page.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/create/playlist_create_page.dart';
@@ -66,6 +67,8 @@ class _MediaContentState extends State<MediaContent> {
           children: [
             if (isOffline) MediaConnectionBanner(onRetry: _controller.retryNow),
             if (!isOffline) _AudioEventBannerSlot(audio: _controller.audio),
+            if (!isOffline)
+              _PlayerMessageBannerSlot(player: _controller.player),
             if (!isOffline)
               _MediaToolsMissingBannerSlot(library: _controller.library),
             if (!isOffline) _UsbImportBannerSlot(library: _controller.library),
@@ -149,6 +152,33 @@ class _AudioEventBannerSlot extends StatelessWidget {
         return AudioEventBanner(
           messageKey: key,
           onDismiss: audio.dismissBanner,
+        );
+      },
+    );
+  }
+}
+
+/// A failed player command (#32). The controller set the message all along,
+/// but nothing showed it, so a button that failed just "did nothing".
+class _PlayerMessageBannerSlot extends StatelessWidget {
+  const _PlayerMessageBannerSlot({required this.player});
+
+  final PlayerController player;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: player,
+      builder: (context, child) {
+        final key = player.transientMessageKey;
+        if (key == null) {
+          return const SizedBox.shrink();
+        }
+        return AudioEventBanner(
+          key: const ValueKey('player-message-banner'),
+          messageKey: key,
+          onDismiss: player.dismissTransientMessage,
+          isError: true,
         );
       },
     );

@@ -4,24 +4,30 @@ import 'package:carnine_frontend/styles/text_styles.dart';
 import 'package:flutter/material.dart';
 
 /// Transient strip for [AudioEventKind.error]/[AudioEventKind.deviceChanged]
-/// - same anatomy as [MediaConnectionBanner], but for a passing audio event
-/// rather than a persistent connection state: `AudioController` auto-clears
-/// it after a few seconds, and a tap dismisses it early. No border, per the
-/// design system's "no dividers" rule.
+/// and for a failed player command (#32) - same anatomy as
+/// [MediaConnectionBanner], but for a passing event rather than a persistent
+/// connection state: the owning controller auto-clears it after a few
+/// seconds, and a tap dismisses it early. No border, per the design
+/// system's "no dividers" rule.
 class AudioEventBanner extends StatelessWidget {
   const AudioEventBanner({
     required this.messageKey,
     required this.onDismiss,
+    this.isError,
     super.key,
   });
 
   final AppTextKey messageKey;
   final VoidCallback onDismiss;
 
+  /// Error icon instead of the speaker; by default only for the audio error.
+  final bool? isError;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final isError = messageKey == AppTextKey.mediaAudioErrorBanner;
+    final isError =
+        this.isError ?? messageKey == AppTextKey.mediaAudioErrorBanner;
 
     return Material(
       color: AppColors.surfaceContainerHigh,

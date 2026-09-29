@@ -1,4 +1,5 @@
 import 'package:carnine_frontend/core/keyboard/on_screen_text_field.dart';
+import 'package:carnine_frontend/features/media/domain/media_backend_exception.dart';
 import 'package:carnine_frontend/features/media/domain/models/library_scan_event.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_availability.dart';
 import 'package:carnine_frontend/features/media/domain/models/media_library_track.dart';
@@ -8,6 +9,7 @@ import 'package:carnine_frontend/features/media/domain/models/player_snapshot.da
 import 'dart:ui' as ui;
 
 import 'package:carnine_frontend/features/media/presentation/media_controller.dart';
+import 'package:carnine_frontend/features/media/presentation/player_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -70,6 +72,53 @@ void main() {
 
     expect(find.text('NEON DREAMS'), findsWidgets);
     expect(find.byIcon(Icons.play_arrow), findsWidgets);
+  });
+
+  testWidgets('a failed player command shows a message that goes away (#32)', (
+    tester,
+  ) async {
+    setUpMediaView(tester);
+    await tester.pumpWidget(mediaHarness(controller));
+    await tester.pump();
+    repository.playerEventsController.add(
+      PlayerEventUpdate(
+        kind: PlayerEventKind.snapshot,
+        state: const PlayerSnapshot(
+          status: PlaybackStatus.paused,
+          mediaPath: '/music/a.mp3',
+          position: Duration.zero,
+        ),
+        message: 'snapshot',
+      ),
+    );
+    await tester.pump();
+    const banner = ValueKey('player-message-banner');
+    expect(find.byKey(banner), findsNothing);
+
+    repository.nextError = const MediaBackendException(
+      MediaErrorKind.unknown,
+      'slow',
+    );
+    await tester.tap(find.byIcon(Icons.play_arrow).first);
+    await tester.pump();
+
+    expect(find.byKey(banner), findsOneWidget);
+    await tester.pump(PlayerController.transientMessageDuration);
+    expect(find.byKey(banner), findsNothing);
+
+    repository.nextError = const MediaBackendException(
+      MediaErrorKind.unknown,
+      'slow',
+    );
+    await tester.tap(find.byIcon(Icons.play_arrow).first);
+    await tester.pump();
+    expect(find.byKey(banner), findsOneWidget);
+    await tester.tap(
+      find.descendant(of: find.byKey(banner), matching: find.byType(InkWell)),
+    );
+    await tester.pump();
+
+    expect(find.byKey(banner), findsNothing);
   });
 
   testWidgets('play/pause taps issue the expected backend commands', (

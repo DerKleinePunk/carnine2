@@ -411,6 +411,67 @@ void main() {
     controllerWithCallback.dispose();
   });
 
+  test('a rejected play (e.g. no audio output, #55) reads "command failed", '
+      'not "no further track"', () async {
+    await controller.start();
+    repository.nextError = const MediaBackendException(
+      MediaErrorKind.precondition,
+      'no audio output available',
+    );
+
+    await controller.playTrack(_trackA);
+
+    expect(controller.transientMessageKey, AppTextKey.mediaCommandFailed);
+  });
+
+  test('the message of a failed command clears itself after a few seconds '
+      '(#32)', () {
+    fakeAsync((async) {
+      controller.start();
+      async.flushMicrotasks();
+      repository.nextError = const MediaBackendException(
+        MediaErrorKind.unknown,
+        'slow',
+      );
+      controller.playTrack(_trackA);
+      async.flushMicrotasks();
+      expect(controller.transientMessageKey, AppTextKey.mediaCommandFailed);
+
+      async.elapse(
+        PlayerController.transientMessageDuration -
+            const Duration(milliseconds: 100),
+      );
+      expect(controller.transientMessageKey, isNotNull);
+      async.elapse(const Duration(milliseconds: 200));
+
+      expect(controller.transientMessageKey, isNull);
+    });
+  });
+
+  test('dismissing the message early leaves no timer behind', () {
+    fakeAsync((async) {
+      controller.start();
+      async.flushMicrotasks();
+      repository.nextError = const MediaBackendException(
+        MediaErrorKind.unknown,
+        'slow',
+      );
+      controller.playTrack(_trackA);
+      async.flushMicrotasks();
+
+      controller.dismissTransientMessage();
+
+      expect(controller.transientMessageKey, isNull);
+      expect(
+        async.pendingTimers.where(
+          (timer) =>
+              timer.duration == PlayerController.transientMessageDuration,
+        ),
+        isEmpty,
+      );
+    });
+  });
+
   test('toggleShuffle flips optimistically and calls SetShuffleMode', () async {
     expect(controller.shuffleEnabled, isFalse);
 
