@@ -1,7 +1,7 @@
 # Bedienungsanleitung carnine2
 
 Für Entwickler und Tester. Beschreibt, was man auf dem Bildschirm sieht und
-was jedes Bedienelement tut – Stand **0.8.0** (2026-09-28). Die Anleitung für
+was jedes Bedienelement tut – Stand **0.9.0** (2026-09-29). Die Anleitung für
 Messebesucher entsteht getrennt.
 
 Wenn sich im Frontend etwas an der Bedienung ändert, gehört die Änderung
@@ -89,7 +89,7 @@ Wechsel, beim Beenden sofort. Ist das Backend beim Start noch nicht
 erreichbar, etwa weil die Oberfläche beim Einschalten schneller ist, fragt sie
 bis zu 2 Minuten lang immer wieder nach und springt dann auf die gemerkte
 Seite. Wählt man in der Zeit selbst eine Seite, bleibt es bei dieser. Kommt
-das Backend nicht, bleibt sie ohne Meldung auf **Start** (#52, nach 0.8.0).
+das Backend nicht, bleibt sie ohne Meldung auf **Start** (#52, ab 0.9.0).
 
 ### Start, Klima, Technik
 

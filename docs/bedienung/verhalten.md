@@ -7,7 +7,7 @@
 | Zustand | Bleibt erhalten? |
 |---|---|
 | zuletzt gewählte Seite (außer Optionen) | ja |
-| Lautstärke | ja |
+| Lautstärke | ja; ohne gespeicherten Wert 50 % (#47) |
 | Wiederholung und Zufall | ja |
 | laufende Playlist, Titel und Stelle im Titel | ja |
 | einzeln aus der Bibliothek gestarteter Titel | nein |
@@ -41,8 +41,22 @@ Frisch geflasht ist die Datenbank leer: Wiederholung steht dann auf aus.
 - **Karten:** rote Meldung „Navigation nicht erreichbar“, auch in der
   Zielsuche. Die Karte selbst bleibt bedienbar; die Position kommt nach der
   Wiederverbindung von selbst zurück.
-- Schlägt ein einzelner Befehl fehl (z. B. Weiter), gibt es **keine sichtbare
-  Rückmeldung** – nur einen Eintrag im Log (Optionen → System), siehe #32.
+- Schlägt ein einzelner Befehl fehl (z. B. **Weiter**), zeigt die Medienseite
+  4 s lang den Streifen „Befehl fehlgeschlagen“ (#32, siehe
+  [Banner](medien.md#banner)). Das gilt auch, wenn das Backend hängt, ohne
+  abzustürzen: Dann kommt nur dieser Streifen, „Verbindung unterbrochen“
+  erst, wenn die Verbindung wirklich abreißt.
+
+## Ohne Audio-Gerät
+
+Findet das Backend beim Start kein Audio-Ausgabegerät, etwa weil HDMI keinen
+Ton hat (das Display meldet in seinem EDID keinen Audioteil), läuft es
+trotzdem: Karte, Navigation, Netzteil-Anzeige und Optionen funktionieren, nur
+Musik nicht (#55). Auf der Medienseite erscheint dann „Audiofehler
+aufgetreten“, und **Wiedergabe** zeigt dazu „Befehl fehlgeschlagen“. Bei
+jedem neuen Start einer Wiedergabe versucht das Backend das Gerät noch
+einmal; ein Ton über HDMI, der erst später da ist, wird so ohne Neustart
+genutzt.
 
 ## Noch nicht verfügbar
 
