@@ -22,7 +22,7 @@ use carnine::{
     NavigationStatus, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PositionFix,
     PositionSourceKind, PowerSupplyState, PowerSupplyStatus, RepeatMode, RescanMediaRequest, Route,
     SearchMediaRequest, SearchPlacesRequest, SeekRequest, SetRepeatModeRequest,
-    SetShuffleModeRequest, SetTrackRecordingRequest, SystemMetrics, UiState,
+    SetShuffleModeRequest, SetTrackRecordingRequest, SetVolumeRequest, SystemMetrics, UiState,
 };
 
 #[tokio::main]
@@ -61,6 +61,8 @@ async fn main() -> Result<()> {
         "library-events" => stream_library_events(&mut client).await?,
         "library-smoke" => library_event_smoke(&endpoint).await?,
         "audio-events" => stream_audio_events(&endpoint).await?,
+        "volume" => get_volume(&endpoint).await?,
+        "set-volume" => set_volume(&endpoint).await?,
         "rescan" => rescan(&mut client).await?,
         "event-smoke" => event_smoke(&endpoint).await?,
         "import" => import_music_volume(&mut client).await?,
@@ -296,6 +298,28 @@ async fn stream_audio_events(endpoint: &str) -> Result<()> {
         println!("audio event={} message={}", event.event, event.message);
     })
     .await
+}
+
+async fn get_volume(endpoint: &str) -> Result<()> {
+    let mut client = AudioServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let response = client.get_volume(Empty {}).await?.into_inner();
+    println!("volume percent={}", response.percent);
+    Ok(())
+}
+
+/// The percent is on amixer's mapped scale since #65.
+async fn set_volume(endpoint: &str) -> Result<()> {
+    let percent = env::args()
+        .nth(3)
+        .context("set-volume requires a percent between 0 and 100")?
+        .parse::<u32>()?;
+    let mut client = AudioServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let response = client
+        .set_volume(SetVolumeRequest { percent })
+        .await?
+        .into_inner();
+    println!("volume percent={}", response.percent);
+    Ok(())
 }
 
 async fn get_system_metrics(endpoint: &str) -> Result<()> {

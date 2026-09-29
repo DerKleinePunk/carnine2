@@ -317,7 +317,7 @@ win.
 The backend has no audio device setting. It plays through cpal's
 `default_output_device()` (`src/backend/src/cpal_audio_engine.rs`), which on
 the Pi is ALSA's `default` device, and sets the volume with
-`amixer -c 0 set PCM` (`src/backend/src/audio_volume.rs`). Both therefore
+`amixer -M -c 0 set PCM` (`src/backend/src/audio_volume.rs`). Both therefore
 follow **ALSA card 0**. The Pi 4 has three cards (`config.txt` from pi-gen
 keeps `dtparam=audio=on`):
 
@@ -395,11 +395,21 @@ Again on 29.09.2026 on the Pi 3 by the steps in the user guide: 0 Headphones,
 ran on card 0; dracut takes one to two minutes there.
 Two things differ from HDMI:
 
-- The jack's `PCM` is a mono hardware control with another curve: 46 % is
-  -53.45 dB there against -27.60 dB on HDMI, so the same percentage is
-  clearly quieter.
+- The jack's `PCM` is a mono hardware control with another range
+  (-102.39 … +4 dB against -51 … 0 dB on HDMI). Without `-M` amixer mapped
+  percent linearly onto that raw range, and the same percentage was far
+  quieter on the jack (65 %: -33.24 dB against -17.80 dB). Since #65 the
+  backend uses `-M`, which follows the dB curve, so the outputs sound alike.
+  Measured on the Pi 3: 42 % is -18.00 dB on HDMI and -18.61 dB on the jack,
+  50 % is -14.60 dB on HDMI, 25 % is -32.12 dB on the jack.
 - The stored volume applies to both outputs, so after switching the backend
   starts at the same percentage.
+
+The state file holds `42 mapped` since #65. A bare number from an older
+version is on the old linear scale: at the next start the backend sets it
+the old way once, reads the mapped percent back and keeps that, so the level
+does not change with the update (on carnine-pc 65 became 42, -17.80 dB then
+-18.00 dB).
 
 Choosing the output in the UI is planned for later
 ([#48](https://github.com/DerKleinePunk/carnine2/issues/48)).
