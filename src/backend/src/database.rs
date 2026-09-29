@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -5,7 +6,7 @@ use std::process::Command;
 use anyhow::{Context, Result};
 use rusqlite::{params, Connection};
 
-const CURRENT_SCHEMA_VERSION: i64 = 5;
+const CURRENT_SCHEMA_VERSION: i64 = 6;
 
 pub struct Database {
     connection: Connection,
@@ -64,6 +65,47 @@ struct AudioMetadata {
     title: Option<String>,
     artist: Option<String>,
     duration_ms: i64,
+}
+
+/// Size and modification time of a file; equal values mean "unchanged".
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct FileFingerprint {
+    size: i64,
+    mtime_ms: i64,
+}
+
+impl FileFingerprint {
+    fn of(path: &Path) -> Option<Self> {
+        let metadata = std::fs::metadata(path).ok()?;
+        let mtime_ms = metadata
+            .modified()
+            .ok()?
+            .duration_since(std::time::UNIX_EPOCH)
+            .ok()?
+            .as_millis();
+        Some(Self {
+            size: i64::try_from(metadata.len()).ok()?,
+            mtime_ms: i64::try_from(mtime_ms).ok()?,
+        })
+    }
+}
+
+/// Reads what a scan stores about a file; the real one runs ffprobe/ffmpeg.
+trait MediaReader {
+    fn metadata(&self, path: &Path) -> Result<AudioMetadata>;
+    fn cover(&self, path: &Path, cache_dir: &Path) -> Result<Option<String>>;
+}
+
+struct ToolReader;
+
+impl MediaReader for ToolReader {
+    fn metadata(&self, path: &Path) -> Result<AudioMetadata> {
+        read_audio_metadata(path)
+    }
+
+    fn cover(&self, path: &Path, cache_dir: &Path) -> Result<Option<String>> {
+        extract_cover_art(path, cache_dir)
+    }
 }
 
 impl Database {
@@ -159,6 +201,16 @@ impl Database {
                 INSERT INTO schema_migrations (version) VALUES (5);",
             )?;
         }
+        if version < 6 {
+            // Size and modification time of the file a row was read from, so a
+            // rescan skips unchanged files instead of running ffprobe and
+            // ffmpeg on every one of them again (#43). NULL means "read again".
+            self.connection.execute_batch(
+                "ALTER TABLE media ADD COLUMN file_size INTEGER;
+                ALTER TABLE media ADD COLUMN file_mtime_ms INTEGER;
+                INSERT INTO schema_migrations (version) VALUES (6);",
+            )?;
+        }
         if version > CURRENT_SCHEMA_VERSION {
             anyhow::bail!(
                 "database schema version {version} is newer than supported version {CURRENT_SCHEMA_VERSION}"
@@ -212,22 +264,28 @@ impl Database {
     /// Like [`Self::upsert_media`], but an existing row keeps its title, artist
     /// and duration when `keep_metadata` is set, and its cover when
     /// `keep_cover` is set. A new row always takes the given values.
+    /// `fingerprint` is the file's size and modification time, stored only
+    /// when everything was read, so a failed read is tried again next scan.
     fn upsert_scanned_media(
         &self,
         media: &MediaRecord,
         keep_metadata: bool,
         keep_cover: bool,
+        fingerprint: Option<FileFingerprint>,
     ) -> Result<()> {
         self.connection.execute(
             "INSERT INTO media
-                (source_id, path, title, artist, duration_ms, status, cover_path)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+                (source_id, path, title, artist, duration_ms, status, cover_path,
+                 file_size, file_mtime_ms)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?10, ?11)
              ON CONFLICT(source_id, path) DO UPDATE SET
                 title = CASE WHEN ?8 THEN media.title ELSE excluded.title END,
                 artist = CASE WHEN ?8 THEN media.artist ELSE excluded.artist END,
                 duration_ms = CASE WHEN ?8 THEN media.duration_ms ELSE excluded.duration_ms END,
                 status = excluded.status,
-                cover_path = CASE WHEN ?9 THEN media.cover_path ELSE excluded.cover_path END",
+                cover_path = CASE WHEN ?9 THEN media.cover_path ELSE excluded.cover_path END,
+                file_size = excluded.file_size,
+                file_mtime_ms = excluded.file_mtime_ms",
             params![
                 media.source_id,
                 media.path,
@@ -237,10 +295,35 @@ impl Database {
                 media.status,
                 media.cover_path,
                 keep_metadata,
-                keep_cover
+                keep_cover,
+                fingerprint.map(|value| value.size),
+                fingerprint.map(|value| value.mtime_ms)
             ],
         )?;
         Ok(())
+    }
+
+    /// Id and stored fingerprint of every row of `source_id`, by path.
+    fn scanned_media_by_path(
+        &self,
+        source_id: i64,
+    ) -> Result<HashMap<String, (i64, Option<FileFingerprint>)>> {
+        let mut statement = self
+            .connection
+            .prepare("SELECT id, path, file_size, file_mtime_ms FROM media WHERE source_id = ?1")?;
+        let rows = statement.query_map([source_id], |row| {
+            let size: Option<i64> = row.get(2)?;
+            let mtime_ms: Option<i64> = row.get(3)?;
+            Ok((
+                row.get::<_, String>(1)?,
+                (
+                    row.get::<_, i64>(0)?,
+                    size.zip(mtime_ms)
+                        .map(|(size, mtime_ms)| FileFingerprint { size, mtime_ms }),
+                ),
+            ))
+        })?;
+        Ok(rows.collect::<rusqlite::Result<HashMap<_, _>>>()?)
     }
 
     pub fn search_media(&self, query: &str) -> Result<Vec<MediaRecord>> {
@@ -480,14 +563,40 @@ impl Database {
         supported_formats: &[String],
         cover_cache_dir: &Path,
     ) -> Result<usize> {
+        self.rescan_folder_with(folder, supported_formats, cover_cache_dir, &ToolReader)
+    }
+
+    /// The scan behind [`Self::rescan_folder`], with the ffprobe/ffmpeg calls
+    /// behind `reader` so tests can count them.
+    ///
+    /// Nothing is marked `MISSING` up front any more: a scan that ends early
+    /// (the backend restarted mid-scan) used to leave every file not yet
+    /// reached as `MISSING` (#43). Files whose size and modification time
+    /// match the stored ones are not read again. The status changes of all
+    /// unchanged and all vanished files go in one short transaction at the
+    /// end; a transaction around the whole scan would block every other
+    /// writer (resume state, playlists) for as long as the scan runs.
+    fn rescan_folder_with(
+        &self,
+        folder: &Path,
+        supported_formats: &[String],
+        cover_cache_dir: &Path,
+        reader: &dyn MediaReader,
+    ) -> Result<usize> {
         let source_uri = folder.to_string_lossy().into_owned();
         let source_id = self.upsert_source(&source_uri, "AVAILABLE")?;
         let discovered = find_audio_files(folder, supported_formats)?;
-        self.connection.execute(
-            "UPDATE media SET status = 'MISSING' WHERE source_id = ?1",
-            [source_id],
-        )?;
+        let mut known = self.scanned_media_by_path(source_id)?;
+        let mut unchanged_ids = Vec::new();
         for path in &discovered {
+            let path_text = path.to_string_lossy().into_owned();
+            let fingerprint = FileFingerprint::of(path);
+            if let Some((id, stored)) = known.remove(&path_text) {
+                if stored.is_some() && stored == fingerprint {
+                    unchanged_ids.push(id);
+                    continue;
+                }
+            }
             let fallback_title = path
                 .file_stem()
                 .and_then(|value| value.to_str())
@@ -495,16 +604,17 @@ impl Database {
                 .to_string();
             // A failed read (ffprobe/ffmpeg missing or broken) must not wipe what
             // an earlier scan stored; only a successful read replaces it.
-            let metadata = read_audio_metadata(path);
-            let cover = extract_cover_art(path, cover_cache_dir);
+            let metadata = reader.metadata(path);
+            let cover = reader.cover(path, cover_cache_dir);
             let keep_metadata = metadata.is_err();
             let keep_cover = cover.is_err();
+            let read_everything = !keep_metadata && !keep_cover;
             let metadata = metadata.unwrap_or_default();
             self.upsert_scanned_media(
                 &MediaRecord {
                     id: 0,
                     source_id,
-                    path: path.to_string_lossy().into_owned(),
+                    path: path_text,
                     title: metadata.title.unwrap_or(fallback_title),
                     artist: metadata.artist.unwrap_or_default(),
                     duration_ms: metadata.duration_ms,
@@ -513,8 +623,24 @@ impl Database {
                 },
                 keep_metadata,
                 keep_cover,
+                fingerprint.filter(|_| read_everything),
             )?;
         }
+        // Whatever is left in `known` was not found on disk this time.
+        let transaction = self.connection.unchecked_transaction()?;
+        {
+            let mut available =
+                transaction.prepare("UPDATE media SET status = 'AVAILABLE' WHERE id = ?1")?;
+            for id in &unchanged_ids {
+                available.execute([id])?;
+            }
+            let mut missing =
+                transaction.prepare("UPDATE media SET status = 'MISSING' WHERE id = ?1")?;
+            for (id, _) in known.values() {
+                missing.execute([id])?;
+            }
+        }
+        transaction.commit()?;
         Ok(discovered.len())
     }
 
@@ -692,9 +818,165 @@ pub fn find_audio_files(folder: &Path, supported_formats: &[String]) -> Result<V
 #[cfg(test)]
 mod tests {
     use super::{
-        extract_cover_art, find_folder_cover_image, read_audio_metadata, Database, MediaRecord,
-        ResumeState, CURRENT_SCHEMA_VERSION,
+        extract_cover_art, find_folder_cover_image, read_audio_metadata, AudioMetadata, Database,
+        MediaReader, MediaRecord, ResumeState, CURRENT_SCHEMA_VERSION,
     };
+    use std::cell::{Cell, RefCell};
+    use std::path::{Path, PathBuf};
+
+    /// Counts reads; fails for paths in `fail`, panics at `panic_at`.
+    #[derive(Default)]
+    struct CountingReader {
+        reads: RefCell<Vec<String>>,
+        fail: RefCell<Vec<String>>,
+        panic_at: Cell<Option<usize>>,
+    }
+
+    impl CountingReader {
+        fn read_names(&self) -> Vec<String> {
+            let mut names = self.reads.borrow().clone();
+            names.sort();
+            names
+        }
+    }
+
+    impl MediaReader for CountingReader {
+        fn metadata(&self, path: &Path) -> anyhow::Result<AudioMetadata> {
+            let name = path.file_name().unwrap().to_string_lossy().into_owned();
+            if self.panic_at.get() == Some(self.reads.borrow().len()) {
+                panic!("scan aborted at {name}");
+            }
+            self.reads.borrow_mut().push(name.clone());
+            if self.fail.borrow().contains(&name) {
+                anyhow::bail!("ffprobe failed for {name}");
+            }
+            Ok(AudioMetadata {
+                title: Some(format!("Title {name}")),
+                artist: Some("Artist".to_string()),
+                duration_ms: 1_000,
+            })
+        }
+
+        fn cover(&self, _path: &Path, _cache_dir: &Path) -> anyhow::Result<Option<String>> {
+            Ok(None)
+        }
+    }
+
+    /// A folder with the given files (content decides the size).
+    fn scan_folder(name: &str, files: &[(&str, &[u8])]) -> PathBuf {
+        let folder = std::env::temp_dir().join(format!("carnine-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&folder);
+        std::fs::create_dir_all(&folder).expect("media folder should be created");
+        for (file, content) in files {
+            std::fs::write(folder.join(file), content).expect("file should be written");
+        }
+        folder
+    }
+
+    fn status_of(database: &Database, title_part: &str) -> String {
+        database
+            .search_media(title_part)
+            .expect("search should work")[0]
+            .status
+            .clone()
+    }
+
+    fn rescan(database: &Database, folder: &Path, reader: &CountingReader) -> usize {
+        database
+            .rescan_folder_with(folder, &["mp3".to_string()], folder, reader)
+            .expect("rescan should succeed")
+    }
+
+    #[test]
+    fn a_rescan_does_not_read_unchanged_files_again() {
+        let folder = scan_folder("rescan-unchanged", &[("a.mp3", b"aa"), ("b.mp3", b"bb")]);
+        let database = Database::open(":memory:").expect("database should open");
+        let first = CountingReader::default();
+        assert_eq!(rescan(&database, &folder, &first), 2);
+        assert_eq!(first.read_names(), ["a.mp3", "b.mp3"]);
+
+        let second = CountingReader::default();
+        assert_eq!(rescan(&database, &folder, &second), 2);
+
+        assert!(second.read_names().is_empty());
+        assert_eq!(status_of(&database, "Title a.mp3"), "AVAILABLE");
+        let _ = std::fs::remove_dir_all(folder);
+    }
+
+    #[test]
+    fn a_changed_file_is_read_again() {
+        let folder = scan_folder("rescan-changed", &[("a.mp3", b"aa"), ("b.mp3", b"bb")]);
+        let database = Database::open(":memory:").expect("database should open");
+        rescan(&database, &folder, &CountingReader::default());
+        std::fs::write(folder.join("b.mp3"), b"longer now").expect("file should change");
+
+        let second = CountingReader::default();
+        rescan(&database, &folder, &second);
+
+        assert_eq!(second.read_names(), ["b.mp3"]);
+        let _ = std::fs::remove_dir_all(folder);
+    }
+
+    #[test]
+    fn a_failed_read_is_tried_again_on_the_next_scan() {
+        let folder = scan_folder("rescan-failed", &[("a.mp3", b"aa"), ("b.mp3", b"bb")]);
+        let database = Database::open(":memory:").expect("database should open");
+        let first = CountingReader::default();
+        first.fail.borrow_mut().push("b.mp3".to_string());
+        rescan(&database, &folder, &first);
+
+        let second = CountingReader::default();
+        rescan(&database, &folder, &second);
+
+        assert_eq!(second.read_names(), ["b.mp3"]);
+        assert_eq!(status_of(&database, "Title b.mp3"), "AVAILABLE");
+        let _ = std::fs::remove_dir_all(folder);
+    }
+
+    #[test]
+    fn a_scan_that_ends_early_leaves_no_file_missing() {
+        let folder = scan_folder(
+            "rescan-aborted",
+            &[("a.mp3", b"aa"), ("b.mp3", b"bb"), ("c.mp3", b"cc")],
+        );
+        let database = Database::open(":memory:").expect("database should open");
+        rescan(&database, &folder, &CountingReader::default());
+        // Every file changes, so the next scan reads each one again ...
+        for (file, content) in [("a.mp3", "aaa"), ("b.mp3", "bbb"), ("c.mp3", "ccc")] {
+            std::fs::write(folder.join(file), content).expect("file should change");
+        }
+        // ... and stops after the first, the way a backend restart ends it.
+        let aborted = CountingReader::default();
+        aborted.panic_at.set(Some(1));
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            rescan(&database, &folder, &aborted)
+        }));
+        assert!(result.is_err());
+
+        for name in ["a.mp3", "b.mp3", "c.mp3"] {
+            assert_eq!(status_of(&database, &format!("Title {name}")), "AVAILABLE");
+        }
+        let _ = std::fs::remove_dir_all(folder);
+    }
+
+    #[test]
+    fn a_file_that_comes_back_unchanged_is_available_again() {
+        let folder = scan_folder("rescan-back", &[("a.mp3", b"aa"), ("b.mp3", b"bb")]);
+        let database = Database::open(":memory:").expect("database should open");
+        rescan(&database, &folder, &CountingReader::default());
+        let parked = folder.with_extension("parked");
+        std::fs::rename(folder.join("b.mp3"), &parked).expect("file should move away");
+        rescan(&database, &folder, &CountingReader::default());
+        assert_eq!(status_of(&database, "Title b.mp3"), "MISSING");
+
+        std::fs::rename(&parked, folder.join("b.mp3")).expect("file should come back");
+        let third = CountingReader::default();
+        rescan(&database, &folder, &third);
+
+        assert!(third.read_names().is_empty());
+        assert_eq!(status_of(&database, "Title b.mp3"), "AVAILABLE");
+        let _ = std::fs::remove_dir_all(folder);
+    }
 
     #[test]
     fn creates_current_schema_and_is_idempotent() {
@@ -766,7 +1048,7 @@ mod tests {
         };
 
         database
-            .upsert_scanned_media(&fallback, true, true)
+            .upsert_scanned_media(&fallback, true, true, None)
             .expect("rescan without tools should work");
         let kept = &database.search_media("crazy").expect("search should work")[0];
         assert_eq!(kept.title, "Crazy");
@@ -776,7 +1058,7 @@ mod tests {
         assert_eq!(kept.status, "AVAILABLE");
 
         database
-            .upsert_scanned_media(&fallback, false, false)
+            .upsert_scanned_media(&fallback, false, false, None)
             .expect("rescan with tools should work");
         let replaced = &database.search_media("crazy").expect("search should work")[0];
         assert_eq!(replaced.title, "11 Crazy");

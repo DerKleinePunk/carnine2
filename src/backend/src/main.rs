@@ -888,8 +888,11 @@ impl MediaService for MediaServiceImpl {
         if source_path.as_os_str().is_empty() {
             return Err(Status::invalid_argument("source_path is required"));
         }
-        let events = self
-            .import_music_volume(source_path)
+        // Copying and scanning take minutes; off the async worker threads.
+        let service = self.clone();
+        let events = tokio::task::spawn_blocking(move || service.import_music_volume(source_path))
+            .await
+            .map_err(|error| Status::internal(error.to_string()))?
             .map_err(|error| Status::internal(error.to_string()))?;
         for event in &events {
             let _ = self.library_events.send(event.clone());
@@ -903,8 +906,12 @@ impl MediaService for MediaServiceImpl {
         &self,
         _request: Request<RescanMediaRequest>,
     ) -> Result<Response<Self::RescanMediaStream>, Status> {
-        let events = self
-            .scan_events()
+        // A full scan runs ffprobe and ffmpeg per changed file and can take
+        // long; it must not hold one of the async worker threads (#43).
+        let service = self.clone();
+        let events = tokio::task::spawn_blocking(move || service.scan_events())
+            .await
+            .map_err(|error| Status::internal(error.to_string()))?
             .map_err(|error| Status::internal(error.to_string()))?;
         for event in &events {
             let _ = self.library_events.send(event.clone());
