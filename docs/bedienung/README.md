@@ -17,6 +17,8 @@ dieser Seiten in denselben Commit.
 6. [Verhalten über Neustarts und ohne Backend](verhalten.md) – was gespeichert
    wird, was bei Verbindungsverlust passiert, was noch Platzhalter ist,
    Dauertest einrichten
+7. [Ton über die Klinke](ton-klinke.md) – für Displays ohne Lautsprecher
+   (z. B. Waveshare 7C)
 
 ## Die häufigsten Abläufe
 
