@@ -9,8 +9,8 @@ use tracing::{info, warn};
 const MIXER_CARD: &str = "0";
 const MIXER_CONTROL: &str = "PCM";
 const PACTL_SINK: &str = "@DEFAULT_SINK@";
-/// Used when neither the state file nor the mixer gives a usable value.
-/// Deliberately moderate: behind a car amplifier, 100 % is far too loud.
+/// Used whenever there is no saved value (#61). Deliberately moderate:
+/// behind a car amplifier, 100 % is far too loud.
 const FALLBACK_PERCENT: u8 = 50;
 
 /// Which tool actually controls the audible volume, decided once at startup
@@ -66,10 +66,10 @@ impl AudioVolume {
             warn!(
                 path = %state_path.display(),
                 probed = ?probed_percent,
-                "no saved audio volume, falling back to the mixer or {FALLBACK_PERCENT} %"
+                "no saved audio volume, starting at {FALLBACK_PERCENT} %"
             );
         }
-        let percent = initial_percent(saved_percent, probed_percent);
+        let percent = initial_percent(saved_percent);
         Self {
             state_path,
             backend,
@@ -130,13 +130,12 @@ impl AudioVolume {
     }
 }
 
-/// The saved value wins, even 0 (the user muted on purpose). Without one, a
-/// mixer at 0 is our own mute from the last shutdown, not a choice, so it
-/// must not come back as the volume (#47).
-fn initial_percent(saved: Option<u8>, probed: Option<u8>) -> u8 {
-    saved
-        .or(probed.filter(|percent| *percent > 0))
-        .unwrap_or(FALLBACK_PERCENT)
+/// The saved value wins, even 0 (the user muted on purpose). Without one
+/// the mixer says nothing about what the user wants: at 0 it is our own mute
+/// from the last shutdown (#47), and on a fresh image it stands at the
+/// factory 100 % (#61). Either way the volume starts at the fallback.
+fn initial_percent(saved: Option<u8>) -> u8 {
+    saved.unwrap_or(FALLBACK_PERCENT)
 }
 
 fn read_state(path: &Path) -> Option<u8> {
@@ -229,23 +228,15 @@ mod tests {
 
     #[test]
     fn the_saved_volume_wins_even_when_muted() {
-        assert_eq!(initial_percent(Some(61), Some(0)), 61);
-        assert_eq!(initial_percent(Some(0), Some(46)), 0);
+        assert_eq!(initial_percent(Some(61)), 61);
+        assert_eq!(initial_percent(Some(0)), 0);
     }
 
+    /// Neither the shutdown mute (0 %, #47) nor the factory mixer (100 %,
+    /// #61) may decide the volume; without a saved value it starts at 50 %.
     #[test]
-    fn a_missing_file_takes_the_mixer_value() {
-        assert_eq!(initial_percent(None, Some(46)), 46);
-    }
-
-    #[test]
-    fn a_missing_file_does_not_bring_back_the_shutdown_mute() {
-        assert_eq!(initial_percent(None, Some(0)), 50);
-    }
-
-    #[test]
-    fn without_file_and_mixer_the_fallback_is_used() {
-        assert_eq!(initial_percent(None, None), 50);
+    fn without_a_saved_value_the_volume_starts_at_the_fallback() {
+        assert_eq!(initial_percent(None), 50);
     }
 
     #[test]
