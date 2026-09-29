@@ -66,8 +66,14 @@ Everything else in the EDID is left untouched, including the cloned vendor
 strings — the driver only needs valid timings.
 
 The resulting blob is checked in at
-[`resources/debos/edid/waveshare-1024x600.bin`](../resources/debos/edid/waveshare-1024x600.bin)
-and installed by the debos recipe. To regenerate it from a connected panel:
+[`resources/debos/edid/waveshare-1024x600.bin`](../resources/debos/edid/waveshare-1024x600.bin).
+Since 2026-09-29 the image uses Waveshare's own EDID instead,
+[`resources/debos/edid/waveshare-7h-260929.bin`](../resources/debos/edid/waveshare-7h-260929.bin)
+(256 bytes, sha256 `07ee8b83…3edd`): the same CEA block with audio, 1024x600 at
+59.82 Hz with even horizontal timings, and the real image size of 154 x 86 mm.
+It was checked on jeep-pi (sharp image, sound on card 0). Our blob stays in the
+image as a fallback; to go back, change the file name in `cmdline.txt`.
+To regenerate our blob from a connected panel:
 
 ```python
 e = bytearray(open("/sys/class/drm/card1-HDMI-A-1/edid", "rb").read())
@@ -87,7 +93,7 @@ open("waveshare-1024x600.bin", "wb").write(bytes(e))
 `hdmi_group`, `hdmi_mode` and `hdmi_cvt` lines are dropped. `cmdline.txt` gets:
 
 ```
-drm.edid_firmware=HDMI-A-1:edid/waveshare-1024x600.bin
+drm.edid_firmware=HDMI-A-1:edid/waveshare-7h-260929.bin
 ```
 
 **Watch the parameter name.** The older `drm_kms_helper.edid_firmware` is
@@ -121,8 +127,11 @@ also puts the blob into the initramfs:
 
 ```
 # /etc/dracut.conf.d/carnine-edid.conf
-install_items+=" /usr/lib/firmware/edid/waveshare-1024x600.bin "
+install_items+=" /usr/lib/firmware/edid/waveshare-7h-260929.bin /usr/lib/firmware/edid/waveshare-1024x600.bin "
 ```
+
+Both files go into the initramfs, so switching between them in `cmdline.txt`
+needs no `dracut` run.
 
 followed by `dracut --regenerate-all --force`. Check with
 `lsinitrd /boot/firmware/initramfs8 | grep edid`.

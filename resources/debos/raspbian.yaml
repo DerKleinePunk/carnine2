@@ -270,8 +270,18 @@ actions:
     chroot: true
     command: install -d /lib/firmware/edid
 
+  # Vorgabe ist seit 29.09.2026 das EDID von Waveshare selbst (7H-260929,
+  # mit Audio und richtiger Bildgroesse). Unser korrigiertes Klon-EDID bleibt
+  # daneben liegen: Zurueck geht es ohne Neubau, indem man in cmdline.txt den
+  # Dateinamen tauscht.
   - action: overlay
-    description: Install corrected EDID for the Waveshare 1024x600 panel
+    description: Install the Waveshare 7H-260929 EDID for the 1024x600 panel
+    origin: recipe
+    source: edid/waveshare-7h-260929.bin
+    destination: /lib/firmware/edid/waveshare-7h-260929.bin
+
+  - action: overlay
+    description: Keep our corrected EDID for the 1024x600 panel as a fallback
     origin: recipe
     source: edid/waveshare-1024x600.bin
     destination: /lib/firmware/edid/waveshare-1024x600.bin
@@ -285,7 +295,7 @@ actions:
     chroot: true
     command: |
       install -d /etc/dracut.conf.d
-      printf '%s\n' 'install_items+=" /usr/lib/firmware/edid/waveshare-1024x600.bin "' \
+      printf '%s\n' 'install_items+=" /usr/lib/firmware/edid/waveshare-7h-260929.bin /usr/lib/firmware/edid/waveshare-1024x600.bin "' \
         > /etc/dracut.conf.d/carnine-edid.conf
 
   - action: run
@@ -294,7 +304,7 @@ actions:
     command: |
       printf '%s' 'root=LABEL=ROOTFS quiet splash logo.nologo' > /boot/firmware/cmdline.txt
       {{ if eq $display "waveshare-1024x600" -}}
-      printf '%s' ' drm.edid_firmware=HDMI-A-1:edid/waveshare-1024x600.bin' >> /boot/firmware/cmdline.txt
+      printf '%s' ' drm.edid_firmware=HDMI-A-1:edid/waveshare-7h-260929.bin' >> /boot/firmware/cmdline.txt
       {{- end }}
       printf '%s\n' ' vt.global_cursor_default=1' >> /boot/firmware/cmdline.txt
 
