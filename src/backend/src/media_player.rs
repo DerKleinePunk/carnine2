@@ -435,7 +435,14 @@ impl MediaPlayer {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         if let Some(active_playback) = playback.as_ref() {
-            active_playback.resume()?;
+            if let Err(error) = active_playback.resume() {
+                // The output under this playback failed and was dropped
+                // (#59): start the track again where it stopped, which opens
+                // a new output.
+                tracing::warn!(%error, "resume failed, restarting the track on a new output");
+                drop(playback);
+                return self.restart_at_current_position();
+            }
             *self
                 .state
                 .lock()
@@ -456,6 +463,54 @@ impl MediaPlayer {
             bail!("play requires an audio file path in parameters");
         }
         self.start_current_path()
+    }
+
+    fn restart_at_current_position(&self) -> Result<String> {
+        let position_ms = self.position_ms();
+        let path = self.media_path();
+        let stale = self
+            .playback
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take();
+        if let Some(stale) = stale {
+            if let Err(error) = stale.stop() {
+                tracing::warn!(%error, "failed to stop the playback of the lost output");
+            }
+        }
+        self.start_path_at(&path, position_ms)
+    }
+
+    /// Pauses the bookkeeping when the output under a playing track failed
+    /// (#59): nothing is audible any more, so the state must not say
+    /// "playing" and the position must not keep running. Play resumes from
+    /// here on a new output. True when it did so.
+    pub fn handle_output_lost(&self) -> bool {
+        let mut state = self
+            .state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if !matches!(*state, PlaybackState::Playing) || self.engine.output_available() {
+            return false;
+        }
+        let position_ms = self.position_ms();
+        *state = PlaybackState::Paused;
+        drop(state);
+        *self
+            .position_ms
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = position_ms;
+        *self
+            .started_at
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
+        tracing::warn!(position_ms, "audio output lost while playing; paused");
+        self.publish_audio(AudioEventType::AudioError, "audio output failed");
+        self.publish(
+            PlayerEventType::PlayerPaused,
+            "playback paused: audio output failed",
+        );
+        true
     }
 
     fn play_path(&self, input_path: &str) -> Result<String> {
@@ -870,6 +925,7 @@ impl MediaPlayer {
             let mut interval = tokio::time::interval(Duration::from_millis(250));
             loop {
                 interval.tick().await;
+                player.handle_output_lost();
                 if player.is_active_track_finished() {
                     let player = Arc::clone(&player);
                     let _ =
@@ -1015,6 +1071,101 @@ mod tests {
 
     fn last_start(starts: &StartLog) -> (String, i64) {
         starts.lock().unwrap().last().cloned().expect("a start")
+    }
+
+    /// Plays until `lost` is set; then resume fails and no output is
+    /// reported, like a cpal engine whose stream was dropped (#59).
+    struct LosingEngine {
+        lost: Arc<AtomicBool>,
+        starts: StartLog,
+    }
+
+    struct LosingPlayback {
+        lost: Arc<AtomicBool>,
+    }
+
+    impl Playback for LosingPlayback {
+        fn pause(&self) -> Result<()> {
+            Ok(())
+        }
+        fn resume(&self) -> Result<()> {
+            if self.lost.load(Ordering::SeqCst) {
+                anyhow::bail!("cpal mixer thread is not available");
+            }
+            Ok(())
+        }
+        fn stop(self: Box<Self>) -> Result<()> {
+            Ok(())
+        }
+    }
+
+    impl AudioEngine for LosingEngine {
+        fn start(&self, input_path: &str) -> Result<Box<dyn Playback>> {
+            self.start_at(input_path, 0)
+        }
+
+        fn start_at(&self, input_path: &str, position_ms: i64) -> Result<Box<dyn Playback>> {
+            // A start opens a new output, as the retrying engine does.
+            self.lost.store(false, Ordering::SeqCst);
+            self.starts
+                .lock()
+                .unwrap()
+                .push((input_path.to_string(), position_ms));
+            Ok(Box::new(LosingPlayback {
+                lost: Arc::clone(&self.lost),
+            }))
+        }
+
+        fn output_available(&self) -> bool {
+            !self.lost.load(Ordering::SeqCst)
+        }
+    }
+
+    #[test]
+    fn a_lost_output_pauses_the_player_and_play_resumes_on_a_new_one() {
+        use crate::carnine::AudioEventType;
+
+        let lost = Arc::new(AtomicBool::new(false));
+        let starts = StartLog::default();
+        let player = MediaPlayer::with_engine(Box::new(LosingEngine {
+            lost: Arc::clone(&lost),
+            starts: Arc::clone(&starts),
+        }));
+        player
+            .play_playlist(
+                7,
+                vec![(11, "/music/first.mp3".to_string())],
+                Some(11),
+                42_000,
+                "auto-play",
+            )
+            .expect("playlist should start");
+        player.execute("pause", "").expect("pause should work");
+        player.execute("play", "").expect("resume should work");
+        let mut audio_events = player.audio_event_sender().subscribe();
+        assert!(!player.handle_output_lost(), "nothing lost yet");
+
+        lost.store(true, Ordering::SeqCst);
+
+        assert!(player.handle_output_lost());
+        assert_eq!(player.state(), "paused");
+        let frozen = player.position_ms();
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        assert_eq!(player.position_ms(), frozen, "the position must stop");
+        assert_eq!(
+            audio_events.try_recv().expect("an audio error").event,
+            AudioEventType::AudioError as i32
+        );
+
+        player
+            .execute("play", "")
+            .expect("play resumes on a new output");
+
+        assert_eq!(player.state(), "playing");
+        assert_eq!(
+            last_start(&starts),
+            ("/music/first.mp3".to_string(), frozen)
+        );
     }
 
     #[test]
