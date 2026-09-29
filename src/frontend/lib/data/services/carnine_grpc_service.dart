@@ -29,9 +29,6 @@ class CarnineGrpcService implements UiStateStore {
         throw StateError(response.message);
       }
       _logger.info('Backend acknowledged UI readiness');
-    } catch (error, stackTrace) {
-      _logger.severe('Could not report UI readiness', error, stackTrace);
-      rethrow;
     } finally {
       await channel.shutdown();
     }
