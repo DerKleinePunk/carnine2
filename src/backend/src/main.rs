@@ -338,7 +338,7 @@ impl MediaServiceImpl {
         cover_cache_dir: PathBuf,
     ) -> Result<Self> {
         let service = Self::from_player(
-            MediaPlayer::new()?,
+            MediaPlayer::new(),
             database_path,
             media_folders,
             supported_formats,
@@ -684,9 +684,13 @@ impl ConfigService for ConfigServiceImpl {
     }
 }
 
+/// Whether the player has an output device; asked for each new event stream.
+type OutputAvailable = Arc<dyn Fn() -> bool + Send + Sync>;
+
 pub struct AudioServiceImpl {
     events: broadcast::Sender<AudioEvent>,
     volume: Arc<audio_volume::AudioVolume>,
+    output_available: OutputAvailable,
 }
 
 impl AudioServiceImpl {
@@ -698,14 +702,20 @@ impl AudioServiceImpl {
             Arc::new(audio_volume::AudioVolume::new(PathBuf::from(
                 "/var/lib/carnine/audio-volume",
             ))),
+            Arc::new(|| true),
         )
     }
 
     fn with_events(
         events: broadcast::Sender<AudioEvent>,
         volume: Arc<audio_volume::AudioVolume>,
+        output_available: OutputAvailable,
     ) -> Self {
-        Self { events, volume }
+        Self {
+            events,
+            volume,
+            output_available,
+        }
     }
 
     pub fn publish(&self, event: AudioEventType, message: impl Into<String>) {
@@ -1179,9 +1189,18 @@ impl AudioService for AudioServiceImpl {
         &self,
         _request: Request<Empty>,
     ) -> Result<Response<Self::StreamAudioEventsStream>, Status> {
-        let snapshot = tokio_stream::once(Ok(AudioEvent {
-            event: AudioEventType::AudioReady as i32,
-            message: "audio ready".to_string(),
+        // A client that connects while there is no output device learns it
+        // right away, not only on its first failed play (#55).
+        let snapshot = tokio_stream::once(Ok(if (self.output_available)() {
+            AudioEvent {
+                event: AudioEventType::AudioReady as i32,
+                message: "audio ready".to_string(),
+            }
+        } else {
+            AudioEvent {
+                event: AudioEventType::AudioError as i32,
+                message: "no audio output available".to_string(),
+            }
         }));
         let updates = tokio_stream::wrappers::BroadcastStream::new(self.events.subscribe())
             .filter_map(|event| async move { event.ok().map(Ok) });
@@ -1522,6 +1541,10 @@ async fn main() -> Result<()> {
         .add_service(AudioServiceServer::new(AudioServiceImpl::with_events(
             media_service.player.audio_event_sender(),
             Arc::clone(&audio_volume),
+            {
+                let player = Arc::clone(&media_service.player);
+                Arc::new(move || player.audio_output_available())
+            },
         )))
         .add_service(ConfigServiceServer::new(config_service))
         .add_service(carnine::system_service_server::SystemServiceServer::new(
@@ -2488,6 +2511,30 @@ mod tests {
             .expect("scan event should be valid");
         assert_eq!(event.event, LibraryEventType::LibraryScanStarted as i32);
         let _ = std::fs::remove_dir_all(folder);
+    }
+
+    #[tokio::test]
+    async fn audio_event_stream_starts_with_an_error_without_an_output_device() {
+        let (events, _) = tokio::sync::broadcast::channel(32);
+        let service = AudioServiceImpl::with_events(
+            events,
+            Arc::new(crate::audio_volume::AudioVolume::new(PathBuf::from(
+                "/var/lib/carnine/audio-volume",
+            ))),
+            Arc::new(|| false),
+        );
+        let mut events = service
+            .stream_audio_events(Request::new(Empty {}))
+            .await
+            .expect("audio events should open")
+            .into_inner();
+
+        let snapshot = events
+            .next()
+            .await
+            .expect("audio snapshot should arrive")
+            .expect("audio snapshot should be valid");
+        assert_eq!(snapshot.event, AudioEventType::AudioError as i32);
     }
 
     #[tokio::test]

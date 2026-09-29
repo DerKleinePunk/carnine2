@@ -7,7 +7,7 @@ use rand::seq::SliceRandom;
 use rand::thread_rng;
 use tokio::sync::broadcast;
 
-use crate::audio_engine::{AudioEngine, Playback};
+use crate::audio_engine::{AudioEngine, AudioOutputUnavailable, Playback, RetryingAudioEngine};
 use crate::carnine::{
     AudioEvent, AudioEventType, PlayerEvent, PlayerEventType, PlayerState, RepeatMode,
 };
@@ -111,10 +111,38 @@ impl MediaPlayer {
         duration
     }
 
-    /// Builds the sole production player, backed by `cpal`. Fallible because
-    /// `cpal` opens the system's default output device eagerly.
-    pub fn new() -> Result<Self> {
-        Ok(Self::with_state(Box::new(CpalAudioEngine::new()?)))
+    /// Builds the sole production player, backed by `cpal`. `cpal` opens
+    /// the default output device eagerly; without one the player still
+    /// comes up and retries on the next start (#55).
+    pub fn new() -> Self {
+        Self::with_state(Box::new(RetryingAudioEngine::new(Box::new(|| {
+            Ok(Box::new(CpalAudioEngine::new()?) as Box<dyn AudioEngine>)
+        }))))
+    }
+
+    /// False while there is no output device to play on.
+    pub fn audio_output_available(&self) -> bool {
+        self.engine.output_available()
+    }
+
+    /// Starts `input_path` on the engine; `None` starts at the beginning.
+    /// A missing output device is also reported as an audio error, which is
+    /// what the UI shows a hint for.
+    fn start_engine(
+        &self,
+        input_path: &str,
+        position_ms: Option<i64>,
+    ) -> Result<Box<dyn Playback>> {
+        let started = match position_ms {
+            Some(position_ms) => self.engine.start_at(input_path, position_ms),
+            None => self.engine.start(input_path),
+        };
+        if let Err(error) = &started {
+            if let Some(unavailable) = error.downcast_ref::<AudioOutputUnavailable>() {
+                self.publish_audio(AudioEventType::AudioError, unavailable.to_string());
+            }
+        }
+        started
     }
 
     /// Injects a fake engine; the tests are the only callers.
@@ -478,7 +506,7 @@ impl MediaPlayer {
     }
 
     fn start_path_at(&self, input_path: &str, position_ms: i64) -> Result<String> {
-        let started_playback = self.engine.start_at(input_path, position_ms)?;
+        let started_playback = self.start_engine(input_path, Some(position_ms))?;
         *self
             .playback
             .lock()
@@ -540,7 +568,7 @@ impl MediaPlayer {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
         if matches!(state, PlaybackState::Playing) {
-            match self.engine.start_at(&path, target_ms) {
+            match self.start_engine(&path, Some(target_ms)) {
                 Ok(started_playback) => {
                     *self
                         .playback
@@ -622,7 +650,7 @@ impl MediaPlayer {
             .get(target_index)
             .cloned()
             .with_context(|| format!("queue index out of range: {target_index}"))?;
-        let started_playback = self.engine.start(&next_path)?;
+        let started_playback = self.start_engine(&next_path, None)?;
         *self
             .playback
             .lock()
@@ -877,6 +905,32 @@ mod tests {
 
     fn player() -> MediaPlayer {
         player_with_finish_control().0
+    }
+
+    #[test]
+    fn without_an_output_device_play_fails_and_reports_an_audio_error() {
+        use crate::audio_engine::RetryingAudioEngine;
+        use crate::carnine::AudioEventType;
+
+        let player = MediaPlayer::with_engine(Box::new(RetryingAudioEngine::new(Box::new(|| {
+            Err(anyhow::anyhow!("snd_pcm_open failed"))
+        }))));
+        let mut audio_events = player.audio_event_sender().subscribe();
+        let track =
+            std::env::temp_dir().join(format!("carnine-no-output-test-{}.mp3", std::process::id()));
+        std::fs::write(&track, b"").expect("test track should be writable");
+
+        assert!(!player.audio_output_available());
+        let error = player
+            .execute("play", &track.to_string_lossy())
+            .expect_err("play must fail without a device");
+        let _ = std::fs::remove_file(&track);
+        assert!(format!("{error:#}").contains("no audio output available"));
+        let event = audio_events
+            .try_recv()
+            .expect("an audio error is published");
+        assert_eq!(event.event, AudioEventType::AudioError as i32);
+        assert!(player.shutdown_output().is_ok());
     }
 
     struct FakePlayback {
