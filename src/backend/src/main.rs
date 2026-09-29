@@ -252,6 +252,10 @@ pub struct MediaServiceImpl {
     /// connect later so that the UI can tell the user to install ffmpeg.
     media_tools_missing: Arc<AtomicBool>,
     media_tools_probe: fn() -> bool,
+    /// Set while the backend shuts down: running scans and imports stop after
+    /// the current file instead of keeping the process alive until systemd
+    /// kills it (#43).
+    scan_cancel: Arc<AtomicBool>,
 }
 
 pub struct ConfigServiceImpl {
@@ -307,6 +311,7 @@ impl MediaServiceImpl {
             pending_music_volume: Arc::new(Mutex::new(None)),
             media_tools_missing: Arc::new(AtomicBool::new(false)),
             media_tools_probe: database::media_tools_available,
+            scan_cancel: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -439,6 +444,11 @@ impl MediaServiceImpl {
         Ok(())
     }
 
+    /// Makes running scans and imports stop after the current file.
+    fn cancel_scans(&self) {
+        self.scan_cancel.store(true, Ordering::Relaxed);
+    }
+
     fn scan_events(&self) -> anyhow::Result<Vec<LibraryEvent>> {
         let database = database::Database::open(&self.database_path)?;
         let scan_id = self.next_scan_id.fetch_add(1, Ordering::Relaxed);
@@ -453,7 +463,15 @@ impl MediaServiceImpl {
         let mut processed = 0_u64;
         let mut imported = 0_u64;
         for folder in &self.media_folders {
-            match database.rescan_folder(folder, &self.supported_formats, &self.cover_cache_dir) {
+            if self.scan_cancel.load(Ordering::Relaxed) {
+                break;
+            }
+            match database.rescan_folder(
+                folder,
+                &self.supported_formats,
+                &self.cover_cache_dir,
+                &self.scan_cancel,
+            ) {
                 Ok(count) => {
                     imported += count as u64;
                     processed += count as u64;
@@ -586,6 +604,9 @@ impl MediaServiceImpl {
         }];
         let mut cover_copied_dirs = std::collections::HashSet::new();
         for (index, source_file) in files.iter().enumerate() {
+            if self.scan_cancel.load(Ordering::Relaxed) {
+                bail!("import from {} cancelled", source_path.display());
+            }
             let relative_path = source_file
                 .strip_prefix(&source_path)
                 .context("music file is outside the mounted source")?;
@@ -1567,6 +1588,7 @@ async fn main() -> Result<()> {
     tokio::select! {
         result = &mut server => result?,
         _ = shutdown_signal() => {
+            media_service.cancel_scans();
             if let Err(error) = media_service.save_resume_state() {
                 warn!(%error, "failed to save resume state during shutdown");
             }

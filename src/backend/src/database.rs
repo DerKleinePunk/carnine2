@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use anyhow::{Context, Result};
 use rusqlite::{params, Connection};
@@ -557,13 +558,22 @@ impl Database {
         })
     }
 
+    /// Stops after the current file once `cancel` is set, e.g. while the
+    /// backend shuts down, and then leaves every status as it was.
     pub fn rescan_folder(
         &self,
         folder: &Path,
         supported_formats: &[String],
         cover_cache_dir: &Path,
+        cancel: &AtomicBool,
     ) -> Result<usize> {
-        self.rescan_folder_with(folder, supported_formats, cover_cache_dir, &ToolReader)
+        self.rescan_folder_with(
+            folder,
+            supported_formats,
+            cover_cache_dir,
+            &ToolReader,
+            cancel,
+        )
     }
 
     /// The scan behind [`Self::rescan_folder`], with the ffprobe/ffmpeg calls
@@ -582,6 +592,7 @@ impl Database {
         supported_formats: &[String],
         cover_cache_dir: &Path,
         reader: &dyn MediaReader,
+        cancel: &AtomicBool,
     ) -> Result<usize> {
         let source_uri = folder.to_string_lossy().into_owned();
         let source_id = self.upsert_source(&source_uri, "AVAILABLE")?;
@@ -589,6 +600,9 @@ impl Database {
         let mut known = self.scanned_media_by_path(source_id)?;
         let mut unchanged_ids = Vec::new();
         for path in &discovered {
+            if cancel.load(Ordering::Relaxed) {
+                anyhow::bail!("scan of {} cancelled", folder.display());
+            }
             let path_text = path.to_string_lossy().into_owned();
             let fingerprint = FileFingerprint::of(path);
             if let Some((id, stored)) = known.remove(&path_text) {
@@ -823,13 +837,16 @@ mod tests {
     };
     use std::cell::{Cell, RefCell};
     use std::path::{Path, PathBuf};
+    use std::sync::atomic::{AtomicBool, Ordering};
 
-    /// Counts reads; fails for paths in `fail`, panics at `panic_at`.
+    /// Counts reads; fails for paths in `fail`, panics at `panic_at`, and
+    /// sets `cancel_after_first` once the first file was read.
     #[derive(Default)]
     struct CountingReader {
         reads: RefCell<Vec<String>>,
         fail: RefCell<Vec<String>>,
         panic_at: Cell<Option<usize>>,
+        cancel_after_first: Option<std::sync::Arc<AtomicBool>>,
     }
 
     impl CountingReader {
@@ -847,6 +864,9 @@ mod tests {
                 panic!("scan aborted at {name}");
             }
             self.reads.borrow_mut().push(name.clone());
+            if let Some(cancel) = &self.cancel_after_first {
+                cancel.store(true, Ordering::Relaxed);
+            }
             if self.fail.borrow().contains(&name) {
                 anyhow::bail!("ffprobe failed for {name}");
             }
@@ -883,7 +903,13 @@ mod tests {
 
     fn rescan(database: &Database, folder: &Path, reader: &CountingReader) -> usize {
         database
-            .rescan_folder_with(folder, &["mp3".to_string()], folder, reader)
+            .rescan_folder_with(
+                folder,
+                &["mp3".to_string()],
+                folder,
+                reader,
+                &AtomicBool::new(false),
+            )
             .expect("rescan should succeed")
     }
 
@@ -956,6 +982,34 @@ mod tests {
         for name in ["a.mp3", "b.mp3", "c.mp3"] {
             assert_eq!(status_of(&database, &format!("Title {name}")), "AVAILABLE");
         }
+        let _ = std::fs::remove_dir_all(folder);
+    }
+
+    #[test]
+    fn a_cancelled_scan_stops_after_the_current_file_and_changes_no_status() {
+        let folder = scan_folder(
+            "rescan-cancelled",
+            &[("a.mp3", b"aa"), ("b.mp3", b"bb"), ("c.mp3", b"cc")],
+        );
+        let database = Database::open(":memory:").expect("database should open");
+        rescan(&database, &folder, &CountingReader::default());
+        for (file, content) in [("a.mp3", "aaa"), ("b.mp3", "bbb"), ("c.mp3", "ccc")] {
+            std::fs::write(folder.join(file), content).expect("file should change");
+        }
+        std::fs::remove_file(folder.join("c.mp3")).expect("file should be removed");
+        let cancel = std::sync::Arc::new(AtomicBool::new(false));
+        let reader = CountingReader {
+            cancel_after_first: Some(cancel.clone()),
+            ..Default::default()
+        };
+
+        let result =
+            database.rescan_folder_with(&folder, &["mp3".to_string()], &folder, &reader, &cancel);
+
+        assert!(result.is_err());
+        assert_eq!(reader.read_names().len(), 1);
+        // c.mp3 is gone, but a cancelled scan must not decide that.
+        assert_eq!(status_of(&database, "Title c.mp3"), "AVAILABLE");
         let _ = std::fs::remove_dir_all(folder);
     }
 
@@ -1134,14 +1188,14 @@ mod tests {
         let formats = ["mp3".to_string(), "ogg".to_string()];
         assert_eq!(
             database
-                .rescan_folder(&folder, &formats, &cover_cache_dir)
+                .rescan_folder(&folder, &formats, &cover_cache_dir, &AtomicBool::new(false))
                 .expect("rescan should succeed"),
             2
         );
         std::fs::remove_file(&first_file).expect("first file should be removed");
         assert_eq!(
             database
-                .rescan_folder(&folder, &formats, &cover_cache_dir)
+                .rescan_folder(&folder, &formats, &cover_cache_dir, &AtomicBool::new(false))
                 .expect("second rescan should succeed"),
             1
         );
