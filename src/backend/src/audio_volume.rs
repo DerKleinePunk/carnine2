@@ -9,6 +9,8 @@ use tracing::{info, warn};
 const MIXER_CARD: &str = "0";
 const MIXER_CONTROL: &str = "PCM";
 const PACTL_SINK: &str = "@DEFAULT_SINK@";
+const RESTORE_RETRY_DELAY: std::time::Duration = std::time::Duration::from_secs(1);
+
 /// Used whenever there is no saved value (#61). Deliberately moderate:
 /// behind a car amplifier, 100 % is far too loud.
 const FALLBACK_PERCENT: u8 = 50;
@@ -79,10 +81,16 @@ impl AudioVolume {
 
     pub fn start(&self) {
         let percent = self.current();
-        if let Err(error) = self.apply(percent) {
-            warn!(%error, percent, "failed to restore audio volume");
-        } else {
-            info!(percent, "audio volume restored");
+        // On a fresh image's first boot `amixer set` once failed while `get`
+        // worked (#61); one retry covers a mixer that is not ready yet.
+        let result = self.apply(percent).or_else(|error| {
+            warn!(%error, percent, "failed to restore audio volume, retrying in 1 s");
+            std::thread::sleep(RESTORE_RETRY_DELAY);
+            self.apply(percent)
+        });
+        match result {
+            Ok(()) => info!(percent, "audio volume restored"),
+            Err(error) => warn!(%error, percent, "failed to restore audio volume"),
         }
     }
 
@@ -151,7 +159,7 @@ fn write_state(path: &Path, percent: u8) -> Result<()> {
 }
 
 fn apply_amixer(percent: u8) -> Result<()> {
-    let status = Command::new("amixer")
+    let output = Command::new("amixer")
         .args([
             "-c",
             MIXER_CARD,
@@ -159,12 +167,24 @@ fn apply_amixer(percent: u8) -> Result<()> {
             MIXER_CONTROL,
             &format!("{percent}%"),
         ])
-        .status()
+        .output()
         .context("failed to start amixer")?;
-    if !status.success() {
-        bail!("amixer exited with {status}");
+    check_tool("amixer", &output)
+}
+
+/// Fails with the tool's own message: its stderr went only to the journal,
+/// which lives in RAM and was gone when a first-boot failure was looked at
+/// (#61).
+fn check_tool(tool: &str, output: &std::process::Output) -> Result<()> {
+    if output.status.success() {
+        return Ok(());
     }
-    Ok(())
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let message = stderr.trim();
+    if message.is_empty() {
+        bail!("{tool} exited with {}", output.status);
+    }
+    bail!("{tool} exited with {}: {message}", output.status)
 }
 
 fn read_amixer_percent() -> Result<u8> {
@@ -180,14 +200,11 @@ fn read_amixer_percent() -> Result<u8> {
 }
 
 fn apply_pactl(percent: u8) -> Result<()> {
-    let status = Command::new("pactl")
+    let output = Command::new("pactl")
         .args(["set-sink-volume", PACTL_SINK, &format!("{percent}%")])
-        .status()
+        .output()
         .context("failed to start pactl")?;
-    if !status.success() {
-        bail!("pactl exited with {status}");
-    }
-    Ok(())
+    check_tool("pactl", &output)
 }
 
 fn read_pactl_percent() -> Result<u8> {
@@ -224,7 +241,42 @@ fn parse_first_percent(text: &str) -> Option<u8> {
 
 #[cfg(test)]
 mod tests {
-    use super::{initial_percent, parse_first_percent, select_backend, VolumeBackend};
+    use super::{check_tool, initial_percent, parse_first_percent, select_backend, VolumeBackend};
+
+    fn run(script: &str) -> std::process::Output {
+        std::process::Command::new("sh")
+            .args(["-c", script])
+            .output()
+            .expect("sh should run")
+    }
+
+    #[test]
+    fn a_failing_tool_reports_its_own_message() {
+        let error = check_tool(
+            "amixer",
+            &run("echo \"amixer: Unable to find simple control 'PCM',0\" >&2; exit 1"),
+        )
+        .expect_err("exit 1 must fail");
+
+        let message = format!("{error:#}");
+        assert!(
+            message.contains("Unable to find simple control 'PCM',0"),
+            "{message}"
+        );
+        assert!(message.contains("exit status: 1"), "{message}");
+    }
+
+    #[test]
+    fn a_silent_failure_still_names_the_exit_status() {
+        let error = check_tool("pactl", &run("exit 3")).expect_err("exit 3 must fail");
+
+        assert_eq!(format!("{error:#}"), "pactl exited with exit status: 3");
+    }
+
+    #[test]
+    fn a_successful_tool_passes() {
+        assert!(check_tool("amixer", &run("echo ok; exit 0")).is_ok());
+    }
 
     #[test]
     fn the_saved_volume_wins_even_when_muted() {
