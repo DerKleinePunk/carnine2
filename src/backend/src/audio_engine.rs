@@ -85,6 +85,15 @@ impl RetryingAudioEngine {
             .engine
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
+        // An output that failed while running (#59) is replaced like a
+        // missing one.
+        if engine
+            .as_ref()
+            .is_some_and(|opened| !opened.output_available())
+        {
+            warn!("audio output failed, opening a new one");
+            *engine = None;
+        }
         if engine.is_none() {
             match (self.factory)() {
                 Ok(opened) => {
@@ -125,7 +134,8 @@ impl AudioEngine for RetryingAudioEngine {
         self.engine
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .is_some()
+            .as_ref()
+            .is_some_and(|engine| engine.output_available())
     }
 }
 
@@ -198,6 +208,49 @@ mod tests {
         };
         assert!(error.downcast_ref::<AudioOutputUnavailable>().is_some());
         assert!(engine.shutdown().is_ok());
+    }
+
+    /// Plays, until `broken` is set: then it reports no output, like a
+    /// cpal engine whose stream failed.
+    struct BreakableEngine {
+        broken: Arc<AtomicBool>,
+    }
+
+    impl AudioEngine for BreakableEngine {
+        fn start(&self, _input_path: &str) -> Result<Box<dyn Playback>> {
+            if self.broken.load(Ordering::SeqCst) {
+                return Err(anyhow!("stream failed"));
+            }
+            Ok(Box::new(SilentPlayback))
+        }
+
+        fn output_available(&self) -> bool {
+            !self.broken.load(Ordering::SeqCst)
+        }
+    }
+
+    #[test]
+    fn an_output_that_fails_while_running_is_replaced_on_the_next_start() {
+        let calls = Arc::new(AtomicUsize::new(0));
+        let broken = Arc::new(AtomicBool::new(false));
+        let factory_calls = calls.clone();
+        let factory_broken = broken.clone();
+        let engine = RetryingAudioEngine::new(Box::new(move || {
+            factory_calls.fetch_add(1, Ordering::SeqCst);
+            // Every new engine starts healthy; the shared flag is reset.
+            factory_broken.store(false, Ordering::SeqCst);
+            Ok(Box::new(BreakableEngine {
+                broken: factory_broken.clone(),
+            }) as Box<dyn AudioEngine>)
+        }));
+        assert!(engine.start("/music/a.mp3").is_ok());
+
+        broken.store(true, Ordering::SeqCst);
+        assert!(!engine.output_available());
+
+        assert!(engine.start("/music/b.mp3").is_ok());
+        assert!(engine.output_available());
+        assert_eq!(calls.load(Ordering::SeqCst), 2);
     }
 
     #[test]

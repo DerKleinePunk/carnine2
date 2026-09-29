@@ -19,7 +19,6 @@ use tokio::sync::broadcast;
 use tokio::sync::oneshot;
 use tonic::{transport::Server, Request, Response, Status};
 use tracing::{debug, error, info, warn};
-use tracing_appender::rolling;
 use tracing_subscriber::prelude::*;
 
 pub mod carnine {
@@ -38,6 +37,7 @@ mod navigation;
 mod power_supply;
 mod serial_line;
 mod server_transport;
+mod size_capped_log;
 mod storage_events;
 mod system_metrics;
 
@@ -1448,7 +1448,17 @@ async fn main() -> Result<()> {
             configuration.logging.directory.display()
         )
     })?;
-    let file_appender = rolling::never(&configuration.logging.directory, "backend.log");
+    // Size-capped, not `rolling::never`: an error burst once wrote 12-15 GB (#59).
+    let file_appender = size_capped_log::SizeCappedFile::open(
+        configuration.logging.directory.join("backend.log"),
+        size_capped_log::MAX_LOG_BYTES,
+    )
+    .with_context(|| {
+        format!(
+            "cannot open the backend log in {}",
+            configuration.logging.directory.display()
+        )
+    })?;
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
 
     let console_layer = tracing_subscriber::fmt::layer()

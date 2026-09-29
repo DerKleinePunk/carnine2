@@ -7,6 +7,13 @@ const MAX_SOURCES: usize = 8;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SourceId(usize);
 
+#[cfg(test)]
+impl SourceId {
+    pub(crate) fn for_test(id: usize) -> Self {
+        Self(id)
+    }
+}
+
 struct AudioSource {
     samples: Option<Vec<f32>>,
     consumer: Option<HeapCons<f32>>,

@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use crate::audio_engine::{AudioEngine, Playback};
 use crate::audio_mixer::{AudioMixer, SourceId, CHANNELS};
@@ -31,10 +31,44 @@ enum MixerCommand {
     },
 }
 
+/// The output stream, taken out and dropped once it failed (#59).
+type StreamSlot = Arc<Mutex<Option<cpal::Stream>>>;
+
+/// Remembers that the output stream failed.
+///
+/// After an xrun (e.g. the process was stopped, HDMI dropped out) cpal's ALSA
+/// worker reports `POLLERR` to the error callback in a tight loop. Logging
+/// each call filled 12-15 GB of log within the hour and kept a core busy,
+/// and the stream never played again (#59). Only the first error is logged;
+/// the stream is then dropped and the engine reports no output, so the
+/// retrying engine opens a new one on the next start.
+#[derive(Debug, Default)]
+pub(crate) struct StreamFault {
+    broken: AtomicBool,
+    errors: AtomicU64,
+}
+
+impl StreamFault {
+    /// Counts an error; true only for the first one.
+    pub(crate) fn record(&self) -> bool {
+        self.errors.fetch_add(1, Ordering::Relaxed);
+        !self.broken.swap(true, Ordering::AcqRel)
+    }
+
+    pub(crate) fn is_broken(&self) -> bool {
+        self.broken.load(Ordering::Acquire)
+    }
+
+    pub(crate) fn errors(&self) -> u64 {
+        self.errors.load(Ordering::Relaxed)
+    }
+}
+
 #[derive(Clone)]
 pub struct CpalAudioEngine {
     command_sender: Sender<MixerCommand>,
-    _stream: Arc<Mutex<cpal::Stream>>,
+    stream: StreamSlot,
+    fault: Arc<StreamFault>,
     sample_rate: u32,
 }
 
@@ -51,6 +85,8 @@ impl CpalAudioEngine {
         let channels = supported.channels() as usize;
         let (command_sender, command_receiver) = mpsc::channel();
         let mixer = AudioMixer::new(sample_rate, FADE_MILLISECONDS);
+        let slot: StreamSlot = Arc::new(Mutex::new(None));
+        let fault = Arc::new(StreamFault::default());
         let stream = build_stream(
             &device,
             &supported.config(),
@@ -58,6 +94,7 @@ impl CpalAudioEngine {
             channels,
             mixer,
             command_receiver,
+            stream_error_handler(Arc::clone(&fault), Arc::clone(&slot)),
         )?;
         stream
             .play()
@@ -68,11 +105,43 @@ impl CpalAudioEngine {
             sample_format = ?supported.sample_format(),
             "cpal audio output stream started"
         );
+        *slot.lock().unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(stream);
         Ok(Self {
             command_sender,
-            _stream: Arc::new(Mutex::new(stream)),
+            stream: slot,
+            fault,
             sample_rate,
         })
+    }
+}
+
+/// The cpal error callback: logs the first error, then drops the stream on
+/// a thread of its own - dropping it joins cpal's worker, which is the
+/// thread running this callback - so the error loop stops.
+fn stream_error_handler(
+    fault: Arc<StreamFault>,
+    slot: StreamSlot,
+) -> impl FnMut(cpal::StreamError) + Send + 'static {
+    move |stream_error| {
+        if !fault.record() {
+            return;
+        }
+        error!(
+            error = %stream_error,
+            "cpal audio output stream failed; dropping it, the next start opens a new one"
+        );
+        let slot = Arc::clone(&slot);
+        let fault = Arc::clone(&fault);
+        let _ = thread::Builder::new()
+            .name("cpal-stream-drop".to_string())
+            .spawn(move || {
+                let stream = slot
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner())
+                    .take();
+                drop(stream);
+                warn!(errors = fault.errors(), "cpal audio output stream dropped");
+            });
     }
 }
 
@@ -82,6 +151,9 @@ impl AudioEngine for CpalAudioEngine {
     }
 
     fn start_at(&self, input_path: &str, position_ms: i64) -> Result<Box<dyn Playback>> {
+        if self.fault.is_broken() {
+            anyhow::bail!("cpal audio output stream failed and was dropped");
+        }
         let (source, consumer) = ExternalPcmSource::start_at(
             input_path,
             self.sample_rate,
@@ -120,13 +192,22 @@ impl AudioEngine for CpalAudioEngine {
     }
 
     fn shutdown(&self) -> Result<()> {
-        self._stream
+        let stream = self
+            .stream
             .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let Some(stream) = stream.as_ref() else {
+            return Ok(());
+        };
+        stream
             .pause()
             .context("failed to pause cpal output stream")?;
         info!("cpal audio output stream paused for shutdown");
         Ok(())
+    }
+
+    fn output_available(&self) -> bool {
+        !self.fault.is_broken()
     }
 }
 
@@ -162,18 +243,24 @@ impl Playback for CpalPlayback {
 
     fn stop(mut self: Box<Self>) -> Result<()> {
         info!(source_id = ?self.source_id, "cpal audio source stop requested");
-        self.command_sender
+        // Without a mixer - the stream failed and was dropped (#59) - there
+        // is nothing to fade or remove, but the decoder must still stop, or
+        // every later start would fail on stopping this playback first.
+        let mixer_alive = self
+            .command_sender
             .send(MixerCommand::SetGain {
                 source_id: self.source_id,
                 gain: 0.0,
             })
-            .map_err(|_| anyhow::anyhow!("cpal mixer thread is not available"))?;
-        thread::sleep(Duration::from_millis(FADE_MILLISECONDS as u64));
-        self.command_sender
-            .send(MixerCommand::Remove {
+            .is_ok();
+        if mixer_alive {
+            thread::sleep(Duration::from_millis(FADE_MILLISECONDS as u64));
+            let _ = self.command_sender.send(MixerCommand::Remove {
                 source_id: self.source_id,
-            })
-            .map_err(|_| anyhow::anyhow!("cpal mixer thread is not available"))?;
+            });
+        } else {
+            warn!(source_id = ?self.source_id, "cpal mixer is gone, stopping the decoder only");
+        }
         if let Some(source) = self.source.take() {
             let decoded_samples = source.stop()?;
             info!(
@@ -201,16 +288,17 @@ fn build_stream(
     channels: usize,
     mixer: AudioMixer,
     command_receiver: Receiver<MixerCommand>,
+    on_error: impl FnMut(cpal::StreamError) + Send + 'static,
 ) -> Result<cpal::Stream> {
     match sample_format {
         cpal::SampleFormat::F32 => {
-            build_typed_stream::<f32>(device, config, channels, mixer, command_receiver)
+            build_typed_stream::<f32>(device, config, channels, mixer, command_receiver, on_error)
         }
         cpal::SampleFormat::I16 => {
-            build_typed_stream::<i16>(device, config, channels, mixer, command_receiver)
+            build_typed_stream::<i16>(device, config, channels, mixer, command_receiver, on_error)
         }
         cpal::SampleFormat::U16 => {
-            build_typed_stream::<u16>(device, config, channels, mixer, command_receiver)
+            build_typed_stream::<u16>(device, config, channels, mixer, command_receiver, on_error)
         }
         format => anyhow::bail!("unsupported output sample format: {format:?}"),
     }
@@ -222,6 +310,7 @@ fn build_typed_stream<T>(
     channels: usize,
     mut mixer: AudioMixer,
     command_receiver: Receiver<MixerCommand>,
+    on_error: impl FnMut(cpal::StreamError) + Send + 'static,
 ) -> Result<cpal::Stream>
 where
     T: cpal::SizedSample + cpal::FromSample<f32>,
@@ -267,7 +356,56 @@ where
                 }
             }
         },
-        |error| error!(error = %error, "cpal audio output stream error"),
+        on_error,
         None,
     )?)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::mpsc;
+    use std::sync::{Arc, Mutex};
+
+    use super::{stream_error_handler, CpalPlayback, StreamFault};
+    use crate::audio_engine::Playback;
+    use crate::audio_mixer::SourceId;
+
+    #[test]
+    fn only_the_first_stream_error_counts_as_new() {
+        let fault = StreamFault::default();
+
+        assert!(!fault.is_broken());
+        assert!(fault.record());
+        assert!(!fault.record());
+        assert!(!fault.record());
+
+        assert!(fault.is_broken());
+        assert_eq!(fault.errors(), 3);
+    }
+
+    #[test]
+    fn the_error_handler_marks_the_output_broken_on_a_burst_of_errors() {
+        let fault = Arc::new(StreamFault::default());
+        let mut handler = stream_error_handler(Arc::clone(&fault), Arc::new(Mutex::new(None)));
+
+        for _ in 0..10_000 {
+            handler(cpal::StreamError::DeviceNotAvailable);
+        }
+
+        assert!(fault.is_broken());
+        assert_eq!(fault.errors(), 10_000);
+    }
+
+    #[test]
+    fn a_playback_stops_even_when_the_mixer_is_gone() {
+        let (command_sender, command_receiver) = mpsc::channel();
+        drop(command_receiver);
+        let playback = Box::new(CpalPlayback {
+            command_sender,
+            source_id: SourceId::for_test(0),
+            source: None,
+        });
+
+        assert!(playback.stop().is_ok());
+    }
 }
