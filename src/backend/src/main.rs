@@ -662,6 +662,7 @@ impl ConfigService for ConfigServiceImpl {
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
             updated.navigation = current.navigation.clone();
             updated.power_supply = current.power_supply.clone();
+            updated.audio.volume_state_path = current.audio.volume_state_path.clone();
         }
         let toml = toml::to_string_pretty(&updated)
             .map_err(|error| Status::internal(error.to_string()))?;
@@ -1280,6 +1281,8 @@ fn configuration_from_proto(configuration: &Configuration) -> Result<config::Con
         },
         audio: config::AudioConfig {
             navigation_interrupt: configuration.navigation_interrupt.clone(),
+            // Not in the Configuration message either; carried over as well.
+            volume_state_path: config::default_volume_state_path(),
         },
         logging: config::LoggingConfig {
             directory: PathBuf::from(&configuration.log_directory),
@@ -1479,9 +1482,9 @@ async fn main() -> Result<()> {
         configuration.media.resume_mode.clone(),
         configuration.media.cover_cache_dir.clone(),
     )?;
-    let audio_volume = Arc::new(audio_volume::AudioVolume::new(PathBuf::from(
-        "/var/lib/carnine/audio-volume",
-    )));
+    let audio_volume = Arc::new(audio_volume::AudioVolume::new(
+        configuration.audio.volume_state_path.clone(),
+    ));
     audio_volume.start();
     media_service.restore_resume_state()?;
     media_service.spawn_resume_saver();
@@ -1689,6 +1692,7 @@ mod tests {
             },
             audio: config::AudioConfig {
                 navigation_interrupt: "pause_music".to_string(),
+                volume_state_path: PathBuf::from("/tmp/carnine-audio-volume"),
             },
             logging: config::LoggingConfig {
                 directory: PathBuf::from("/tmp/carnine-logs"),
@@ -1921,7 +1925,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn update_configuration_keeps_the_navigation_and_power_supply_sections() {
+    async fn update_configuration_keeps_the_sections_the_message_does_not_carry() {
         let path = std::env::temp_dir().join(format!(
             "carnine-config-navigation-test-{}.toml",
             std::process::id()
@@ -1932,6 +1936,7 @@ mod tests {
         current.navigation.replay_file = Some(PathBuf::from("/var/lib/carnine/tour.nmea"));
         current.navigation.map_region = "hessen".to_string();
         current.power_supply.enabled = true;
+        current.audio.volume_state_path = PathBuf::from("/srv/carnine/audio-volume");
         let service = ConfigServiceImpl::new(current, path.clone());
 
         // The settings page sends the Configuration message, which has no
@@ -1952,6 +1957,10 @@ mod tests {
         );
         assert_eq!(saved.navigation.map_region, "hessen");
         assert!(saved.power_supply.enabled);
+        assert_eq!(
+            saved.audio.volume_state_path,
+            PathBuf::from("/srv/carnine/audio-volume")
+        );
         let _ = std::fs::remove_file(path);
     }
 

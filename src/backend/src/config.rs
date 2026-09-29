@@ -83,6 +83,14 @@ pub struct MediaConfig {
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
 pub struct AudioConfig {
     pub navigation_interrupt: String,
+    /// Where the volume survives a restart. Optional: configurations written
+    /// before it existed keep the path that used to be fixed in the code.
+    #[serde(default = "default_volume_state_path")]
+    pub volume_state_path: PathBuf,
+}
+
+pub fn default_volume_state_path() -> PathBuf {
+    PathBuf::from("/var/lib/carnine/audio-volume")
 }
 
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
@@ -255,6 +263,7 @@ impl Config {
                 .iter()
                 .any(|path| path.as_os_str().is_empty())
             || self.media.cover_cache_dir.as_os_str().is_empty()
+            || self.audio.volume_state_path.as_os_str().is_empty()
             || self.logging.directory.as_os_str().is_empty()
         {
             anyhow::bail!("configuration contains an empty path");
@@ -470,6 +479,10 @@ mod tests {
             0o600
         );
         assert_eq!(config.audio.navigation_interrupt, "pause_music");
+        assert_eq!(
+            config.audio.volume_state_path,
+            std::path::PathBuf::from("/var/lib/carnine/audio-volume")
+        );
         assert_eq!(config.system.metrics_interval_seconds, 30);
         assert_eq!(config.system.disk_metrics_interval_seconds, 300);
     }
@@ -528,6 +541,24 @@ mod tests {
     }
 
     #[test]
+    fn keeps_the_old_volume_state_path_when_the_key_is_missing() {
+        let content = std::fs::read_to_string("../../resources/config/carnine.toml")
+            .expect("repository config should be readable");
+        let without_key: String = content
+            .lines()
+            .filter(|line| !line.starts_with("volume_state_path"))
+            .map(|line| format!("{line}\n"))
+            .collect();
+        assert_ne!(without_key, content);
+        let config: Config =
+            toml::from_str(&without_key).expect("a config without the key must stay valid");
+        assert_eq!(
+            config.audio.volume_state_path,
+            std::path::PathBuf::from("/var/lib/carnine/audio-volume")
+        );
+    }
+
+    #[test]
     fn rejects_invalid_runtime_values() {
         let (mut config, _) =
             Config::load_with_env(|_| None).expect("repository config should load");
@@ -548,6 +579,11 @@ mod tests {
         let (mut config, _) =
             Config::load_with_env(|_| None).expect("repository config should load");
         config.system.metrics_interval_seconds = 0;
+        assert!(config.validate().is_err());
+
+        let (mut config, _) =
+            Config::load_with_env(|_| None).expect("repository config should load");
+        config.audio.volume_state_path = std::path::PathBuf::new();
         assert!(config.validate().is_err());
 
         let (mut config, _) =

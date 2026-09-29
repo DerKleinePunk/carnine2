@@ -9,6 +9,9 @@ use tracing::{info, warn};
 const MIXER_CARD: &str = "0";
 const MIXER_CONTROL: &str = "PCM";
 const PACTL_SINK: &str = "@DEFAULT_SINK@";
+/// Used when neither the state file nor the mixer gives a usable value.
+/// Deliberately moderate: behind a car amplifier, 100 % is far too loud.
+const FALLBACK_PERCENT: u8 = 50;
 
 /// Which tool actually controls the audible volume, decided once at startup
 /// and fixed for the process's lifetime (see `AudioVolume::new`).
@@ -58,7 +61,15 @@ impl AudioVolume {
             VolumeBackend::Pactl => pactl_probe.ok(),
             VolumeBackend::Unavailable => None,
         };
-        let percent = read_state(&state_path).or(probed_percent).unwrap_or(100);
+        let saved_percent = read_state(&state_path);
+        if saved_percent.is_none() {
+            warn!(
+                path = %state_path.display(),
+                probed = ?probed_percent,
+                "no saved audio volume, falling back to the mixer or {FALLBACK_PERCENT} %"
+            );
+        }
+        let percent = initial_percent(saved_percent, probed_percent);
         Self {
             state_path,
             backend,
@@ -117,6 +128,15 @@ impl AudioVolume {
             }
         }
     }
+}
+
+/// The saved value wins, even 0 (the user muted on purpose). Without one, a
+/// mixer at 0 is our own mute from the last shutdown, not a choice, so it
+/// must not come back as the volume (#47).
+fn initial_percent(saved: Option<u8>, probed: Option<u8>) -> u8 {
+    saved
+        .or(probed.filter(|percent| *percent > 0))
+        .unwrap_or(FALLBACK_PERCENT)
 }
 
 fn read_state(path: &Path) -> Option<u8> {
@@ -205,7 +225,28 @@ fn parse_first_percent(text: &str) -> Option<u8> {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_first_percent, select_backend, VolumeBackend};
+    use super::{initial_percent, parse_first_percent, select_backend, VolumeBackend};
+
+    #[test]
+    fn the_saved_volume_wins_even_when_muted() {
+        assert_eq!(initial_percent(Some(61), Some(0)), 61);
+        assert_eq!(initial_percent(Some(0), Some(46)), 0);
+    }
+
+    #[test]
+    fn a_missing_file_takes_the_mixer_value() {
+        assert_eq!(initial_percent(None, Some(46)), 46);
+    }
+
+    #[test]
+    fn a_missing_file_does_not_bring_back_the_shutdown_mute() {
+        assert_eq!(initial_percent(None, Some(0)), 50);
+    }
+
+    #[test]
+    fn without_file_and_mixer_the_fallback_is_used() {
+        assert_eq!(initial_percent(None, None), 50);
+    }
 
     #[test]
     fn selects_amixer_when_a_real_alsa_mixer_is_present() {

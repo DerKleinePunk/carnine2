@@ -29,6 +29,9 @@ cover_cache_dir = "/var/lib/carnine/covers"
 
 [audio]
 navigation_interrupt = "pause_music"
+# Where the volume is kept across restarts. The directory must exist and be
+# writable by the backend; the package creates /var/lib/carnine.
+volume_state_path = "/var/lib/carnine/audio-volume"
 
 [logging]
 directory = "/var/log/carnine"
