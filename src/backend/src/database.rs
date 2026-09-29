@@ -599,8 +599,17 @@ impl Database {
         let discovered = find_audio_files(folder, supported_formats)?;
         let mut known = self.scanned_media_by_path(source_id)?;
         let mut unchanged_ids = Vec::new();
-        for path in &discovered {
+        let mut read = 0_usize;
+        for (index, path) in discovered.iter().enumerate() {
             if cancel.load(Ordering::Relaxed) {
+                // What the next scan still has to read, for the log in the car.
+                tracing::warn!(
+                    folder = %folder.display(),
+                    read,
+                    unchanged = unchanged_ids.len(),
+                    left = discovered.len() - index,
+                    "scan cancelled"
+                );
                 anyhow::bail!("scan of {} cancelled", folder.display());
             }
             let path_text = path.to_string_lossy().into_owned();
@@ -620,6 +629,7 @@ impl Database {
             // an earlier scan stored; only a successful read replaces it.
             let metadata = reader.metadata(path);
             let cover = reader.cover(path, cover_cache_dir);
+            read += 1;
             let keep_metadata = metadata.is_err();
             let keep_cover = cover.is_err();
             let read_everything = !keep_metadata && !keep_cover;

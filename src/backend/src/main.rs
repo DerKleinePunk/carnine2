@@ -493,6 +493,19 @@ impl MediaServiceImpl {
                 }),
             }
         }
+        // A cancelled scan did not complete; a UI waiting for COMPLETED must
+        // not show "done" for it.
+        if self.scan_cancel.load(Ordering::Relaxed) {
+            events.push(LibraryEvent {
+                event: LibraryEventType::LibraryError as i32,
+                scan_id,
+                processed,
+                imported,
+                message: "scan cancelled".to_string(),
+                ..Default::default()
+            });
+            return Ok(events);
+        }
         events.push(LibraryEvent {
             event: LibraryEventType::LibraryScanCompleted as i32,
             scan_id,
@@ -2506,6 +2519,33 @@ mod tests {
             .media_tools_missing
             .load(std::sync::atomic::Ordering::Relaxed));
         let _ = std::fs::remove_dir_all(&folder);
+    }
+
+    #[test]
+    fn a_cancelled_scan_ends_with_an_error_instead_of_completed() {
+        let folder =
+            std::env::temp_dir().join(format!("carnine-scan-cancelled-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&folder);
+        std::fs::create_dir_all(&folder).expect("media folder should be created");
+        let service = MediaServiceImpl::with_player(
+            MediaPlayer::with_engine(Box::new(FakeAudioEngine)),
+            folder.join("media.sqlite3"),
+            vec![folder.clone()],
+            vec!["mp3".to_string()],
+            "restore_paused".to_string(),
+            PathBuf::from("/tmp/carnine-covers"),
+        );
+        service.cancel_scans();
+
+        let events = service.scan_events().expect("scan events should be built");
+
+        let last = events.last().expect("a scan has events");
+        assert_eq!(last.event, LibraryEventType::LibraryError as i32);
+        assert_eq!(last.message, "scan cancelled");
+        assert!(events
+            .iter()
+            .all(|event| event.event != LibraryEventType::LibraryScanCompleted as i32));
+        let _ = std::fs::remove_dir_all(folder);
     }
 
     #[tokio::test]
