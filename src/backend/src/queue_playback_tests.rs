@@ -350,3 +350,27 @@ async fn repeat_track_plays_the_same_file_again() {
     player.shutdown().expect("player should stop");
     assert!(!heard.lock().unwrap().tracks().contains(&2));
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn each_track_plays_to_its_end_before_the_next_one_starts() {
+    let tracks = Tracks::write("to-the-end", 2, 1.0);
+    let (player, heard) = listening_player();
+    let player = Arc::new(player);
+    MediaPlayer::spawn_completion_watcher(Arc::clone(&player));
+    let events = player.subscribe_events();
+    player
+        .play_playlist(1, tracks.entries(), None, 0, "auto-play")
+        .expect("playlist should start");
+
+    wait_for_queue_finished(events).await;
+
+    let heard = heard.lock().unwrap();
+    // 1 s is 44 100 frames; allow a period for where the ring ran dry.
+    for track in [1, 2] {
+        let frames = heard.longest_stretch(track);
+        assert!(
+            frames >= SAMPLE_RATE as usize - 2 * PERIOD_FRAMES,
+            "track {track} was heard for {frames} of {SAMPLE_RATE} frames"
+        );
+    }
+}

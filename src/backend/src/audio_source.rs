@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use ringbuf::{
-    traits::{Producer, Split},
+    traits::{Observer, Producer, Split},
     HeapCons, HeapProd, HeapRb,
 };
 
@@ -87,9 +87,17 @@ impl ExternalPcmSource {
                 &mut decoded_pcm,
                 &mut producer,
                 &thread_stop,
-                &thread_finished,
                 SOURCE_CHANNELS,
             );
+            // FFmpeg is done long before the output is: the ring still holds
+            // up to its whole capacity. The track only ends once that has
+            // been played, or the player moves on and cuts it off (#2).
+            if result.is_ok()
+                && !thread_stop.load(Ordering::Acquire)
+                && wait_until_drained(&producer, &thread_stop)
+            {
+                thread_finished.store(true, Ordering::Release);
+            }
             if let Some(mut child) = thread_child
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner())
@@ -110,6 +118,8 @@ impl ExternalPcmSource {
         ))
     }
 
+    /// True once the whole track was decoded and taken out of the ring by
+    /// the output, never after an explicit stop.
     pub fn is_finished(&self) -> bool {
         self.finished.load(Ordering::Acquire)
     }
@@ -154,7 +164,6 @@ fn decode_into_ring(
     decoded_pcm: &mut impl Read,
     producer: &mut HeapProd<f32>,
     stop_requested: &AtomicBool,
-    finished: &AtomicBool,
     channels: usize,
 ) -> Result<u64> {
     let mut buffer = [0_u8; READ_BUFFER_BYTES];
@@ -167,7 +176,6 @@ fn decode_into_ring(
         }
         let bytes_read = decoded_pcm.read(&mut buffer)?;
         if bytes_read == 0 {
-            finished.store(true, Ordering::Release);
             break;
         }
         pending.extend_from_slice(&buffer[..bytes_read]);
@@ -200,6 +208,18 @@ fn decode_into_ring(
     Ok(sample_count)
 }
 
+/// Waits, sleeping, until the output took every sample out of the ring.
+/// False if a stop came first.
+fn wait_until_drained(producer: &HeapProd<f32>, stop_requested: &AtomicBool) -> bool {
+    while !producer.is_empty() {
+        if stop_requested.load(Ordering::Acquire) {
+            return false;
+        }
+        thread::sleep(RING_FULL_WAIT);
+    }
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use std::io::Cursor;
@@ -209,17 +229,17 @@ mod tests {
     use std::time::Duration;
 
     use ringbuf::{
-        traits::{Consumer, Split},
+        traits::{Consumer, Producer, Split},
         HeapRb,
     };
 
-    use super::{decode_into_ring, ExternalPcmSource};
+    use super::{decode_into_ring, wait_until_drained, ExternalPcmSource};
 
     #[test]
     fn start_at_decodes_only_the_rest_of_the_track() {
         const SAMPLE_RATE: u32 = 44_100;
         // The repository test track runs about 174.9 s.
-        let (source, _consumer) = ExternalPcmSource::start_at(
+        let (source, mut consumer) = ExternalPcmSource::start_at(
             "../../resources/musik/1-Here We Go Now (Single Edit).mp3",
             SAMPLE_RATE,
             SAMPLE_RATE as usize * 10,
@@ -228,6 +248,8 @@ mod tests {
         .expect("ffmpeg should start");
         let deadline = std::time::Instant::now() + Duration::from_secs(20);
         while !source.is_finished() && std::time::Instant::now() < deadline {
+            // Stands in for the output: the track only finishes once played.
+            consumer.clear();
             thread::sleep(Duration::from_millis(20));
         }
         assert!(
@@ -253,18 +275,11 @@ mod tests {
         let (mut producer, mut consumer) = ring.split();
 
         let stop_requested = AtomicBool::new(false);
-        let finished = AtomicBool::new(false);
-        let sample_count = decode_into_ring(
-            &mut Cursor::new(pcm),
-            &mut producer,
-            &stop_requested,
-            &finished,
-            2,
-        )
-        .expect("PCM decoding should succeed");
+        let sample_count =
+            decode_into_ring(&mut Cursor::new(pcm), &mut producer, &stop_requested, 2)
+                .expect("PCM decoding should succeed");
 
         assert_eq!(sample_count, 4);
-        assert!(finished.load(std::sync::atomic::Ordering::Acquire));
         let samples: Vec<f32> = (0..4).map(|_| consumer.try_pop().unwrap()).collect();
         assert!(samples
             .iter()
@@ -290,19 +305,11 @@ mod tests {
         let ring = HeapRb::<f32>::new(4);
         let (mut producer, _consumer) = ring.split();
         let stop_requested = Arc::new(AtomicBool::new(false));
-        let finished = Arc::new(AtomicBool::new(false));
         let thread_stop = Arc::clone(&stop_requested);
-        let thread_finished = Arc::clone(&finished);
 
         let decoder = thread::spawn(move || {
             let before = thread_cpu_time();
-            let _ = decode_into_ring(
-                &mut Cursor::new(pcm),
-                &mut producer,
-                &thread_stop,
-                &thread_finished,
-                2,
-            );
+            let _ = decode_into_ring(&mut Cursor::new(pcm), &mut producer, &thread_stop, 2);
             thread_cpu_time() - before
         });
 
@@ -315,6 +322,46 @@ mod tests {
             "decoder burned {burned:?} of CPU while waiting {MEASURED_WAIT:?} on a full ring, \
              so it is busy waiting instead of sleeping"
         );
+    }
+
+    // Regression test for #2: the track counted as finished as soon as FFmpeg
+    // reached the end of the file, with up to two seconds still in the ring,
+    // so the player moved on and cut off the end of every track.
+    #[test]
+    fn a_track_finishes_only_once_the_ring_is_drained() {
+        let ring = HeapRb::<f32>::new(4);
+        let (mut producer, mut consumer) = ring.split();
+        producer.push_slice(&[0.5; 4]);
+        let stop_requested = Arc::new(AtomicBool::new(false));
+
+        let drained = {
+            let stop_requested = Arc::clone(&stop_requested);
+            thread::spawn(move || {
+                let before = thread_cpu_time();
+                let drained = wait_until_drained(&producer, &stop_requested);
+                (drained, thread_cpu_time() - before)
+            })
+        };
+        thread::sleep(Duration::from_millis(200));
+        assert!(!drained.is_finished(), "the ring still holds samples");
+
+        consumer.clear();
+        let (drained, burned) = drained.join().expect("waiting should not panic");
+
+        assert!(drained);
+        assert!(
+            burned < Duration::from_millis(40),
+            "waiting burned {burned:?} of CPU instead of sleeping"
+        );
+    }
+
+    #[test]
+    fn a_stop_ends_the_wait_for_the_ring_to_drain() {
+        let ring = HeapRb::<f32>::new(4);
+        let (mut producer, _consumer) = ring.split();
+        producer.push_slice(&[0.5; 4]);
+
+        assert!(!wait_until_drained(&producer, &AtomicBool::new(true)));
     }
 
     /// CPU time consumed by the calling thread. `Instant` measures wall clock
