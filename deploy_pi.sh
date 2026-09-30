@@ -42,6 +42,10 @@ restart_services() {
 trap restart_services ERR
 
 sudo systemctl stop carnine-frontend.service carnine-backend.service
+# The config goes in first: installing the packages already starts the
+# backend, and the start at the end does not restart a running service, so a
+# config installed afterwards was only read at the next restart.
+sudo install -o root -g carnine -m 0660 "$REMOTE_DIR/carnine.toml" /etc/carnine/config.toml
 # --force-confnew: git is the source of truth for unit files. Without this,
 # dpkg silently keeps a locally-modified conffile (e.g. from live debugging on
 # the device) instead of installing the packaged version, which can leave the
@@ -51,7 +55,6 @@ sudo systemctl stop carnine-frontend.service carnine-backend.service
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
   -o Dpkg::Options::=--force-confnew \
   "$REMOTE_DIR/carnine-backend.deb" "$REMOTE_DIR/carnine-frontend.deb"
-sudo install -o root -g carnine -m 0660 "$REMOTE_DIR/carnine.toml" /etc/carnine/config.toml
 sudo rm -f /etc/asound.conf
 sudo systemctl daemon-reload
 restart_services
