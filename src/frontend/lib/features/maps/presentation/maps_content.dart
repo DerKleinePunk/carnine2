@@ -37,6 +37,12 @@ class MapsContent extends StatelessWidget {
     // (jeep-pi, 2026-09-27): no frame over 100 ms any more, about 50 MB more
     // resident, capped by Flutter's image cache.
     prefetchAheadSeconds: 60,
+    // Tiles are rendered for the map rotation rounded to 45 degree steps, so
+    // with the map in the driving direction labels are never upside down
+    // (at most about 37 degrees askew). Measured on the Pi 4 (jeep-pi,
+    // 2026-09-30, demo drive at 15x): frames over 100 ms 0-5 instead of 0-1,
+    // worst frame 98-123 ms, about 30 MB more resident.
+    labelRotationStep: 45,
   );
 
   static const _layerStyle = MapLayerStyle(
