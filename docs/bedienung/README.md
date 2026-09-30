@@ -1,7 +1,7 @@
 # Bedienungsanleitung carnine2
 
 Für Entwickler und Tester. Beschreibt, was man auf dem Bildschirm sieht und
-was jedes Bedienelement tut – Stand **0.9.2** (2026-09-29). Die Anleitung für
+was jedes Bedienelement tut – Stand **0.9.3** (2026-09-30). Die Anleitung für
 Messebesucher entsteht getrennt.
 
 Wenn sich im Frontend etwas an der Bedienung ändert, gehört die Änderung
