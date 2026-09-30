@@ -228,11 +228,12 @@ async fn run(handle: Arc<SystemMetricsHandle>, settings: SamplerSettings) {
                     "cpu no longer overheated"
                 );
             }
+            // Only the changes: while hot the CPU is sampled every few
+            // seconds, and the "system health" line keeps the temperature
+            // in the log anyway.
             handle
                 .thermal
                 .send_replace(thermal.status(temperature, now_unix_ms()));
-        } else if thermal.overheated {
-            warn!(temperature_celsius = temperature, "cpu temperature high");
         }
         let interval = if thermal.is_warm(temperature) {
             settings.warm_interval.min(settings.cpu_interval)
