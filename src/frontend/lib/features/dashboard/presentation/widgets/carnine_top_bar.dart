@@ -165,6 +165,46 @@ class PowerSupplyIndicator extends StatelessWidget {
   }
 }
 
+/// Notice under the top bar for as long as the backend has no audio output
+/// (#56): an HDMI panel without sound, the jack not chosen. Before, only a
+/// four-second banner said "audio error" and then nothing explained the
+/// silence.
+class AudioOutputNotice extends StatelessWidget {
+  const AudioOutputNotice({required this.available, super.key});
+
+  final bool available;
+
+  @override
+  Widget build(BuildContext context) {
+    if (available) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      width: double.infinity,
+      color: AppColors.errorContainer,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.volume_off,
+            color: AppColors.onErrorContainer,
+            size: 18,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              AppLocalizations.of(context).text(AppTextKey.audioOutputMissing),
+              style: AppTextStyles.bodyLarge.copyWith(
+                color: AppColors.onErrorContainer,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Notice under the top bar while the power supply is switching off. The
 /// backend does not shut the Pi down yet, so it only says what is coming.
 class PowerSupplyNotice extends StatelessWidget {

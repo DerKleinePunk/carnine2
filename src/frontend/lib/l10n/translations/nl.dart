@@ -208,4 +208,6 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.thermalWarningMessage:
       'De CPU is {temperature} °C. Laat het apparaat afkoelen en controleer de ventilatie.',
   AppTextKey.thermalWarningConfirm: 'Begrepen',
+  AppTextKey.audioOutputMissing:
+      'Geen audio-uitgang – controleer de geluidsuitgang (HDMI of jack)',
 };

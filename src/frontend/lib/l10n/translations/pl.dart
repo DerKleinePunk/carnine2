@@ -212,4 +212,6 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.thermalWarningMessage:
       'Procesor ma {temperature} °C. Pozwól urządzeniu ostygnąć i sprawdź wentylację.',
   AppTextKey.thermalWarningConfirm: 'Rozumiem',
+  AppTextKey.audioOutputMissing:
+      'Brak wyjścia audio – sprawdź wyjście dźwięku (HDMI lub jack)',
 };

@@ -87,6 +87,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     unawaited(_controller.restoreLastPage());
     _powerSupplyController.start();
     _thermalWarningController.start();
+    // At once, not only when the media page opens first: the notice about a
+    // missing audio output belongs on every page (#56).
+    unawaited(_mediaController.start());
   }
 
   @override
@@ -181,6 +184,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       CarnineTopBar(powerSupply: status),
                       PowerSupplyNotice(status: status),
+                      ListenableBuilder(
+                        listenable: _mediaController.audio,
+                        builder: (context, _) => AudioOutputNotice(
+                          available: _mediaController.audio.outputAvailable,
+                        ),
+                      ),
                     ],
                   );
                 },

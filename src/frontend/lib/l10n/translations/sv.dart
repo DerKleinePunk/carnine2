@@ -209,4 +209,6 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.thermalWarningMessage:
       'Processorn har {temperature} °C. Låt enheten svalna och kontrollera ventilationen.',
   AppTextKey.thermalWarningConfirm: 'Uppfattat',
+  AppTextKey.audioOutputMissing:
+      'Ingen ljudutgång – kontrollera ljudutgången (HDMI eller uttag)',
 };

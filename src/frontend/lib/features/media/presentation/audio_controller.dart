@@ -7,8 +7,10 @@ import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 
-/// Presentation controller for system audio: volume and the transient
-/// banner shown for [AudioEventKind.error]/[AudioEventKind.deviceChanged].
+/// Presentation controller for system audio: volume, the transient banner
+/// shown for [AudioEventKind.error]/[AudioEventKind.deviceChanged], and
+/// whether there is an output device at all (#56) - that one is no banner
+/// but a state, shown for as long as it lasts.
 ///
 /// Every other [AudioEventKind] is internal engine lifecycle detail (source
 /// started/paused/resumed/stopped, decoder stopped, ready) and stays out of
@@ -30,6 +32,7 @@ class AudioController extends ChangeNotifier {
   int _volumePercent = 100;
   int _volumeBeforeMute = 100;
   AppTextKey? _bannerKey;
+  bool _outputAvailable = true;
 
   StreamSubscription<AudioEvent>? _subscription;
   Timer? _bannerTimer;
@@ -37,6 +40,10 @@ class AudioController extends ChangeNotifier {
   int get volumePercent => _volumePercent;
   bool get isMuted => _volumePercent == 0;
   AppTextKey? get bannerKey => _bannerKey;
+
+  /// False from AUDIO_OUTPUT_UNAVAILABLE until AUDIO_OUTPUT_AVAILABLE or
+  /// AUDIO_READY; a new stream starts with one of them.
+  bool get outputAvailable => _outputAvailable;
 
   /// Subscribes to the audio event stream and loads the current volume.
   /// Safe to call again after [reconnect] tore the previous subscription
@@ -117,6 +124,9 @@ class AudioController extends ChangeNotifier {
   }
 
   void _onEvent(AudioEvent event) {
+    if (_updateOutputAvailable(event.kind)) {
+      return;
+    }
     final key = switch (event.kind) {
       AudioEventKind.error => AppTextKey.mediaAudioErrorBanner,
       AudioEventKind.deviceChanged => AppTextKey.mediaAudioDeviceChangedBanner,
@@ -131,6 +141,24 @@ class AudioController extends ChangeNotifier {
     notifyListeners();
     _bannerTimer?.cancel();
     _bannerTimer = Timer(_bannerDuration, dismissBanner);
+  }
+
+  /// True if [kind] was about the output device, which is no banner.
+  bool _updateOutputAvailable(AudioEventKind kind) {
+    final available = switch (kind) {
+      AudioEventKind.outputUnavailable => false,
+      AudioEventKind.outputAvailable || AudioEventKind.ready => true,
+      _ => null,
+    };
+    if (available == null) {
+      return false;
+    }
+    if (available != _outputAvailable) {
+      _logger.info(available ? 'Audio output back' : 'No audio output');
+      _outputAvailable = available;
+      notifyListeners();
+    }
+    return kind != AudioEventKind.ready;
   }
 
   void _onStreamError(Object error, StackTrace stackTrace) {

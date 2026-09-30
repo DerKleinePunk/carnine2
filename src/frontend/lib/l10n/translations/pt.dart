@@ -211,4 +211,6 @@ const Map<AppTextKey, String> ptTranslations = <AppTextKey, String>{
   AppTextKey.thermalWarningMessage:
       'A CPU está a {temperature} °C. Deixe o dispositivo arrefecer e verifique a ventilação.',
   AppTextKey.thermalWarningConfirm: 'Entendido',
+  AppTextKey.audioOutputMissing:
+      'Sem saída de áudio – verifique a saída de som (HDMI ou jack)',
 };

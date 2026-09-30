@@ -195,4 +195,5 @@ const Map<AppTextKey, String> zhTranslations = <AppTextKey, String>{
   AppTextKey.thermalWarningTitle: '设备过热',
   AppTextKey.thermalWarningMessage: 'CPU 温度为 {temperature} °C。请让设备冷却并检查通风。',
   AppTextKey.thermalWarningConfirm: '知道了',
+  AppTextKey.audioOutputMissing: '没有音频输出 – 请检查声音输出（HDMI 或耳机插孔）',
 };

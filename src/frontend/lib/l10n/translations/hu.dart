@@ -211,4 +211,6 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.thermalWarningMessage:
       'A processzor hőmérséklete {temperature} °C. Hagyja lehűlni az eszközt, és ellenőrizze a szellőzést.',
   AppTextKey.thermalWarningConfirm: 'Értem',
+  AppTextKey.audioOutputMissing:
+      'Nincs hangkimenet – ellenőrizze a hangkimenetet (HDMI vagy jack)',
 };

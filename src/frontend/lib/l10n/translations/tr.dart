@@ -211,4 +211,6 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.thermalWarningMessage:
       'İşlemci {temperature} °C sıcaklıkta. Cihazın soğumasını bekleyin ve havalandırmayı kontrol edin.',
   AppTextKey.thermalWarningConfirm: 'Anladım',
+  AppTextKey.audioOutputMissing:
+      'Ses çıkışı yok – lütfen ses çıkışını kontrol edin (HDMI veya jak)',
 };

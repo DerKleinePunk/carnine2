@@ -196,4 +196,5 @@ enum AppTextKey {
   thermalWarningTitle,
   thermalWarningMessage,
   thermalWarningConfirm,
+  audioOutputMissing,
 }

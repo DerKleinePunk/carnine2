@@ -209,4 +209,6 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.thermalWarningMessage:
       'Procesor má {temperature} °C. Nechte zařízení vychladnout a zkontrolujte větrání.',
   AppTextKey.thermalWarningConfirm: 'Rozumím',
+  AppTextKey.audioOutputMissing:
+      'Žádný zvukový výstup – zkontrolujte výstup zvuku (HDMI nebo jack)',
 };

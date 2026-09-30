@@ -131,4 +131,49 @@ void main() {
 
     expect(controller.bannerKey, isNull);
   });
+
+  group('a missing audio output (#56)', () {
+    Future<void> send(AudioEventKind kind) async {
+      repository.audioEventsController.add(AudioEvent(kind: kind, message: ''));
+      await Future<void>.delayed(Duration.zero);
+    }
+
+    test('stays until the output is back, and is no banner', () async {
+      await controller.start();
+      expect(controller.outputAvailable, isTrue);
+
+      await send(AudioEventKind.outputUnavailable);
+      expect(controller.outputAvailable, isFalse);
+      expect(controller.bannerKey, isNull);
+
+      // Other events, a failed play among them, do not end it.
+      await send(AudioEventKind.error);
+      await send(AudioEventKind.sourceStarted);
+      expect(controller.outputAvailable, isFalse);
+
+      await send(AudioEventKind.outputAvailable);
+      expect(controller.outputAvailable, isTrue);
+    });
+
+    test('a stream that opens with "ready" ends it too', () async {
+      await controller.start();
+      await send(AudioEventKind.outputUnavailable);
+
+      // A reconnect: the new stream starts with the current state.
+      await send(AudioEventKind.ready);
+
+      expect(controller.outputAvailable, isTrue);
+    });
+
+    test('notifies only on a change', () async {
+      await controller.start();
+      var notified = 0;
+      controller.addListener(() => notified++);
+
+      await send(AudioEventKind.outputUnavailable);
+      await send(AudioEventKind.outputUnavailable);
+
+      expect(notified, 1);
+    });
+  });
 }

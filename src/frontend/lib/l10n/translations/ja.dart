@@ -201,4 +201,5 @@ const Map<AppTextKey, String> jaTranslations = <AppTextKey, String>{
   AppTextKey.thermalWarningMessage:
       'CPU温度は{temperature} °Cです。デバイスを冷まし、通気を確認してください。',
   AppTextKey.thermalWarningConfirm: '了解',
+  AppTextKey.audioOutputMissing: '音声出力がありません – 音声出力を確認してください（HDMIまたはジャック）',
 };

@@ -10,6 +10,11 @@ enum AudioEventKind {
   sourceRemoved,
   deviceChanged,
   error,
+
+  /// No output device: the backend runs on without sound until
+  /// [outputAvailable] (#56).
+  outputUnavailable,
+  outputAvailable,
   unknown,
 }
 
@@ -27,6 +32,8 @@ AudioEventKind audioEventKindFrom(AudioEventType raw) {
     AudioEventType.AUDIO_SOURCE_REMOVED => AudioEventKind.sourceRemoved,
     AudioEventType.AUDIO_DEVICE_CHANGED => AudioEventKind.deviceChanged,
     AudioEventType.AUDIO_ERROR => AudioEventKind.error,
+    AudioEventType.AUDIO_OUTPUT_UNAVAILABLE => AudioEventKind.outputUnavailable,
+    AudioEventType.AUDIO_OUTPUT_AVAILABLE => AudioEventKind.outputAvailable,
     _ => AudioEventKind.unknown,
   };
 }
