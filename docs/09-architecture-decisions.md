@@ -155,8 +155,8 @@ placeholder.
 ## ADR-006: CAN-Bus Integration - Direct RS232 via Custom Driver
 
 **Status:** Accepted, not implemented. `GetCanData` returns a fixed placeholder
-value; the adapter chosen since (MCP2515 on SPI) points to SocketCAN, so this
-decision has to be revisited before the CAN work starts.
+value; the pins prepared since for an MCP2515 on SPI0 (docs/24) point to
+SocketCAN, so this decision has to be revisited before the CAN work starts.
 
 **Context:**
 Vehicle provides diagnostic and telemetry data over CAN-bus interface. System needs low-latency access to this data with minimal dependencies.
@@ -364,38 +364,30 @@ output run on their own OS threads, and scans use `spawn_blocking`.
 
 ---
 
-## ADR-013: Backend Runtime Identity - Dedicated System User
+## ADR-013: Frontend Architecture - Widget-based with State Management
 
 **Status:** Accepted
 
 **Context:**
-The backend needs access to audio hardware, media data, logs, and its runtime
-configuration. Running it as `root` would provide unnecessary privileges, while
-using the interactive `pi` account would couple the service to a human login.
+Flutter frontend must display multiple screens (navigation, media, settings, diagnostics). Need to manage shared state and navigate between screens efficiently.
 
 **Decision:**
-Run the backend as the dedicated system user `carnine`, without an interactive
-login. The user is a member of the `audio` group and owns the backend's media
-and log directories. (Current state: the image adds it to `audio`, `render`,
-`video` and `input`; the backend unit adds `dialout` and `CAP_SYS_TIME`, the
-frontend runs as `carnine` too, see docs/07.) The configuration directory is owned by `root:carnine`
-and is group-writable so the backend can persist validated updates atomically.
+Use Flutter's widget composition model with a state management approach (Provider pattern or similar). Keep UI stateless where possible; manage shared state centrally.
 
 **Rationale:**
-- **Least privilege**: The backend does not need a root shell or unrestricted filesystem access
-- **Stable deployment**: Service permissions do not depend on the `pi` user's login
-- **Hardware access**: Audio access is explicit through the `audio` group
-- **Atomic configuration updates**: Group write access to `/etc/carnine` permits temporary-file replacement without making the file world-writable
+- **Widget composition**: Declarative UI; changes naturally flow from state updates
+- **Hot reload**: Enables rapid iteration during development
+- **Separation**: Business logic remains in backend via gRPC; frontend focuses on presentation
+- **Testability**: UI statelessness improves testability
 
 **Alternatives considered:**
-- `root` – unnecessary privileges and greater impact of a backend vulnerability
-- `pi` – interactive account and unclear service ownership
-- World-writable configuration – insecure and not acceptable for a service that accepts remote configuration requests
+- Stateful widgets everywhere – difficult to manage complex state
+- Custom state management – reinventing the wheel
 
 **Consequences:**
-- The system image must create the `carnine` user and required directories
-- The systemd units (`carnine-backend.service`, `carnine-frontend.service`) run with `User=carnine` and `Group=carnine`
-- Changes to the backend's required device or filesystem access must be reflected in the image recipe and this decision
+- Clear data flow from state to UI makes debugging easier
+- Hot reload shortens development cycle
+- Lower coupling between UI components
 
 ---
 
@@ -446,63 +438,6 @@ The `udisks2` package is part of the Raspberry Pi image.
 
 ---
 
-## ADR-013: Frontend Architecture - Widget-based with State Management
-
-**Status:** Accepted
-
-**Context:**
-Flutter frontend must display multiple screens (navigation, media, settings, diagnostics). Need to manage shared state and navigate between screens efficiently.
-
-**Decision:**
-Use Flutter's widget composition model with a state management approach (Provider pattern or similar). Keep UI stateless where possible; manage shared state centrally.
-
-**Rationale:**
-- **Widget composition**: Declarative UI; changes naturally flow from state updates
-- **Hot reload**: Enables rapid iteration during development
-- **Separation**: Business logic remains in backend via gRPC; frontend focuses on presentation
-- **Testability**: UI statelessness improves testability
-
-**Alternatives considered:**
-- Stateful widgets everywhere – difficult to manage complex state
-- Custom state management – reinventing the wheel
-
-**Consequences:**
-- Clear data flow from state to UI makes debugging easier
-- Hot reload shortens development cycle
-- Lower coupling between UI components
-
----
-
-## ADR-014: Offline-First Data Strategy - Cache with Sync
-
-**Status:** Accepted
-
-**Context:**
-Connectivity is intermittent (vehicle may lose signal). Navigation maps, preferences, and vehicle history must remain available offline.
-
-**Decision:**
-Backend caches all necessary data locally (SQLite) and syncs with remote services when connectivity is available. UI always reads from cache; background sync keeps cache updated.
-
-**Implementation note (v0.9.3):** The system is fully offline today: maps
-(MBTiles, read by the frontend) and routing (local Valhalla) are on the
-device, and there is no remote service to sync with yet.
-
-**Rationale:**
-- **Reliability**: System works without network; critical for in-vehicle use
-- **Performance**: Local cache is faster than network requests
-- **Resilience**: Graceful degradation when offline; data converges when rejoined
-
-**Alternatives considered:**
-- Cloud-only – fails without network; unacceptable for vehicle environment
-- No caching – forces network dependency; poor performance
-
-**Consequences:**
-- Need to implement sync logic and conflict resolution
-- Data consistency complexity (what if offline changes conflict with server state?)
-- Excellent user resilience and performance
-
----
-
 ## ADR-015: Communication Protocol Strategy - gRPC as Unified API, Cap'n Proto by Measured Need
 
 **Status:** Accepted
@@ -547,10 +482,6 @@ Use gRPC (protobuf) as the single communication contract for both local frontend
 
 **Quality linkage:**
 - See Chapter 10 (Quality Requirements), section "Communication Protocol Strategy (linked to ADR-015)" for weighted decision matrix, measurable thresholds, and protocol re-evaluation triggers.
-
----
-
-## Decision Rationale Summary
 
 ---
 
@@ -752,151 +683,6 @@ rules above changed in the code:
 - ADR-005 (gRPC streaming)
 - ADR-009 (module organization)
 - ADR-015 (single protobuf communication contract)
-
----
-
-## ADR-017: Speech Recognition and Voice Control - sherpa-onnx for Offline ASR
-
-**Status:** Accepted, not implemented (v0.9.3: no sherpa-onnx dependency, no
-`SpeechService`, no `[speech]` configuration). The proto sketch below predates
-the current contract: `AudioEvent` is now `AudioEventType event` plus
-`message`, so new audio events would be new `AudioEventType` values rather
-than `oneof` fields.
-
-**Context:**
-Voice control is a natural interaction method for in-vehicle systems, allowing hands-free operation while driving. The system requires speech recognition that works offline (no cloud dependency), respects privacy (GDPR-compliant), runs efficiently on Raspberry Pi 4, and integrates with the existing audio architecture.
-
-**Decision:**
-Use [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) as the speech processing toolkit for offline Automatic Speech Recognition (ASR), Voice Activity Detection (VAD), and optional keyword spotting (wake-word detection). Integrate microphone input into the existing audio manager architecture.
-
-**Rationale:**
-- **Fully offline**: No cloud dependency; all processing on-device ensures privacy and eliminates network latency
-- **GDPR-compliant**: No voice data leaves the device
-- **ARM64/Raspberry Pi support**: Proven to run efficiently on embedded ARM processors
-- **Comprehensive feature set**: Provides ASR, VAD, keyword spotting, speaker diarization, and TTS in one toolkit
-- **ONNX Runtime**: Uses optimized neural models with low latency
-- **Rust bindings available**: Can be integrated directly into the Rust backend
-- **Active maintenance**: Regular updates and model releases via GitHub and Hugging Face
-- **Multi-language**: Supports German and English models
-
-**Alternatives considered:**
-- **CMU Sphinx / Pocketsphinx** – older technology; less accurate; limited model updates
-- **Vosk** – good offline option but heavier resource footprint; less modular than sherpa-onnx
-- **Mozilla DeepSpeech** – no longer actively maintained (archived project)
-- **Google Cloud Speech / AWS Transcribe** – requires network; privacy concerns; violates offline-first principle
-- **Whisper (OpenAI)** – excellent accuracy but too resource-intensive for Raspberry Pi 4 real-time use
-
-**Audio Architecture Integration:**
-The existing audio manager (see ADR-016 and `docs/20-media-backend-plan.md`) must be extended to coordinate multiple audio sources:
-
-**Audio sources with priorities:**
-- **Critical (highest)**: Navigation announcements, system sounds
-- **Interactive (medium)**: Speech recognition (microphone input + processing)
-- **Background (lowest)**: Media player (music/audio)
-
-**Ducking strategies** (configurable in `carnine.toml`):
-- **Pause**: Lower-priority source is paused during higher-priority activity
-- **Duck**: Lower-priority source volume reduced to configurable level (e.g., -20dB)
-- **Mix**: Both sources play simultaneously (only for compatible combinations)
-
-When speech recognition is active, the audio manager:
-1. Signals the media player to duck or pause (via audio manager events)
-2. Grants exclusive microphone access to the speech service
-3. Processes audio through sherpa-onnx ASR pipeline
-4. After speech ends (VAD-detected or manual stop), releases microphone
-5. Signals media player to resume normal volume/playback
-
-**Proto Contract:**
-Introduce a new `SpeechService` in `carnine.proto` alongside `MediaService` and `AudioService`:
-
-```protobuf
-service SpeechService {
-  rpc GetVersion(VersionRequest) returns (VersionResponse);
-  rpc StartListening(StartListeningRequest) returns (StartListeningResponse);
-  rpc StopListening(StopListeningRequest) returns (StopListeningResponse);
-  rpc StreamSpeechEvents(StreamSpeechEventsRequest) returns (stream SpeechEvent);
-  rpc SetLanguage(SetLanguageRequest) returns (SetLanguageResponse);
-  rpc ExecuteCommand(ExecuteCommandRequest) returns (ExecuteCommandResponse);
-}
-
-message SpeechEvent {
-  oneof event {
-    TranscriptionUpdate transcription = 1;    // Live transcription during speech
-    CommandRecognized command = 2;            // Recognized command with intent
-    CommandExecuted executed = 3;             // Confirmation of execution
-    SpeechError error = 4;                    // Error during recognition
-  }
-}
-
-message CommandRecognized {
-  string intent = 1;                          // e.g., "play_media", "navigate_to"
-  map<string, string> entities = 2;           // e.g., {"artist": "Kensington Road"}
-  float confidence = 3;                       // 0.0 - 1.0
-}
-```
-
-Extend `AudioService` events:
-```protobuf
-message AudioEvent {
-  oneof event {
-    // ... existing events ...
-    MicrophoneStarted microphone_started = 7;
-    MicrophoneStopped microphone_stopped = 8;
-    SpeechDetected speech_detected = 9;
-    SpeechEnded speech_ended = 10;
-  }
-}
-```
-
-**Command routing:**
-A `CommandRouter` component in the backend maps recognized intents to service actions:
-- `"play_media"` + `{"artist": "X"}` → `MediaService.SearchMedia` + `PlayMedia`
-- `"pause"` → `MediaService.Pause`
-- `"navigate_to"` + `{"location": "Y"}` → `NavigationService.StartRoute` (future)
-- `"volume_up"` → Audio system volume control (future)
-
-**Configuration in `carnine.toml`:**
-```toml
-[audio]
-backend = "alsa"         # or "pulse"
-output_device = "plughw:0,0"
-input_device = "plughw:2,0"  # Microphone ALSA device
-ducking_behavior = "duck"    # or "pause", "mix"
-ducking_level_db = -20       # Volume reduction during ducking
-
-[speech]
-enabled = true
-language = "de-DE"           # or "en-US"
-model_path = "/usr/share/carnine/speech-models"
-push_to_talk = false         # true = manual, false = continuous VAD
-vad_threshold = 0.5          # Voice Activity Detection sensitivity
-wake_word = ""               # Optional wake word (e.g., "Hey Carnine")
-```
-
-**Implementation phases:**
-1. **Phase 1 (MVP)**: Basic microphone integration, sherpa-onnx ASR, simple pattern-matching command parser
-2. **Phase 2**: VAD-based automatic activation, audio manager ducking coordination
-3. **Phase 3**: Wake-word detection, advanced NLU with ONNX intent models, TTS feedback
-
-**Consequences:**
-- Microphone hardware (USB or built-in) must be present and configured in ALSA/PulseAudio
-- ONNX models for German/English must be packaged in Debian image (`resources/speech-models/`)
-- Audio manager becomes more complex (coordinates output + input, multiple source priorities)
-- Speech recognition adds CPU/memory load; must be profiled on Raspberry Pi 4
-- Privacy-friendly: all voice data stays on-device; no cloud API keys needed
-- Commands are processed in real-time without network latency
-- Future TTS integration (sherpa-onnx also supports TTS) enables full voice assistant experience
-
-**Related decisions:**
-- ADR-016 (Media Architecture) – audio manager concept, event streams
-- ADR-004 (SQLite) – potential for voice command history/preferences storage
-- ADR-008 (Error handling) – speech errors propagate via `anyhow::Result`
-- ADR-010 (Logging) – speech processing logged via `tracing`
-
-**References:**
-- [sherpa-onnx GitHub](https://github.com/k2-fsa/sherpa-onnx)
-- [sherpa-onnx Rust bindings](https://github.com/k2-fsa/sherpa-onnx/tree/master/sherpa-onnx/rust)
-- Issues: #15 (Microphone/Speech Backend), #16 (Audio Manager), #17 (Command Parser), #18 (Speech UI)
 
 ---
 
@@ -1165,6 +951,224 @@ logic to protect.
 - The example client `media_grpc_client` gets a command for every new RPC.
 
 ---
+
+## ADR-022: Backend Runtime Identity - Dedicated System User
+
+**Status:** Accepted
+
+(Numbered ADR-013 until 2026-09-30, when the duplicate numbers were resolved.)
+
+**Context:**
+The backend needs access to audio hardware, media data, logs, and its runtime
+configuration. Running it as `root` would provide unnecessary privileges, while
+using the interactive `pi` account would couple the service to a human login.
+
+**Decision:**
+Run the backend as the dedicated system user `carnine`, without an interactive
+login. The user is a member of the `audio` group and owns the backend's media
+and log directories. (Current state: the image adds it to `audio`, `render`,
+`video` and `input`; the backend unit adds `dialout` and `CAP_SYS_TIME`, the
+frontend runs as `carnine` too, see docs/07.) The configuration directory is owned by `root:carnine`
+and is group-writable so the backend can persist validated updates atomically.
+
+**Rationale:**
+- **Least privilege**: The backend does not need a root shell or unrestricted filesystem access
+- **Stable deployment**: Service permissions do not depend on the `pi` user's login
+- **Hardware access**: Audio access is explicit through the `audio` group
+- **Atomic configuration updates**: Group write access to `/etc/carnine` permits temporary-file replacement without making the file world-writable
+
+**Alternatives considered:**
+- `root` – unnecessary privileges and greater impact of a backend vulnerability
+- `pi` – interactive account and unclear service ownership
+- World-writable configuration – insecure and not acceptable for a service that accepts remote configuration requests
+
+**Consequences:**
+- The system image must create the `carnine` user and required directories
+- The systemd units (`carnine-backend.service`, `carnine-frontend.service`) run with `User=carnine` and `Group=carnine`
+- Changes to the backend's required device or filesystem access must be reflected in the image recipe and this decision
+
+---
+
+## ADR-023: Offline-First Data Strategy - Cache with Sync
+
+**Status:** Accepted
+
+(Numbered ADR-014 until 2026-09-30, when the duplicate numbers were resolved.)
+
+**Context:**
+Connectivity is intermittent (vehicle may lose signal). Navigation maps, preferences, and vehicle history must remain available offline.
+
+**Decision:**
+Backend caches all necessary data locally (SQLite) and syncs with remote services when connectivity is available. UI always reads from cache; background sync keeps cache updated.
+
+**Implementation note (v0.9.3):** The system is fully offline today: maps
+(MBTiles, read by the frontend) and routing (local Valhalla) are on the
+device, and there is no remote service to sync with yet.
+
+**Rationale:**
+- **Reliability**: System works without network; critical for in-vehicle use
+- **Performance**: Local cache is faster than network requests
+- **Resilience**: Graceful degradation when offline; data converges when rejoined
+
+**Alternatives considered:**
+- Cloud-only – fails without network; unacceptable for vehicle environment
+- No caching – forces network dependency; poor performance
+
+**Consequences:**
+- Need to implement sync logic and conflict resolution
+- Data consistency complexity (what if offline changes conflict with server state?)
+- Excellent user resilience and performance
+
+---
+
+## ADR-024: Speech Recognition and Voice Control - sherpa-onnx for Offline ASR
+
+**Status:** Accepted, not implemented (v0.9.3: no sherpa-onnx dependency, no
+`SpeechService`, no `[speech]` configuration). The proto sketch below predates
+the current contract: `AudioEvent` is now `AudioEventType event` plus
+`message`, so new audio events would be new `AudioEventType` values rather
+than `oneof` fields.
+
+(Numbered ADR-017 until 2026-09-30, when the duplicate numbers were resolved.)
+
+**Context:**
+Voice control is a natural interaction method for in-vehicle systems, allowing hands-free operation while driving. The system requires speech recognition that works offline (no cloud dependency), respects privacy (GDPR-compliant), runs efficiently on Raspberry Pi 4, and integrates with the existing audio architecture.
+
+**Decision:**
+Use [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) as the speech processing toolkit for offline Automatic Speech Recognition (ASR), Voice Activity Detection (VAD), and optional keyword spotting (wake-word detection). Integrate microphone input into the existing audio manager architecture.
+
+**Rationale:**
+- **Fully offline**: No cloud dependency; all processing on-device ensures privacy and eliminates network latency
+- **GDPR-compliant**: No voice data leaves the device
+- **ARM64/Raspberry Pi support**: Proven to run efficiently on embedded ARM processors
+- **Comprehensive feature set**: Provides ASR, VAD, keyword spotting, speaker diarization, and TTS in one toolkit
+- **ONNX Runtime**: Uses optimized neural models with low latency
+- **Rust bindings available**: Can be integrated directly into the Rust backend
+- **Active maintenance**: Regular updates and model releases via GitHub and Hugging Face
+- **Multi-language**: Supports German and English models
+
+**Alternatives considered:**
+- **CMU Sphinx / Pocketsphinx** – older technology; less accurate; limited model updates
+- **Vosk** – good offline option but heavier resource footprint; less modular than sherpa-onnx
+- **Mozilla DeepSpeech** – no longer actively maintained (archived project)
+- **Google Cloud Speech / AWS Transcribe** – requires network; privacy concerns; violates offline-first principle
+- **Whisper (OpenAI)** – excellent accuracy but too resource-intensive for Raspberry Pi 4 real-time use
+
+**Audio Architecture Integration:**
+The existing audio manager (see ADR-016 and `docs/20-media-backend-plan.md`) must be extended to coordinate multiple audio sources:
+
+**Audio sources with priorities:**
+- **Critical (highest)**: Navigation announcements, system sounds
+- **Interactive (medium)**: Speech recognition (microphone input + processing)
+- **Background (lowest)**: Media player (music/audio)
+
+**Ducking strategies** (configurable in `carnine.toml`):
+- **Pause**: Lower-priority source is paused during higher-priority activity
+- **Duck**: Lower-priority source volume reduced to configurable level (e.g., -20dB)
+- **Mix**: Both sources play simultaneously (only for compatible combinations)
+
+When speech recognition is active, the audio manager:
+1. Signals the media player to duck or pause (via audio manager events)
+2. Grants exclusive microphone access to the speech service
+3. Processes audio through sherpa-onnx ASR pipeline
+4. After speech ends (VAD-detected or manual stop), releases microphone
+5. Signals media player to resume normal volume/playback
+
+**Proto Contract:**
+Introduce a new `SpeechService` in `carnine.proto` alongside `MediaService` and `AudioService`:
+
+```protobuf
+service SpeechService {
+  rpc GetVersion(VersionRequest) returns (VersionResponse);
+  rpc StartListening(StartListeningRequest) returns (StartListeningResponse);
+  rpc StopListening(StopListeningRequest) returns (StopListeningResponse);
+  rpc StreamSpeechEvents(StreamSpeechEventsRequest) returns (stream SpeechEvent);
+  rpc SetLanguage(SetLanguageRequest) returns (SetLanguageResponse);
+  rpc ExecuteCommand(ExecuteCommandRequest) returns (ExecuteCommandResponse);
+}
+
+message SpeechEvent {
+  oneof event {
+    TranscriptionUpdate transcription = 1;    // Live transcription during speech
+    CommandRecognized command = 2;            // Recognized command with intent
+    CommandExecuted executed = 3;             // Confirmation of execution
+    SpeechError error = 4;                    // Error during recognition
+  }
+}
+
+message CommandRecognized {
+  string intent = 1;                          // e.g., "play_media", "navigate_to"
+  map<string, string> entities = 2;           // e.g., {"artist": "Kensington Road"}
+  float confidence = 3;                       // 0.0 - 1.0
+}
+```
+
+Extend `AudioService` events:
+```protobuf
+message AudioEvent {
+  oneof event {
+    // ... existing events ...
+    MicrophoneStarted microphone_started = 7;
+    MicrophoneStopped microphone_stopped = 8;
+    SpeechDetected speech_detected = 9;
+    SpeechEnded speech_ended = 10;
+  }
+}
+```
+
+**Command routing:**
+A `CommandRouter` component in the backend maps recognized intents to service actions:
+- `"play_media"` + `{"artist": "X"}` → `MediaService.SearchMedia` + `PlayMedia`
+- `"pause"` → `MediaService.Pause`
+- `"navigate_to"` + `{"location": "Y"}` → `NavigationService.StartRoute` (future)
+- `"volume_up"` → Audio system volume control (future)
+
+**Configuration in `carnine.toml`:**
+```toml
+[audio]
+backend = "alsa"         # or "pulse"
+output_device = "plughw:0,0"
+input_device = "plughw:2,0"  # Microphone ALSA device
+ducking_behavior = "duck"    # or "pause", "mix"
+ducking_level_db = -20       # Volume reduction during ducking
+
+[speech]
+enabled = true
+language = "de-DE"           # or "en-US"
+model_path = "/usr/share/carnine/speech-models"
+push_to_talk = false         # true = manual, false = continuous VAD
+vad_threshold = 0.5          # Voice Activity Detection sensitivity
+wake_word = ""               # Optional wake word (e.g., "Hey Carnine")
+```
+
+**Implementation phases:**
+1. **Phase 1 (MVP)**: Basic microphone integration, sherpa-onnx ASR, simple pattern-matching command parser
+2. **Phase 2**: VAD-based automatic activation, audio manager ducking coordination
+3. **Phase 3**: Wake-word detection, advanced NLU with ONNX intent models, TTS feedback
+
+**Consequences:**
+- Microphone hardware (USB or built-in) must be present and configured in ALSA/PulseAudio
+- ONNX models for German/English must be packaged in Debian image (`resources/speech-models/`)
+- Audio manager becomes more complex (coordinates output + input, multiple source priorities)
+- Speech recognition adds CPU/memory load; must be profiled on Raspberry Pi 4
+- Privacy-friendly: all voice data stays on-device; no cloud API keys needed
+- Commands are processed in real-time without network latency
+- Future TTS integration (sherpa-onnx also supports TTS) enables full voice assistant experience
+
+**Related decisions:**
+- ADR-016 (Media Architecture) – audio manager concept, event streams
+- ADR-004 (SQLite) – potential for voice command history/preferences storage
+- ADR-008 (Error handling) – speech errors propagate via `anyhow::Result`
+- ADR-010 (Logging) – speech processing logged via `tracing`
+
+**References:**
+- [sherpa-onnx GitHub](https://github.com/k2-fsa/sherpa-onnx)
+- [sherpa-onnx Rust bindings](https://github.com/k2-fsa/sherpa-onnx/tree/master/sherpa-onnx/rust)
+- Issues: #15 (Microphone/Speech Backend), #16 (Audio Manager), #17 (Command Parser), #18 (Speech UI)
+
+---
+
+## Decision Rationale Summary
 
 These decisions collectively create a system that is:
 - **Safe**: Type-safe languages (Rust, Dart) prevent entire classes of bugs
