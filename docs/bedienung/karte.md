@@ -83,6 +83,8 @@ erreichbar“ (Backend weg, rot).
   etwas schräg, weil die Karte für die Beschriftung in 45°-Schritten neu
   gezeichnet wird (seit 0.9.5, flutter_local_map #1).
 
+  ![Navigationsmodus mit gedrehter Karte: Orts- und Straßennamen wie „Rabenstein“ stehen schräg, aber keiner kopfüber](bilder/karte-mitdrehen.png)
+
 Die Fahranweisungen erscheinen in der unter [Optionen → Sprache](optionen.md)
 gewählten Sprache.
 
