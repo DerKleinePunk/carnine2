@@ -135,13 +135,15 @@ in `cmdline.txt` den Dateinamen tauscht. Begründung, Gegenproben und wie der Bl
 [docs/22-waveshare-display-1024x600.md](../../docs/22-waveshare-display-1024x600.md).
 
 **SBOM und CVE-Bericht des Images (#41):** Das Rezept legt die Paketliste des Images (`/var/lib/dpkg/status` und
-`os-release`) neben das Image in `<image>.sbom-input/`. Daraus macht auf dem Host, der syft und grype hat,
+`os-release`) neben das Image in `<image>.<audio_output>.sbom-input/`, mit Netzteil zusätzlich `.auprv1`
+(`raspbian-1024x600.img.jack.sbom-input`). So überschreibt der Bau der zweiten Variante die erste nicht. Daraus macht
+auf dem Host, der syft und grype hat,
 
 ```sh
-sh debos/image-sbom.sh raspbian-1024x600.img.sbom-input
+sh debos/image-sbom.sh raspbian-1024x600.img.hdmi.sbom-input
 ```
 
-`<image>.sbom-input.cdx.json`, `.spdx.json` und den Bericht `.grype.txt`. Das ist nur ein Bericht, er bricht nie ab: Die
+`<ordner>.cdx.json`, `.spdx.json` und den Bericht `.grype.txt`. Das ist nur ein Bericht, er bricht nie ab: Die
 Debian-Basis hat immer offene CVEs ohne Fix, und die Kernel-Pakete von Raspberry Pi gleicht grype gegen alle
 Debian-Kernel-CVEs ab (auf carnine-pc 7308 von 8553 Funden). Zu handeln ist bei Funden mit „FIXED IN“. Die Pakete
 `carnine-backend`/`carnine-frontend` bekommen ihre SBOM schon in `build_pi.sh`.

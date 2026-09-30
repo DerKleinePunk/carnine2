@@ -597,7 +597,8 @@ their reason in `.grype.yaml`. These are reports only; a finding never stops
 the build. Without `cargo-auditable`, `syft` or `grype` the build goes on with
 a warning (`CARNINE_SYFT`/`CARNINE_GRYPE` name other binaries). The image gets
 its own report: the recipe keeps the package list in
-`<image>.sbom-input/`, and `resources/debos/image-sbom.sh` turns it into an
+`<image>.<audio_output>.sbom-input/` (one folder per variant, `.auprv1`
+added with the power supply), and `resources/debos/image-sbom.sh` turns it into an
 SBOM and a report on the host (`resources/debos/README.md`).
 
 `./deploy_pi.sh` installs the staged packages on a device, and the debos

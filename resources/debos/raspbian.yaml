@@ -10,6 +10,12 @@
 {{- $default_image = "raspbian-1024x600.img" -}}
 {{- end -}}
 {{- $image := or .image $default_image -}}
+{{- /* One package list per variant: hdmi and jack share the image name. */ -}}
+{{- $sbom_input := printf "%s.%s" $image $audio_output -}}
+{{- if ne $power_supply "none" -}}
+{{- $sbom_input = printf "%s.%s" $sbom_input $power_supply -}}
+{{- end -}}
+{{- $sbom_input = printf "%s.sbom-input" $sbom_input -}}
 
 architecture: arm64
 
@@ -523,15 +529,16 @@ actions:
     command: echo uninitialized > /etc/machine-id
 
   # The image's package list for its SBOM and CVE report (#41): the dpkg
-  # status and os-release, next to the image. image-sbom.sh turns them into
+  # status and os-release, next to the image, one folder per variant
+  # (raspbian-1024x600.img.jack.sbom-input). image-sbom.sh turns them into
   # both on the host, which has syft and grype; the debos container has not.
   - action: run
     description: Keep the package list for the image SBOM
     chroot: false
     command: >-
-      mkdir -p "$ARTIFACTDIR/{{ $image }}.sbom-input/var/lib/dpkg" "$ARTIFACTDIR/{{ $image }}.sbom-input/etc" &&
-      cp "$ROOTDIR/var/lib/dpkg/status" "$ARTIFACTDIR/{{ $image }}.sbom-input/var/lib/dpkg/status" &&
-      cp "$ROOTDIR/usr/lib/os-release" "$ARTIFACTDIR/{{ $image }}.sbom-input/etc/os-release"
+      mkdir -p "$ARTIFACTDIR/{{ $sbom_input }}/var/lib/dpkg" "$ARTIFACTDIR/{{ $sbom_input }}/etc" &&
+      cp "$ROOTDIR/var/lib/dpkg/status" "$ARTIFACTDIR/{{ $sbom_input }}/var/lib/dpkg/status" &&
+      cp "$ROOTDIR/usr/lib/os-release" "$ARTIFACTDIR/{{ $sbom_input }}/etc/os-release"
 
   - action: image-partition
     imagename: {{ $image }}

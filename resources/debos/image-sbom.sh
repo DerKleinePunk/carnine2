@@ -1,10 +1,11 @@
 #!/bin/sh
 # SBOM and CVE report of an image (#41), from the package list the recipe
-# keeps next to it (<image>.sbom-input: var/lib/dpkg/status, etc/os-release).
+# keeps next to it (<image>.<audio_output>.sbom-input: var/lib/dpkg/status,
+# etc/os-release).
 # Only a report: the Debian base always has open CVEs without a fix, so this
 # never fails on a finding.
 #
-#   sh resources/debos/image-sbom.sh resources/raspbian-1024x600.img.sbom-input
+#   sh resources/debos/image-sbom.sh resources/raspbian-1024x600.img.hdmi.sbom-input
 #
 # Writes <input>.cdx.json, <input>.spdx.json and <input>.grype.txt next to it.
 # syft and grype come from PATH, or from CARNINE_SYFT / CARNINE_GRYPE.
