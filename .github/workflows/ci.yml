@@ -108,6 +108,55 @@ jobs:
         working-directory: resources/debos
         run: sh tests/carnine-audio-output-test.sh
 
+  sbom:
+    name: SBOM and known vulnerabilities (syft, grype)
+    # The bill of materials of our own dependencies, from Cargo.lock and the
+    # versioned pubspec.lock (#41). The job fails only on a Critical finding
+    # that has a fixed version; everything else is in the report. Accepted
+    # findings go into .grype.yaml, each with its reason. The Debian packages
+    # of the image are not covered here - that needs the image, not CI.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      # Pinned tool versions, like Flutter above: a new release must not turn
+      # CI red on its own. The vulnerability database is always current.
+      - uses: anchore/sbom-action/download-syft@v0.24.2
+        id: syft
+        with:
+          syft-version: v1.52.0
+      - uses: anchore/scan-action/download-grype@v7.4.2
+        id: grype
+        with:
+          grype-version: v0.119.0
+          cache-db: true
+
+      - name: syft (CycloneDX and SPDX)
+        run: |
+          "${{ steps.syft.outputs.cmd }}" scan dir:src -q \
+            -o cyclonedx-json=sbom.cdx.json \
+            -o spdx-json=sbom.spdx.json
+          jq '.components | length' sbom.cdx.json
+
+      - name: grype report
+        run: |
+          "${{ steps.grype.outputs.cmd }}" sbom:sbom.cdx.json -q -o table
+          "${{ steps.grype.outputs.cmd }}" sbom:sbom.cdx.json -q -o json --file grype.json
+
+      - name: grype gate (Critical with a fix)
+        run: '"${{ steps.grype.outputs.cmd }}" sbom:sbom.cdx.json -q --only-fixed --fail-on critical -o table'
+
+      - name: Upload SBOM and report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: sbom
+          path: |
+            sbom.cdx.json
+            sbom.spdx.json
+            grype.json
+          retention-days: 30
+
   backend-arm64:
     name: Backend release build (arm64, Raspberry Pi target)
     # Native arm64 runner, free for public repositories - no cross toolchain

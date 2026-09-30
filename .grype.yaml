@@ -1,0 +1,17 @@
+# Accepted grype findings (#41). Every entry says why it does not apply; add
+# one only with that reason, never to get CI green.
+
+ignore:
+  # The Dart package "unicode" (a character database for Dart, versions 1.x)
+  # is matched to the Unicode Standard itself. CVE-2021-42574 and
+  # CVE-2021-42694 ("Trojan Source": bidirectional and homoglyph characters in
+  # source code) concern the standard, "fixed in 14.0.0" is Unicode 14.0 - not
+  # this package.
+  - vulnerability: CVE-2021-42574
+    package:
+      name: unicode
+      type: dart-pub
+  - vulnerability: CVE-2021-42694
+    package:
+      name: unicode
+      type: dart-pub
