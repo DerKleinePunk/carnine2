@@ -35,6 +35,8 @@ mod database;
 mod media_player;
 mod navigation;
 mod power_supply;
+#[cfg(test)]
+mod queue_playback_tests;
 mod serial_line;
 mod server_transport;
 mod size_capped_log;

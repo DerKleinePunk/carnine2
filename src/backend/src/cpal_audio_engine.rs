@@ -318,47 +318,103 @@ where
     Ok(device.build_output_stream(
         config,
         move |output: &mut [T], _info| {
-            for command in command_receiver.try_iter() {
-                match command {
-                    MixerCommand::Add {
-                        consumer,
-                        reply,
-                        cancelled,
-                    } => {
-                        let result = if cancelled.load(Ordering::Acquire) {
-                            Err(anyhow::anyhow!("cpal audio source start was cancelled"))
-                        } else {
-                            mixer.add_stream_source(consumer, 1.0)
-                        };
-                        let _ = reply.send(result);
-                    }
-                    MixerCommand::SetGain { source_id, gain } => {
-                        let _ = mixer.set_gain(source_id, gain);
-                    }
-                    MixerCommand::Remove { source_id } => {
-                        let _ = mixer.remove_source(source_id);
-                    }
-                }
-            }
-            let mut mixed_frame = [0.0_f32; CHANNELS];
-            for frame in output.chunks_mut(channels) {
-                let _ = mixer.render(&mut mixed_frame);
-                match frame {
-                    [] => {}
-                    [mono] => *mono = T::from_sample((mixed_frame[0] + mixed_frame[1]) * 0.5),
-                    [left, right, rest @ ..] => {
-                        *left = T::from_sample(mixed_frame[0]);
-                        *right = T::from_sample(mixed_frame[1]);
-                        for channel in rest {
-                            *channel = T::from_sample(0.0);
-                        }
-                    }
-                }
-            }
+            fill_output(output, channels, &mut mixer, &command_receiver);
         },
         on_error,
         None,
     )?)
+}
+
+/// One output callback: applies the pending mixer commands, then renders
+/// `output`. Kept apart from the device so the tests can drive the real
+/// engine without a sound card (#2).
+fn fill_output<T>(
+    output: &mut [T],
+    channels: usize,
+    mixer: &mut AudioMixer,
+    command_receiver: &Receiver<MixerCommand>,
+) where
+    T: cpal::SizedSample + cpal::FromSample<f32>,
+{
+    for command in command_receiver.try_iter() {
+        apply_command(mixer, command);
+    }
+    let mut mixed_frame = [0.0_f32; CHANNELS];
+    for frame in output.chunks_mut(channels) {
+        let _ = mixer.render(&mut mixed_frame);
+        match frame {
+            [] => {}
+            [mono] => *mono = T::from_sample((mixed_frame[0] + mixed_frame[1]) * 0.5),
+            [left, right, rest @ ..] => {
+                *left = T::from_sample(mixed_frame[0]);
+                *right = T::from_sample(mixed_frame[1]);
+                for channel in rest {
+                    *channel = T::from_sample(0.0);
+                }
+            }
+        }
+    }
+}
+
+fn apply_command(mixer: &mut AudioMixer, command: MixerCommand) {
+    match command {
+        MixerCommand::Add {
+            consumer,
+            reply,
+            cancelled,
+        } => {
+            let result = if cancelled.load(Ordering::Acquire) {
+                Err(anyhow::anyhow!("cpal audio source start was cancelled"))
+            } else {
+                mixer.add_stream_source(consumer, 1.0)
+            };
+            let _ = reply.send(result);
+        }
+        MixerCommand::SetGain { source_id, gain } => {
+            let _ = mixer.set_gain(source_id, gain);
+        }
+        MixerCommand::Remove { source_id } => {
+            let _ = mixer.remove_source(source_id);
+        }
+    }
+}
+
+/// The real engine - decoder, ring buffers, mixer and its commands - with an
+/// output thread in place of the sound card (#2). The thread renders
+/// `period_frames` at a time, sleeps `pace` in between, and hands each
+/// rendered stereo block to `sink`, which is how a test hears what played.
+/// It ends once the engine and all its playbacks are dropped.
+#[cfg(test)]
+pub(crate) fn engine_with_null_output(
+    sample_rate: u32,
+    period_frames: usize,
+    pace: Duration,
+    mut sink: impl FnMut(&[f32]) + Send + 'static,
+) -> CpalAudioEngine {
+    let (command_sender, command_receiver) = mpsc::channel();
+    let mut mixer = AudioMixer::new(sample_rate, FADE_MILLISECONDS);
+    thread::Builder::new()
+        .name("null-audio-output".to_string())
+        .spawn(move || {
+            let mut output = vec![0.0_f32; period_frames * CHANNELS];
+            loop {
+                match command_receiver.try_recv() {
+                    Ok(command) => apply_command(&mut mixer, command),
+                    Err(mpsc::TryRecvError::Empty) => {}
+                    Err(mpsc::TryRecvError::Disconnected) => return,
+                }
+                fill_output(&mut output, CHANNELS, &mut mixer, &command_receiver);
+                sink(&output);
+                thread::sleep(pace);
+            }
+        })
+        .expect("null output thread should start");
+    CpalAudioEngine {
+        command_sender,
+        stream: Arc::new(Mutex::new(None)),
+        fault: Arc::new(StreamFault::default()),
+        sample_rate,
+    }
 }
 
 #[cfg(test)]
