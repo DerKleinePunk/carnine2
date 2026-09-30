@@ -405,8 +405,7 @@ impl MediaServiceImpl {
     fn save_resume_state(&self) -> anyhow::Result<()> {
         let database = database::Database::open(&self.database_path)?;
         let playlist_id = self.player.playlist_id();
-        let media_path =
-            Some(self.player.media_path()).filter(|path| playlist_id.is_none() && !path.is_empty());
+        let media_path = self.player.loose_track_path();
         database.save_resume_state(&ResumeState {
             playlist_id,
             playlist_entry_id: self.player.playlist_entry_id(),
@@ -2974,6 +2973,44 @@ mod tests {
             .restore_resume_state()
             .expect("a missing track must not fail the start");
         assert_eq!(without_file.player.media_path(), "");
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    // Seen on carnine-pc: the shutdown saves, stops the player and saves
+    // again once the server is down - and stop() drops the current path, so
+    // the second save lost the loose track.
+    #[test]
+    fn a_loose_track_survives_the_order_of_the_shutdown() {
+        let (service, database_path, _, _) = service_with_two_track_playlist("loose-shutdown");
+        let loose = loose_track("loose-shutdown");
+        let loose_path = loose.to_string_lossy().into_owned();
+        service
+            .player
+            .restore_path(&loose_path, 4_053, "restore_paused")
+            .expect("the loose track should load");
+
+        service
+            .save_resume_state()
+            .expect("resume state should save");
+        service.player.shutdown().expect("player should stop");
+        service
+            .save_resume_state()
+            .expect("resume state should save");
+
+        let restarted = MediaServiceImpl::with_player(
+            MediaPlayer::with_engine(Box::new(FakeAudioEngine)),
+            database_path.clone(),
+            Vec::new(),
+            Vec::new(),
+            "restore_paused".to_string(),
+            PathBuf::from("/tmp/carnine-covers"),
+        );
+        restarted
+            .restore_resume_state()
+            .expect("resume state should restore");
+        assert_eq!(restarted.player.media_path(), loose_path);
+        assert_eq!(restarted.player.position_ms(), 4_053);
+        let _ = std::fs::remove_file(loose);
         let _ = std::fs::remove_file(database_path);
     }
 

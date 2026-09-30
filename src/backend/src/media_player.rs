@@ -218,6 +218,28 @@ impl MediaPlayer {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
+    /// The loose track loaded, if what is loaded is no playlist (#68). Still
+    /// there after `stop`, which drops the current path but keeps the queue
+    /// of one - the shutdown saves once more after stopping the player.
+    pub fn loose_track_path(&self) -> Option<String> {
+        if self.playlist_id().is_some() {
+            return None;
+        }
+        let path = self.media_path();
+        if !path.is_empty() {
+            return Some(path);
+        }
+        let index = (*self
+            .queue_index
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()))?;
+        self.queue
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .get(index)
+            .cloned()
+    }
+
     pub fn playlist_entry_id(&self) -> Option<i64> {
         let index = *self
             .queue_index
