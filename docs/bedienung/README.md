@@ -15,8 +15,8 @@ dieser Seiten in denselben Commit.
 4. [Optionen](optionen.md) – Sprache, Logs, Neustart, Beenden
 5. [Bildschirmtastatur](tastatur.md)
 6. [Verhalten über Neustarts und ohne Backend](verhalten.md) – was gespeichert
-   wird, was bei Verbindungsverlust passiert, was noch Platzhalter ist,
-   Dauertest einrichten
+   wird, was bei Verbindungsverlust, ohne Tonausgang und bei Überhitzung
+   passiert, was noch Platzhalter ist, Dauertest einrichten
 7. [Ton über die Klinke](ton-klinke.md) – für Displays ohne Lautsprecher
    (z. B. Waveshare 7C)
 

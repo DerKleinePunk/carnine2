@@ -14,7 +14,7 @@ Identify risks and areas of technical debt, along with mitigation strategies.
 | **Impact** | High — Complete system failure; user cannot interact with CarPC |
 | **Likelihood** | Medium — Process crashes, memory leaks, or infinite loops possible |
 | **Mitigation** | • Auto-restart mechanism for backend process<br>• Supervisor/systemd service to manage backend lifecycle<br>• Health check / heartbeat every 5-10s<br>• Clear error UI when backend unavailable |
-| **Status** | Partly mitigated — both services run under systemd with `Restart=on-failure`; the frontend detects a lost backend (gRPC keepalive) and shows a connection banner. Open: a frozen backend is not detected (#58) |
+| **Status** | Partly mitigated — both services run under systemd with `Restart=on-failure`; the frontend detects a lost or frozen backend through a heartbeat (`backend_heartbeat.dart`: every 5 s a `GetServiceVersion` call with a 3 s deadline) and shows a connection banner (#58) |
 | **Owner** | Backend Team |
 
 ### 2. ARM Architecture Compatibility
@@ -58,7 +58,7 @@ Identify risks and areas of technical debt, along with mitigation strategies.
 | **Impact** | Medium — Unplanned refactoring; build failures |
 | **Likelihood** | Medium — Open-source ecosystem evolves rapidly |
 | **Mitigation** | • Lock dependencies to tested minor versions (`Cargo.lock`, `pubspec.lock`)<br>• Regular (monthly) audit: `cargo audit`, `flutter pub outdated`<br>• CI/CD runs dependency checks on each PR<br>• Maintain upgrade changelog / decision log |
-| **Status** | Partly mitigated — lock files are versioned and CI runs on each PR; automated dependency and CVE checks are still open (#41) |
+| **Status** | Mitigated — lock files are versioned; CI builds an SBOM and checks it with grype on each push and PR, `build_pi.sh` writes an SBOM and CVE report per package and the image recipe one for the image (#41). Upgrades remain a manual decision |
 | **Owner** | Infra Team |
 
 ### 6. Security: Unix Socket Access Control
@@ -117,7 +117,7 @@ Identify risks and areas of technical debt, along with mitigation strategies.
 
 | Item | Description | Impact | Effort | Priority |
 |------|-------------|--------|--------|----------|
-| **CI/CD Pipeline** | Done: GitHub Actions runs fmt, clippy, tests, analyze and an arm64 build on each PR; deployment is still manual | High | High | Done |
+| **CI/CD Pipeline** | Done: GitHub Actions runs fmt, clippy, tests, analyze, an arm64 build and an SBOM/CVE check on each PR; deployment is still manual | High | High | Done |
 | **Backend Autostart** | Done: `carnine-backend.service` and `carnine-frontend.service` in the Debian packages | High | Low | Done |
 | **Deployment Process** | Scripted: `build_pi.sh`, `deploy_pi.sh` and the debos image recipe (`docs/07-deployment.md`) | High | Medium | Medium |
 | **Monitoring & Logging** | No centralized logging; hard to diagnose failures in field | Medium | Medium | Medium |

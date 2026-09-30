@@ -93,9 +93,12 @@ through the explicit frontend-triggered rescan after import.
 
 The backend restores the persistent playback context during startup:
 
-1. The backend loads the active playlist and saved resume state from SQLite.
-2. The playlist is restored even when its source is currently offline.
-3. The saved queue context selects the stored playlist entry and position.
+1. The backend loads the saved resume state from SQLite: what played last,
+   a playlist or a loose track (a single file started as a queue of one, #68).
+2. The playlist is restored even when its source is currently offline. A loose
+   track whose file is gone is left out, and the start goes on.
+3. The saved queue context selects the stored playlist entry and position, or
+   the loose track's position.
 4. The configured resume mode decides whether playback remains paused, starts,
    or starts at the beginning of the stored track.
 5. The player stream sends an initial complete state to the frontend.
@@ -106,9 +109,14 @@ position), on a change of playlist, repeat or shuffle, and on shutdown
 (SIGTERM). There is no periodic save. A stop resets the current position to
 the beginning but does not modify the queue.
 
-### Scenario 3d: Dashboard Page Restore
+Every playlist also keeps its own place (`playlist_resume`, schema 7, #68).
+`PlayPlaylist` starts from there, whatever played in between, so a loose track
+from the search no longer wipes the place of the audiobook that played before.
 
-The frontend starts on the page that was open before the restart:
+### Scenario 3d: Dashboard Page and Language Restore
+
+The frontend starts on the page that was open before the restart, in the
+language chosen last (#30):
 
 1. After the dashboard is built, the frontend asks `SystemService.GetUiState`
    for the page saved last. The first page shows until the answer arrives.
@@ -121,6 +129,12 @@ The frontend starts on the page that was open before the restart:
    there the previous page comes back.
 4. The backend stores the name in the `ui_state` table of the media database,
    next to the playback resume state.
+5. The language works the same way: at startup `LanguagePersistence` asks
+   `GetUiState` for it (retrying while the backend is not up yet) and saves
+   every language the user picks. A language picked while the saved one still
+   loads wins. `SaveUiState` writes only the fields a request sets, so saving
+   the page keeps the language and the other way round (`ui_state.language`,
+   schema 8).
 
 ### Scenario 4: Vehicle Data Display (planned)
 
@@ -158,7 +172,18 @@ Runs for the whole lifetime of the backend, independent of any client:
 4. Each sample replaces the cached snapshot and is pushed to every
    `StreamSystemMetrics` subscriber. `GetSystemMetrics` answers from that cache
    and never touches `/proc` or `/sys` itself.
-5. A CPU above 75 °C or a filesystem above 90 % is logged as a warning.
+5. A filesystem above 90 % is logged as a warning.
+6. The backend decides whether the CPU is overheated, with hysteresis: on at
+   `cpu_temperature_warn_celsius` (default 75 °C), off only below
+   `cpu_temperature_clear_celsius` (default 70 °C). At or above the clear
+   threshold it samples every `warm_metrics_interval_seconds` (default 5)
+   instead of every 30 s. A missing reading changes nothing. It serves the
+   status as `SystemService.GetThermalStatus`/`StreamThermalStatus`; the stream
+   starts with the current status and logs only changes (#70).
+7. The frontend follows that stream and lays the warning "Gerät überhitzt"
+   over whatever page is open until the user confirms it; it stays away while
+   the CPU is still hot and comes back only after a cool-down and a new
+   overheating.
 
 ## Diagrams
 

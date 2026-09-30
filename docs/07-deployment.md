@@ -78,7 +78,11 @@ the backend persists configuration updates atomically by replacing a temporary
 file with `rename`.
 
 `deploy_pi.sh` overwrites `/etc/carnine/config.toml` with
-`resources/config/carnine.toml` on every deployment. Settings that belong to
+`resources/config/carnine.toml` on every deployment. It stops both services,
+installs the configuration **before** the packages (installing them already
+starts the backend, which would otherwise read the old file until its next
+restart), installs the packages with `--force-confnew` and starts the
+services again. Settings that belong to
 one device therefore go into drop-ins in `/etc/carnine/config.d/*.toml`, which
 no package owns and no deployment touches:
 
@@ -152,6 +156,24 @@ To go back, stop the services, put the copy back and install 0.8.0.
 The first rescan after the update reads every file once, since no row has a
 size and time yet; with about 3600 tracks that took around an hour on a Pi 4
 before #43. Later rescans only read new and changed files.
+
+#### Media database schema 7 and 8 (0.9.4)
+
+0.9.4 raises the schema twice, and the backend migrates on its first start:
+
+- **7** adds the table `playlist_resume`: every playlist keeps its own place,
+  so a single track from the search no longer wipes it (#68). The migration
+  takes over the place saved so far.
+- **8** adds `ui_state.language`, the display language chosen last (#30).
+
+A device on 0.9.0 to 0.9.3 goes from 6 straight to 8. As with schema 6 there
+is no way back: 0.9.3 refuses the file with "database schema version 8 is
+newer than supported version 6". Keep a copy before the update, as above:
+
+```bash
+sudo systemctl stop carnine-frontend carnine-backend
+sudo cp -a /var/lib/carnine/media.sqlite3 /var/lib/carnine/media.sqlite3.0.9.3
+```
 
 #### Where the map data comes from
 
@@ -560,8 +582,23 @@ workstation. For the backend it
 2. cross-compiles with `aarch64-linux-gnu-gcc` as linker and `PKG_CONFIG_*`
    pointing into the sysroot, with `CARNINE_VERSION` and `CARNINE_BUILD_ID`
    from `VERSION` and the commit,
-3. packages it with `cargo deb --target aarch64-unknown-linux-gnu` and
-   stages the result as `resources/debos/carnine-backend.deb`.
+3. packages that binary with `cargo deb --no-build --target
+   aarch64-unknown-linux-gnu` and stages the result as
+   `resources/debos/carnine-backend.deb`.
+
+With `cargo-auditable` installed (`cargo install cargo-auditable --locked`)
+step 2 runs `cargo auditable build`, so the binary carries its dependency
+list; `--no-build` keeps cargo-deb from building it again without that list. After the build,
+`build_pi.sh` writes an SBOM (CycloneDX and SPDX) and a grype CVE report next
+to each package in `resources/debos/` (`<package>.cdx.json`, `.spdx.json`,
+`.grype.txt`, #41): the backend's from the unpacked package, the frontend's
+from the `pubspec.lock` it was built with. Accepted findings are listed with
+their reason in `.grype.yaml`. These are reports only; a finding never stops
+the build. Without `cargo-auditable`, `syft` or `grype` the build goes on with
+a warning (`CARNINE_SYFT`/`CARNINE_GRYPE` name other binaries). The image gets
+its own report: the recipe keeps the package list in
+`<image>.sbom-input/`, and `resources/debos/image-sbom.sh` turns it into an
+SBOM and a report on the host (`resources/debos/README.md`).
 
 `./deploy_pi.sh` installs the staged packages on a device, and the debos
 recipe takes them into a new image.

@@ -8,7 +8,7 @@ Entscheidungen und die geplante Reihenfolge zusammen. Es ersetzt weder die
 Architekturentscheidungen in `09-architecture-decisions.md` noch die Aufgaben-
 liste in `17-ideas-roadmap.md`.
 
-**Stand v0.9.3 (2026-09-30):** Die erste Version ist umgesetzt, ebenso der
+**Stand v0.9.4 (2026-09-30):** Die erste Version ist umgesetzt, ebenso der
 Audio-Output-Rewrite (Phasen 1 bis 5). Offen sind vor allem Phase 6
 (Navigation, Sprache, Ducking) und die Punkte unter „Nicht Teil der ersten
 Version“. Wo der Code von diesem Plan abweicht, steht das beim jeweiligen
@@ -327,7 +327,8 @@ Es gibt zwei getrennte Konzepte:
 - Die gespeicherte Playlist wird in SQLite dauerhaft gehalten.
 - Die temporaere Queue existiert fuer die laufende Sitzung.
 
-Eine Queue ohne aktive Playlist ist nach einem Neustart leer. Wird ein einzelner
+Eine Queue ohne aktive Playlist ist nach einem Neustart leer (Stand v0.9.4:
+ein einzelner Titel kommt mit seiner Stelle wieder, siehe unten). Wird ein einzelner
 Titel gestartet, erstellt das Backend daraus eine temporaere Queue mit diesem
 Titel.
 
@@ -354,7 +355,12 @@ Erste Steuerbefehle:
 - `Previous`
 
 `Stop` beendet die Audioausgabe und setzt den aktuellen Titel an den Anfang.
-`Previous` wechselt in der ersten Version immer zum vorherigen Queue-Eintrag.
+`Previous` wechselte in der ersten Version immer zum vorherigen Queue-Eintrag.
+Stand v0.9.4: Die Taste Zurueck der Oberflaeche ruft ab 3 s Spielzeit
+`RestartCurrentTrack` auf, auch beim ersten und bei einem einzelnen Titel.
+Darunter ruft sie `Previous`; das wiederholt bei Titel-Wiederholung denselben
+Eintrag, springt bei Queue-Wiederholung auf den letzten und geht bei Zufall in
+der bisher gespielten Reihenfolge zurueck (#33).
 
 Repeat unterstuetzt:
 
@@ -370,7 +376,11 @@ Repeat und Shuffle. Der Resume-Modus steht in der Konfiguration
 - `auto-play`: Playlist wiederherstellen und automatisch abspielen
 - `start-last-title`: Playlist wiederherstellen und am Anfang des letzten Titels starten
 
-Die Queue ohne aktive Playlist wird nicht dauerhaft gespeichert.
+Die Queue ohne aktive Playlist wird nicht dauerhaft gespeichert. Seit v0.9.4
+merkt sich der Resume-Zustand aber den Pfad eines einzelnen Titels, der zuletzt
+lief; er kommt nach dem Neustart pausiert an seiner Stelle wieder. Ausserdem
+hat jede Playlist ihre eigene Stelle (`playlist_resume`, Schema 7, #68):
+`PlayPlaylist` beginnt dort, egal was dazwischen lief.
 
 Der Resume-Zustand wird gespeichert, wenn ein Titel startet oder wechselt, wenn
 die Queue zu Ende ist, bei Stop, bei einem Seek (`MediaService.Seek`, relativ
@@ -422,8 +432,10 @@ Ereignisse verwerfen und auf den naechsten Scan warten.
 ### Audiostream
 
 Dies ist kein Audio-Datenstrom. Er liefert Status- und Steuerereignisse des
-zentralen Audio-Managers. Stand v0.9.3: `AUDIO_READY` oder `AUDIO_ERROR`
-(„no audio output available“) beim Verbinden, `AUDIO_SOURCE_STARTED`,
+zentralen Audio-Managers. Stand v0.9.4: `AUDIO_READY` oder, ohne Ausgabegeraet,
+`AUDIO_OUTPUT_UNAVAILABLE` beim Verbinden; dieser Zustand gilt, bis
+`AUDIO_OUTPUT_AVAILABLE` kommt (#56, die UI zeigt so lange einen Hinweis).
+`AUDIO_ERROR` wird nicht mehr gesendet. Dazu `AUDIO_SOURCE_STARTED`,
 `AUDIO_SOURCE_PAUSE_REQUESTED`, `AUDIO_SOURCE_RESUME_REQUESTED`,
 `AUDIO_SOURCE_STOP_REQUESTED`, `AUDIO_SOURCE_REMOVED` und
 `AUDIO_DECODER_STOPPED`. `AUDIO_DEVICE_CHANGED` ist definiert, wird aber noch

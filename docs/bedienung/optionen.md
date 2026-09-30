@@ -24,8 +24,10 @@ Vier Kacheln; der Pfeil oben links in jeder Unterseite führt zurück zur
   Türkisch, Ungarisch).
 - Antippen stellt sofort um, ohne Neustart. Die Liste ist nach dem Namen in der
   aktuellen Sprache sortiert, ihre Reihenfolge ändert sich also beim Umschalten.
-- **Die Wahl wird nicht gespeichert** – nach einem Neustart ist wieder Deutsch
-  eingestellt (#30).
+- Die Wahl wird gespeichert und gilt auch nach einem Neustart, ebenso für die
+  Fahranweisungen der Navigation (#30). Ist das Backend beim Start noch nicht
+  bereit, holt die Oberfläche die Sprache nach; wer in der Zwischenzeit selbst
+  eine Sprache wählt, behält seine Wahl.
 
 ## System
 
