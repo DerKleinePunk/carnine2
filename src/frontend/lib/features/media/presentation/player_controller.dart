@@ -103,7 +103,31 @@ class PlayerController extends ChangeNotifier {
           (_shuffleEnabled
               ? _shufflePosition < _queue.tracks.length - 1
               : (activeQueueIndex ?? -1) < _queue.tracks.length - 1));
-  bool get canGoPrevious => hasTrack && !isBusy && (activeQueueIndex ?? 0) > 0;
+
+  /// From here on "previous" restarts the current track instead.
+  static const restartThreshold = Duration(seconds: 3);
+
+  /// Past [restartThreshold] "previous" restarts the track, which always
+  /// works - also on the first track and for a single track from the
+  /// library (#33). Before it, it needs somewhere to go back to, which
+  /// mirrors what the backend resolves: repeat track replays the current
+  /// entry, shuffle steps back through the order played so far, repeat
+  /// queue wraps to the last entry, and otherwise there must be an earlier
+  /// one.
+  bool get canGoPrevious =>
+      hasTrack &&
+      !isBusy &&
+      (position >= restartThreshold || _hasPreviousEntry);
+
+  bool get _hasPreviousEntry {
+    if (_repeatMode == MediaRepeatMode.track) {
+      return true;
+    }
+    if (_shuffleEnabled) {
+      return _shufflePosition > 0;
+    }
+    return _repeatMode == MediaRepeatMode.queue || (activeQueueIndex ?? 0) > 0;
+  }
 
   /// The backend stops a seek at the start and at the track's end itself.
   bool get canSeek => hasTrack && !isBusy;
@@ -266,7 +290,7 @@ class PlayerController extends ChangeNotifier {
     if (!hasTrack || isBusy) {
       return;
     }
-    if (position >= const Duration(seconds: 3)) {
+    if (position >= restartThreshold) {
       await _runCommand(_repository.restartCurrentTrack);
       return;
     }

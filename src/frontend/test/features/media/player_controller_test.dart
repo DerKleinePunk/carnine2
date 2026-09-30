@@ -734,4 +734,123 @@ void main() {
       expect(controller.currentTrackCoverArt, isNull);
     },
   );
+
+  group('"previous" on the first track (#33)', () {
+    /// Starts [path] playing at [position], as the backend reports it.
+    void playing(FakeAsync async, String path, {Duration? position}) {
+      repository.playerEventsController.add(
+        PlayerEventUpdate(
+          kind: PlayerEventKind.playbackStarted,
+          state: PlayerSnapshot(
+            status: PlaybackStatus.playing,
+            mediaPath: path,
+            position: position ?? Duration.zero,
+          ),
+          message: 'playback started',
+        ),
+      );
+      async.flushMicrotasks();
+    }
+
+    void startPlaylist(FakeAsync async) {
+      controller.start();
+      async.flushMicrotasks();
+      controller.playPlaylist(
+        const MediaPlaylist(id: 5, name: 'Drive', entries: []),
+        [_trackA, _trackB],
+      );
+      async.flushMicrotasks();
+      playing(async, '/music/a.mp3');
+    }
+
+    test('is locked below 3 s and restarts the track from then on', () {
+      fakeAsync((async) {
+        startPlaylist(async);
+        var notified = 0;
+        controller.addListener(() => notified++);
+        expect(controller.canGoPrevious, isFalse);
+
+        async.elapse(const Duration(seconds: 3));
+
+        expect(controller.canGoPrevious, isTrue);
+        expect(notified, greaterThan(0), reason: 'the button must rebuild');
+        repository.commands.clear();
+        controller.previous();
+        async.flushMicrotasks();
+        expect(repository.commands, ['restartCurrentTrack']);
+      });
+    });
+
+    test('works for a single track from the library', () {
+      fakeAsync((async) {
+        controller.start();
+        async.flushMicrotasks();
+        controller.playTrack(_trackB);
+        async.flushMicrotasks();
+        playing(async, '/music/b.mp3');
+        expect(controller.canGoPrevious, isFalse);
+
+        async.elapse(const Duration(seconds: 10));
+
+        expect(controller.canGoPrevious, isTrue);
+        repository.commands.clear();
+        controller.previous();
+        async.flushMicrotasks();
+        expect(repository.commands, ['restartCurrentTrack']);
+      });
+    });
+
+    test('works on a paused track past 3 s', () {
+      fakeAsync((async) {
+        startPlaylist(async);
+        repository.playerEventsController.add(
+          PlayerEventUpdate(
+            kind: PlayerEventKind.paused,
+            state: const PlayerSnapshot(
+              status: PlaybackStatus.paused,
+              mediaPath: '/music/a.mp3',
+              position: Duration(seconds: 10),
+            ),
+            message: 'playback paused',
+          ),
+        );
+        async.flushMicrotasks();
+
+        expect(controller.canGoPrevious, isTrue);
+      });
+    });
+
+    test('below 3 s, repeat queue wraps and repeat track replays', () {
+      fakeAsync((async) {
+        startPlaylist(async);
+        expect(controller.canGoPrevious, isFalse);
+
+        controller.cycleRepeat();
+        async.flushMicrotasks();
+        expect(controller.repeatMode, MediaRepeatMode.queue);
+        expect(controller.canGoPrevious, isTrue);
+        repository.commands.clear();
+        controller.previous();
+        async.flushMicrotasks();
+        expect(repository.commands, ['previous']);
+
+        controller.cycleRepeat();
+        async.flushMicrotasks();
+        expect(controller.repeatMode, MediaRepeatMode.track);
+        expect(controller.canGoPrevious, isTrue);
+      });
+    });
+
+    test('below 3 s with shuffle, not at the start of the shuffled order', () {
+      fakeAsync((async) {
+        startPlaylist(async);
+        controller.cycleRepeat();
+        controller.toggleShuffle();
+        async.flushMicrotasks();
+
+        // Repeat queue does not wrap backwards through the shuffled order.
+        expect(controller.canGoPrevious, isFalse);
+      });
+    });
+  });
 }
