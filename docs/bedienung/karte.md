@@ -23,7 +23,7 @@ Fehlen die Kartendaten, steht dort „Keine Kartendaten installiert“.
 | Knopf | Wirkung |
 |---|---|
 | **＋** / **−** | eine Zoomstufe hinein bzw. heraus |
-| **Kompass** (◎, aus) | Navigationsmodus an: Karte folgt der eigenen Position, **Fahrtrichtung oben** – zentriert also auch wieder auf die Position |
+| **Kompass** (◎, aus) | Navigationsmodus an: Karte folgt der eigenen Position, **Fahrtrichtung oben** – zentriert also auch wieder auf die Position. Die Beschriftung dreht mit, siehe [Während der Fahrt](#während-der-fahrt) |
 | **Navigation** (▲, an) | zurück auf **Norden oben**; die Karte folgt weiter |
 
 Einen eigenen „Zentrieren“-Knopf gibt es nicht; nach dem Verschieben holt der
@@ -40,14 +40,17 @@ Kompass-Knopf die Position zurück.
    Gewässer, Straße. Ohne GPS-Position fehlt die Entfernung.
 
    Reihenfolge: genau passende Namen vor denen, die nur so anfangen („Fulda“
-   vor „Fulda-Galerie“), dann Orte, POIs, Berge, Gewässer, Straßen; innerhalb
-   davon die nächsten zuerst. Ab drei Zeichen wird zuerst im Umkreis von 50 km
-   gesucht. Name und Ort lassen sich kombinieren: „Obergasse Alsfeld“ findet
-   die Obergasse in Alsfeld. Eine Haltestelle, die wie eine Straße im selben
-   Ort heißt, steht hinter der Straße.
-
-   Bekannte Schwäche: Ein gleichnamiger POI weit weg (Bahnhof „Hauptstraße“
-   in Freiburg) kann vor den Straßen in der Nähe stehen.
+   vor „Fulda-Galerie“). Eine Stadt, deren Name mit dem ganzen Suchwort
+   beginnt, zählt dabei als genau passend: „Frankfurt“ findet zuerst
+   Frankfurt am Main, nicht das Dorf Frankfurt bei Scheinfeld. Danach kommen
+   Orte, POIs, Berge, Gewässer, Straßen. Mit GPS-Position stehen Orte vorn,
+   dann alles im Umkreis von 50 km, dann der Rest des Landes; so steht die
+   Straße in der Nähe vor einem gleichnamigen Bahnhof weit weg. Große Städte
+   gehen anderen Orten vor, sonst gilt: die nächsten zuerst („Hausen“ bei
+   Alsfeld ist das Dorf in der Nähe). Ab drei Zeichen wird zuerst im Umkreis von
+   50 km gesucht. Name und Ort lassen sich kombinieren: „Obergasse Alsfeld“
+   findet die Obergasse in Alsfeld. Eine Haltestelle, die wie eine Straße im
+   selben Ort heißt, steht hinter der Straße.
 
    ![Zielsuche „Alsfeld“ mit Treffern „Ort · 54 km“ und „Ort · Kirtorf · 55 km“, darunter die Bildschirmtastatur](bilder/karte-suche.png)
 3. **Treffer antippen:** Die Route wird von der aktuellen Position aus
@@ -75,6 +78,12 @@ erreichbar“ (Backend weg, rot).
   Kilometer („498 km“). Das Dezimalzeichen folgt der Sprache (Englisch,
   Chinesisch, Japanisch: Punkt).
 - **ABBRECHEN** (roter Knopf rechts unten) löscht die Route.
+- **Beschriftung:** Mit der Fahrtrichtung oben dreht sich die Karte, und die
+  Straßen- und Ortsnamen drehen mit. Sie stehen nie auf dem Kopf, höchstens
+  etwas schräg, weil die Karte für die Beschriftung in 45°-Schritten neu
+  gezeichnet wird (seit 0.9.5, flutter_local_map #1).
+
+  ![Navigationsmodus mit gedrehter Karte: Orts- und Straßennamen wie „Rabenstein“ stehen schräg, aber keiner kopfüber](bilder/karte-mitdrehen.png)
 
 Die Fahranweisungen erscheinen in der unter [Optionen → Sprache](optionen.md)
 gewählten Sprache.
