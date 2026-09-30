@@ -3,8 +3,8 @@ set -euo pipefail
 
 # Runs backend and frontend locally in WSL2, with the frontend under
 # ivi-homescreen (wayland-egl on WSLg) as on the Pi instead of the GTK runner of
-# `flutter run -d linux`. See docs/07-deployment.md "Local development (WSL2):
-# frontend under ivi-homescreen".
+# `flutter run -d linux`. See docs/07-deployment.md "3.4 Run Locally in WSL2
+# (ivi-homescreen on WSLg)".
 #
 #   ./run_wsl.sh             build what changed, then start both
 #   ./run_wsl.sh --no-build  start the last build again
