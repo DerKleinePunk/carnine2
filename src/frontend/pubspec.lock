@@ -856,7 +856,7 @@ packages:
     dependency: "direct overridden"
     description:
       path: "."
-      ref: local_map_pi
+      ref: f7f18a4f8b454c8002c201265347079d586f1bf7
       resolved-ref: f7f18a4f8b454c8002c201265347079d586f1bf7
       url: "https://github.com/DerKleinePunk/flutter-vector-map-tiles"
     source: git

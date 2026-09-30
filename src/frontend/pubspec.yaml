@@ -38,7 +38,9 @@ dependency_overrides:
   vector_map_tiles:
     git:
       url: https://github.com/DerKleinePunk/flutter-vector-map-tiles
-      ref: local_map_pi
+      # Commit statt Zweig local_map_pi: Der Zweig zieht ab local_map-v0.6.0
+      # einen Renderer-Fork nach, der hier einen eigenen Override braucht.
+      ref: f7f18a4f8b454c8002c201265347079d586f1bf7
   flutter_map_mbtiles:
     git:
       url: https://github.com/DerKleinePunk/flutter_map_plugins
