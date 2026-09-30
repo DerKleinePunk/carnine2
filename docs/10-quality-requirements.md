@@ -42,12 +42,12 @@ List the quality attributes (performance, security, maintainability, etc.) and h
 ## Quality Measures
 
 ### Reliability
-- **How:** gRPC keepalive from the frontend (ping every 5 s, 400 ms timeout, `media_channel.dart`, `navigation_channel.dart`); systemd restarts a failed backend
-- **Tool:** Connection banner in Flutter; no separate timeout handler in the Rust backend. A frozen backend is not detected yet (#58)
+- **How:** Heartbeat from the frontend (`backend_heartbeat.dart`: every 5 s `GetServiceVersion` with a 3 s deadline; the first failure closes the channel hard and the reconnect loop takes over, #58); systemd restarts a failed backend. The long-lived channels run without HTTP/2 keepalive, which never noticed a frozen backend
+- **Tool:** Connection banner in Flutter; no separate timeout handler in the Rust backend. A frozen backend is noticed after at most about 8 s
 - **Success Metric:** 99.5% uptime in production over 30 days
 
 ### Responsiveness
-- **How:** gRPC with keepalive-based connection loss detection
+- **How:** gRPC with a heartbeat call that has a deadline
 - **Metric:** Connection loss detected and UI updated within 500ms
 - **Testing:** Unit tests + integration tests with simulated network failure
 
@@ -62,8 +62,8 @@ List the quality attributes (performance, security, maintainability, etc.) and h
 	- LAN-exposed remote endpoints use TLS plus authentication/authorization
 	- No internet exposure of control interfaces (LAN-only policy)
 	- Input validation on all RPC messages
-- **Metric:** Zero security vulnerabilities in dependency scan
-- **Tools:** `cargo audit`; Flutter security best practices
+- **Metric:** No Critical finding with an available fix in the dependency scan (CI fails on it); other findings are reviewed from the report
+- **Tools:** SBOM with syft and CVE check with grype in CI and in `build_pi.sh` (#41, accepted findings in `.grype.yaml`); Flutter security best practices
 
 ### Maintainability
 - **How:** Code style enforcement; comprehensive tests

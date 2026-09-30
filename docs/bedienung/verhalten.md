@@ -10,11 +10,13 @@
 | Lautstärke | ja; ohne gespeicherten Wert 50 % (#47) |
 | Wiederholung und Zufall | ja |
 | laufende Playlist, Titel und Stelle im Titel | ja |
-| einzeln aus der Bibliothek gestarteter Titel | nein |
-| Sprache | nein – immer Deutsch (#30) |
+| Stelle jeder anderen Playlist | ja – jede Playlist merkt sich ihre eigene Stelle (#68) |
+| einzeln aus der Bibliothek gestarteter Titel | ja, mit seiner Stelle (#68); ist die Datei weg, wird er übersprungen |
+| Sprache | ja (#30) |
 | Route, Zoom, Suchtexte, eingeklappte Warteschlange, Unterseite von Medien und Optionen | nein |
 
 Nach einem Neustart des Backends (oder des ganzen Geräts) wird die Playlist
+oder der einzelne Titel, der zuletzt lief,
 standardmäßig **pausiert an der gespeicherten Stelle** geladen und muss mit
 **Wiedergabe** fortgesetzt werden. Das steuert `resume_mode` in der
 Backend-Konfiguration:
@@ -31,6 +33,11 @@ bleibt aus, bis sie jemand von Hand startet (siehe [Optionen](optionen.md#system
 
 Frisch geflasht ist die Datenbank leer: Wiederholung steht dann auf aus.
 
+Spielt zwischendurch ein einzelner Titel (zum Beispiel aus der Suche), geht
+die Stelle der Playlist davor nicht verloren: Startet man sie wieder, macht
+sie dort weiter, wo sie war. Bei einem Hörbuch also im richtigen Kapitel, nicht
+wieder bei Kapitel eins (#68).
+
 ## Wenn das Backend nicht erreichbar ist
 
 ![Medien mit Banner „Die Verbindung zum Backend wurde unterbrochen. Es wird automatisch erneut verbunden.“ und ERNEUT VERSUCHEN](bilder/ohne-backend.png)
@@ -43,24 +50,49 @@ Frisch geflasht ist die Datenbank leer: Wiederholung steht dann auf aus.
   Wiederverbindung von selbst zurück.
 - Schlägt ein einzelner Befehl fehl (z. B. **Weiter**), zeigt die Medienseite
   4 s lang den Streifen „Befehl fehlgeschlagen“ (#32, siehe
-  [Banner](medien.md#banner)). Das gilt auch, wenn das Backend hängt, ohne
-  abzustürzen: Dann kommt nur dieser Streifen, das Verbindungsbanner
-  erst, wenn die Verbindung wirklich abreißt.
+  [Banner](medien.md#banner)).
+- Hängt das Backend, ohne abzustürzen, merkt die Oberfläche das nach
+  spätestens etwa 8 s: Sie fragt alle 5 s nach, ob das Backend antwortet, und
+  wartet höchstens 3 s auf die Antwort. Dann erscheint das Verbindungsbanner wie
+  oben, und sie verbindet sich neu, sobald das Backend wieder antwortet (#58).
 
 ## Ohne Audio-Gerät
 
-Findet das Backend beim Start kein Audio-Ausgabegerät, etwa weil HDMI keinen
+![Medien mit der roten Zeile „Kein Audio-Ausgang – bitte den Tonausgang prüfen (HDMI oder Klinke)“ unter der Kopfleiste](bilder/hinweis-kein-audio.png)
+
+Findet das Backend kein Audio-Ausgabegerät, etwa weil HDMI keinen
 Ton hat (das Display meldet in seinem EDID keinen Audioteil), läuft es
 trotzdem: Karte, Navigation, Netzteil-Anzeige und Optionen funktionieren, nur
-Musik nicht (#55). Auf der Medienseite erscheint dann „Audiofehler
-aufgetreten“, und **Wiedergabe** zeigt dazu „Befehl fehlgeschlagen“. Bei
-jedem neuen Start einer Wiedergabe versucht das Backend das Gerät noch
-einmal; ein Ton über HDMI, der erst später da ist, wird so ohne Neustart
-genutzt.
+Musik nicht (#55). Solange kein Ausgang da ist, steht **auf jeder Seite** unter
+der Kopfleiste die rote Zeile mit durchgestrichenem Lautsprecher „Kein
+Audio-Ausgang – bitte den Tonausgang prüfen (HDMI oder Klinke)“ (#56). Sie hat
+keinen Knopf und verschwindet von selbst, sobald wieder ein Ausgang da ist.
+**Wiedergabe** zeigt dann „Befehl fehlgeschlagen“. Bei jedem neuen Start einer
+Wiedergabe versucht das Backend das Gerät noch einmal; ein Ton über HDMI, der
+erst später da ist, wird so ohne Neustart genutzt. Welcher Ausgang Karte 0 ist,
+steht in [Ton über die Klinke](ton-klinke.md).
 
 Reißt die Audioausgabe **während der Wiedergabe** ab, pausiert der Player an
-der aktuellen Stelle, und es erscheint „Audiofehler aufgetreten“. **▶** spielt
-an derselben Stelle weiter und öffnet die Ausgabe dabei neu (#59).
+der aktuellen Stelle, und die rote Zeile erscheint. **▶** spielt an derselben
+Stelle weiter und öffnet die Ausgabe dabei neu (#59).
+
+## Wenn das Gerät zu heiß wird
+
+![Warnung „Gerät überhitzt“ mit Temperatur und dem Knopf „Verstanden“ über der Seite Medien](bilder/hinweis-ueberhitzt.png)
+
+Wird die CPU **75 °C** heiß, legt sich über jede Seite die Warnung **„Gerät
+überhitzt“**: „Die CPU hat … °C. Bitte das Gerät abkühlen lassen und die
+Lüftung prüfen.“ (#70). Die Seite darunter ist abgedunkelt und gesperrt, bis
+jemand **Verstanden** tippt.
+
+- Danach kommt die Warnung nicht wieder, solange die CPU heiß bleibt, auch
+  nicht, wenn sich die Oberfläche neu mit dem Backend verbindet. Startet die
+  Oberfläche selbst neu, während die CPU noch heiß ist, kommt sie sofort wieder.
+- Erst wenn die Temperatur unter **70 °C** gefallen und danach wieder auf 75 °C
+  gestiegen ist, kommt sie erneut.
+- Die beiden Schwellen stehen in der Backend-Konfiguration,
+  `[system] cpu_temperature_warn_celsius` und `cpu_temperature_clear_celsius`.
+  Ab 70 °C misst das Backend alle 5 s statt alle 30 s.
 
 ## Noch nicht verfügbar
 

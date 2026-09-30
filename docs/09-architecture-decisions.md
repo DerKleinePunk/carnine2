@@ -652,8 +652,11 @@ rules above changed in the code:
 - `GetServiceVersion` exists on `MediaService`, `AudioService` and
   `NavigationService`, not on every service.
 - The audio event stream reports `AUDIO_READY`, source start, pause, resume,
-  stop and removal, `AUDIO_DECODER_STOPPED` and `AUDIO_ERROR`; interruption and
-  ducking are not implemented.
+  stop and removal and `AUDIO_DECODER_STOPPED`. Since v0.9.4 a missing output
+  is a state, not an error: `AUDIO_OUTPUT_UNAVAILABLE` (a new stream starts
+  with it instead of `AUDIO_READY`) until `AUDIO_OUTPUT_AVAILABLE` (#56);
+  `AUDIO_ERROR` is no longer sent. Interruption and ducking are not
+  implemented.
 - USB discovery (ADR-014), seek (#8), shuffle (#9) and a settings page exist;
   queue editing does not.
 

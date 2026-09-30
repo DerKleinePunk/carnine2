@@ -26,7 +26,7 @@ Warteschlange.
 | Taste | Wirkung | Hinweise |
 |---|---|---|
 | **Zufall** (⤮) | Zufallswiedergabe an/aus | an = leuchtet, mit Punkt darunter |
-| **Zurück** (⏮) | ab 3 s Spielzeit: Titel von vorn; sonst vorheriger Titel | auf dem ersten Titel der Warteschlange und bei Einzeltiteln gesperrt (#33) |
+| **Zurück** (⏮) | ab 3 s Spielzeit: Titel von vorn; sonst vorheriger Titel | ab 3 s immer aktiv, auch auf dem ersten Titel und bei Einzeltiteln. Darunter nur, wenn es einen vorherigen gibt: bei Wiederholung des Titels derselbe, bei Wiederholung der Playlist der letzte, bei Zufall der zuvor gespielte (#33) |
 | **−30 s** | 30 Sekunden zurück | am Titelanfang bleibt es bei 0:00 |
 | **Wiedergabe/Pause** | pausieren bzw. fortsetzen | grau, wenn kein Titel geladen ist |
 | **+30 s** | 30 Sekunden vor | nicht über das Titelende hinaus |
@@ -173,7 +173,7 @@ Erscheinen oben auf der Medienseite.
 | Verbindungsbanner „Die Verbindung zum Backend wurde unterbrochen …“ (rote Wolke) | Backend nicht erreichbar | **ERNEUT VERSUCHEN** verbindet sofort; sonst automatisch alle 0,5–5 s. Verdeckt die anderen Banner. |
 | **ffmpeg fehlt** (rotes Warndreieck) | Das Backend kann ffprobe/ffmpeg nicht starten. Titel werden dann ohne Interpret, Dauer und Cover eingelesen. | **RESCAN** startet einen neuen Scan, das Banner verschwindet dabei. Fehlt ffmpeg weiter, kommt es zurück. Es lässt sich nicht schließen. |
 | **USB-Stick „…“ gefunden – n Titel übernehmen?** | Stick mit dem Volume-Label **MUSIK** und passenden Dateien steckt | **ÜBERNEHMEN** kopiert die Titel und liest danach neu ein (Fortschritt in der Bibliothek); **SCHLIESSEN** verwirft den Hinweis. Verschwindet von selbst nur, wenn der Stick abgezogen wird; steckt man ihn wieder ein, kommt der Hinweis erneut. |
-| **Audiofehler aufgetreten** / **Audioausgabegerät gewechselt** | Meldung vom Backend, z. B. [ohne Audio-Gerät](verhalten.md#ohne-audio-gerät) oder wenn der Ton während der Wiedergabe abreißt; der Player pausiert dann (#59) | **SCHLIESSEN**, sonst nach 4 s weg |
+| „Kein Audio-Ausgang – bitte den Tonausgang prüfen (HDMI oder Klinke)“ (rote Zeile unter der Kopfleiste, auf jeder Seite) | Das Backend hat keinen Tonausgang, siehe [ohne Audio-Gerät](verhalten.md#ohne-audio-gerät), auch wenn der Ton während der Wiedergabe abreißt; der Player pausiert dann (#56, #59) | kein Knopf; verschwindet von selbst, sobald ein Ausgang da ist |
 | **Befehl fehlgeschlagen** / **Kein weiterer Titel in der Warteschlange** (Fehlersymbol) | Eine Taste des Players ging nicht durch, z. B. **Weiter** ohne Antwort vom Backend; der zweite Text bei **Weiter**/**Zurück** am Ende der Warteschlange (#32) | **SCHLIESSEN**, sonst nach 4 s weg |
 
 ![Banner „ffmpeg fehlt: Titel werden ohne Interpret, Dauer und Cover eingelesen …“ mit RESCAN über dem Player](bilder/medien-ffmpeg-fehlt.png)

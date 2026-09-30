@@ -11,7 +11,7 @@ This section describes architectural principles, patterns, and technologies that
 - **Levels**: ERROR, WARN, INFO, DEBUG, TRACE, set by `[logging] level` (default `info`, an `EnvFilter` expression); DEBUG/TRACE can be enabled in production for troubleshooting
 
 ### Health Monitoring
-- **Backend Health Checks**: No gRPC health service. systemd restarts a failed service (`Restart=on-failure`), the frontend detects a lost backend through gRPC keepalive and shows a connection banner, and the UI reports its readiness with `SystemService.ReportUiReady`
+- **Backend Health Checks**: No gRPC health service. systemd restarts a failed service (`Restart=on-failure`), the frontend detects a lost or frozen backend through a heartbeat (`backend_heartbeat.dart`: every 5 s a `GetServiceVersion` call with a 3 s deadline) and shows a connection banner (#58); the long-lived gRPC channels run without HTTP/2 keepalive, and the UI reports its readiness with `SystemService.ReportUiReady`
 - **System Metrics**: CPU temperature, load and disk usage, sampled inside the backend (`system_metrics.rs`, no Node/Prometheus) and served by `SystemService.GetSystemMetrics`/`StreamSystemMetrics`. RAM and CAN status are not collected yet
 - **Alerting**: Critical errors are displayed on the UI and logged; user is notified directly rather than via external channels
 
@@ -97,7 +97,7 @@ This section describes architectural principles, patterns, and technologies that
 - **CAN Simulation** (planned): Virtual CAN interfaces for testing without real vehicle
 
 ### Continuous Integration
-- **Build Pipeline**: GitHub Actions (`.github/workflows/ci.yml`): backend `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings` and `cargo test`; frontend `flutter analyze` and `flutter test`; shellcheck and tests for the image scripts; a native arm64 release build
+- **Build Pipeline**: GitHub Actions (`.github/workflows/ci.yml`): backend `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings` and `cargo test`; frontend `flutter analyze` and `flutter test`; shellcheck and tests for the image scripts; a native arm64 release build; an SBOM of our own dependencies (`Cargo.lock`, `pubspec.lock`) with syft, checked with grype, which fails only on a Critical finding that has a fix (#41, accepted findings in `.grype.yaml`)
 - **Code Quality**: Clippy (Rust), Flutter analyze. No pre-commit hooks in the repository
 
 ## 8.8 Deployment and Updates

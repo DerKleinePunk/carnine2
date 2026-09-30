@@ -15,7 +15,7 @@ These are the next concrete work items after the current backend and image integ
 ### Short-term Ideas
 - [x] Define first stable `.proto` contract for core control messages (`src/proto/carnine.proto`); telemetry messages are still open (CAN)
 - [x] Implement minimal end-to-end vertical slice (frontend button -> backend RPC -> response)
-- [x] Frontend connection banner handling (gRPC keepalive); a separate backend health endpoint was not needed so far
+- [x] Frontend connection banner handling (heartbeat call every 5 s, #58); a separate backend health endpoint was not needed so far
 - [x] Create reproducible local build scripts for backend and frontend (`build_pi.sh`, `run_wsl.sh`)
 
 ### Media: Before Implementation
