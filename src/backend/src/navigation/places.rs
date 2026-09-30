@@ -147,7 +147,10 @@ pub fn search(
 
 /// Exact hits first ("Fulda" before "Fulda-Galerie", "Hauptstraße Alsfeld"
 /// for the one in Alsfeld), then those that only start that way; within each
-/// by rank, then by distance. With `near` the rank is banded: inhabited
+/// by rank, then cities before the rest, then by distance. A city or town
+/// whose name starts with the whole query counts as exact:
+/// "Frankfurt" means Frankfurt am Main, not the village "Frankfurt" in
+/// Franconia. With `near` the rank is banded: inhabited
 /// places, then everything within [`NEAR_RADIUS_METERS`], then the rest.
 fn ranked(
     candidates: Vec<PlaceRecord>,
@@ -174,7 +177,8 @@ fn ranked(
                 || record
                     .area
                     .as_ref()
-                    .is_some_and(|area| format!("{name} {}", area.to_lowercase()) == wanted);
+                    .is_some_and(|area| format!("{name} {}", area.to_lowercase()) == wanted)
+                || (is_city_or_town(&record) && starts_with_word(&name, &wanted));
             let type_rank = if record.kind == "poi" && streets.contains(&street_key(&record)) {
                 5
             } else {
@@ -198,16 +202,40 @@ fn ranked(
                 }
                 _ => u16::from(type_rank),
             };
-            (!exact, rank, distance, record)
+            (!exact, rank, !is_city(&record), distance, record)
         })
         .collect();
     // Stable: without `near` the order from the database stays within a group.
-    keyed.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)).then(a.2.total_cmp(&b.2)));
+    keyed.sort_by(|a, b| {
+        a.0.cmp(&b.0)
+            .then(a.1.cmp(&b.1))
+            .then(a.2.cmp(&b.2))
+            .then(a.3.total_cmp(&b.3))
+    });
     keyed
         .into_iter()
         .take(limit)
-        .map(|(_, _, _, record)| record)
+        .map(|(_, _, _, _, record)| record)
         .collect()
+}
+
+/// Only cities go ahead regardless of distance: whoever types "Hausen" near
+/// Alsfeld means the village nearby, not the town of that name near Hanau.
+fn is_city(record: &PlaceRecord) -> bool {
+    record.kind == "place" && record.detail.as_deref() == Some("city")
+}
+
+fn is_city_or_town(record: &PlaceRecord) -> bool {
+    record.kind == "place" && matches!(record.detail.as_deref(), Some("city" | "town"))
+}
+
+/// `name` is `word` followed by more words: "frankfurt am main" and
+/// "frankfurt (oder)" for "frankfurt", but not "frankfurter straße" or
+/// "frankfurt-höchst".
+fn starts_with_word(name: &str, word: &str) -> bool {
+    name.strip_prefix(word)
+        .and_then(|rest| rest.chars().next())
+        .is_some_and(char::is_whitespace)
 }
 
 /// Place in the result list, smaller is higher up, as `searchRank` in the
@@ -691,6 +719,91 @@ pub(super) mod tests {
         let hits = search(&db.path, "Alsfeld", 0, None).expect("search");
         assert_eq!(names(&hits), ["Alsfeld", "Alsfelder Hof"]);
         assert_eq!(hits[0].area.as_deref(), Some("Lauterbach"));
+    }
+
+    /// Three places called "Frankfurt": the village in Franconia is named
+    /// exactly that, the two cities only start that way.
+    fn frankfurt_db() -> TempDb {
+        names_db(&[
+            (
+                "Frankfurt",
+                49.681,
+                10.527,
+                "place",
+                "village",
+                Some("Scheinfeld"),
+            ),
+            (
+                "Frankfurter Straße",
+                50.31,
+                9.46,
+                "transportation_name",
+                "secondary",
+                Some("Steinau an der Straße"),
+            ),
+            (
+                "Frankfurt-Höchst",
+                50.10,
+                8.54,
+                "place",
+                "suburb",
+                Some("Frankfurt am Main"),
+            ),
+            ("Frankfurt (Oder)", 52.341, 14.549, "place", "town", None),
+            ("Frankfurt am Main", 50.111, 8.682, "place", "city", None),
+        ])
+    }
+
+    #[test]
+    fn frankfurt_means_the_city_not_the_village_of_that_name() {
+        let db = frankfurt_db();
+        // Behind the city the order of the database stays.
+        let hits = search(&db.path, "Frankfurt", 0, None).expect("search");
+        assert_eq!(
+            names(&hits),
+            [
+                "Frankfurt am Main",
+                "Frankfurt",
+                "Frankfurt (Oder)",
+                "Frankfurt-Höchst",
+                "Frankfurter Straße",
+            ]
+        );
+    }
+
+    #[test]
+    fn the_city_stays_ahead_of_the_village_nearby() {
+        // From Würzburg the village is ~45 km away, Frankfurt ~100 km and
+        // Frankfurt (Oder) ~450 km; only the city goes ahead of the village.
+        let db = frankfurt_db();
+        let hits = search(&db.path, "Frankfurt", 0, Some((49.79, 9.95))).expect("search");
+        assert_eq!(
+            names(&hits)[..3],
+            ["Frankfurt am Main", "Frankfurt", "Frankfurt (Oder)"]
+        );
+    }
+
+    #[test]
+    fn a_town_does_not_push_back_the_village_nearby() {
+        let db = names_db(&[
+            ("Hausen", 50.13, 8.93, "place", "town", Some("Hanau")),
+            ("Hausen", 50.86, 9.45, "place", "village", Some("Oberaula")),
+        ]);
+        let hits = search(&db.path, "Hausen", 0, Some(ALSFELD)).expect("search");
+        let areas: Vec<_> = hits.iter().map(|hit| hit.area.as_deref()).collect();
+        assert_eq!(areas, [Some("Oberaula"), Some("Hanau")]);
+    }
+
+    #[test]
+    fn only_a_whole_word_counts_as_the_city_name() {
+        // "Frankfurter Straße" and "Frankfurt-Höchst" start with the word but
+        // are no city of that name.
+        let db = frankfurt_db();
+        // Frankfurt-Höchst is found through its area "Frankfurt am Main".
+        let hits = search(&db.path, "Frankfurt am", 0, None).expect("search");
+        assert_eq!(names(&hits), ["Frankfurt am Main", "Frankfurt-Höchst"]);
+        let hits = search(&db.path, "Frankf", 0, None).expect("search");
+        assert_eq!(names(&hits)[0], "Frankfurt am Main");
     }
 
     #[test]
