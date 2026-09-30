@@ -44,7 +44,10 @@ void main() {
 
     final repository = FakeMediaRepository()
       ..library = const [_trackA, _trackB];
-    final mediaController = MediaController(repository: repository);
+    final mediaController = MediaController(
+      repository: repository,
+      heartbeatInterval: null,
+    );
     final dashboardController = DashboardController();
     addTearDown(mediaController.dispose);
     addTearDown(dashboardController.dispose);

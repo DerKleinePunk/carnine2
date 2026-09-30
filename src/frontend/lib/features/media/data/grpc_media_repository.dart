@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:carnine_frontend/core/platform/backend_heartbeat.dart';
 import 'package:carnine_frontend/features/media/data/media_channel.dart';
 import 'package:carnine_frontend/features/media/data/media_error_mapper.dart';
 import 'package:carnine_frontend/features/media/data/proto_mappers.dart';
@@ -473,6 +474,14 @@ class GrpcMediaRepository implements MediaRepository {
       }
       return null;
     }
+  }
+
+  @override
+  Future<void> checkAlive() async {
+    await _channel.stub.getServiceVersion(
+      Empty(),
+      options: CallOptions(timeout: BackendHeartbeat.defaultTimeout),
+    );
   }
 
   @override

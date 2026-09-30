@@ -43,7 +43,10 @@ void main() {
   setUp(() {
     repository = FakeMediaRepository()
       ..library = const [_trackA, _trackMissing];
-    controller = MediaController(repository: repository);
+    controller = MediaController(
+      repository: repository,
+      heartbeatInterval: null,
+    );
   });
 
   tearDown(() {

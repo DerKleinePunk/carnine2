@@ -280,6 +280,16 @@ class FakeMediaRepository implements MediaRepository {
     return playlistCoverArt[playlistId];
   }
 
+  /// What [checkAlive] does; the default answers at once.
+  Future<void> Function() onCheckAlive = () async {};
+  int checkAliveCallCount = 0;
+
+  @override
+  Future<void> checkAlive() {
+    checkAliveCallCount++;
+    return onCheckAlive();
+  }
+
   @override
   Future<void> reconnect() async {
     reconnectCallCount++;

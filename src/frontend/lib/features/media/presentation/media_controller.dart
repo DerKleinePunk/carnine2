@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:carnine_frontend/core/platform/backend_heartbeat.dart';
 import 'package:carnine_frontend/features/media/data/grpc_media_repository.dart';
 import 'package:carnine_frontend/features/media/domain/media_repository.dart';
 import 'package:carnine_frontend/features/media/presentation/audio_controller.dart';
@@ -24,8 +25,22 @@ class MediaController extends ChangeNotifier {
     PlaylistController? playlists,
     AudioController? audio,
     Logger? logger,
+
+    /// `null` runs without a heartbeat; only tests that do not care about
+    /// the connection do that.
+    Duration? heartbeatInterval = BackendHeartbeat.defaultInterval,
+    Duration heartbeatTimeout = BackendHeartbeat.defaultTimeout,
   }) : _repository = repository ?? GrpcMediaRepository(),
-       _logger = logger ?? Logger('MediaController') {
+       _logger = logger ?? Logger('MediaController'),
+       _aliveTimeout = heartbeatTimeout {
+    if (heartbeatInterval != null) {
+      _heartbeat = BackendHeartbeat(
+        check: _repository.checkAlive,
+        onFailure: _onHeartbeatFailure,
+        interval: heartbeatInterval,
+        timeout: heartbeatTimeout,
+      );
+    }
     player =
         player ??
         PlayerController(
@@ -61,6 +76,8 @@ class MediaController extends ChangeNotifier {
 
   final MediaRepository _repository;
   final Logger _logger;
+  final Duration _aliveTimeout;
+  BackendHeartbeat? _heartbeat;
 
   late final PlayerController player;
   late final LibraryController library;
@@ -94,12 +111,14 @@ class MediaController extends ChangeNotifier {
     await audio.start();
     unawaited(playlists.start());
     _connection = MediaConnectionStatus.online;
+    _heartbeat?.start();
     notifyListeners();
   }
 
   @override
   void dispose() {
     _reconnectTimer?.cancel();
+    _heartbeat?.stop();
     player.dispose();
     library.dispose();
     playlists.dispose();
@@ -146,10 +165,20 @@ class MediaController extends ChangeNotifier {
     }
 
     _logger.warning('Media backend connection lost: $error');
+    _heartbeat?.stop();
     _connection = MediaConnectionStatus.offline;
     _nextReconnectDelay = _initialReconnectDelay;
     notifyListeners();
     _scheduleReconnect();
+  }
+
+  /// The backend holds its socket but stopped answering (#58). Its streams
+  /// would wait for it forever, so the channel is closed hard: they fail now,
+  /// while already offline, and the reconnect loop takes over.
+  void _onHeartbeatFailure(Object error) {
+    _logger.warning('Media backend stopped answering: $error');
+    reportStreamFailure(error);
+    unawaited(_repository.reconnect());
   }
 
   /// Cancels any pending backoff and reconnects immediately - wired to the
@@ -178,6 +207,9 @@ class MediaController extends ChangeNotifier {
 
     try {
       await _repository.reconnect();
+      // A frozen backend accepts the new connection but never answers, and
+      // re-opened streams do not fail; only a call with a deadline tells.
+      await _repository.checkAlive().timeout(_aliveTimeout);
       await player.reconnect();
       await library.reconnect();
       await playlists.reconnect();
@@ -187,6 +219,7 @@ class MediaController extends ChangeNotifier {
       }
       _connection = MediaConnectionStatus.online;
       _nextReconnectDelay = _initialReconnectDelay;
+      _heartbeat?.start();
       notifyListeners();
     } catch (error, stackTrace) {
       _logger.warning('Reconnect attempt failed', error, stackTrace);

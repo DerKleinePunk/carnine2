@@ -117,6 +117,11 @@ abstract class MediaRepository {
   /// accurately - `listPlaylists` always reports `false`.
   Future<Uint8List?> getPlaylistCoverArt(int playlistId);
 
+  /// Completes once the backend answered a short call, throws otherwise.
+  /// Detects a backend that still holds its socket but no longer answers
+  /// (#58), which the event streams alone never notice.
+  Future<void> checkAlive();
+
   /// Tears down and rebuilds the underlying transport connection. Used by
   /// the connection-loss reconnect loop; safe to call repeatedly.
   Future<void> reconnect();

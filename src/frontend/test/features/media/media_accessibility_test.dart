@@ -70,7 +70,10 @@ void main() {
     (tester) async {
       final longTitleRepository = FakeMediaRepository()
         ..library = const [_trackLongTitle];
-      final controller = MediaController(repository: longTitleRepository);
+      final controller = MediaController(
+        repository: longTitleRepository,
+        heartbeatInterval: null,
+      );
       addTearDown(controller.dispose);
 
       await _pumpAt(
@@ -118,7 +121,10 @@ void main() {
   testWidgets(
     'the player page fits the standard 1024x600 display without scrolling',
     (tester) async {
-      final controller = MediaController(repository: repository);
+      final controller = MediaController(
+        repository: repository,
+        heartbeatInterval: null,
+      );
       addTearDown(controller.dispose);
 
       await _pumpAt(
@@ -148,7 +154,10 @@ void main() {
       testWidgets(
         'the player page renders without overflow at $size, ${scale}x text',
         (tester) async {
-          final controller = MediaController(repository: repository);
+          final controller = MediaController(
+            repository: repository,
+            heartbeatInterval: null,
+          );
           addTearDown(controller.dispose);
 
           await _pumpAt(
@@ -165,7 +174,10 @@ void main() {
       testWidgets(
         'the collections page renders without overflow at $size, ${scale}x text',
         (tester) async {
-          final controller = MediaController(repository: repository);
+          final controller = MediaController(
+            repository: repository,
+            heartbeatInterval: null,
+          );
           addTearDown(controller.dispose);
 
           await _pumpAt(
@@ -184,7 +196,10 @@ void main() {
       testWidgets(
         'the create playlist page renders without overflow at $size, ${scale}x text',
         (tester) async {
-          final controller = MediaController(repository: repository);
+          final controller = MediaController(
+            repository: repository,
+            heartbeatInterval: null,
+          );
           addTearDown(controller.dispose);
 
           await _pumpAt(
@@ -203,7 +218,10 @@ void main() {
       testWidgets(
         'the library page renders without overflow at $size, ${scale}x text',
         (tester) async {
-          final controller = MediaController(repository: repository);
+          final controller = MediaController(
+            repository: repository,
+            heartbeatInterval: null,
+          );
           addTearDown(controller.dispose);
 
           await _pumpAt(
