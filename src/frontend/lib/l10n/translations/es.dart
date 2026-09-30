@@ -207,4 +207,8 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
       'Contacto apagado: la fuente de alimentación se apaga',
   AppTextKey.powerSupplySwitchingOff: 'La fuente de alimentación se apaga',
   AppTextKey.powerSupplyNotResponding: 'La fuente de alimentación no responde',
+  AppTextKey.thermalWarningTitle: 'Dispositivo sobrecalentado',
+  AppTextKey.thermalWarningMessage:
+      'La CPU está a {temperature} °C. Deje que el dispositivo se enfríe y compruebe la ventilación.',
+  AppTextKey.thermalWarningConfirm: 'Entendido',
 };

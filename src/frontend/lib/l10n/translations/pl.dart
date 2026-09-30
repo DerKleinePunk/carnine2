@@ -208,4 +208,8 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.powerSupplyIgnitionOff: 'Zapłon wyłączony – zasilacz się wyłącza',
   AppTextKey.powerSupplySwitchingOff: 'Zasilacz się wyłącza',
   AppTextKey.powerSupplyNotResponding: 'Zasilacz nie odpowiada',
+  AppTextKey.thermalWarningTitle: 'Urządzenie przegrzane',
+  AppTextKey.thermalWarningMessage:
+      'Procesor ma {temperature} °C. Pozwól urządzeniu ostygnąć i sprawdź wentylację.',
+  AppTextKey.thermalWarningConfirm: 'Rozumiem',
 };

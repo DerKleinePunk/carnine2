@@ -204,4 +204,8 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.powerSupplyIgnitionOff: 'Contact uit – de voeding schakelt uit',
   AppTextKey.powerSupplySwitchingOff: 'De voeding schakelt uit',
   AppTextKey.powerSupplyNotResponding: 'Voeding reageert niet',
+  AppTextKey.thermalWarningTitle: 'Apparaat oververhit',
+  AppTextKey.thermalWarningMessage:
+      'De CPU is {temperature} °C. Laat het apparaat afkoelen en controleer de ventilatie.',
+  AppTextKey.thermalWarningConfirm: 'Begrepen',
 };

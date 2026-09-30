@@ -212,4 +212,8 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
       'Contact coupé – l\'alimentation s\'éteint',
   AppTextKey.powerSupplySwitchingOff: 'L\'alimentation s\'éteint',
   AppTextKey.powerSupplyNotResponding: 'L\'alimentation ne répond pas',
+  AppTextKey.thermalWarningTitle: 'Surchauffe de l’appareil',
+  AppTextKey.thermalWarningMessage:
+      'Le processeur est à {temperature} °C. Laissez l’appareil refroidir et vérifiez la ventilation.',
+  AppTextKey.thermalWarningConfirm: 'Compris',
 };

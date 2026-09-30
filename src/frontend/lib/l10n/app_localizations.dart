@@ -83,6 +83,11 @@ class AppLocalizations {
     return localizations;
   }
 
+  /// True if this language has its own text for [key], rather than falling
+  /// back to English.
+  bool hasOwnText(AppTextKey key) =>
+      _values[locale.languageCode]?.containsKey(key) ?? false;
+
   /// Resolves a translated string and falls back to English for missing keys.
   String text(AppTextKey key) {
     final languageValues = _values[locale.languageCode];
@@ -97,6 +102,16 @@ class AppLocalizations {
     'en' || 'zh' || 'ja' => '.',
     _ => ',',
   };
+
+  /// [celsius] with one decimal in the language's notation; `–` without.
+  String thermalWarningMessage(double? celsius) {
+    final temperature = celsius == null
+        ? '–'
+        : celsius.toStringAsFixed(1).replaceFirst('.', decimalSeparator);
+    return text(
+      AppTextKey.thermalWarningMessage,
+    ).replaceFirst('{temperature}', temperature);
+  }
 
   String dashboardContentFor(String section) {
     return text(

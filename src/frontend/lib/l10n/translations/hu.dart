@@ -207,4 +207,8 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
       'Gyújtás kikapcsolva – a tápegység kikapcsol',
   AppTextKey.powerSupplySwitchingOff: 'A tápegység kikapcsol',
   AppTextKey.powerSupplyNotResponding: 'A tápegység nem válaszol',
+  AppTextKey.thermalWarningTitle: 'Az eszköz túlmelegedett',
+  AppTextKey.thermalWarningMessage:
+      'A processzor hőmérséklete {temperature} °C. Hagyja lehűlni az eszközt, és ellenőrizze a szellőzést.',
+  AppTextKey.thermalWarningConfirm: 'Értem',
 };

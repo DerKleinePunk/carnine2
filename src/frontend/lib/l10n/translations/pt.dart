@@ -207,4 +207,8 @@ const Map<AppTextKey, String> ptTranslations = <AppTextKey, String>{
       'Ignição desligada – a fonte de alimentação vai desligar',
   AppTextKey.powerSupplySwitchingOff: 'A fonte de alimentação vai desligar',
   AppTextKey.powerSupplyNotResponding: 'A fonte de alimentação não responde',
+  AppTextKey.thermalWarningTitle: 'Dispositivo sobreaquecido',
+  AppTextKey.thermalWarningMessage:
+      'A CPU está a {temperature} °C. Deixe o dispositivo arrefecer e verifique a ventilação.',
+  AppTextKey.thermalWarningConfirm: 'Entendido',
 };

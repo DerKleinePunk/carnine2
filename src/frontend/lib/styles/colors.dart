@@ -67,4 +67,6 @@ class AppColors {
   static const Color tertiary40 = Color(0x66759AFF); // 40% opacity
   static const Color tertiary20 = Color(0x33759AFF); // 20% opacity
   static const Color outlineVariant20 = Color(0x33484848); // 20% opacity
+  // Dims the page behind a warning that has to be confirmed.
+  static const Color scrim = Color(0xCC000000); // 80% opacity
 }

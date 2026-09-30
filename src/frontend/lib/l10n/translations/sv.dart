@@ -205,4 +205,8 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
       'Tändningen av – strömförsörjningen stängs av',
   AppTextKey.powerSupplySwitchingOff: 'Strömförsörjningen stängs av',
   AppTextKey.powerSupplyNotResponding: 'Strömförsörjningen svarar inte',
+  AppTextKey.thermalWarningTitle: 'Enheten är överhettad',
+  AppTextKey.thermalWarningMessage:
+      'Processorn har {temperature} °C. Låt enheten svalna och kontrollera ventilationen.',
+  AppTextKey.thermalWarningConfirm: 'Uppfattat',
 };

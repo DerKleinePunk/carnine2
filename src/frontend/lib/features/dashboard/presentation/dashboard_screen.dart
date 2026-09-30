@@ -4,9 +4,11 @@ import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
 import 'package:carnine_frontend/features/maps/presentation/maps_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/power_supply_controller.dart';
+import 'package:carnine_frontend/features/dashboard/presentation/thermal_warning_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/carnine_top_bar.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/dashboard_content.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/side_menu.dart';
+import 'package:carnine_frontend/features/dashboard/presentation/widgets/thermal_warning_overlay.dart';
 import 'package:carnine_frontend/features/media/presentation/media_controller.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
@@ -20,6 +22,7 @@ class DashboardScreen extends StatefulWidget {
     this.mediaController,
     this.mapsController,
     this.powerSupplyController,
+    this.thermalWarningController,
     this.uiStateStore,
     super.key,
   });
@@ -29,6 +32,7 @@ class DashboardScreen extends StatefulWidget {
   final MediaController? mediaController;
   final MapsController? mapsController;
   final PowerSupplyController? powerSupplyController;
+  final ThermalWarningController? thermalWarningController;
 
   /// Where the page shown last is kept; without it the dashboard always
   /// starts on the first page. Ignored when [controller] is given.
@@ -64,9 +68,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
   late final PowerSupplyController _powerSupplyController =
       widget.powerSupplyController ?? PowerSupplyController();
 
+  // The overheating warning, over every page (#70).
+  late final ThermalWarningController _thermalWarningController =
+      widget.thermalWarningController ?? ThermalWarningController();
+
   bool get _ownsMediaController => widget.mediaController == null;
   bool get _ownsMapsController => widget.mapsController == null;
   bool get _ownsPowerSupplyController => widget.powerSupplyController == null;
+  bool get _ownsThermalWarningController =>
+      widget.thermalWarningController == null;
 
   DashboardGrpcStatus _lastHandledGrpcStatus = DashboardGrpcStatus.notConnected;
 
@@ -76,6 +86,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _controller.addListener(_handleControllerChange);
     unawaited(_controller.restoreLastPage());
     _powerSupplyController.start();
+    _thermalWarningController.start();
   }
 
   @override
@@ -92,6 +103,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
     if (_ownsPowerSupplyController) {
       _powerSupplyController.dispose();
+    }
+    if (_ownsThermalWarningController) {
+      _thermalWarningController.dispose();
     }
 
     super.dispose();
@@ -137,48 +151,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
       listenable: _controller,
       builder: (context, child) {
         return Scaffold(
-          body: Row(
+          body: Stack(
             children: [
-              SideMenu(
-                items: DashboardController.navItems,
-                selectedIndex: _controller.selectedIndex,
-                onItemSelected: _controller.selectItem,
-              ),
-              Expanded(
-                child: Column(
-                  children: [
-                    ListenableBuilder(
-                      listenable: _powerSupplyController,
-                      builder: (context, _) {
-                        final status = _powerSupplyController.status;
-                        return Column(
-                          children: [
-                            CarnineTopBar(powerSupply: status),
-                            PowerSupplyNotice(status: status),
-                          ],
-                        );
-                      },
-                    ),
-                    Expanded(
-                      child: DashboardContent(
-                        selectedItem: _controller.selectedItem,
-                        grpcStatus: _controller.grpcStatus,
-                        receivedCanDataCount: _controller.receivedCanDataCount,
-                        canData: _controller.canData,
-                        isGrpcLoading: _controller.isGrpcLoading,
-                        onTestGrpc: _controller.testGrpc,
-                        languageController: widget.languageController,
-                        mediaController: _mediaController,
-                        mapsController: _mapsController,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _buildPages(),
+              ThermalWarningOverlay(controller: _thermalWarningController),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildPages() {
+    return Row(
+      children: [
+        SideMenu(
+          items: DashboardController.navItems,
+          selectedIndex: _controller.selectedIndex,
+          onItemSelected: _controller.selectItem,
+        ),
+        Expanded(
+          child: Column(
+            children: [
+              ListenableBuilder(
+                listenable: _powerSupplyController,
+                builder: (context, _) {
+                  final status = _powerSupplyController.status;
+                  return Column(
+                    children: [
+                      CarnineTopBar(powerSupply: status),
+                      PowerSupplyNotice(status: status),
+                    ],
+                  );
+                },
+              ),
+              Expanded(
+                child: DashboardContent(
+                  selectedItem: _controller.selectedItem,
+                  grpcStatus: _controller.grpcStatus,
+                  receivedCanDataCount: _controller.receivedCanDataCount,
+                  canData: _controller.canData,
+                  isGrpcLoading: _controller.isGrpcLoading,
+                  onTestGrpc: _controller.testGrpc,
+                  languageController: widget.languageController,
+                  mediaController: _mediaController,
+                  mapsController: _mapsController,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

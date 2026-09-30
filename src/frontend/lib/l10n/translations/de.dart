@@ -209,4 +209,8 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.powerSupplyIgnitionOff: 'Zündung aus – das Netzteil schaltet ab',
   AppTextKey.powerSupplySwitchingOff: 'Das Netzteil schaltet ab',
   AppTextKey.powerSupplyNotResponding: 'Netzteil antwortet nicht',
+  AppTextKey.thermalWarningTitle: 'Gerät überhitzt',
+  AppTextKey.thermalWarningMessage:
+      'Die CPU hat {temperature} °C. Bitte das Gerät abkühlen lassen und die Lüftung prüfen.',
+  AppTextKey.thermalWarningConfirm: 'Verstanden',
 };

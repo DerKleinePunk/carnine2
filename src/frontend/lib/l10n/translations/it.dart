@@ -209,4 +209,8 @@ const Map<AppTextKey, String> itTranslations = <AppTextKey, String>{
       'Quadro spento – l\'alimentatore si spegne',
   AppTextKey.powerSupplySwitchingOff: 'L\'alimentatore si spegne',
   AppTextKey.powerSupplyNotResponding: 'L\'alimentatore non risponde',
+  AppTextKey.thermalWarningTitle: 'Dispositivo surriscaldato',
+  AppTextKey.thermalWarningMessage:
+      'La CPU è a {temperature} °C. Lasciare raffreddare il dispositivo e controllare la ventilazione.',
+  AppTextKey.thermalWarningConfirm: 'Ho capito',
 };

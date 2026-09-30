@@ -193,4 +193,7 @@ enum AppTextKey {
   powerSupplyIgnitionOff,
   powerSupplySwitchingOff,
   powerSupplyNotResponding,
+  thermalWarningTitle,
+  thermalWarningMessage,
+  thermalWarningConfirm,
 }

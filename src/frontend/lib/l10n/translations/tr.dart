@@ -207,4 +207,8 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.powerSupplyIgnitionOff: 'Kontak kapalı – güç kaynağı kapanıyor',
   AppTextKey.powerSupplySwitchingOff: 'Güç kaynağı kapanıyor',
   AppTextKey.powerSupplyNotResponding: 'Güç kaynağı yanıt vermiyor',
+  AppTextKey.thermalWarningTitle: 'Cihaz aşırı ısındı',
+  AppTextKey.thermalWarningMessage:
+      'İşlemci {temperature} °C sıcaklıkta. Cihazın soğumasını bekleyin ve havalandırmayı kontrol edin.',
+  AppTextKey.thermalWarningConfirm: 'Anladım',
 };

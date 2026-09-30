@@ -197,4 +197,8 @@ const Map<AppTextKey, String> jaTranslations = <AppTextKey, String>{
   AppTextKey.powerSupplyIgnitionOff: 'イグニッションオフ – 電源がまもなく切れます',
   AppTextKey.powerSupplySwitchingOff: '電源がまもなく切れます',
   AppTextKey.powerSupplyNotResponding: '電源が応答しません',
+  AppTextKey.thermalWarningTitle: 'デバイスが過熱しています',
+  AppTextKey.thermalWarningMessage:
+      'CPU温度は{temperature} °Cです。デバイスを冷まし、通気を確認してください。',
+  AppTextKey.thermalWarningConfirm: '了解',
 };

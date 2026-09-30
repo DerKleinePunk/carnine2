@@ -192,4 +192,7 @@ const Map<AppTextKey, String> zhTranslations = <AppTextKey, String>{
   AppTextKey.powerSupplyIgnitionOff: '点火已关闭 – 电源即将关闭',
   AppTextKey.powerSupplySwitchingOff: '电源即将关闭',
   AppTextKey.powerSupplyNotResponding: '电源无响应',
+  AppTextKey.thermalWarningTitle: '设备过热',
+  AppTextKey.thermalWarningMessage: 'CPU 温度为 {temperature} °C。请让设备冷却并检查通风。',
+  AppTextKey.thermalWarningConfirm: '知道了',
 };

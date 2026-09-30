@@ -204,4 +204,8 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
       'Ignition off – the power supply is switching off',
   AppTextKey.powerSupplySwitchingOff: 'The power supply is switching off',
   AppTextKey.powerSupplyNotResponding: 'Power supply not responding',
+  AppTextKey.thermalWarningTitle: 'Device overheating',
+  AppTextKey.thermalWarningMessage:
+      'The CPU is at {temperature} °C. Please let the device cool down and check the ventilation.',
+  AppTextKey.thermalWarningConfirm: 'Understood',
 };

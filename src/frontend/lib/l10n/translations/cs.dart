@@ -205,4 +205,8 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.powerSupplyIgnitionOff: 'Zapalování vypnuto – zdroj se vypíná',
   AppTextKey.powerSupplySwitchingOff: 'Zdroj se vypíná',
   AppTextKey.powerSupplyNotResponding: 'Zdroj neodpovídá',
+  AppTextKey.thermalWarningTitle: 'Zařízení se přehřívá',
+  AppTextKey.thermalWarningMessage:
+      'Procesor má {temperature} °C. Nechte zařízení vychladnout a zkontrolujte větrání.',
+  AppTextKey.thermalWarningConfirm: 'Rozumím',
 };

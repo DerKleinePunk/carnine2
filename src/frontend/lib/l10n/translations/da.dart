@@ -210,4 +210,8 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
       'Tænding slået fra – strømforsyningen slukker',
   AppTextKey.powerSupplySwitchingOff: 'Strømforsyningen slukker',
   AppTextKey.powerSupplyNotResponding: 'Strømforsyningen svarer ikke',
+  AppTextKey.thermalWarningTitle: 'Enheden er overophedet',
+  AppTextKey.thermalWarningMessage:
+      'CPU’en er {temperature} °C. Lad enheden køle af, og kontrollér ventilationen.',
+  AppTextKey.thermalWarningConfirm: 'Forstået',
 };
