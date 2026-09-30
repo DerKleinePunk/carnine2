@@ -24,9 +24,11 @@ export 'carnine.pbenum.dart';
 class UiState extends $pb.GeneratedMessage {
   factory UiState({
     $core.String? lastPage,
+    $core.String? language,
   }) {
     final result = create();
     if (lastPage != null) result.lastPage = lastPage;
+    if (language != null) result.language = language;
     return result;
   }
 
@@ -44,6 +46,7 @@ class UiState extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'lastPage')
+    ..aOS(2, _omitFieldNames ? '' : 'language')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -65,7 +68,9 @@ class UiState extends $pb.GeneratedMessage {
   static UiState? _defaultInstance;
 
   /// Dashboard page shown last, by its name (e.g. "maps"); empty when none
-  /// was saved yet.
+  /// was saved yet. SaveUiState writes only the fields that are set, so a
+  /// page save keeps the language and the other way round; an empty value
+  /// that is set clears it.
   @$pb.TagNumber(1)
   $core.String get lastPage => $_getSZ(0);
   @$pb.TagNumber(1)
@@ -74,6 +79,17 @@ class UiState extends $pb.GeneratedMessage {
   $core.bool hasLastPage() => $_has(0);
   @$pb.TagNumber(1)
   void clearLastPage() => $_clearField(1);
+
+  /// Display language chosen last, as its code (e.g. "de"); empty when none
+  /// was saved yet (#30).
+  @$pb.TagNumber(2)
+  $core.String get language => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set language($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasLanguage() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLanguage() => $_clearField(2);
 }
 
 class CanDataRequest extends $pb.GeneratedMessage {

@@ -84,6 +84,7 @@ async fn main() -> Result<()> {
         "thermal-stream" => stream_thermal_status(&endpoint).await?,
         "ui-state" => get_ui_state(&endpoint).await?,
         "save-ui-state" => save_ui_state(&endpoint).await?,
+        "save-language" => save_language(&endpoint).await?,
         "nav-status" => get_navigation_status(&endpoint).await?,
         "positions" => stream_positions(&endpoint).await?,
         "places" => search_places(&endpoint).await?,
@@ -354,7 +355,11 @@ async fn stream_system_metrics(endpoint: &str) -> Result<()> {
 async fn get_ui_state(endpoint: &str) -> Result<()> {
     let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
     let state = client.get_ui_state(Empty {}).await?.into_inner();
-    println!("last_page={}", state.last_page);
+    println!(
+        "last_page={} language={}",
+        state.last_page(),
+        state.language()
+    );
     Ok(())
 }
 
@@ -363,7 +368,26 @@ async fn save_ui_state(endpoint: &str) -> Result<()> {
     let last_page = env::args().nth(3).unwrap_or_default();
     let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
     let response = client
-        .save_ui_state(UiState { last_page })
+        .save_ui_state(UiState {
+            last_page: Some(last_page),
+            language: None,
+        })
+        .await?
+        .into_inner();
+    println!("{}: {}", response.success, response.message);
+    Ok(())
+}
+
+/// `save-language <code>`, e.g. `save-language en`; without a code it clears
+/// the saved language. The page saved last stays.
+async fn save_language(endpoint: &str) -> Result<()> {
+    let language = env::args().nth(3).unwrap_or_default();
+    let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let response = client
+        .save_ui_state(UiState {
+            last_page: None,
+            language: Some(language),
+        })
         .await?
         .into_inner();
     println!("{}: {}", response.success, response.message);

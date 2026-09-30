@@ -75,8 +75,13 @@ service SystemService {
 
 message UiState {
   // Dashboard page shown last, by its name (e.g. "maps"); empty when none
-  // was saved yet.
-  string last_page = 1;
+  // was saved yet. SaveUiState writes only the fields that are set, so a
+  // page save keeps the language and the other way round; an empty value
+  // that is set clears it.
+  optional string last_page = 1;
+  // Display language chosen last, as its code (e.g. "de"); empty when none
+  // was saved yet (#30).
+  optional string language = 2;
 }
 
 // Routing, own position and place search for the navigation page (ADR-021).

@@ -70,6 +70,11 @@ pub struct SystemServiceImpl {
 /// Page names are identifiers like "maps"; anything longer is not one.
 const MAX_UI_PAGE_NAME_LEN: usize = 64;
 
+/// A language code such as "de" or "zh-Hans": letters and hyphens only.
+fn is_language_code(code: &str) -> bool {
+    code.len() <= 16 && code.chars().all(|c| c.is_ascii_alphabetic() || c == '-')
+}
+
 impl SystemServiceImpl {
     pub fn new(
         metrics: Arc<system_metrics::SystemMetricsHandle>,
@@ -204,34 +209,58 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
     }
 
     async fn get_ui_state(&self, _request: Request<Empty>) -> Result<Response<UiState>, Status> {
-        let last_page = database::Database::open(&self.database_path)
-            .and_then(|database| database.load_last_page())
+        let (last_page, language) = database::Database::open(&self.database_path)
+            .and_then(|database| Ok((database.load_last_page()?, database.load_language()?)))
             .map_err(|error| {
                 error!(error = %error, "loading UI state failed");
                 Status::internal(error.to_string())
             })?;
-        debug!(last_page = %last_page, "UI state loaded");
-        Ok(Response::new(UiState { last_page }))
+        debug!(last_page = %last_page, language = %language, "UI state loaded");
+        Ok(Response::new(UiState {
+            last_page: Some(last_page),
+            language: Some(language),
+        }))
     }
 
     async fn save_ui_state(
         &self,
         request: Request<UiState>,
     ) -> Result<Response<CommandResponse>, Status> {
-        let last_page = request.into_inner().last_page;
-        info!(last_page = %last_page, "saving UI state requested");
-        if last_page.len() > MAX_UI_PAGE_NAME_LEN {
+        let UiState {
+            last_page,
+            language,
+        } = request.into_inner();
+        info!(?last_page, ?language, "saving UI state requested");
+        if last_page
+            .as_ref()
+            .is_some_and(|page| page.len() > MAX_UI_PAGE_NAME_LEN)
+        {
             return Err(Status::invalid_argument(format!(
                 "page name longer than {MAX_UI_PAGE_NAME_LEN} bytes"
             )));
         }
+        if language
+            .as_ref()
+            .is_some_and(|code| !is_language_code(code))
+        {
+            return Err(Status::invalid_argument("invalid language code"));
+        }
+        // Only what the request sets: a page save must not wipe the language.
         database::Database::open(&self.database_path)
-            .and_then(|database| database.save_last_page(&last_page))
+            .and_then(|database| {
+                if let Some(page) = &last_page {
+                    database.save_last_page(page)?;
+                }
+                if let Some(code) = &language {
+                    database.save_language(code)?;
+                }
+                Ok(())
+            })
             .map_err(|error| {
                 error!(error = %error, "saving UI state failed");
                 Status::internal(error.to_string())
             })?;
-        info!(last_page = %last_page, "UI state saved");
+        info!(?last_page, ?language, "UI state saved");
         Ok(Response::new(CommandResponse {
             success: true,
             message: "UI state saved".to_string(),
@@ -1851,25 +1880,45 @@ mod tests {
             .await
             .expect("UI state should load before anything was saved")
             .into_inner();
-        assert_eq!(initial.last_page, "");
+        assert_eq!(initial.last_page(), "");
+        assert_eq!(initial.language(), "");
 
-        SystemService::save_ui_state(
-            &service,
-            Request::new(UiState {
-                last_page: "maps".to_string(),
-            }),
-        )
+        let save = |state: UiState| SystemService::save_ui_state(&service, Request::new(state));
+        save(UiState {
+            last_page: Some("maps".to_string()),
+            language: None,
+        })
         .await
         .expect("UI state should save");
-        let too_long = SystemService::save_ui_state(
-            &service,
-            Request::new(UiState {
-                last_page: "x".repeat(65),
-            }),
-        )
+        // #30: the language on its own, and a page save after it, each keep
+        // what the other saved.
+        save(UiState {
+            last_page: None,
+            language: Some("en".to_string()),
+        })
+        .await
+        .expect("the language should save");
+        save(UiState {
+            last_page: Some("media".to_string()),
+            language: None,
+        })
+        .await
+        .expect("the page should save");
+
+        let too_long = save(UiState {
+            last_page: Some("x".repeat(65)),
+            language: None,
+        })
         .await
         .expect_err("an overlong page name is rejected");
         assert_eq!(too_long.code(), tonic::Code::InvalidArgument);
+        let bad_language = save(UiState {
+            last_page: None,
+            language: Some("de; DROP".to_string()),
+        })
+        .await
+        .expect_err("an invalid language code is rejected");
+        assert_eq!(bad_language.code(), tonic::Code::InvalidArgument);
 
         // A new instance stands for the backend after a restart.
         let restarted = SystemServiceImpl::new(
@@ -1881,7 +1930,8 @@ mod tests {
             .await
             .expect("UI state should load")
             .into_inner();
-        assert_eq!(restored.last_page, "maps");
+        assert_eq!(restored.last_page(), "media");
+        assert_eq!(restored.language(), "en");
         let _ = std::fs::remove_file(database_path);
     }
 

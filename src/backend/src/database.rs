@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use anyhow::{Context, Result};
 use rusqlite::{params, Connection, OptionalExtension};
 
-const CURRENT_SCHEMA_VERSION: i64 = 7;
+const CURRENT_SCHEMA_VERSION: i64 = 8;
 
 pub struct Database {
     connection: Connection,
@@ -230,6 +230,13 @@ impl Database {
                     WHERE id = 1 AND playlist_id IS NOT NULL;
                 ALTER TABLE resume_state ADD COLUMN media_path TEXT;
                 INSERT INTO schema_migrations (version) VALUES (7);",
+            )?;
+        }
+        if version < 8 {
+            // The display language chosen last, so it survives a restart (#30).
+            self.connection.execute_batch(
+                "ALTER TABLE ui_state ADD COLUMN language TEXT NOT NULL DEFAULT '';
+                INSERT INTO schema_migrations (version) VALUES (8);",
             )?;
         }
         if version > CURRENT_SCHEMA_VERSION {
@@ -570,6 +577,26 @@ impl Database {
             [page],
         )?;
         Ok(())
+    }
+
+    pub fn save_language(&self, language: &str) -> Result<()> {
+        self.connection.execute(
+            "INSERT INTO ui_state (id, language) VALUES (1, ?1)
+             ON CONFLICT(id) DO UPDATE SET language = excluded.language",
+            [language],
+        )?;
+        Ok(())
+    }
+
+    /// The language saved last, or an empty string when there is none.
+    pub fn load_language(&self) -> Result<String> {
+        Ok(self
+            .connection
+            .query_row("SELECT language FROM ui_state WHERE id = 1", [], |row| {
+                row.get(0)
+            })
+            .optional()?
+            .unwrap_or_default())
     }
 
     /// The page saved last, or an empty string when there is none.
@@ -1189,7 +1216,8 @@ mod tests {
             .execute_batch(&format!(
                 "DROP TABLE playlist_resume;
                  ALTER TABLE resume_state DROP COLUMN media_path;
-                 DELETE FROM schema_migrations WHERE version = 7;
+                 ALTER TABLE ui_state DROP COLUMN language;
+                 DELETE FROM schema_migrations WHERE version >= 7;
                  INSERT INTO resume_state (id, playlist_id, playlist_entry_id, position_ms, resume_mode)
                      VALUES (1, {playlist_id}, {entry_id}, 70262, 'restore_paused');"
             ))
@@ -1198,7 +1226,7 @@ mod tests {
 
         let database = Database::open(&path).expect("schema 6 should migrate");
 
-        assert_eq!(database.schema_version().unwrap(), 7);
+        assert_eq!(database.schema_version().unwrap(), CURRENT_SCHEMA_VERSION);
         assert_eq!(
             database.load_playlist_resume(playlist_id).unwrap(),
             Some((Some(entry_id), 70_262))
@@ -1206,6 +1234,35 @@ mod tests {
         let state = database.load_resume_state().unwrap().unwrap();
         assert_eq!(state.playlist_id, Some(playlist_id));
         assert_eq!(state.media_path, None);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn schema_8_adds_the_language_and_keeps_the_page() {
+        let path = std::env::temp_dir().join(format!(
+            "carnine-database-schema8-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&path);
+        let database = Database::open(&path).expect("database should open");
+        database.save_last_page("maps").unwrap();
+        // Back to schema 7.
+        database
+            .connection
+            .execute_batch(
+                "ALTER TABLE ui_state DROP COLUMN language;
+                 DELETE FROM schema_migrations WHERE version = 8;",
+            )
+            .unwrap();
+        drop(database);
+
+        let database = Database::open(&path).expect("schema 7 should migrate");
+
+        assert_eq!(database.load_last_page().unwrap(), "maps");
+        assert_eq!(database.load_language().unwrap(), "");
+        database.save_language("fr").unwrap();
+        assert_eq!(database.load_language().unwrap(), "fr");
+        assert_eq!(database.load_last_page().unwrap(), "maps");
         let _ = std::fs::remove_file(path);
     }
 
