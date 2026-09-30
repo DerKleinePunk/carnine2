@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:carnine_frontend/lib/carnine.pbgrpc.dart';
 import 'package:carnine_frontend/core/platform/grpc_endpoint.dart';
-import 'package:flutter/foundation.dart';
 import 'package:grpc/grpc.dart';
 import 'package:logging/logging.dart';
 
@@ -89,19 +88,9 @@ class MediaChannel {
     }
   }
 
-  /// No HTTP/2 keepalive: `MediaController`'s heartbeat notices a backend
-  /// that stopped answering, which the keepalive never did (#58). Worse, the
-  /// heartbeat closes the channel with [ClientChannel.terminate], and a
-  /// keepalive ping still waiting for its answer then surfaced as an
-  /// unhandled exception on every reconnect attempt.
-  @visibleForTesting
-  static const ChannelOptions defaultOptions = ChannelOptions(
-    credentials: ChannelCredentials.insecure(),
-    connectTimeout: Duration(milliseconds: 400),
-    connectionTimeout: GrpcEndpoint.connectionLifetime,
-  );
-
   static ClientChannel _createDefaultChannel() {
-    return GrpcEndpoint.createChannel(options: defaultOptions);
+    return GrpcEndpoint.createChannel(
+      options: GrpcEndpoint.longLivedChannelOptions,
+    );
   }
 }

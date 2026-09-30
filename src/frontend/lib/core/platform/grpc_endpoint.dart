@@ -22,6 +22,21 @@ abstract final class GrpcEndpoint {
   /// it. The backend is local and never closes a connection on its own.
   static const Duration connectionLifetime = Duration(days: 365);
 
+  /// Options for the long-lived channels (media, navigation, power supply).
+  ///
+  /// No HTTP/2 keepalive: it never noticed a frozen backend, because
+  /// grpc-dart answers a missed ping with an orderly finish that waits for
+  /// the streams (#58). Worse, once such a connection was torn down - by a
+  /// reconnect, or by calls running into their deadline - the ping still
+  /// waiting for its answer surfaced as an unhandled exception, every few
+  /// seconds while the backend was frozen. `MediaController`'s heartbeat
+  /// notices a frozen backend instead; a dead one closes the socket anyway.
+  static const ChannelOptions longLivedChannelOptions = ChannelOptions(
+    credentials: ChannelCredentials.insecure(),
+    connectTimeout: Duration(milliseconds: 400),
+    connectionTimeout: connectionLifetime,
+  );
+
   /// Where the overrides below are read from. Tests replace it with an empty
   /// map (test/flutter_test_config.dart): a developer shell exporting
   /// `CARNINE_TCP_ADDRESS` would otherwise send them to a real TCP connect

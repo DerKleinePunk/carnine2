@@ -51,16 +51,7 @@ class NavigationChannel {
 
   static ClientChannel _createDefaultChannel() {
     return GrpcEndpoint.createChannel(
-      options: const ChannelOptions(
-        credentials: ChannelCredentials.insecure(),
-        connectTimeout: Duration(milliseconds: 400),
-        connectionTimeout: GrpcEndpoint.connectionLifetime,
-        keepAlive: ClientKeepAliveOptions(
-          pingInterval: Duration(seconds: 5),
-          timeout: Duration(milliseconds: 400),
-          permitWithoutCalls: true,
-        ),
-      ),
+      options: GrpcEndpoint.longLivedChannelOptions,
     );
   }
 }

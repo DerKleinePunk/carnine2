@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:carnine_frontend/core/platform/backend_heartbeat.dart';
+import 'package:carnine_frontend/core/platform/grpc_endpoint.dart';
 import 'package:carnine_frontend/features/media/data/grpc_media_repository.dart';
 import 'package:carnine_frontend/features/media/data/media_channel.dart';
+import 'package:carnine_frontend/lib/carnine.pbgrpc.dart' as pb;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:grpc/grpc.dart';
 
@@ -148,7 +150,7 @@ void main() {
         final repository = GrpcMediaRepository(
           channel: MediaChannel(
             channelFactory: () =>
-                backend.channelWith(MediaChannel.defaultOptions),
+                backend.channelWith(GrpcEndpoint.longLivedChannelOptions),
           ),
         );
         repository.playerEvents().listen((_) {}, onError: (Object _) {});
@@ -161,5 +163,39 @@ void main() {
 
       expect(unhandled, isEmpty);
     },
+  );
+
+  // Seen on carnine-pc with the maps and dashboard open: every few seconds
+  // while frozen, the same unhandled exception from the navigation and power
+  // supply channels - a position stream plus the status poll running into
+  // its deadline was enough.
+  test(
+    'a stream plus deadline-bound calls to a frozen backend raise no error',
+    () async {
+      final unhandled = <Object>[];
+      await runZonedGuarded(() async {
+        final channel = backend.channelWith(
+          GrpcEndpoint.longLivedChannelOptions,
+        );
+        final client = pb.NavigationServiceClient(channel);
+        client.streamPositions(pb.Empty()).listen((_) {}, onError: (_) {});
+        final poll = Timer.periodic(const Duration(seconds: 3), (_) {
+          client
+              .getNavigationStatus(
+                pb.Empty(),
+                options: CallOptions(timeout: const Duration(seconds: 2)),
+              )
+              .then((_) {}, onError: (Object _) {});
+        });
+        // The old keepalive surfaced the error after about 11.5 s.
+        await Future<void>.delayed(const Duration(seconds: 13));
+        poll.cancel();
+        await channel.terminate();
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+      }, (error, _) => unhandled.add(error));
+
+      expect(unhandled, isEmpty);
+    },
+    timeout: const Timeout(Duration(seconds: 30)),
   );
 }

@@ -165,20 +165,9 @@ class GrpcPowerSupplySource implements PowerSupplySource {
     await _controller.close();
   }
 
-  // Same options as the navigation channel: keepalive pings notice a dead
-  // backend on a long-lived stream within seconds.
   static ClientChannel _createDefaultChannel() {
     return GrpcEndpoint.createChannel(
-      options: const ChannelOptions(
-        credentials: ChannelCredentials.insecure(),
-        connectTimeout: Duration(milliseconds: 400),
-        connectionTimeout: GrpcEndpoint.connectionLifetime,
-        keepAlive: ClientKeepAliveOptions(
-          pingInterval: Duration(seconds: 5),
-          timeout: Duration(milliseconds: 400),
-          permitWithoutCalls: true,
-        ),
-      ),
+      options: GrpcEndpoint.longLivedChannelOptions,
     );
   }
 }
