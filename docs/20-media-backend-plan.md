@@ -8,6 +8,12 @@ Entscheidungen und die geplante Reihenfolge zusammen. Es ersetzt weder die
 Architekturentscheidungen in `09-architecture-decisions.md` noch die Aufgaben-
 liste in `17-ideas-roadmap.md`.
 
+**Stand v0.9.3 (2026-09-30):** Die erste Version ist umgesetzt, ebenso der
+Audio-Output-Rewrite (Phasen 1 bis 5). Offen sind vor allem Phase 6
+(Navigation, Sprache, Ducking) und die Punkte unter „Nicht Teil der ersten
+Version“. Wo der Code von diesem Plan abweicht, steht das beim jeweiligen
+Abschnitt; der Umsetzungsstand in ADR-016 fasst es zusammen.
+
 Vor der Umsetzung gilt: Wenn eine neue Anforderung diesem Dokument
 widerspricht, muss zuerst die Dokumentation und gegebenenfalls der passende ADR
 aktualisiert werden. Danach darf der Proto-Vertrag oder Backend-Code geaendert
@@ -37,8 +43,9 @@ Die erste Version konzentriert sich auf:
 
 ## Audio-Output-Rewrite
 
-Der aktuelle externe Prozesspfad bleibt vorerst als Rueckfallebene erhalten,
-ist aber nicht die Zielarchitektur. Ein neuer `aplay`- oder `paplay`-Prozess
+Der fruehere externe Prozesspfad ist entfernt (b3bd847): `cpal` ist die
+einzige Wiedergabe-Engine, `aplay`/`paplay` gibt es nur noch im Beispiel
+`examples/external_ffmpeg_spike.rs`. Der Grund fuer den Umbau: Ein neuer `aplay`- oder `paplay`-Prozess
 pro Titelwechsel fuehrt zusammen mit Prozesssignalen und Pipes zu Knacken,
 Underruns und schwer kontrollierbaren Abbruchzustaenden.
 
@@ -57,6 +64,10 @@ nicht blockieren, allozieren, loggen, Dateien lesen oder Decoderarbeit
 ausfuehren. Decoder und Steuerlogik laufen ausserhalb des Callbacks.
 
 ### Rewrite-Phasen
+
+Stand v0.9.3: Phasen 1 bis 5 sind umgesetzt (`audio_source.rs`,
+`audio_mixer.rs`, `cpal_audio_engine.rs`, `RetryingAudioEngine` in
+`audio_engine.rs`). Phase 6 ist offen.
 
 1. Synthetischer cpal-Spike mit dauerhaftem Ausgang, Musikkanal, zweitem
    Testkanal, Gain-Fades und Quellenwechsel.
@@ -83,9 +94,9 @@ ausfuehren. Decoder und Steuerlogik laufen ausserhalb des Callbacks.
 
 ### Naechste Audio-Meilensteine
 
-Jeder Schritt wird separat getestet und committed. Der produktive
-`MediaPlayer` bleibt bis zum erfolgreichen Hardwaretest auf dem bisherigen
-Audio-Engine-Adapter.
+Jeder Schritt wird separat getestet und committed. Stand v0.9.3: Meilensteine
+1 bis 5 sind erledigt, der produktive `MediaPlayer` laeuft auf der cpal-Engine.
+Offen ist Meilenstein 6.
 
 1. **Decoderquelle:** Einen wiederverwendbaren Decoder-Thread mit begrenztem
   Stereo-Ringpuffer kapseln. Der Baustein liefert PCM-Frames, kennt weder
@@ -132,17 +143,18 @@ Allokationen; dort werden nur vorbereitete Audiobloecke verarbeitet.
 
 Diese Punkte bleiben bewusst auf der Todo-Liste:
 
-- eigentliche USB-Import-RPCs und der Kopiervorgang in das interne
-  Medienverzeichnis
-- Einstellungen fuer Medienordner und Resume-Modus
+- Einstellungen fuer Medienordner und Resume-Modus in der UI
 - Queue bearbeiten, umsortieren und einzelne Eintraege entfernen
-- direkte Titelauswahl (Seek-RPC seit #8)
-- Shuffle-Bedienung
 - M3U-Import und -Export
 - Party-Modus
 - Gapless Playback und Cross-Fading
 - Equalizer und SoundCurve
 - Video
+
+Inzwischen umgesetzt und deshalb nicht mehr in der Liste: USB-Import
+(`ImportMusicVolume` mit Kopiervorgang), direkte Titelauswahl
+(`PlayQueueEntry`), Spulen um ±30 s (`Seek`, #8) und Shuffle
+(`SetShuffleMode`, #9).
 - getrennte Lautstaerkegruppen
 - vollstaendige Audio-System-Policy
 - mehrere konkurrierende Steuerclients
@@ -180,8 +192,9 @@ Zustaendig fuer den zentralen Audio-Manager und seine Ereignisse. Er
 transportiert keine Audiodaten. Er soll spaeter unter anderem Musik,
 Systemklaenge und Navigationsansagen koordinieren.
 
-Jeder Service bekommt eine dreiteilige Version mit `major`, `minor` und
-`patch`. Faehigkeiten und unterstuetzte Formate werden dokumentiert, aber in
+`MediaService`, `AudioService` und `NavigationService` haben eine dreiteilige
+Version mit `major`, `minor` und `patch` (`GetServiceVersion`); die uebrigen
+Services nicht. Faehigkeiten und unterstuetzte Formate werden dokumentiert, aber in
 der ersten Version nicht programmatisch abgefragt.
 
 ## Konfiguration
@@ -192,24 +205,29 @@ Die versionierte Laufzeit-Konfigurationsvorlage liegt in
 `resources/debos/raspbian.yaml` bleibt ausschliesslich fuer Image-Aufbau und
 Pakete zustaendig.
 
-Die Konfiguration enthaelt mindestens:
+Die Konfiguration enthaelt (Stand v0.9.3):
 
-- gRPC-Adresse
-- Medienordner und SQLite-Datenbankpfad
-- unterstuetzte Audioformate und Rescan-Verhalten
-- Audio-Backend, ALSA-Geraet, Sample-Rate und Kanalzahl
-- Verhalten bei Navigationsansagen
-- Log-Verzeichnis und Log-Level
+- `[server]`: Socket-Pfad und -Rechte, optional eine TCP-Adresse
+- `[media]`: Medienordner, SQLite-Datenbankpfad, unterstuetzte Formate,
+  Rescan beim Start, Resume-Modus, Cover-Cache
+- `[audio]`: Verhalten bei Navigationsansagen (`navigation_interrupt`) und
+  die Datei fuer die Lautstaerke (`volume_state_path`)
+- `[logging]`: Log-Verzeichnis und Log-Level
+- dazu `[system]`, `[navigation]` und `[power_supply]`
+
+Audio-Backend, ALSA-Geraet, Sample-Rate und Kanalzahl sind nicht
+konfigurierbar.
 
 Hardware- und deployment-spezifische Werte wie das ALSA-Geraet duerfen fuer
 den Zielrechner angepasst werden. Ein ALSA-Geraet gibt es in der
 Konfiguration bisher nicht: Das Backend spielt auf ALSA-Karte 0 und regelt dort
 `PCM`, siehe [07 – Audio output](07-deployment.md#audio-output).
 
-Die UI aendert diese Datei nicht direkt. Ein spaeterer typisierter
-`ConfigService` liest und schreibt die Konfiguration ueber das Backend. Das
-Backend validiert die Werte, speichert sie atomar und meldet zurueck, ob eine
-Aenderung sofort uebernommen wurde oder einen Neustart benoetigt. Audio-
+Die UI aendert diese Datei nicht direkt. Der typisierte `ConfigService` liest
+und schreibt die Konfiguration ueber das Backend. Das Backend validiert die
+Werte, speichert sie atomar und meldet zurueck, ob eine Aenderung sofort
+uebernommen wurde oder einen Neustart benoetigt. Stand v0.9.3 meldet jede
+Aenderung „Neustart noetig“; zur Laufzeit wird noch nichts uebernommen. Audio-
 Ausgang, Medienordner, Resume-Modus und Log-Level sind als Laufzeit-
 Konfiguration vorgesehen; die gRPC-Bind-Adresse bleibt eine
 Startkonfiguration.
@@ -239,15 +257,18 @@ Startkonfiguration.
   `MediaService.RescanMedia` an.
 - Nur dieser UI-gesteuerte Rescan liest Metadaten und aktualisiert die
   SQLite-Media-Datenbank.
-- Ein Rescan laeuft nicht waehrend der Wiedergabe.
-- Der Rescan meldet Fortschritt in einem eigenen Bibliotheksstream.
-- Gueltige Dateien im internen Medienverzeichnis werden importiert oder
-  aktualisiert.
-- Nicht lesbare Dateien werden nicht in die Media-Datenbank aufgenommen.
-- Nicht lesbare Dateien erzeugen einen Fehler im Bibliotheksstream.
+- Ein Rescan wird waehrend der Wiedergabe nicht gesperrt (Stand v0.9.3).
+- Der Rescan meldet Fortschritt in einem eigenen Bibliotheksstream, je Ordner
+  ein Ereignis.
+- Dateien im internen Medienverzeichnis werden importiert oder aktualisiert;
+  unveraenderte (gleiche Groesse und Aenderungszeit) werden uebersprungen.
+- Eine Datei, deren Metadaten sich nicht lesen lassen, wird trotzdem
+  aufgenommen, mit dem Dateinamen als Titel; ein frueherer Titel und ein Cover
+  bleiben erhalten. Fehler werden je Ordner gemeldet, nicht je Datei.
 - Eine geloeschte Datei auf einer erreichbaren Quelle wird als `MISSING`
   markiert.
-- Eine nicht angeschlossene Quelle wird als `OFFLINE` behandelt.
+- `OFFLINE` fuer eine nicht angeschlossene Quelle ist im Schema vorgesehen,
+  wird aber nicht gesetzt: USB-Musik wird ins interne Verzeichnis kopiert.
 - Eine Playlist darf auch bei einer offline Quelle wiederhergestellt werden.
 - Ein einzelner fehlerhafter Eintrag macht den gesamten Rescan nicht ungueltig.
 
@@ -279,8 +300,9 @@ Zusaetzlich benoetigt der Player mindestens:
 - Quelle beziehungsweise Source-ID
 - Medienstatus
 
-Weitere Metadaten wie Album, Genre, Jahr, Tracknummer, Discnummer und Cover
-koennen spaeter ergaenzt werden.
+Cover sind umgesetzt (`has_cover_art`, `GetCoverArt`, `[media] cover_cache_dir`).
+Weitere Metadaten wie Album, Genre, Jahr, Tracknummer und Discnummer koennen
+spaeter ergaenzt werden.
 
 Der initiale Medienstatus unterscheidet:
 
@@ -317,7 +339,7 @@ Beim Laden einer Playlist gilt exakt diese Reihenfolge:
 4. aktive Playlist setzen
 5. gespeicherten Titel beziehungsweise Playlist-Eintrag auswaehlen
 6. gespeicherte Position auswaehlen
-7. Wiedergabe pausiert lassen
+7. Wiedergabe pausiert lassen, ausser `[media] resume_mode` ist `auto-play`
 
 Die Queue wird durch `Stop` nicht veraendert.
 
@@ -340,21 +362,20 @@ Repeat unterstuetzt:
 - gesamte Queue
 - einzelner Titel
 
-Gespeichert werden aktive Playlist, aktueller Playlist-Eintrag, Position und
-Resume-Modus. Es gibt drei Resume-Modi:
+Gespeichert werden aktive Playlist, aktueller Playlist-Eintrag, Position,
+Repeat und Shuffle. Der Resume-Modus steht in der Konfiguration
+(`[media] resume_mode`). Es gibt drei Resume-Modi:
 
-- Playlist wiederherstellen und pausiert stehen bleiben
-- Playlist wiederherstellen und automatisch abspielen
-- Playlist wiederherstellen und am Anfang des letzten Titels starten
+- `restore_paused` (Vorgabe): Playlist wiederherstellen und pausiert stehen bleiben
+- `auto-play`: Playlist wiederherstellen und automatisch abspielen
+- `start-last-title`: Playlist wiederherstellen und am Anfang des letzten Titels starten
 
 Die Queue ohne aktive Playlist wird nicht dauerhaft gespeichert.
 
-Die Wiedergabeposition wird nur waehrend laufender Wiedergabe periodisch
-persistiert. Alle zehn Sekunden wird der zuletzt bekannte Stand vor dem
-aktuellen Intervall gespeichert. Ein Seek (`MediaService.Seek`, relativ zur
-aktuellen Position, #8) wird sofort gespeichert. Beim
-Beenden gilt fuer den periodischen Stand der naechste planmaessige
-Speichervorgang.
+Der Resume-Zustand wird gespeichert, wenn ein Titel startet oder wechselt, wenn
+die Queue zu Ende ist, bei Stop, bei einem Seek (`MediaService.Seek`, relativ
+zur aktuellen Position, #8), beim Wechsel von Playlist, Repeat oder Shuffle und
+beim Beenden (SIGTERM). Ein periodisches Speichern gibt es nicht.
 
 ## Ereignisstreams
 
@@ -375,7 +396,7 @@ Liefert beim Oeffnen zuerst einen vollstaendigen Snapshot und danach Updates zu:
 
 ### Bibliotheksstream
 
-Liefert:
+Geplant war:
 
 - Scan gestartet
 - Fortschritt
@@ -384,6 +405,13 @@ Liefert:
 - uebersprungene Dateien
 - nicht lesbare Dateien mit Fehler
 - Scan abgeschlossen oder fehlgeschlagen
+
+Stand v0.9.3 meldet der Stream den Start, je Ordner einen Fortschritt
+(gesammelt, nach dem Scan des Ordners), Fehler je Ordner und den Abschluss;
+Ereignisse je Datei gibt es nicht. Dazu kommen `LIBRARY_METADATA_TOOL_MISSING`
+(ffprobe/ffmpeg fehlt, neuen Clients erneut gemeldet), `LIBRARY_MUSIC_FOUND`
+und `LIBRARY_MUSIC_GONE` (USB-Stick) und die `LIBRARY_IMPORT_*`-Ereignisse des
+Imports.
 
 Der `MediaService.StreamLibraryEvents`-Stream bleibt fuer verbundene Clients
 offen. Ein vollstaendiger Rescan veroeffentlicht dieselben Ereignisse wie sein
@@ -394,7 +422,12 @@ Ereignisse verwerfen und auf den naechsten Scan warten.
 ### Audiostream
 
 Dies ist kein Audio-Datenstrom. Er liefert Status- und Steuerereignisse des
-zentralen Audio-Managers, spaeter zum Beispiel:
+zentralen Audio-Managers. Stand v0.9.3: `AUDIO_READY` oder `AUDIO_ERROR`
+(„no audio output available“) beim Verbinden, `AUDIO_SOURCE_STARTED`,
+`AUDIO_SOURCE_PAUSE_REQUESTED`, `AUDIO_SOURCE_RESUME_REQUESTED`,
+`AUDIO_SOURCE_STOP_REQUESTED`, `AUDIO_SOURCE_REMOVED` und
+`AUDIO_DECODER_STOPPED`. `AUDIO_DEVICE_CHANGED` ist definiert, wird aber noch
+nicht erzeugt. Urspruenglich geplant waren zum Beispiel:
 
 - `audio_ready` mit Backend und Ausgabegeraet beim Verbinden
 - `device_changed` bei einer Aenderung des Ausgabegeraets
@@ -416,9 +449,11 @@ konfigurierbar sein, mindestens zwischen:
 
 Das Waveshare 7inch HDMI LCD (H) besitzt zwei Audioausgaenge fuer Kopfhoerer
 und Lautsprecher; jeder Lautsprecherkanal verfuegt ueber einen 2,6-W-PA-
-Verstaerker. Die Lautstaerke wird in der ersten Version nicht durch den
-MediaService verwaltet, sondern ueber den ALSA-PCM-Mixer des gewaehlten
-Ausgabegeraets geregelt. Getrennte Lautstaerkegruppen und die vollstaendige
+Verstaerker. Die Lautstaerke wird nicht durch den MediaService verwaltet,
+sondern durch `AudioService.GetVolume`/`SetVolume`: Das Backend regelt mit
+`amixer -M` den Regler `PCM` auf ALSA-Karte 0 (hoergerechte Prozent, #65; auf
+WSL ueber `pactl`) und merkt sich den Wert in `[audio] volume_state_path`.
+Ohne gespeicherten Wert startet es mit 50 %. Getrennte Lautstaerkegruppen und die vollstaendige
 Audio-System-Policy kommen spaeter.
 
 ## FFmpeg- und Audio-Entscheidung
@@ -437,6 +472,11 @@ Die erste Implementierung soll einen externen FFmpeg-Prozess als austauschbaren
 Decoder-Adapter pruefen. Der `PlaybackManager` soll die konkrete Decoder-
 Technik nicht kennen. Eine direkte FFmpeg-Library-Integration bleibt als
 zweite Variante moeglich.
+
+**Entschieden (Stand v0.9.3):** Produktiv laeuft der externe FFmpeg-Prozess
+(`ExternalPcmSource` in `audio_source.rs`) hinter `AudioEngine`/`Playback`; die
+Rolle des `PlaybackManager` hat `MediaPlayer`. Die Library-Variante bleibt
+hinter dem Cargo-Feature `direct-ffmpeg-library-spike`.
 
 Der isolierte Rust-Spike unterstuetzt inzwischen die Prozessbefehle `play`,
 `pause` und `stop`. `pause` und `play` halten FFmpeg und `paplay` gemeinsam an
@@ -489,10 +529,14 @@ Bekannte Metadaten:
 12. Media-Rescan, Suche, Playlist, Queue und Resume integrieren.
 13. Debian-/Debos-Integration und anschliessend Raspberry-Pi-Test durchfuehren.
 
-### Aktueller Arbeitsabschnitt
+### Frueherer Arbeitsabschnitt
 
-Die erste MediaService-Vertikalscheibe ohne Flutter ist umgesetzt. Der aktuelle
-Backend-Fokus liegt auf Resume-Persistenz und echten Ereignisstreams:
+Dieser Abschnitt beschreibt einen frueheren Stand; die Schritte oben sind
+inzwischen alle erledigt. Die vollstaendige RPC-Liste steht in
+`src/proto/carnine.proto`.
+
+Die erste MediaService-Vertikalscheibe ohne Flutter ist umgesetzt. Der
+Backend-Fokus lag damals auf Resume-Persistenz und echten Ereignisstreams:
 
 - `AudioEngine` bleibt die technische Austauschgrenze.
 - `MediaPlayer` kapselt Player-Befehle und Zustand.
@@ -521,7 +565,7 @@ Erledigt:
 - direkte Library-PCM-Ausgabe unabhaengig mit FFmpeg validiert
 - typisierten ConfigService-Vertrag und Backend-RPCs implementiert
 - Laufzeitkonfiguration beim Lesen und Schreiben validiert
-- atomare YAML-Aktualisierung mit Neustart-Hinweis implementiert
+- atomare TOML-Aktualisierung mit Neustart-Hinweis implementiert
 - versioniertes SQLite-Schema fuer Quellen, Medien, Playlists und Resume-Zustand
 - Rescan liest Titel, Interpret und Dauer ueber `ffprobe` und speichert sie in SQLite
 - persistente Playlist-Eintraege und Resume-Zustand koennen gespeichert und geladen werden
@@ -560,11 +604,11 @@ Noch offen:
   siehe unten)
 - konkrete Laufzeituebernahme aenderbarer Audio- und Medienkonfiguration ohne
   Neustart
-- `Play` mit Pfad setzt eine bereits geladene, auch pausierte Wiedergabe fort
-  und ignoriert den neuen Pfad (`MediaPlayer::play` ruft zuerst `resume()`).
-  Bis das geklaert ist, vor einem Titelwechsel per Pfad erst `stop` senden
-- `GetPlayerState` meldet waehrend der Wiedergabe `duration_ms=0`, obwohl die
-  Bibliothek die Dauer kennt (bei MP3 und FLAC gleich)
+- ~~`Play` mit Pfad setzt eine bereits geladene, auch pausierte Wiedergabe fort
+  und ignoriert den neuen Pfad~~ — behoben: `Play` mit Pfad spielt die Datei
+  von vorn als Queue mit einem Titel, auch ueber einen laufenden Titel
+- ~~`GetPlayerState` meldet waehrend der Wiedergabe `duration_ms=0`~~ — behoben:
+  die Dauer kommt aus der Bibliothek (`set_duration_lookup`)
 
 ## Audio-Regressionsmessungen
 
@@ -655,8 +699,9 @@ in die Datei eingebettete Cover.
 | `04 - Kraftwerk - Numbers.flac` | 88,2 kHz, 5.1, 24 Bit | laeuft | ~93 % |
 
 Nach Gehoer akustisch einwandfrei, im Log weder Warnungen noch Fehler. Das
-Backend startet FFmpeg fest mit `-ar 44100 -ac 2`, jede Quelle wird also auf
-44,1 kHz Stereo gewandelt; der 5.1-Downmix bezieht den Center mit ein. Die
+Backend startet FFmpeg mit `-ac 2` und als `-ar` mit der Standardrate des
+cpal-Ausgabegeraets; jede Quelle wird also auf diese Rate und Stereo
+gewandelt; der 5.1-Downmix bezieht den Center mit ein. Die
 FLACs klingen leiser als die MP3s der Bibliothek. Das ist unter Windows
 genauso: hochaufloesende Aufnahmen sind meist mit mehr Dynamik gemastert, und
 der Downmix senkt den Pegel zusaetzlich ab. Fuer die Messe kein Thema; falls es

@@ -5,14 +5,14 @@ This section describes architectural principles, patterns, and technologies that
 ## 8.1 Logging and Monitoring
 
 ### Centralized Logging
-- **Framework**: Rust backend uses `tracing` with JSON output to systemd journal
-- **Flutter Frontend**: Uses `dart:developer` for debug logs, forwarded to backend via gRPC
+- **Framework**: Rust backend uses `tracing` with compact text output, both to stdout (so systemd's journal gets it) and to `backend.log`
+- **Flutter Frontend**: Uses `package:logging`; lines go to DevTools (`dart:developer`), to an in-memory buffer for the log viewer and to the file named by `CARNINE_LOG_PATH` (`/var/log/carnine/frontend.log` on the Pi). Forwarding to the backend is not implemented
 - **Aggregation**: All logs collected in `/var/log/carnine/`. The backend caps its own `backend.log` at 50 MB and then moves it to `backend.log.1` (no `logrotate` needed, #59)
-- **Levels**: ERROR, WARN, INFO, DEBUG, VERBOSE (DEBUG/VERBOSE optional aktivierbar in Produktion für Troubleshooting)
+- **Levels**: ERROR, WARN, INFO, DEBUG, TRACE, set by `[logging] level` (default `info`, an `EnvFilter` expression); DEBUG/TRACE can be enabled in production for troubleshooting
 
 ### Health Monitoring
-- **Backend Health Checks**: gRPC health service endpoint for liveness/readiness probes
-- **System Metrics**: CPU, RAM, CAN bus status collected by a lightweight Rust daemon (no Node/Prometheus) writing to local journal
+- **Backend Health Checks**: No gRPC health service. systemd restarts a failed service (`Restart=on-failure`), the frontend detects a lost backend through gRPC keepalive and shows a connection banner, and the UI reports its readiness with `SystemService.ReportUiReady`
+- **System Metrics**: CPU temperature, load and disk usage, sampled inside the backend (`system_metrics.rs`, no Node/Prometheus) and served by `SystemService.GetSystemMetrics`/`StreamSystemMetrics`. RAM and CAN status are not collected yet
 - **Alerting**: Critical errors are displayed on the UI and logged; user is notified directly rather than via external channels
 
 ## 8.2 Error Handling and Resilience
@@ -33,11 +33,11 @@ This section describes architectural principles, patterns, and technologies that
 - **On-device IPC**: Frontend/backend over Unix domain socket; no user login flow on the device itself
 - **Remote Control Scope**: Remote control is allowed only from the local network (LAN) and is not exposed to the public internet
 - **Remote Access Control**: Any LAN-exposed control endpoint must require authentication (token or mTLS) and authorization checks
-- **OTA Updates**: Signed packages with GPG verification
+- **OTA Updates** (planned, not implemented): Signed packages with GPG verification
 - **Network Security**: gRPC over local socket for IPC; firewall defaults deny WAN ingress; SSH access is LAN/VPN-restricted
 
 ### Data Protection
-- **Sensitive Data**: Vehicle telemetry encrypted at rest using AES-256
+- **Sensitive Data** (planned): Vehicle telemetry encrypted at rest using AES-256. Today no telemetry is stored
 - **Input Validation**: All gRPC messages validated against protobuf schemas
 - **Secure Boot**: Evaluate hardware/boot-chain support; treat as a hardening goal, not as a guaranteed baseline
 
@@ -50,7 +50,7 @@ This section describes architectural principles, patterns, and technologies that
 
 ### Optimization Patterns
 - **Async Processing**: Tokio runtime for non-blocking I/O
-- **Caching**: In-memory LRU cache for navigation data; persistent SQLite for settings
+- **Caching**: In-memory caches for map tiles; SQLite for the media library, playlists, resume state and UI/navigation state. Settings live in TOML (§8.6)
 - **Lazy Loading**: UI components loaded on-demand to reduce startup time
 
 ## 8.5 Communication Protocols
@@ -58,22 +58,24 @@ This section describes architectural principles, patterns, and technologies that
 ### Inter-Process Communication
 - **gRPC**: Primary IPC between frontend/backend; protobuf for type safety
 - **Unix Domain Sockets**: Local communication for security and performance
-- **CAN Bus**: Vehicle data via socketcan; 500kbps bitrate with error detection
+- **CAN Bus** (planned): Vehicle data via socketcan. `CarnineService.GetCanData` exists in the contract but returns a fixed placeholder value; bitrate and adapter depend on the vehicle
 
 ### External Interfaces
-- **HTTP/REST**: OTA updates and map tiles (with caching)
+- **Map tiles**: read locally from MBTiles, no network needed
+- **Routing**: Valhalla, running locally on the device
+- **HTTP/REST** (planned): OTA updates
 
 ## 8.6 Configuration Management
 
 ### Configuration Sources
 - **Static Config**: Compiled-in defaults for hardware-specific settings
-- **Runtime Config**: TOML file at `/etc/carnine/config.toml` for deployment and user preferences
-- **Repository Template**: `resources/config/carnine.toml` is the versioned example and image-install source
-- **Environment Variables**: Only for deployment-specific overrides (e.g., CAN bitrate or `CARNINE_LOG_DIRECTORY` during development)
+- **Runtime Config**: TOML file at `/etc/carnine/config.toml` for deployment and user preferences, followed by the drop-ins in `/etc/carnine/config.d/*.toml` in name order
+- **Repository Template**: `resources/config/carnine.toml` and `resources/config/config.d/` are the versioned examples and image-install source
+- **Environment Variables**: Only for deployment-specific overrides: `CARNINE_CONFIG`, `CARNINE_LOG_DIRECTORY`, `CARNINE_DATABASE_PATH`, `CARNINE_SOCKET_PATH`, `CARNINE_SOCKET_MODE`, `CARNINE_TCP_ADDRESS` (`carnine-backend --help` lists them)
 
-### Hot Reloading
-- **Settings**: Changes applied without restart via gRPC config endpoint
-- **Feature Flags**: Runtime toggles for experimental features
+### Hot Reloading (planned)
+- **Settings**: Changes applied without restart via gRPC config endpoint. Today `UpdateConfiguration` saves the change and always reports that a restart is required
+- **Feature Flags**: Runtime toggles for experimental features (none exist yet)
 
 ### UI Configuration Changes
 - The Flutter UI never writes `/etc/carnine/config.toml` directly.
@@ -87,20 +89,23 @@ This section describes architectural principles, patterns, and technologies that
 ## 8.7 Testing and Quality Assurance
 
 ### Unit Testing
-- **Rust**: `cargo test` with >80% coverage; mocks for hardware interfaces
-- **Flutter**: Widget tests and unit tests with Mockito for gRPC mocking
+- **Rust**: `cargo test`; hardware is replaced by fakes (for example a listening thread instead of the sound card in the queue tests). Coverage is not measured yet
+- **Flutter**: Widget tests and unit tests with hand-written fakes (`test/fakes/`) and `fake_async`
 
 ### Integration Testing
-- **End-to-End**: Automated tests on target hardware using `integration_test`
-- **CAN Simulation**: Virtual CAN interfaces for testing without real vehicle
+- **End-to-End** (planned): Automated tests on target hardware. Today the checks on the Pi are done by hand and recorded in the pull request or issue
+- **CAN Simulation** (planned): Virtual CAN interfaces for testing without real vehicle
 
 ### Continuous Integration
-- **Build Pipeline**: Planned GitHub Actions pipeline for cross-compilation and basic tests (currently not implemented in repository)
-- **Code Quality**: Clippy (Rust), Flutter analyze; pre-commit hooks
+- **Build Pipeline**: GitHub Actions (`.github/workflows/ci.yml`): backend `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings` and `cargo test`; frontend `flutter analyze` and `flutter test`; shellcheck and tests for the image scripts; a native arm64 release build
+- **Code Quality**: Clippy (Rust), Flutter analyze. No pre-commit hooks in the repository
 
 ## 8.8 Deployment and Updates
 
-### Over-the-Air Updates
+### Over-the-Air Updates (planned, not implemented)
+
+Today updates are Debian packages installed by `deploy_pi.sh` or a new SD-card image (07-deployment.md).
+
 - **Mechanism**: Delta updates via HTTP download; A/B partitions for rollback
 - **Validation**: Checksum verification and signature validation
 - **Scheduling**: Updates applied during ignition off; user notification required
@@ -113,7 +118,7 @@ This section describes architectural principles, patterns, and technologies that
 
 ### Language Support
 - **Primary**: German (de) with English (en) fallback
-- **Implementation**: Flutter's intl package; Rust uses fluent for backend strings
+- **Implementation**: The frontend has its own lookup in `lib/l10n/` with 15 languages (`lib/l10n/translations/`). The backend sends codes and event types, not display text
 - **Date/Number Formats**: Locale-aware formatting for vehicle data display
 
 ## 8.10 UI/UX Design Workflow

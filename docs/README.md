@@ -1,6 +1,6 @@
 # Arc42 Architecture Documentation
 
-This directory contains the Arc42 template for documenting the architecture of the project.
+This directory contains the architecture documentation of the project, structured along Arc42, plus the user guide and topic documents.
 
 ## Sections
 
@@ -31,7 +31,8 @@ This directory contains the Arc42 template for documenting the architecture of t
 22. [21 – Protobuf Event Contract](21-protobuf-event-contract.md)
 23. [22 – Waveshare 1024x600 Display under Full KMS](22-waveshare-display-1024x600.md)
 24. [23 – Vehicle Power Supply (Ignition, Shutdown, Watchdog)](23-power-supply.md)
-25. [25 – Demo and Touch Tools](25-demo-and-touch-tools.md) – drive the Pi's UI for filming and load tests
+25. [24 – CAN Adapter (MCP2515 on SPI0)](24-can-adapter-mcp2515.md)
+26. [25 – Demo and Touch Tools](25-demo-and-touch-tools.md) – drive the Pi's UI for filming and load tests
 
 ## User Guide
 
@@ -39,5 +40,5 @@ This directory contains the Arc42 template for documenting the architecture of t
 
 ## Code
 
-20. [Backend](../src/backend/README.md)
-20. [Frontend](../src/frontend/README.md)
+- [Backend](../src/backend/README.md)
+- [Frontend](../src/frontend/README.md)

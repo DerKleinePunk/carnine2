@@ -6,21 +6,32 @@ The Runtime View describes the dynamic behavior of the system at runtime. It ill
 
 ### Scenario 1: System Startup
 
-When the car is started (ignition on detected via RS232 power supply):
+When the Pi is powered (in the car: the power supply AuPrV1_1 switches it on
+with the ignition, docs/23), systemd starts both services:
 
-1. Power Management detects ignition signal.
-2. Rust Backend initializes CAN-Bus Handler, Data Storage, Network Manager, etc.
-3. gRPC Server starts and listens for connections.
-4. Flutter Frontend launches in Linux window, connects to gRPC Server.
-5. UI renders its first frame and reports `ReportUiReady` through the
-    `SystemService`.
-6. The frontend sends `READY=1` to systemd. Only then does systemd allow
-    `plymouth-quit.service` to finish and reveal the UI.
+1. `carnine-backend.service` (`Type=simple`) starts the backend. It opens the
+   SQLite database, opens the power supply line if `[power_supply]` is
+   configured, starts the system metrics sampler, creates the media player,
+   restores the volume and the saved resume state, starts the UDisks2 listener
+   and the navigation service, and finally binds the Unix socket
+   (`/run/carnine/carnine.sock`, optionally also a TCP address).
+2. `carnine-frontend.service` (`Type=notify`, after the backend and
+   `plymouth-start.service`) launches ivi-homescreen with the Flutter bundle
+   and connects to the socket.
+3. The UI waits for five rendered frames (it forces a frame every 100 ms and
+   stops waiting after 5 s at the latest) and then reports `ReportUiReady` through
+   `SystemService`. While the backend still answers `UNAVAILABLE`,
+   `UiReadinessReporter` retries (250 ms, 500 ms, 1 s, then every 2 s) for up
+   to 20 s.
+4. The frontend sends `READY=1` to systemd, which completes its start.
 
-If the frontend does not report readiness within 30 seconds, systemd marks its
-start as failed and Plymouth is still allowed to finish. This leaves the
-virtual console usable instead of hiding a permanent splash screen. The
-frontend service may be restarted by systemd according to its restart policy.
+Plymouth quits on its own timing and is not ordered after the frontend
+(ADR-019). The login console stays hidden because the frontend unit conflicts
+with `getty@tty1`. If the frontend does not report readiness within 30 seconds
+(`TimeoutStartSec`), systemd marks its start as failed; when the frontend
+stops, a 5-second fallback timer starts `getty@tty1`, so the virtual console
+becomes usable. The frontend service may be restarted by systemd according to
+its restart policy (`RestartSec=3`).
 
 ### Scenario 2: Navigation Request
 
@@ -28,7 +39,7 @@ User selects destination in Flutter UI:
 
 1. UI Widget sends request via gRPC Client to Backend.
 2. gRPC Server receives request, forwards to Navigation Service.
-3. Navigation Service queries map data from Network Manager (if online) or cached Data Storage.
+3. Navigation Service asks the local Valhalla (`[navigation] valhalla_url`, default `http://127.0.0.1:8002`) for the route. No online service is involved.
 4. Calculated route is sent back via gRPC to Frontend.
 5. UI updates map display with route.
 
@@ -36,23 +47,32 @@ User selects destination in Flutter UI:
 
 User starts playing audio:
 
-1. UI Widget triggers request to Media Processor via gRPC.
-2. Media Processor accesses Media Library for file/stream.
-3. Audio decoding begins, output sent to system audio.
-4. UI shows playback controls and progress.
+1. UI Widget sends `MediaService.Play` or `PlayPlaylist` via gRPC.
+2. The media player takes the file from the library and starts an FFmpeg
+   decoder process that fills a ring buffer.
+3. The cpal output stream plays the buffer through ALSA (card 0). A track
+   counts as finished only when the buffer has played out; then the next one
+   starts.
+4. `StreamPlayerEvents` updates the UI's controls and progress.
 
 ### Scenario 3a: Media Library Rescan
 
 The frontend explicitly starts a complete rescan after a confirmed USB import:
 
 1. The frontend requests a rescan for the internal media source.
-2. The Media Service rejects or defers the operation while playback is active.
-3. The Media Library scans supported local audio files and reads their metadata.
-4. Valid files are inserted or updated in SQLite.
-5. Unreadable files are skipped and reported as errors on the library stream.
-6. Files missing from an available source become `MISSING`.
-7. Entries belonging to a detached source remain available as `OFFLINE`.
-8. The library stream reports progress and completion to the frontend.
+2. The rescan also runs while music is playing.
+3. The Media Library scans supported local audio files. Files whose size and
+   modification time are unchanged are skipped; the others are read with
+   `ffprobe`.
+4. Files are inserted or updated in SQLite. A file whose metadata cannot be
+   read is still added, with its file name as title; an earlier title and cover
+   are kept.
+5. Files missing from an available source become `MISSING`.
+6. `OFFLINE` for a detached source exists in the schema but is not used; USB
+   music is copied into the internal folder instead (Scenario 3b).
+7. The library stream reports the start, `LIBRARY_METADATA_TOOL_MISSING` if
+   `ffprobe`/`ffmpeg` cannot be started, one progress event per folder and
+   the completion. Errors are reported per folder, not per file.
 
 ### Scenario 3b: USB Music Import
 
@@ -80,11 +100,11 @@ The backend restores the persistent playback context during startup:
    or starts at the beginning of the stored track.
 5. The player stream sends an initial complete state to the frontend.
 
-Playback progress is persisted only while playing. A periodic write occurs
-every ten seconds and stores the last known position from before the current
-interval. A seek (`MediaService.Seek`, relative to the current position) is
-stored immediately. A stop resets the current position to the beginning but does not
-modify the queue.
+The resume state is saved when a track starts or changes, when the queue
+runs out, on stop, on a seek (`MediaService.Seek`, relative to the current
+position), on a change of playlist, repeat or shuffle, and on shutdown
+(SIGTERM). There is no periodic save. A stop resets the current position to
+the beginning but does not modify the queue.
 
 ### Scenario 3d: Dashboard Page Restore
 
@@ -102,17 +122,19 @@ The frontend starts on the page that was open before the restart:
 4. The backend stores the name in the `ui_state` table of the media database,
    next to the playback resume state.
 
-### Scenario 4: Vehicle Data Display
+### Scenario 4: Vehicle Data Display (planned)
 
-CAN-Bus data updates:
+Not implemented; `CarnineService.GetCanData` returns a placeholder. Intended
+flow once CAN data exists:
 
 1. CAN-Bus Handler continuously reads vehicle telemetry (speed, RPM).
 2. Data is processed and sent via gRPC to Frontend.
 3. UI Widgets update displays in real-time.
 
-### Scenario 5: Relay Control
+### Scenario 5: Relay Control (idea, not implemented)
 
-User toggles a relay (e.g., interior light) via UI:
+There is no relay control in the backend; the relays on the power supply are
+switched by its own firmware (docs/23). Intended flow if it comes:
 
 1. UI Widget sends toggle command via gRPC Client.
 2. gRPC Server forwards to I²C Relay Controller.
@@ -144,25 +166,22 @@ Runs for the whole lifetime of the backend, independent of any client:
 
 ```mermaid
 sequenceDiagram
-    participant PM as Power Management
+    participant SD as systemd
     participant RB as Rust Backend
-    participant GS as gRPC Server
     participant FF as Flutter Frontend
-    participant UI as UI Widgets
 
-    PM->>RB: Detect ignition on (via RS232)
-    RB->>RB: Initialize CAN-Bus Handler, Data Storage, etc.
-    RB->>GS: Start gRPC Server
-    GS->>GS: Listen for connections
-    FF->>GS: Launch and connect via gRPC
-    GS->>FF: Connection established
-    FF->>GS: SystemService.ReportUiReady()
-    GS-->>FF: UI ready
-    FF->>RB: systemd-notify READY=1
-    RB-->>FF: Plymouth is released by systemd
+    SD->>RB: start carnine-backend.service
+    RB->>RB: open database, power supply, metrics, media, navigation
+    RB->>RB: bind /run/carnine/carnine.sock
+    SD->>FF: start carnine-frontend.service (Type=notify)
+    FF->>RB: connect via gRPC
+    FF->>FF: wait for five rendered frames
+    FF->>RB: SystemService.ReportUiReady()
+    RB-->>FF: ok (retried while UNAVAILABLE)
+    FF->>SD: sd_notify READY=1
 ```
 
-### Sequence Diagram: Relay Control
+### Sequence Diagram: Relay Control (idea, not implemented)
 
 ```mermaid
 sequenceDiagram

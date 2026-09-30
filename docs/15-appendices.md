@@ -7,9 +7,10 @@ Supplementary information and quick reference material.
 - Backend source: `src/backend`
 - Frontend source: `src/frontend`
 - Architecture docs: `docs`
-- Runtime config target (planned): `/etc/carnine/config.toml`
-- Runtime logs target (planned): `/var/log/carnine/`
-- Deployment target root (planned): `/opt/carnine/`
+- Runtime config: `/etc/carnine/config.toml`, drop-ins in `/etc/carnine/config.d/`
+- Runtime logs: `/var/log/carnine/`
+- Runtime data (database, volume state, tracks): `/var/lib/carnine/`
+- Frontend bundle: `/opt/carnine/frontend/`
 
 ## Appendix B - Core Build and Validation Commands
 
@@ -18,7 +19,7 @@ Supplementary information and quick reference material.
 ```bash
 cd src/backend
 cargo fmt --all
-cargo clippy --all-targets --all-features -- -D warnings
+cargo clippy --all-targets -- -D warnings
 cargo test
 ```
 

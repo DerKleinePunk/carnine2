@@ -35,7 +35,7 @@ Frisch geflasht ist die Datenbank leer: Wiederholung steht dann auf aus.
 
 ![Medien mit Banner „Die Verbindung zum Backend wurde unterbrochen. Es wird automatisch erneut verbunden.“ und ERNEUT VERSUCHEN](bilder/ohne-backend.png)
 
-- **Medien:** rotes Banner „Die Verbindung zum Backend wurde unterbrochen …“,
+- **Medien:** Banner mit roter Wolke „Die Verbindung zum Backend wurde unterbrochen …“,
   Listen zeigen **Erneut versuchen**. Die Oberfläche verbindet sich von selbst
   wieder (alle 0,5 bis 5 s), danach ist alles wie vorher.
 - **Karten:** rote Meldung „Navigation nicht erreichbar“, auch in der
@@ -44,7 +44,7 @@ Frisch geflasht ist die Datenbank leer: Wiederholung steht dann auf aus.
 - Schlägt ein einzelner Befehl fehl (z. B. **Weiter**), zeigt die Medienseite
   4 s lang den Streifen „Befehl fehlgeschlagen“ (#32, siehe
   [Banner](medien.md#banner)). Das gilt auch, wenn das Backend hängt, ohne
-  abzustürzen: Dann kommt nur dieser Streifen, „Verbindung unterbrochen“
+  abzustürzen: Dann kommt nur dieser Streifen, das Verbindungsbanner
   erst, wenn die Verbindung wirklich abreißt.
 
 ## Ohne Audio-Gerät

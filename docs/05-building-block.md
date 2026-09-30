@@ -15,7 +15,7 @@ Relationship: Communication via gRPC over local sockets.
 
 The Flutter Frontend is a Dart application running in a Linux window and utilizing the touchscreen.
 
-- **UI Widgets**: Components for navigation (map, routing), media player, vehicle telemetry display, settings.
+- **UI Widgets** (`lib/features/`): dashboard, maps (map, routing), media player, settings.
 - **State Management**: Manages application state and synchronizes with the backend.
 - **gRPC Client**: Sends requests to the backend and receives responses.
 
@@ -25,20 +25,23 @@ Relationships: Widgets interact with state management; gRPC client connects to t
 
 The Rust Backend is a headless service executing the core logic.
 
-- **CAN-Bus Handler**: Reads and writes vehicle data over the CAN bus.
-- **Data Storage**: Local database or filesystem for caching and configuration.
-- **Network Manager**: Handles internet connections for updates and external APIs.
-- **gRPC Server**: Provides APIs for the frontend and processes requests.
-- **Media Processor**: Manages audio/video decoding and playback.
-- **I²C Relay Controller**: Manages 8 relays connected via I²C bus to switch power consumers (e.g., lights, fans, or other vehicle accessories).
-- **System Metrics Sampler**: Reads CPU temperature, CPU utilisation and load average from `/sys` and `/proc` on a short cadence, and disk usage per filesystem on a slower one. Holds the latest snapshot for `SystemService.GetSystemMetrics` and pushes it to `StreamSystemMetrics` subscribers.
+- **gRPC Server** (`main.rs`, `server_transport.rs`): Serves `MediaService`, `AudioService`, `ConfigService`, `SystemService`, `NavigationService` and `CarnineService` (src/proto/carnine.proto) on a Unix domain socket, with an optional TCP fallback.
+- **Media Player** (`media_player.rs`): Queue, playlists, repeat and shuffle, seek, resume after restart; publishes `PlayerEvent`s.
+- **Audio Engine** (`audio_engine.rs`, `cpal_audio_engine.rs`, `audio_source.rs`, `audio_mixer.rs`, `audio_volume.rs`): Decodes with FFmpeg into a ring buffer and plays through ALSA via cpal. `RetryingAudioEngine` keeps the backend running without an audio device. A track counts as finished only when the buffer has played out. Volume goes through the ALSA softvol control (`amixer -M`).
+- **Media Library** (`database.rs`, `storage_events.rs`): Scans music folders and USB sticks (UDisks2 over D-Bus) into SQLite and reports progress as `LibraryEvent`s.
+- **Data Storage** (`database.rs`): SQLite for the media library, playlists, resume state, UI state and navigation state.
+- **Configuration** (`config.rs`): Loads `/etc/carnine/config.toml` and its `config.d` drop-ins, applies `CARNINE_*` overrides and serves `ConfigService`.
+- **Navigation** (`navigation/`): GPS mouse over NMEA, clock from GPS, place search, route calculation with a local Valhalla, track recording.
+- **Power Supply Link** (`power_supply.rs`, `serial_line.rs`): Talks to the car power supply AuPrV1_1 on `/dev/powersupply` (USB serial or UART), sends the sign of life and publishes its state (docs/23).
+- **System Metrics Sampler** (`system_metrics.rs`): Reads CPU temperature, CPU utilisation and load average from `/sys` and `/proc` on a short cadence, and disk usage per filesystem on a slower one. Holds the latest snapshot for `SystemService.GetSystemMetrics` and pushes it to `StreamSystemMetrics` subscribers.
+- **CAN-Bus Handler** (planned): `CarnineService.GetCanData` returns a fixed placeholder today. Prepared: pins for an MCP2515 on SPI0 with its interrupt on GPIO 25 ([24 – CAN Adapter](24-can-adapter-mcp2515.md)); the adapter itself depends on the vehicle.
 
-Relationships: All components communicate internally; gRPC server connects to the frontend; CAN-Bus Handler and Network Manager access hardware/external systems; Power Management interacts with the RS232-connected power supply and system shutdown APIs; I²C Relay Controller interacts with I²C hardware and receives commands via gRPC Server.
+Relationships: The gRPC server connects to the frontend and delegates to the other blocks. The audio engine, media library, navigation and power supply link access hardware (sound card, USB storage, GPS mouse, serial line). Relays on the power supply are switched by its own firmware, not by the backend.
 
 ## Level 3: Detailed Components (Examples)
 
-- **Navigation Service** (in Backend): Calculates routes, integrates map data.
-- **Media Library** (in Backend): Indexes local media and streams content.
-- **Settings Manager** (in Backend): Stores and loads user preferences.
+- **Navigation Service** (`navigation/service.rs`): Serves `NavigationService`; calculates routes with Valhalla, searches places, streams positions.
+- **Media Library** (`database.rs`, `media_player.rs`): Indexes local media and plays it.
+- **Settings** (`config.rs`, `ConfigService`): Stores and loads settings; the UI changes them only through `UpdateConfiguration`.
 
 This level can be further refined depending on implementation complexity.

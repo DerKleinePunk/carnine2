@@ -42,12 +42,12 @@ List the quality attributes (performance, security, maintainability, etc.) and h
 ## Quality Measures
 
 ### Reliability
-- **How:** Heartbeat mechanism (ping/pong every 5-10s)
-- **Tool:** Connection monitor in Flutter; timeout handler in Rust backend
+- **How:** gRPC keepalive from the frontend (ping every 5 s, 400 ms timeout, `media_channel.dart`, `navigation_channel.dart`); systemd restarts a failed backend
+- **Tool:** Connection banner in Flutter; no separate timeout handler in the Rust backend. A frozen backend is not detected yet (#58)
 - **Success Metric:** 99.5% uptime in production over 30 days
 
 ### Responsiveness
-- **How:** WebSocket or gRPC with connection timeout detection
+- **How:** gRPC with keepalive-based connection loss detection
 - **Metric:** Connection loss detected and UI updated within 500ms
 - **Testing:** Unit tests + integration tests with simulated network failure
 
@@ -67,8 +67,8 @@ List the quality attributes (performance, security, maintainability, etc.) and h
 
 ### Maintainability
 - **How:** Code style enforcement; comprehensive tests
-- **Metric:** ≥ 80% code coverage; CI/CD checks style compliance
-- **Tools:** `cargo test`; `flutter test`; `cargo fmt` / `dart_format`
+- **Metric:** ≥ 80% code coverage (target; coverage is not measured yet); CI checks `cargo fmt`, clippy and `flutter analyze` on each PR
+- **Tools:** `cargo test`; `flutter test`; `cargo fmt`; `dart format` (run locally, not in CI)
 
 ### Robustness
 - **How:** Error handling with user-friendly messages; fallback UI states

@@ -113,6 +113,10 @@ Use SQLite for local data storage, with synchronization logic for online reconci
 - Must implement offline-first sync logic for network data
 - Excellent local performance and data integrity
 
+**Implementation note (v0.9.3):** SQLite holds the media library, playlists,
+resume state, UI state and navigation state (`database.rs`, schema 6). There
+is no online reconciliation yet, since nothing is fetched from the network.
+
 ---
 
 ## ADR-005: Real-time Data Streaming - gRPC Streaming for Vehicle Telemetry
@@ -141,11 +145,18 @@ Use server-side gRPC streaming to push vehicle data updates from backend to fron
 - Frontend must manage stream subscriptions and lifecycle
 - Excellent real-time responsiveness
 
+**Implementation note (v0.9.3):** Server streaming is used for player,
+library, audio, system metrics, power supply and position events. Vehicle
+telemetry itself is not implemented: `CarnineService.GetCanData` is a unary
+placeholder.
+
 ---
 
 ## ADR-006: CAN-Bus Integration - Direct RS232 via Custom Driver
 
-**Status:** Accepted
+**Status:** Accepted, not implemented. `GetCanData` returns a fixed placeholder
+value; the pins prepared since for an MCP2515 on SPI0 (docs/24) point to
+SocketCAN, so this decision has to be revisited before the CAN work starts.
 
 **Context:**
 Vehicle provides diagnostic and telemetry data over CAN-bus interface. System needs low-latency access to this data with minimal dependencies.
@@ -178,7 +189,7 @@ Implement custom CAN-bus handler in Rust backend with direct RS232 communication
 System needs configuration for hardware, media, audio, logging, and deployment-specific parameters. The configuration must be readable, validated, persistable, and changeable through the frontend without allowing the UI to write system files directly.
 
 **Decision:**
-Use TOML files for configuration storage. The versioned template is located at `resources/config/carnine.toml`; the installed system uses `/etc/carnine/config.toml`. The Rust backend loads the configuration at startup and exposes it through the typed gRPC `ConfigService`, which owns validated updates and atomic persistence.
+Use TOML files for configuration storage. The versioned template is located at `resources/config/carnine.toml`; the installed system uses `/etc/carnine/config.toml`, overlaid by every `*.toml` in `/etc/carnine/config.d/` in name order (device-specific settings that `deploy_pi.sh` must not overwrite, e.g. `10-navigation.toml`). The Rust backend loads the configuration at startup and exposes it through the typed gRPC `ConfigService`, which owns validated updates and atomic persistence.
 
 **Rationale:**
 - **Human-readable**: TOML is easy to inspect and edit for deployment and hardware settings
@@ -223,7 +234,7 @@ Use `anyhow::Result<T>` for fallible operations, with `.context()` for adding co
 - `thiserror` crate – more structured but more verbose
 
 **Consequences:**
-- Errors are strings with context; no type-based error discrimination possible
+- Errors are mostly strings with context; the few cases that need a distinct reaction use a small error type and `downcast_ref` (e.g. `AudioOutputUnavailable`)
 - Excellent for system services where all errors should be logged
 - Simpler error handling paths in code
 
@@ -238,6 +249,11 @@ Backend will grow to handle CAN, networking, media, storage, and other concerns.
 
 **Decision:**
 Organize backend as modules with `mod.rs` files declaring submodules; each major concern (e.g., `can_handler`, `media`, `storage`) gets its own module directory.
+
+**Implementation note (v0.9.3):** Most concerns are single files at the top
+level (`media_player.rs`, `database.rs`, `storage_events.rs`,
+`power_supply.rs`, …, declared in `main.rs`). A concern that grew into several
+files became a directory with `mod.rs` (`navigation/`).
 
 **Rationale:**
 - **Scoping**: Modules control visibility; public APIs are explicit
@@ -294,6 +310,11 @@ Need to validate backend functionality without running the full graphical applic
 **Decision:**
 Write unit tests directly in Rust modules for business logic. Integration tests call backend via gRPC client. Prefer tests over manual verification.
 
+**Implementation note (v0.9.3):** The tests call the service implementations
+in-process (for example the queue tests with real audio files in
+`queue_playback_tests.rs`). There is no test over a real gRPC connection yet;
+`examples/media_grpc_client.rs` is a manual tool.
+
 **Rationale:**
 - **Avoiding UI**: Graphical testing is slow and error-prone; prefer automated tests
 - **Unit tests**: Fast feedback loop; test individual components in isolation
@@ -321,6 +342,11 @@ Multiple subsystems (CAN polling, gRPC server, media playback, network I/O) must
 **Decision:**
 Use Tokio tasks for concurrent work; synchronize via `tokio::sync` channels and mutexes (Mutex, RwLock). Avoid blocking operations in async code.
 
+**Implementation note (v0.9.3):** Channels are from `tokio::sync`
+(broadcast, watch, oneshot, mpsc). Shared state mostly uses `std::sync::Mutex`
+for short critical sections. The audio decoder and
+output run on their own OS threads, and scans use `spawn_blocking`.
+
 **Rationale:**
 - **Scalability**: Thousands of tasks share few OS threads; minimal overhead
 - **Type safety**: Rust's ownership system prevents data races
@@ -338,36 +364,30 @@ Use Tokio tasks for concurrent work; synchronize via `tokio::sync` channels and 
 
 ---
 
-## ADR-013: Backend Runtime Identity - Dedicated System User
+## ADR-013: Frontend Architecture - Widget-based with State Management
 
 **Status:** Accepted
 
 **Context:**
-The backend needs access to audio hardware, media data, logs, and its runtime
-configuration. Running it as `root` would provide unnecessary privileges, while
-using the interactive `pi` account would couple the service to a human login.
+Flutter frontend must display multiple screens (navigation, media, settings, diagnostics). Need to manage shared state and navigate between screens efficiently.
 
 **Decision:**
-Run the backend as the dedicated system user `carnine`, without an interactive
-login. The user is a member of the `audio` group and owns the backend's media
-and log directories. The configuration directory is owned by `root:carnine`
-and is group-writable so the backend can persist validated updates atomically.
+Use Flutter's widget composition model with a state management approach (Provider pattern or similar). Keep UI stateless where possible; manage shared state centrally.
 
 **Rationale:**
-- **Least privilege**: The backend does not need a root shell or unrestricted filesystem access
-- **Stable deployment**: Service permissions do not depend on the `pi` user's login
-- **Hardware access**: Audio access is explicit through the `audio` group
-- **Atomic configuration updates**: Group write access to `/etc/carnine` permits temporary-file replacement without making the file world-writable
+- **Widget composition**: Declarative UI; changes naturally flow from state updates
+- **Hot reload**: Enables rapid iteration during development
+- **Separation**: Business logic remains in backend via gRPC; frontend focuses on presentation
+- **Testability**: UI statelessness improves testability
 
 **Alternatives considered:**
-- `root` – unnecessary privileges and greater impact of a backend vulnerability
-- `pi` – interactive account and unclear service ownership
-- World-writable configuration – insecure and not acceptable for a service that accepts remote configuration requests
+- Stateful widgets everywhere – difficult to manage complex state
+- Custom state management – reinventing the wheel
 
 **Consequences:**
-- The system image must create the `carnine` user and required directories
-- A future systemd unit must run with `User=carnine` and `Group=carnine`
-- Changes to the backend's required device or filesystem access must be reflected in the image recipe and this decision
+- Clear data flow from state to UI makes debugging easier
+- Hot reload shortens development cycle
+- Lower coupling between UI components
 
 ---
 
@@ -400,7 +420,7 @@ The `udisks2` package is part of the Raspberry Pi image.
 
 **Consequences:**
 - The image must install and run `udisks2` with a system D-Bus
-- A storage signal can trigger more than one inspection; debouncing and source-specific filtering remain follow-up work
+- A storage signal can trigger more than one inspection; a burst of signals is settled into one inspection and already known volumes are not reported again (#25)
 - Automatic detection is limited to events visible through UDisks2
 - A mounted volume is eligible for automatic music discovery only when its
   label equals `MUSIK` case-insensitively
@@ -408,66 +428,13 @@ The `udisks2` package is part of the Raspberry Pi image.
   UDisks2. The image includes `polkitd` and a restricted rule for the `carnine`
   service user because the headless DRM setup has no desktop automount session.
 - Matching `.mp3` files are counted and reported through the existing
-  `MediaService.StreamLibraryEvents` contract as `LibraryEvent.event =
-  "music_found"`; the event carries the source label, mount path, and number
-  of matching files
+  `MediaService.StreamLibraryEvents` contract as `LIBRARY_MUSIC_FOUND`; the
+  event carries the source label, mount path, and number of matching files.
+  When the volume goes away, `LIBRARY_MUSIC_GONE` withdraws the offer
 - Detection does not write SQLite and does not copy files
 - The frontend confirmation starts a separate import operation; after the
   import completes, the frontend explicitly requests `RescanMedia`
 - Only `RescanMedia` updates SQLite and reads audio metadata
-
----
-
-## ADR-013: Frontend Architecture - Widget-based with State Management
-
-**Status:** Accepted
-
-**Context:**
-Flutter frontend must display multiple screens (navigation, media, settings, diagnostics). Need to manage shared state and navigate between screens efficiently.
-
-**Decision:**
-Use Flutter's widget composition model with a state management approach (Provider pattern or similar). Keep UI stateless where possible; manage shared state centrally.
-
-**Rationale:**
-- **Widget composition**: Declarative UI; changes naturally flow from state updates
-- **Hot reload**: Enables rapid iteration during development
-- **Separation**: Business logic remains in backend via gRPC; frontend focuses on presentation
-- **Testability**: UI statelessness improves testability
-
-**Alternatives considered:**
-- Stateful widgets everywhere – difficult to manage complex state
-- Custom state management – reinventing the wheel
-
-**Consequences:**
-- Clear data flow from state to UI makes debugging easier
-- Hot reload shortens development cycle
-- Lower coupling between UI components
-
----
-
-## ADR-014: Offline-First Data Strategy - Cache with Sync
-
-**Status:** Accepted
-
-**Context:**
-Connectivity is intermittent (vehicle may lose signal). Navigation maps, preferences, and vehicle history must remain available offline.
-
-**Decision:**
-Backend caches all necessary data locally (SQLite) and syncs with remote services when connectivity is available. UI always reads from cache; background sync keeps cache updated.
-
-**Rationale:**
-- **Reliability**: System works without network; critical for in-vehicle use
-- **Performance**: Local cache is faster than network requests
-- **Resilience**: Graceful degradation when offline; data converges when rejoined
-
-**Alternatives considered:**
-- Cloud-only – fails without network; unacceptable for vehicle environment
-- No caching – forces network dependency; poor performance
-
-**Consequences:**
-- Need to implement sync logic and conflict resolution
-- Data consistency complexity (what if offline changes conflict with server state?)
-- Excellent user resilience and performance
 
 ---
 
@@ -515,10 +482,6 @@ Use gRPC (protobuf) as the single communication contract for both local frontend
 
 **Quality linkage:**
 - See Chapter 10 (Quality Requirements), section "Communication Protocol Strategy (linked to ADR-015)" for weighted decision matrix, measurable thresholds, and protocol re-evaluation triggers.
-
----
-
-## Decision Rationale Summary
 
 ---
 
@@ -669,6 +632,31 @@ decoder-backed source, Raspberry Pi ALSA tests, and only then integration into
 `MediaPlayer`. The current process path stays available until the hardware
 acceptance criteria are met.
 
+**Implementation status (v0.9.3):** The rewrite is done and some first-version
+rules above changed in the code:
+- `cpal` is the only playback engine (b3bd847); the `aplay`/`paplay` process
+  path is gone from the backend and survives only in
+  `examples/external_ffmpeg_spike.rs`. Decoding runs as an external FFmpeg
+  process that fills a bounded ring buffer (`audio_source.rs`); a track counts
+  as finished only when that buffer has played out (0277d28).
+  `RetryingAudioEngine` keeps the backend running without an audio device.
+- A rescan is not blocked during playback.
+- Files whose metadata cannot be read are still added, with the file name as
+  title and an empty artist; an earlier title and cover are kept. Without
+  `ffprobe` the library reports `LIBRARY_METADATA_TOOL_MISSING` once and imports
+  file names only.
+- `OFFLINE` exists in the schema but is never set; USB music is copied into
+  the internal folder (ADR-014) instead of being played from the stick.
+- Loading a playlist leaves playback paused unless `[media] resume_mode` is
+  `auto-play`.
+- `GetServiceVersion` exists on `MediaService`, `AudioService` and
+  `NavigationService`, not on every service.
+- The audio event stream reports `AUDIO_READY`, source start, pause, resume,
+  stop and removal, `AUDIO_DECODER_STOPPED` and `AUDIO_ERROR`; interruption and
+  ducking are not implemented.
+- USB discovery (ADR-014), seek (#8), shuffle (#9) and a settings page exist;
+  queue editing does not.
+
 **Rationale:**
 - Typed media operations are safer and easier to evolve than generic command
 	strings.
@@ -698,9 +686,350 @@ acceptance criteria are met.
 
 ---
 
-## ADR-017: Speech Recognition and Voice Control - sherpa-onnx for Offline ASR
+## ADR-017: UI Readiness and Plymouth Handoff
+
+**Status:** Superseded by ADR-019 (September 2026)
+
+**Context:**
+The DRM/KMS frontend must replace the Plymouth splash without briefly exposing
+the `getty` login console. The frontend also needs a bounded failure path when
+it cannot start.
+
+**Decision:**
+Expose `SystemService.ReportUiReady` over the existing gRPC channel. Flutter
+calls it after its first frame has been rendered. After the backend acknowledges
+the call, Flutter sends `READY=1` to systemd. The frontend unit uses
+`Type=notify` with a 30-second startup timeout, and `plymouth-quit.service` is
+ordered after it.
+
+**Rationale:**
+- The UI is the only component that can verify that a frame is visible.
+- The backend receives an explicit lifecycle event without gaining root
+  privileges.
+- systemd remains responsible for service state, timeouts, restarts, and the
+  privileged Plymouth operation.
+- A failed or stalled UI cannot leave Plymouth visible forever.
+
+**Consequences:**
+- The shared protobuf schema and generated clients must be regenerated when the
+  system service changes.
+- The frontend package requires `/usr/bin/systemd-notify` at runtime.
+- The 30-second timeout releases Plymouth to the usable virtual console when
+  the UI does not become ready.
+- Future power-management events can use the same `SystemService` boundary;
+  shutdown execution should remain in a dedicated privileged systemd unit.
+
+**Why superseded:** on the Waveshare panel (`vc4-fkms-v3d`, firmware KMS) only
+one process can hold DRM master at a time. Ordering `plymouth-quit.service`
+after the frontend's readiness signal created a deadlock, not just a race:
+Plymouth would not release the display until Flutter reported a rendered
+frame, but flutter-pi cannot actually present a frame while Plymouth still
+holds DRM master. See ADR-019.
+
+---
+
+## ADR-018: Single Release Version Source
 
 **Status:** Accepted
+
+**Context:**
+The release version was duplicated in Cargo, Flutter, Debian metadata, the
+Plymouth theme, and backend service responses.
+
+**Decision:**
+The repository-root `VERSION` file is the single release-version source. The
+Pi build passes it to Cargo, Flutter, Debian packaging, and Debos. Rust embeds
+the same value for every `GetServiceVersion` RPC (media, audio, navigation). Plymouth replaces
+its template token from the Debos `version` parameter.
+
+**Consequences:**
+- Release builds must pass `-t version:$(cat ../VERSION)` to Debos.
+- Flutter's technical build number remains independent from the release
+  version and can be added separately when needed.
+- Build scripts can reject malformed versions before producing artifacts.
+
+---
+
+## ADR-019: Decouple Plymouth Handoff from UI Readiness
+
+**Status:** Accepted (September 2026)
+
+**Context:**
+ADR-017's design ordered `plymouth-quit.service` after the frontend's
+`READY=1` signal, so the boot splash would only disappear once Flutter
+reported a rendered frame. On the Waveshare panel, the display runs on
+`vc4-fkms-v3d` (firmware KMS), where only one process can hold DRM master at
+a time. This turned the intended safeguard into a deadlock: Plymouth kept DRM
+master until Flutter reported readiness, but flutter-pi cannot actually
+present a frame — and therefore never legitimately becomes ready — while
+Plymouth still holds the display. In practice the frontend's readiness signal
+fires from `WidgetsBinding.addPostFrameCallback`/`SchedulerBinding`
+timing callbacks regardless of whether flutter-pi's native DRM commit
+actually succeeded (flutter-pi logs "Commit requested, but drmdev is paused
+right now." and drops the frame silently; it does not retry and does not
+surface the failure to the engine). Depending on exact timing this either
+raced to a working frame or left the screen permanently black after boot,
+confirmed via repeated reboots and live testing on the physical device.
+
+**Decision:**
+Remove the ordering between `plymouth-quit.service`/`plymouth-quit-wait.service`
+and `carnine-frontend.service` entirely. Plymouth now quits on its own,
+independent default timing, releasing DRM master early and unconditionally
+during boot — well before the frontend attempts its first render. Hiding the
+`getty` login console until the UI is actually usable is handled by a
+separate, unrelated mechanism (ADR still tracked here as part of this change):
+`carnine-frontend.service` declares `Before=getty@tty1.service` and
+`Conflicts=getty@tty1.service`, so `getty@tty1` can never run while the
+frontend is starting or active. When the frontend stops (crash or deliberate
+stop), `ExecStopPost` arms an independent 5-second transient timer
+(`systemd-run --on-active=5s --unit=carnine-getty-fallback`) that starts
+`getty@tty1` as a fallback console; `ExecStartPre` cancels that timer on the
+next successful start. Five seconds is chosen to comfortably exceed the
+frontend's own `RestartSec=3` auto-recovery window, so a transient crash
+recovers without ever flashing the console.
+
+Separately, `src/frontend/lib/main.dart` no longer reports UI readiness from
+a single `addPostFrameCallback`. It now forces additional frames for up to
+5 seconds (`SchedulerBinding.scheduleFrame()` every 100 ms) and waits for
+multiple `SchedulerBinding.addTimingsCallback` reports before reporting
+ready. This does not verify on-screen presentation (flutter-pi does not
+expose that), but it gives the commit path repeated chances to succeed
+instead of one, compensating in practice for flutter-pi's missing retry.
+
+**Rationale:**
+- A splash screen that quits on a fixed, independent schedule is a
+  well-understood, safe default; the console-hiding guarantee the project
+  actually needs is provided by the `getty@tty1` conflict/ordering
+  mechanism, not by gating Plymouth on the frontend.
+- Removing the circular dependency removes the deadlock's root cause, not
+  just its symptom; verified clean (zero failed DRM commits) across multiple
+  consecutive physical reboots after the change, versus consistent failures
+  before it.
+- A real fix for flutter-pi's silent, non-retried commit failures would
+  require forking flutter-pi (it is consumed as a prebuilt binary via
+  `flutterpi_tool`, not vendored in this repository) — out of scope here;
+  tracked as an open risk in `resources/debos/TODO.md` and as an explicit
+  question for the ivi-homescreen spike in
+  `docs/19-ivi-homescreen-evaluation.md`.
+
+**Consequences:**
+- Between Plymouth quitting and the frontend's first successful frame, the
+  physical display can briefly show a blank/black screen during boot (no
+  login prompt, since `getty@tty1` remains blocked) — an accepted trade-off
+  versus the previous risk of a permanently black screen.
+- `carnine-frontend.service` now depends on `systemd-run` at runtime (part of
+  `systemd`, already a base dependency) for the deferred fallback-console
+  timer.
+- If flutter-pi is ever forked/patched to retry commits and surface real
+  presentation feedback, the Dart-side frame-forcing mitigation in
+  `main.dart` can be simplified back to a single verified callback.
+- Since ADR-020 the frontend runs under ivi-homescreen, not flutter-pi. The
+  Plymouth and `getty@tty1` part of this decision does not depend on the
+  embedder and stays. The frame forcing in `main.dart` answers a flutter-pi
+  bug and can go once the display is confirmed to come up reliably without
+  it under ivi-homescreen.
+
+---
+
+## ADR-020: Frontend Embedder - ivi-homescreen via emb_cli instead of flutter-pi
+
+**Status:** Accepted (September 2026); the switch is complete, flutter-pi is no longer used
+
+**Context:**
+The offline map (`local_map` from `DerKleinePunk/flutter_local_map`) is
+planned as the navigation page for the trade fair on 6 November 2026. It has
+been developed and measured on the Pi 4 under ivi-homescreen, cross-built
+with `emb_cli` (Flutter 3.47.x, backend `drm-kms-egl`). flutter-pi lags
+behind current Flutter releases with no date for catching up, and it has the
+silent, non-retried DRM commit failure described in ADR-019. The go/no-go
+protocol in `docs/19-ivi-homescreen-evaluation.md` was not carried out; this
+decision replaces it.
+
+**Decision:**
+Build the frontend with `emb cross --target rpi4-trixie --backend drm-kms-egl`
+and run it under ivi-homescreen (`homescreen -b /opt/carnine/frontend -f -c`, `-c` for touch only),
+replacing `flutterpi_tool` and flutter-pi. The switch is taken ahead of the
+evaluation protocol because of the fair deadline; the product owner accepts
+that risk. Embedder plugins stay disabled (`DISABLE_PLUGINS=ON`): the frontend
+uses no native plugin on the Pi, and `window_manager` is skipped when
+`CARNINE_EMBEDDED` is set (formerly `CARNINE_FLUTTER_PI`). The Flutter SDK is
+the one pinned in the emb workspace, not the one on `PATH`.
+
+**Rationale:**
+- Map and Carnine2 run on the same chain, so the map measurements taken on
+  that chain stay valid.
+- ivi-homescreen is actively developed, tracks current Flutter, and exposes
+  its DRM pipeline options (`--drm-pipeline-depth`, `--drm-async-flip`).
+
+**Consequences:**
+- A build host needs an emb workspace (`CARNINE_EMB_WORKSPACE`, default
+  `~/develop/emb-workspace`) with the Flutter SDK and an ivi-homescreen
+  checkout; see `docs/07-deployment.md`.
+- The target needs `seatd` running; `drm-kms-egl` otherwise hangs silently
+  on `libseat`. The frontend package depends on it.
+- emb's AOT step has no `--dart-define`; `build_pi.sh` stamps the version into
+  a staged copy of the frontend instead.
+- Under ivi-homescreen the map demo once stopped presenting frames after a
+  long run (page-flip events reported lost). Long runs on the test Pi on
+  2026-09-24 and 2026-09-25 (freeze-watch, music and map for hours) showed
+  no freeze. ADR-019's frame forcing in `main.dart` was a flutter-pi
+  workaround; whether ivi-homescreen still needs it is open.
+- There is no rollback path any more: `main` builds with emb_cli too, and the
+  flutter-pi packaging is gone.
+
+---
+
+## ADR-021: NavigationService - Routing, Position and Place Search in the Backend
+
+**Status:** Accepted (September 2026)
+
+**Context:**
+The navigation page embeds the offline map `local_map` from
+`DerKleinePunk/flutter_local_map` (plan: `docs/plan-carnine2-integration.md`
+there; trade fair on 6 November 2026). The library calls routing, position
+and place search only through its own interfaces (`RoutingProvider`,
+`PositionSource`, `PlaceSearch`). ADR-013 keeps logic out of the frontend,
+and ADR-015 makes gRPC the only contract, so these three belong in the
+backend behind a new service. The contract was agreed with the map library's
+maintainers before any code was written.
+
+**Decision:**
+Add `NavigationService` to `carnine.proto`:
+
+- `GetNavigationStatus` - whether the router answers, which position source
+  is active (none, serial GPS mouse, NMEA replay) and whether it has a fix.
+- `SearchPlaces` - name search over `germany_names.db` (rusqlite, FTS5).
+  `near` is part of the request from the start; the backend may ignore it
+  in v1. Since 2026-09-26 ranked as `OfflineGeocoder` in local_map 0.5.0,
+  with each hit's `area` (the locality it belongs to) and `near` searching
+  50 km around first, given a names database built since September 2026.
+- `GetLocationName` (added 2026-09-26) - street, locality and district at a
+  position (default: current fix), for "where am I" without a route. The
+  library's `ReverseGeocoder` interface in the frontend asks it, so the
+  names database keeps a single reader, the backend.
+- `ComputeRoute` - origin (default: current fix) to destination, with the
+  instruction language (BCP-47, default `de-DE`).
+- `GetReplayRoute` - the route of the running NMEA replay, map-matched with
+  Valhalla's `/trace_route`, so position and route on the fair stand come
+  from the same recording.
+- `StreamPositions` - fixes at the source's rate (1 Hz), heading unsmoothed.
+- `SetTrackRecording` - switches recording of the driven track on or off
+  (`[navigation] track_directory`, see docs/07 "Recording drives").
+
+Conventions: SI units (metres, seconds, degrees, m/s); failures as gRPC
+status codes (`UNAVAILABLE` router down, `NOT_FOUND` no route or no replay,
+`FAILED_PRECONDITION` no origin and no fix, `INVALID_ARGUMENT` bad
+coordinates); maneuver types are Valhalla's numbering passed through;
+timestamps are GPS time, because the Pi has no RTC. Route progress, heading
+smoothing and off-route handling stay in the map library for v1;
+`StreamGuidance` is reserved for after the fair.
+
+For the fair the backend talks to a native `valhalla_service` on
+`127.0.0.1:8002` (systemd, no container). Linking `libvalhalla` into the
+backend follows later and does not change this contract.
+
+Exception to "the frontend only speaks gRPC": the map reads its vector tiles
+directly from the MBTiles file. Rendering needs thousands of tile reads per
+second of panning; routing them through gRPC would add latency without any
+logic to protect.
+
+**Rationale:**
+- The library's data models already fit; the gRPC adapters in the frontend
+  stay thin and hold no logic.
+- One source of routing and position keeps voice guidance (ADR-016/017) able
+  to use the same route in the backend later.
+- Map-matching the replay avoids a demo where the arrow runs beside the line.
+
+**Consequences:**
+- New backend dependencies: an HTTP client for Valhalla, NMEA parsing,
+  serial port access, rusqlite with FTS5 for the names database.
+- Map data (MBTiles, names, Valhalla tiles) must be deployed to the target
+  and needs a larger SD card than the 4 GB one in the test device. The image
+  ships Valhalla as `carnine-valhalla.deb` and the `[navigation]` drop-in, but
+  not the data: about 7.5 GB come separately through `deploy_maps.sh`
+  (`resources/debos/README.md`).
+- The example client `media_grpc_client` gets a command for every new RPC.
+
+---
+
+## ADR-022: Backend Runtime Identity - Dedicated System User
+
+**Status:** Accepted
+
+(Numbered ADR-013 until 2026-09-30, when the duplicate numbers were resolved.)
+
+**Context:**
+The backend needs access to audio hardware, media data, logs, and its runtime
+configuration. Running it as `root` would provide unnecessary privileges, while
+using the interactive `pi` account would couple the service to a human login.
+
+**Decision:**
+Run the backend as the dedicated system user `carnine`, without an interactive
+login. The user is a member of the `audio` group and owns the backend's media
+and log directories. (Current state: the image adds it to `audio`, `render`,
+`video` and `input`; the backend unit adds `dialout` and `CAP_SYS_TIME`, the
+frontend runs as `carnine` too, see docs/07.) The configuration directory is owned by `root:carnine`
+and is group-writable so the backend can persist validated updates atomically.
+
+**Rationale:**
+- **Least privilege**: The backend does not need a root shell or unrestricted filesystem access
+- **Stable deployment**: Service permissions do not depend on the `pi` user's login
+- **Hardware access**: Audio access is explicit through the `audio` group
+- **Atomic configuration updates**: Group write access to `/etc/carnine` permits temporary-file replacement without making the file world-writable
+
+**Alternatives considered:**
+- `root` – unnecessary privileges and greater impact of a backend vulnerability
+- `pi` – interactive account and unclear service ownership
+- World-writable configuration – insecure and not acceptable for a service that accepts remote configuration requests
+
+**Consequences:**
+- The system image must create the `carnine` user and required directories
+- The systemd units (`carnine-backend.service`, `carnine-frontend.service`) run with `User=carnine` and `Group=carnine`
+- Changes to the backend's required device or filesystem access must be reflected in the image recipe and this decision
+
+---
+
+## ADR-023: Offline-First Data Strategy - Cache with Sync
+
+**Status:** Accepted
+
+(Numbered ADR-014 until 2026-09-30, when the duplicate numbers were resolved.)
+
+**Context:**
+Connectivity is intermittent (vehicle may lose signal). Navigation maps, preferences, and vehicle history must remain available offline.
+
+**Decision:**
+Backend caches all necessary data locally (SQLite) and syncs with remote services when connectivity is available. UI always reads from cache; background sync keeps cache updated.
+
+**Implementation note (v0.9.3):** The system is fully offline today: maps
+(MBTiles, read by the frontend) and routing (local Valhalla) are on the
+device, and there is no remote service to sync with yet.
+
+**Rationale:**
+- **Reliability**: System works without network; critical for in-vehicle use
+- **Performance**: Local cache is faster than network requests
+- **Resilience**: Graceful degradation when offline; data converges when rejoined
+
+**Alternatives considered:**
+- Cloud-only – fails without network; unacceptable for vehicle environment
+- No caching – forces network dependency; poor performance
+
+**Consequences:**
+- Need to implement sync logic and conflict resolution
+- Data consistency complexity (what if offline changes conflict with server state?)
+- Excellent user resilience and performance
+
+---
+
+## ADR-024: Speech Recognition and Voice Control - sherpa-onnx for Offline ASR
+
+**Status:** Accepted, not implemented (v0.9.3: no sherpa-onnx dependency, no
+`SpeechService`, no `[speech]` configuration). The proto sketch below predates
+the current contract: `AudioEvent` is now `AudioEventType event` plus
+`message`, so new audio events would be new `AudioEventType` values rather
+than `oneof` fields.
+
+(Numbered ADR-017 until 2026-09-30, when the duplicate numbers were resolved.)
 
 **Context:**
 Voice control is a natural interaction method for in-vehicle systems, allowing hands-free operation while driving. The system requires speech recognition that works offline (no cloud dependency), respects privacy (GDPR-compliant), runs efficiently on Raspberry Pi 4, and integrates with the existing audio architecture.
@@ -839,269 +1168,7 @@ wake_word = ""               # Optional wake word (e.g., "Hey Carnine")
 
 ---
 
-## ADR-017: UI Readiness and Plymouth Handoff
-
-**Status:** Superseded by ADR-019 (September 2026)
-
-**Context:**
-The DRM/KMS frontend must replace the Plymouth splash without briefly exposing
-the `getty` login console. The frontend also needs a bounded failure path when
-it cannot start.
-
-**Decision:**
-Expose `SystemService.ReportUiReady` over the existing gRPC channel. Flutter
-calls it after its first frame has been rendered. After the backend acknowledges
-the call, Flutter sends `READY=1` to systemd. The frontend unit uses
-`Type=notify` with a 30-second startup timeout, and `plymouth-quit.service` is
-ordered after it.
-
-**Rationale:**
-- The UI is the only component that can verify that a frame is visible.
-- The backend receives an explicit lifecycle event without gaining root
-  privileges.
-- systemd remains responsible for service state, timeouts, restarts, and the
-  privileged Plymouth operation.
-- A failed or stalled UI cannot leave Plymouth visible forever.
-
-**Consequences:**
-- The shared protobuf schema and generated clients must be regenerated when the
-  system service changes.
-- The frontend package requires `/usr/bin/systemd-notify` at runtime.
-- The 30-second timeout releases Plymouth to the usable virtual console when
-  the UI does not become ready.
-- Future power-management events can use the same `SystemService` boundary;
-  shutdown execution should remain in a dedicated privileged systemd unit.
-
-**Why superseded:** on the Waveshare panel (`vc4-fkms-v3d`, firmware KMS) only
-one process can hold DRM master at a time. Ordering `plymouth-quit.service`
-after the frontend's readiness signal created a deadlock, not just a race:
-Plymouth would not release the display until Flutter reported a rendered
-frame, but flutter-pi cannot actually present a frame while Plymouth still
-holds DRM master. See ADR-019.
-
----
-
-## ADR-018: Single Release Version Source
-
-**Status:** Accepted
-
-**Context:**
-The release version was duplicated in Cargo, Flutter, Debian metadata, the
-Plymouth theme, and backend service responses.
-
-**Decision:**
-The repository-root `VERSION` file is the single release-version source. The
-Pi build passes it to Cargo, Flutter, Debian packaging, and Debos. Rust embeds
-the same value for both existing `GetServiceVersion` RPCs. Plymouth replaces
-its template token from the Debos `version` parameter.
-
-**Consequences:**
-- Release builds must pass `-t version:$(cat ../VERSION)` to Debos.
-- Flutter's technical build number remains independent from the release
-  version and can be added separately when needed.
-- Build scripts can reject malformed versions before producing artifacts.
-
----
-
-## ADR-019: Decouple Plymouth Handoff from UI Readiness
-
-**Status:** Accepted (September 2026)
-
-**Context:**
-ADR-017's design ordered `plymouth-quit.service` after the frontend's
-`READY=1` signal, so the boot splash would only disappear once Flutter
-reported a rendered frame. On the Waveshare panel, the display runs on
-`vc4-fkms-v3d` (firmware KMS), where only one process can hold DRM master at
-a time. This turned the intended safeguard into a deadlock: Plymouth kept DRM
-master until Flutter reported readiness, but flutter-pi cannot actually
-present a frame — and therefore never legitimately becomes ready — while
-Plymouth still holds the display. In practice the frontend's readiness signal
-fires from `WidgetsBinding.addPostFrameCallback`/`SchedulerBinding`
-timing callbacks regardless of whether flutter-pi's native DRM commit
-actually succeeded (flutter-pi logs "Commit requested, but drmdev is paused
-right now." and drops the frame silently; it does not retry and does not
-surface the failure to the engine). Depending on exact timing this either
-raced to a working frame or left the screen permanently black after boot,
-confirmed via repeated reboots and live testing on the physical device.
-
-**Decision:**
-Remove the ordering between `plymouth-quit.service`/`plymouth-quit-wait.service`
-and `carnine-frontend.service` entirely. Plymouth now quits on its own,
-independent default timing, releasing DRM master early and unconditionally
-during boot — well before the frontend attempts its first render. Hiding the
-`getty` login console until the UI is actually usable is handled by a
-separate, unrelated mechanism (ADR still tracked here as part of this change):
-`carnine-frontend.service` declares `Before=getty@tty1.service` and
-`Conflicts=getty@tty1.service`, so `getty@tty1` can never run while the
-frontend is starting or active. When the frontend stops (crash or deliberate
-stop), `ExecStopPost` arms an independent 5-second transient timer
-(`systemd-run --on-active=5s --unit=carnine-getty-fallback`) that starts
-`getty@tty1` as a fallback console; `ExecStartPre` cancels that timer on the
-next successful start. Five seconds is chosen to comfortably exceed the
-frontend's own `RestartSec=3` auto-recovery window, so a transient crash
-recovers without ever flashing the console.
-
-Separately, `src/frontend/lib/main.dart` no longer reports UI readiness from
-a single `addPostFrameCallback`. It now forces additional frames for up to
-5 seconds (`SchedulerBinding.scheduleFrame()` every 100 ms) and waits for
-multiple `SchedulerBinding.addTimingsCallback` reports before reporting
-ready. This does not verify on-screen presentation (flutter-pi does not
-expose that), but it gives the commit path repeated chances to succeed
-instead of one, compensating in practice for flutter-pi's missing retry.
-
-**Rationale:**
-- A splash screen that quits on a fixed, independent schedule is a
-  well-understood, safe default; the console-hiding guarantee the project
-  actually needs is provided by the `getty@tty1` conflict/ordering
-  mechanism, not by gating Plymouth on the frontend.
-- Removing the circular dependency removes the deadlock's root cause, not
-  just its symptom; verified clean (zero failed DRM commits) across multiple
-  consecutive physical reboots after the change, versus consistent failures
-  before it.
-- A real fix for flutter-pi's silent, non-retried commit failures would
-  require forking flutter-pi (it is consumed as a prebuilt binary via
-  `flutterpi_tool`, not vendored in this repository) — out of scope here;
-  tracked as an open risk in `resources/debos/TODO.md` and as an explicit
-  question for the ivi-homescreen spike in
-  `docs/19-ivi-homescreen-evaluation.md`.
-
-**Consequences:**
-- Between Plymouth quitting and the frontend's first successful frame, the
-  physical display can briefly show a blank/black screen during boot (no
-  login prompt, since `getty@tty1` remains blocked) — an accepted trade-off
-  versus the previous risk of a permanently black screen.
-- `carnine-frontend.service` now depends on `systemd-run` at runtime (part of
-  `systemd`, already a base dependency) for the deferred fallback-console
-  timer.
-- If flutter-pi is ever forked/patched to retry commits and surface real
-  presentation feedback, the Dart-side frame-forcing mitigation in
-  `main.dart` can be simplified back to a single verified callback.
-- Since ADR-020 the frontend runs under ivi-homescreen, not flutter-pi. The
-  Plymouth and `getty@tty1` part of this decision does not depend on the
-  embedder and stays. The frame forcing in `main.dart` answers a flutter-pi
-  bug and can go once the display is confirmed to come up reliably without
-  it under ivi-homescreen.
-
----
-
-## ADR-020: Frontend Embedder - ivi-homescreen via emb_cli instead of flutter-pi
-
-**Status:** Accepted (September 2026); the switch is complete, flutter-pi is no longer used
-
-**Context:**
-The offline map (`local_map` from `DerKleinePunk/flutter_local_map`) is
-planned as the navigation page for the trade fair on 6 November 2026. It has
-been developed and measured on the Pi 4 under ivi-homescreen, cross-built
-with `emb_cli` (Flutter 3.47.x, backend `drm-kms-egl`). flutter-pi lags
-behind current Flutter releases with no date for catching up, and it has the
-silent, non-retried DRM commit failure described in ADR-019. The go/no-go
-protocol in `docs/19-ivi-homescreen-evaluation.md` was not carried out; this
-decision replaces it.
-
-**Decision:**
-Build the frontend with `emb cross --target rpi4-trixie --backend drm-kms-egl`
-and run it under ivi-homescreen (`homescreen -b /opt/carnine/frontend -f`),
-replacing `flutterpi_tool` and flutter-pi. The switch is taken ahead of the
-evaluation protocol because of the fair deadline; the product owner accepts
-that risk. Embedder plugins stay disabled (`DISABLE_PLUGINS=ON`): the frontend
-uses no native plugin on the Pi, and `window_manager` is skipped when
-`CARNINE_EMBEDDED` is set (formerly `CARNINE_FLUTTER_PI`). The Flutter SDK is
-the one pinned in the emb workspace, not the one on `PATH`.
-
-**Rationale:**
-- Map and Carnine2 run on the same chain, so the map measurements taken on
-  that chain stay valid.
-- ivi-homescreen is actively developed, tracks current Flutter, and exposes
-  its DRM pipeline options (`--drm-pipeline-depth`, `--drm-async-flip`).
-
-**Consequences:**
-- A build host needs an emb workspace (`CARNINE_EMB_WORKSPACE`, default
-  `~/develop/emb-workspace`) with the Flutter SDK and an ivi-homescreen
-  checkout; see `docs/07-deployment.md`.
-- The target needs `seatd` running; `drm-kms-egl` otherwise hangs silently
-  on `libseat`. The frontend package depends on it.
-- emb's AOT step has no `--dart-define`; `build_pi.sh` stamps the version into
-  a staged copy of the frontend instead.
-- Under ivi-homescreen the map demo once stopped presenting frames after a
-  long run (page-flip events reported lost). Long runs on the test Pi on
-  2026-09-24 and 2026-09-25 (freeze-watch, music and map for hours) showed
-  no freeze. ADR-019's frame forcing in `main.dart` was a flutter-pi
-  workaround; whether ivi-homescreen still needs it is open.
-- There is no rollback path any more: `main` builds with emb_cli too, and the
-  flutter-pi packaging is gone.
-
----
-
-## ADR-021: NavigationService - Routing, Position and Place Search in the Backend
-
-**Status:** Accepted (September 2026)
-
-**Context:**
-The navigation page embeds the offline map `local_map` from
-`DerKleinePunk/flutter_local_map` (plan: `docs/plan-carnine2-integration.md`
-there; trade fair on 6 November 2026). The library calls routing, position
-and place search only through its own interfaces (`RoutingProvider`,
-`PositionSource`, `PlaceSearch`). ADR-013 keeps logic out of the frontend,
-and ADR-015 makes gRPC the only contract, so these three belong in the
-backend behind a new service. The contract was agreed with the map library's
-maintainers before any code was written.
-
-**Decision:**
-Add `NavigationService` to `carnine.proto`:
-
-- `GetNavigationStatus` - whether the router answers, which position source
-  is active (none, serial GPS mouse, NMEA replay) and whether it has a fix.
-- `SearchPlaces` - name search over `germany_names.db` (rusqlite, FTS5).
-  `near` is part of the request from the start; the backend may ignore it
-  in v1. Since 2026-09-26 ranked as `OfflineGeocoder` in local_map 0.5.0,
-  with each hit's `area` (the locality it belongs to) and `near` searching
-  50 km around first, given a names database built since September 2026.
-- `GetLocationName` (added 2026-09-26) - street, locality and district at a
-  position (default: current fix), for "where am I" without a route. The
-  library's `ReverseGeocoder` interface in the frontend asks it, so the
-  names database keeps a single reader, the backend.
-- `ComputeRoute` - origin (default: current fix) to destination, with the
-  instruction language (BCP-47, default `de-DE`).
-- `GetReplayRoute` - the route of the running NMEA replay, map-matched with
-  Valhalla's `/trace_route`, so position and route on the fair stand come
-  from the same recording.
-- `StreamPositions` - fixes at the source's rate (1 Hz), heading unsmoothed.
-
-Conventions: SI units (metres, seconds, degrees, m/s); failures as gRPC
-status codes (`UNAVAILABLE` router down, `NOT_FOUND` no route or no replay,
-`FAILED_PRECONDITION` no origin and no fix, `INVALID_ARGUMENT` bad
-coordinates); maneuver types are Valhalla's numbering passed through;
-timestamps are GPS time, because the Pi has no RTC. Route progress, heading
-smoothing and off-route handling stay in the map library for v1;
-`StreamGuidance` is reserved for after the fair.
-
-For the fair the backend talks to a native `valhalla_service` on
-`127.0.0.1:8002` (systemd, no container). Linking `libvalhalla` into the
-backend follows later and does not change this contract.
-
-Exception to "the frontend only speaks gRPC": the map reads its vector tiles
-directly from the MBTiles file. Rendering needs thousands of tile reads per
-second of panning; routing them through gRPC would add latency without any
-logic to protect.
-
-**Rationale:**
-- The library's data models already fit; the gRPC adapters in the frontend
-  stay thin and hold no logic.
-- One source of routing and position keeps voice guidance (ADR-016/017) able
-  to use the same route in the backend later.
-- Map-matching the replay avoids a demo where the arrow runs beside the line.
-
-**Consequences:**
-- New backend dependencies: an HTTP client for Valhalla, NMEA parsing,
-  serial port access, rusqlite with FTS5 for the names database.
-- Map data (MBTiles, names, Valhalla tiles) must be deployed to the target
-  and needs a larger SD card than the 4 GB one in the test device. The image
-  ships Valhalla as `carnine-valhalla.deb` and the `[navigation]` drop-in, but
-  not the data: about 7.5 GB come separately through `deploy_maps.sh`
-  (`resources/debos/README.md`).
-- The example client `media_grpc_client` gets a command for every new RPC.
-
----
+## Decision Rationale Summary
 
 These decisions collectively create a system that is:
 - **Safe**: Type-safe languages (Rust, Dart) prevent entire classes of bugs

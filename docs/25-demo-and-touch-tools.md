@@ -13,7 +13,8 @@ up while it runs, so neither needs a restart of the frontend.
 | `demo.sh` + `touchplay` | `resources/tools/demo/` | Show: a scripted sequence of page switches, taps, typing and player commands, for filming the display (social media, trade fair). |
 
 Both run from the development machine (WSL) and reach carnine-pc over SSH
-(`pi@192.168.2.51`, key login). The Pi needs nothing installed beforehand.
+(`pi@192.168.2.51`, key login; `CARNINE_DEMO_PI` and `CARNINE_DEMO_PORT`
+change host and tunnel port). The Pi needs nothing installed beforehand.
 
 ## touchload
 
@@ -110,8 +111,10 @@ for the camera.
   gesture has finished, so the next line waits for it.
 - **Player and settings:** these go over gRPC. The runner opens an SSH tunnel
   from `127.0.0.1:50061` to the backend socket `/run/carnine/carnine.sock` and
-  uses `media_grpc_client`, building it if needed. The socket is group
-  `carnine`, and `pi` is in that group.
+  uses `media_grpc_client`, building it if needed. This needs the test
+  access from docs/07 ("Backend Connectivity and Debugging": socket mode
+  `0660`, runtime directory `0750`, `pi` in the group `carnine`), which
+  carnine-pc has; a fresh image does not.
 - **Coordinates:** these are logical pixels on the 1024x600 panel, worked out
   from the frontend layout:
 
@@ -131,7 +134,7 @@ for the camera.
   opens it again when it ends. Until `drive` the fixes stand at the start of
   the planned track, speed 0, no course: the road Valhalla snaps 50.31165,
   9.45940 (Steinau, the `town` place from the names database) to. `drive` sends `SIGUSR1` to the unit
-  (`systemctl kill -s USR1 carnine-demo-gps`); from then on it follows the
+  (`systemctl kill -s USR1 --kill-whom=main carnine-demo-gps`); from then on it follows the
   planned track with the speeds Valhalla gives for each stretch, and at the
   end it stands at the destination (50.11065, 8.68209, the first hit for
   "Frankfurt am Main").
