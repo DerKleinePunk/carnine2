@@ -522,6 +522,17 @@ actions:
     chroot: true
     command: echo uninitialized > /etc/machine-id
 
+  # The image's package list for its SBOM and CVE report (#41): the dpkg
+  # status and os-release, next to the image. image-sbom.sh turns them into
+  # both on the host, which has syft and grype; the debos container has not.
+  - action: run
+    description: Keep the package list for the image SBOM
+    chroot: false
+    command: >-
+      mkdir -p "$ARTIFACTDIR/{{ $image }}.sbom-input/var/lib/dpkg" "$ARTIFACTDIR/{{ $image }}.sbom-input/etc" &&
+      cp "$ROOTDIR/var/lib/dpkg/status" "$ARTIFACTDIR/{{ $image }}.sbom-input/var/lib/dpkg/status" &&
+      cp "$ROOTDIR/usr/lib/os-release" "$ARTIFACTDIR/{{ $image }}.sbom-input/etc/os-release"
+
   - action: image-partition
     imagename: {{ $image }}
     imagesize: 3GiB

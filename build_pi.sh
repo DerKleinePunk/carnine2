@@ -63,21 +63,30 @@ if [[ ! -x "$FLUTTER_BIN" || ! -f "$EMB_EMBEDDER_DIR/.emb/raspberry-pi.emb.yaml"
   exit 1
 fi
 
+# With cargo-auditable the binary carries its dependency list, so the SBOM
+# of the package names the crates actually built in (#41). Without it the
+# build still works; the package SBOM then lacks the crates.
+if command -v cargo-auditable >/dev/null 2>&1; then
+  BACKEND_BUILD=(cargo auditable build)
+else
+  BACKEND_BUILD=(cargo build)
+  echo "[pi] WARNING: cargo-auditable not found, the package SBOM will lack the crates."
+  echo "[pi] Hint: cargo install cargo-auditable --locked"
+fi
+
 echo "[pi] Building backend (aarch64-unknown-linux-gnu, release)..."
 (
   cd "$BACKEND_DIR"
-  PKG_CONFIG_ALLOW_CROSS=1 \
-  PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
-  PKG_CONFIG_PATH="$SYSROOT/usr/lib/aarch64-linux-gnu/pkgconfig" \
-  CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
-  CARNINE_VERSION="$VERSION" CARNINE_BUILD_ID="$BUILD_VERSION" cargo build --release --target aarch64-unknown-linux-gnu
+  export PKG_CONFIG_ALLOW_CROSS=1
+  export PKG_CONFIG_SYSROOT_DIR="$SYSROOT"
+  export PKG_CONFIG_PATH="$SYSROOT/usr/lib/aarch64-linux-gnu/pkgconfig"
+  export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+  export CARNINE_VERSION="$VERSION" CARNINE_BUILD_ID="$BUILD_VERSION"
+  "${BACKEND_BUILD[@]}" --release --target aarch64-unknown-linux-gnu
   rm -f target/debian/carnine-backend_*_arm64.deb
   rm -f target/aarch64-unknown-linux-gnu/debian/carnine-backend_*_arm64.deb
-  PKG_CONFIG_ALLOW_CROSS=1 \
-  PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
-  PKG_CONFIG_PATH="$SYSROOT/usr/lib/aarch64-linux-gnu/pkgconfig" \
-  CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
-  CARNINE_VERSION="$VERSION" CARNINE_BUILD_ID="$BUILD_VERSION" cargo deb --target aarch64-unknown-linux-gnu --deb-version "$BUILD_VERSION"
+  # --no-build: cargo-deb would build again, without the dependency list.
+  cargo deb --no-build --target aarch64-unknown-linux-gnu --deb-version "$BUILD_VERSION"
 )
 
 shopt -s nullglob
@@ -177,6 +186,35 @@ if [[ "$(dpkg-deb -f "$FRONTEND_PACKAGE" Architecture)" != "arm64" ]]; then
   exit 1
 fi
 echo "[pi] Frontend package staged: $FRONTEND_PACKAGE"
+
+# SBOM and CVE report per package, next to it (#41). Only a report: a deploy
+# to the test device must not hang on a CVE. The backend SBOM comes from the
+# unpacked package (the crates via cargo-auditable), the frontend's from the
+# pubspec.lock it was built with - the Dart code is compiled into libapp.so,
+# where syft cannot see it. Not covered: the Flutter engine and
+# ivi-homescreen, which carry no package metadata.
+SYFT="${CARNINE_SYFT:-syft}"
+GRYPE="${CARNINE_GRYPE:-grype}"
+package_sbom() {
+  local name="$1" source="$2" out="$ROOT_DIR/resources/debos/$1"
+  "$SYFT" scan "dir:$source" -q --source-name "$name" --source-version "$BUILD_VERSION" \
+    -o cyclonedx-json="$out.cdx.json" -o spdx-json="$out.spdx.json"
+  if "$GRYPE" "sbom:$out.cdx.json" -q -c "$ROOT_DIR/.grype.yaml" -o table > "$out.grype.txt" 2>&1; then
+    echo "[pi] $name: SBOM $out.cdx.json, CVE report $out.grype.txt ($(grep -c . "$out.grype.txt") lines)"
+  else
+    echo "[pi] WARNING: grype failed for $name, see $out.grype.txt"
+  fi
+}
+if command -v "$SYFT" >/dev/null 2>&1 && command -v "$GRYPE" >/dev/null 2>&1; then
+  echo "[pi] Writing package SBOMs and CVE reports..."
+  BACKEND_UNPACKED="$(mktemp -d)"
+  dpkg-deb -x "$ROOT_DIR/resources/debos/carnine-backend.deb" "$BACKEND_UNPACKED"
+  package_sbom carnine-backend "$BACKEND_UNPACKED"
+  rm -rf "$BACKEND_UNPACKED"
+  package_sbom carnine-frontend "$FRONTEND_STAGING_DIR"
+else
+  echo "[pi] WARNING: syft or grype not found, no package SBOM (set CARNINE_SYFT/CARNINE_GRYPE)."
+fi
 
 echo
 echo "[pi] Build finished."
