@@ -4,7 +4,8 @@
 kernel 6.18.50, Waveshare 7" HDMI LCD (H)). Re-verified the same day over a cold
 boot with the running carnine stack (Plymouth + flutter-pi): no EDID or mode
 errors in `dmesg`, `fb0` and the flutter-pi scanout plane both at 1024x600,
-touch working.
+touch working. (Verified under flutter-pi; since ADR-020 the frontend runs
+under ivi-homescreen, which sets the mode and reads touch the same way.)
 
 **Result:** the panel runs at its native 1024x600 with `dtoverlay=vc4-kms-v3d`.
 Neither `vc4-fkms-v3d` nor the `hdmi_cvt` / `hdmi_mode` lines are needed.
@@ -90,7 +91,9 @@ open("waveshare-1024x600.bin", "wb").write(bytes(e))
 ## Image configuration
 
 `config.txt` keeps `dtoverlay=vc4-kms-v3d`; the `hdmi_force_hotplug`,
-`hdmi_group`, `hdmi_mode` and `hdmi_cvt` lines are dropped. `cmdline.txt` gets:
+`hdmi_group`, `hdmi_mode` and `hdmi_cvt` lines are dropped. When the image is
+built with `-t display:waveshare-1024x600` (the default is `auto`),
+`cmdline.txt` gets:
 
 ```
 drm.edid_firmware=HDMI-A-1:edid/waveshare-7h-260929.bin
@@ -105,7 +108,7 @@ lives under `drm.edid_firmware`.
 the fkms variant of the recipe used to delete it. Without it the VideoCore
 firmware prepends its own `video=HDMI-A-1:...` to the kernel command line — on
 this panel `720x576M@50`. The connector still ends up at 1024x600 once
-flutter-pi sets its mode, but `fb0` and with it the Plymouth splash stay at the
+the embedder (then flutter-pi, now ivi-homescreen) sets its mode, but `fb0` and with it the Plymouth splash stay at the
 firmware's mode for the whole boot.
 
 ### The blob has to be in the initramfs, not just in the rootfs
@@ -130,11 +133,11 @@ also puts the blob into the initramfs:
 install_items+=" /usr/lib/firmware/edid/waveshare-7h-260929.bin /usr/lib/firmware/edid/waveshare-1024x600.bin "
 ```
 
-Both files go into the initramfs, so switching between them in `cmdline.txt`
-needs no `dracut` run.
-
 followed by `dracut --regenerate-all --force`. Check with
 `lsinitrd /boot/firmware/initramfs8 | grep edid`.
+
+Both files go into the initramfs, so switching between them in `cmdline.txt`
+needs no `dracut` run.
 
 ## Verification after boot
 
@@ -149,7 +152,7 @@ dmesg | grep -m1 "Kernel command line"        # -> no firmware-injected video=
 `fb0` at 1024x600 is the tell-tale for the two mistakes above: it stays at the
 firmware's mode when `disable_fw_kms_setup=1` is missing, and it starts in the
 fallback mode when the blob is missing from the initramfs — in both cases the
-connector may still report 1024x600 because flutter-pi sets that mode itself.
+connector may still report 1024x600 because the embedder sets that mode itself.
 
 Under the running frontend, `/sys/kernel/debug/dri/1/state` shows the scanout
 plane at the native size:
@@ -163,7 +166,8 @@ plane[91]: plane-3
 
 ivi-homescreen then reports `mode=1024x600@60Hz` and
 `Display metadata: 1024x600 logical -> 1024x600 px, pixel_ratio=1`. The panel
-name stays `LEN L1950wD`, because only the timings were corrected.
+name stays `LEN L1950wD` with both blobs: in ours only the timings were
+corrected, and Waveshare's `waveshare-7h-260929.bin` carries the same name.
 
 ## Reading a panel's own EDID
 
@@ -178,8 +182,8 @@ this one.
    `sudo cp /boot/firmware/cmdline.txt /boot/firmware/cmdline.txt.bak`
 2. In `/boot/firmware/cmdline.txt` (a single line) delete the whole
    ` drm.edid_firmware=HDMI-A-1:edid/…` part, **whatever file name follows**:
-   `main` up to v0.9.1 sets `waveshare-1024x600.bin`, `feature/backend` since
-   24cfd6d `waveshare-7h-260929.bin`. Reboot.
+   images up to v0.9.1 set `waveshare-1024x600.bin`, from v0.9.2 (24cfd6d)
+   `waveshare-7h-260929.bin`. Reboot.
 3. Note whether the image is sharp.
 4. Save the EDID and the kernel's view of it (`dmesg` needs root on Debian,
    `kernel.dmesg_restrict=1`):
@@ -205,6 +209,6 @@ output" in [07 – Deployment](07-deployment.md#audio-output).
 
 The touch controller needs no configuration. On the test unit it enumerates
 over USB as `WaveShare WS170120` (USB ID `0eef:0005`, eGalax) with
-`INPUT_PROP_DIRECT` (`PROP=2` in `/proc/bus/input/devices`). flutter-pi opens
-the event node itself through its libinput/udev seat0 path, without any extra
+`INPUT_PROP_DIRECT` (`PROP=2` in `/proc/bus/input/devices`). The embedder
+(flutter-pi when this was verified, ivi-homescreen now) opens the event node itself through its libinput/udev seat0 path, without any extra
 rule. At the native mode, touch and image coordinates map one to one.

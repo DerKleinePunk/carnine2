@@ -20,9 +20,9 @@
 ## Technical Debt
 
 ### Known Issues
-- [ ] Build artifacts and project scaffolding are not yet present in repository
-- [ ] CI/CD pipeline is not yet implemented
-- [ ] Deployment instructions are documented but not fully automated
+- [x] Build artifacts and project scaffolding are present in the repository
+- [x] CI pipeline (`.github/workflows/ci.yml`)
+- [ ] Deployment is scripted (`build_pi.sh`, `deploy_pi.sh`, debos image) but still started by hand
 
 ### Deprecated Patterns
 - [ ] Avoid introducing internet-exposed remote control endpoints
@@ -45,7 +45,7 @@
 ## Priority Matrix
 
 ### High Impact, Low Effort
-- [ ] Add CI lint/test skeleton workflows
+- [x] Add CI lint/test skeleton workflows
 - [ ] Add deployment and rollback checklists
 
 ### High Impact, High Effort

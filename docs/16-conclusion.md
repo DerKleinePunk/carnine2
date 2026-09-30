@@ -4,11 +4,11 @@ The documented architecture defines a clear split between a Flutter frontend and
 
 The project has a strong architecture baseline across solution strategy, runtime behavior, deployment planning, quality goals, and risk management. UI/UX governance is explicitly anchored in Stitch and linked to the implementation workflow.
 
-Current maturity is documentation-complete enough for guided implementation, but not yet operationally complete for reproducible builds. Immediate priorities are:
-- Add project scaffolding and build manifests for backend/frontend
-- Establish CI/CD checks for lint, test, and cross-build validation
-- Validate deployment steps with repeatable scripts on target Raspberry Pi hardware
-- Finalize initial API contract artifacts (`.proto`) and code generation workflow
+The system runs on the target hardware: Debian packages and SD-card images are built with scripts (`build_pi.sh`, `deploy_pi.sh`, the debos recipe), CI checks lint, tests and an arm64 build on every pull request, and the API contract lives in `src/proto/carnine.proto`. Open priorities are:
+- CAN integration (adapter depends on the vehicle, docs/23)
+- Automated tests on the device (today the device checks are done by hand)
+- Measuring test coverage
+- OTA updates
 
 ## Next Documentation Steps
 

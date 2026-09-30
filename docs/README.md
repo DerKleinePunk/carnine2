@@ -1,6 +1,6 @@
 # Arc42 Architecture Documentation
 
-This directory contains the Arc42 template for documenting the architecture of the project.
+This directory contains the architecture documentation of the project, structured along Arc42, plus the user guide and topic documents.
 
 ## Sections
 
@@ -39,5 +39,5 @@ This directory contains the Arc42 template for documenting the architecture of t
 
 ## Code
 
-20. [Backend](../src/backend/README.md)
-20. [Frontend](../src/frontend/README.md)
+- [Backend](../src/backend/README.md)
+- [Frontend](../src/frontend/README.md)

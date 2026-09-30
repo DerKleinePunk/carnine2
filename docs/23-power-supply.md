@@ -1,11 +1,14 @@
 # 23 – Vehicle Power Supply (Ignition, Shutdown, Watchdog)
 
-**Status:** not integrated yet (2026-09-27). The hardware and its firmware
+**Status:** partly integrated (v0.9.3). The backend sends the sign of life and
+reports the supply's state since v0.6.0; shutting down on POWEROFF, `$` and the
+service mode are still open (#36, see [What carnine2 needs for it](#what-carnine2-needs-for-it)).
+The hardware and its firmware
 come from the predecessor project
 [DerKleinePunk/carnine](https://github.com/DerKleinePunk/carnine); the
 firmware is now in [firmware/powersupply/](../firmware/powersupply/README.md)
 and builds here. The test board runs it and talks to the test Pi over
-uart5, but nothing in carnine2 talks to the supply so far.
+uart5.
 
 ## Why
 
@@ -306,15 +309,17 @@ built.
   `+` regularly, reads KL15, voltage and state, shuts the Pi down through
   logind when the supply goes to POWEROFF, and sends `$` when the Pi shuts
   down on its own. State over gRPC plus a command in `media_grpc_client`.
-  - **Built** (2026-09-27, commit 0b18bc9 on `feature/backend`; according
+  - **Built** (2026-09-27, commit 0b18bc9, released with v0.6.0; according
     to carnine2 tested on carnine-pc, PIBOOT → RUN holds): the section `[power_supply]`, off by default, with
     `enabled`, `device` (default `/dev/powersupply`) and `baud` (default
     38400); on the device it goes into a drop-in such as
     `/etc/carnine/config.d/20-power-supply.toml`, with an example in
     `resources/config/carnine.toml`. The backend sends `+` every second
     from the moment the line is open, so it already counts in PIBOOT. It
-    reads the status telegrams, logs KL15 and the state (the voltage only
-    in the debug log) and skips the firmware's debug text. If the line
+    reads the status telegrams, logs KL15 and the state, the voltage at
+    info level when it has moved by 0.5 V or more (otherwise in the debug
+    log), warns once when the alive counter drops low in RUN, and skips
+    the firmware's debug text. If the line
     fails, it reopens it after 3 s. The service reaches `ttyAMA5`
     (root:dialout) through `SupplementaryGroups=dialout`, as for the GPS.
   - **Status** (commits 4561f5a, 483f6ee): `SystemService` has

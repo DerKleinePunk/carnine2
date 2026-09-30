@@ -113,6 +113,10 @@ Use SQLite for local data storage, with synchronization logic for online reconci
 - Must implement offline-first sync logic for network data
 - Excellent local performance and data integrity
 
+**Implementation note (v0.9.3):** SQLite holds the media library, playlists,
+resume state, UI state and navigation state (`database.rs`, schema 6). There
+is no online reconciliation yet, since nothing is fetched from the network.
+
 ---
 
 ## ADR-005: Real-time Data Streaming - gRPC Streaming for Vehicle Telemetry
@@ -141,11 +145,18 @@ Use server-side gRPC streaming to push vehicle data updates from backend to fron
 - Frontend must manage stream subscriptions and lifecycle
 - Excellent real-time responsiveness
 
+**Implementation note (v0.9.3):** Server streaming is used for player,
+library, audio, system metrics, power supply and position events. Vehicle
+telemetry itself is not implemented: `CarnineService.GetCanData` is a unary
+placeholder.
+
 ---
 
 ## ADR-006: CAN-Bus Integration - Direct RS232 via Custom Driver
 
-**Status:** Accepted
+**Status:** Accepted, not implemented. `GetCanData` returns a fixed placeholder
+value; the adapter chosen since (MCP2515 on SPI) points to SocketCAN, so this
+decision has to be revisited before the CAN work starts.
 
 **Context:**
 Vehicle provides diagnostic and telemetry data over CAN-bus interface. System needs low-latency access to this data with minimal dependencies.
@@ -178,7 +189,7 @@ Implement custom CAN-bus handler in Rust backend with direct RS232 communication
 System needs configuration for hardware, media, audio, logging, and deployment-specific parameters. The configuration must be readable, validated, persistable, and changeable through the frontend without allowing the UI to write system files directly.
 
 **Decision:**
-Use TOML files for configuration storage. The versioned template is located at `resources/config/carnine.toml`; the installed system uses `/etc/carnine/config.toml`. The Rust backend loads the configuration at startup and exposes it through the typed gRPC `ConfigService`, which owns validated updates and atomic persistence.
+Use TOML files for configuration storage. The versioned template is located at `resources/config/carnine.toml`; the installed system uses `/etc/carnine/config.toml`, overlaid by every `*.toml` in `/etc/carnine/config.d/` in name order (device-specific settings that `deploy_pi.sh` must not overwrite, e.g. `10-navigation.toml`). The Rust backend loads the configuration at startup and exposes it through the typed gRPC `ConfigService`, which owns validated updates and atomic persistence.
 
 **Rationale:**
 - **Human-readable**: TOML is easy to inspect and edit for deployment and hardware settings
@@ -223,7 +234,7 @@ Use `anyhow::Result<T>` for fallible operations, with `.context()` for adding co
 - `thiserror` crate – more structured but more verbose
 
 **Consequences:**
-- Errors are strings with context; no type-based error discrimination possible
+- Errors are mostly strings with context; the few cases that need a distinct reaction use a small error type and `downcast_ref` (e.g. `AudioOutputUnavailable`)
 - Excellent for system services where all errors should be logged
 - Simpler error handling paths in code
 
@@ -238,6 +249,11 @@ Backend will grow to handle CAN, networking, media, storage, and other concerns.
 
 **Decision:**
 Organize backend as modules with `mod.rs` files declaring submodules; each major concern (e.g., `can_handler`, `media`, `storage`) gets its own module directory.
+
+**Implementation note (v0.9.3):** Most concerns are single files at the top
+level (`media_player.rs`, `database.rs`, `storage_events.rs`,
+`power_supply.rs`, …, declared in `main.rs`). A concern that grew into several
+files became a directory with `mod.rs` (`navigation/`).
 
 **Rationale:**
 - **Scoping**: Modules control visibility; public APIs are explicit
@@ -294,6 +310,11 @@ Need to validate backend functionality without running the full graphical applic
 **Decision:**
 Write unit tests directly in Rust modules for business logic. Integration tests call backend via gRPC client. Prefer tests over manual verification.
 
+**Implementation note (v0.9.3):** The tests call the service implementations
+in-process (for example the queue tests with real audio files in
+`queue_playback_tests.rs`). There is no test over a real gRPC connection yet;
+`examples/media_grpc_client.rs` is a manual tool.
+
 **Rationale:**
 - **Avoiding UI**: Graphical testing is slow and error-prone; prefer automated tests
 - **Unit tests**: Fast feedback loop; test individual components in isolation
@@ -320,6 +341,11 @@ Multiple subsystems (CAN polling, gRPC server, media playback, network I/O) must
 
 **Decision:**
 Use Tokio tasks for concurrent work; synchronize via `tokio::sync` channels and mutexes (Mutex, RwLock). Avoid blocking operations in async code.
+
+**Implementation note (v0.9.3):** Channels are from `tokio::sync`
+(broadcast, watch, oneshot, mpsc). Shared state mostly uses `std::sync::Mutex`
+for short critical sections. The audio decoder and
+output run on their own OS threads, and scans use `spawn_blocking`.
 
 **Rationale:**
 - **Scalability**: Thousands of tasks share few OS threads; minimal overhead
@@ -350,7 +376,9 @@ using the interactive `pi` account would couple the service to a human login.
 **Decision:**
 Run the backend as the dedicated system user `carnine`, without an interactive
 login. The user is a member of the `audio` group and owns the backend's media
-and log directories. The configuration directory is owned by `root:carnine`
+and log directories. (Current state: the image adds it to `audio`, `render`,
+`video` and `input`; the backend unit adds `dialout` and `CAP_SYS_TIME`, the
+frontend runs as `carnine` too, see docs/07.) The configuration directory is owned by `root:carnine`
 and is group-writable so the backend can persist validated updates atomically.
 
 **Rationale:**
@@ -366,7 +394,7 @@ and is group-writable so the backend can persist validated updates atomically.
 
 **Consequences:**
 - The system image must create the `carnine` user and required directories
-- A future systemd unit must run with `User=carnine` and `Group=carnine`
+- The systemd units (`carnine-backend.service`, `carnine-frontend.service`) run with `User=carnine` and `Group=carnine`
 - Changes to the backend's required device or filesystem access must be reflected in the image recipe and this decision
 
 ---
@@ -400,7 +428,7 @@ The `udisks2` package is part of the Raspberry Pi image.
 
 **Consequences:**
 - The image must install and run `udisks2` with a system D-Bus
-- A storage signal can trigger more than one inspection; debouncing and source-specific filtering remain follow-up work
+- A storage signal can trigger more than one inspection; a burst of signals is settled into one inspection and already known volumes are not reported again (#25)
 - Automatic detection is limited to events visible through UDisks2
 - A mounted volume is eligible for automatic music discovery only when its
   label equals `MUSIK` case-insensitively
@@ -408,9 +436,9 @@ The `udisks2` package is part of the Raspberry Pi image.
   UDisks2. The image includes `polkitd` and a restricted rule for the `carnine`
   service user because the headless DRM setup has no desktop automount session.
 - Matching `.mp3` files are counted and reported through the existing
-  `MediaService.StreamLibraryEvents` contract as `LibraryEvent.event =
-  "music_found"`; the event carries the source label, mount path, and number
-  of matching files
+  `MediaService.StreamLibraryEvents` contract as `LIBRARY_MUSIC_FOUND`; the
+  event carries the source label, mount path, and number of matching files.
+  When the volume goes away, `LIBRARY_MUSIC_GONE` withdraws the offer
 - Detection does not write SQLite and does not copy files
 - The frontend confirmation starts a separate import operation; after the
   import completes, the frontend explicitly requests `RescanMedia`
@@ -454,6 +482,10 @@ Connectivity is intermittent (vehicle may lose signal). Navigation maps, prefere
 
 **Decision:**
 Backend caches all necessary data locally (SQLite) and syncs with remote services when connectivity is available. UI always reads from cache; background sync keeps cache updated.
+
+**Implementation note (v0.9.3):** The system is fully offline today: maps
+(MBTiles, read by the frontend) and routing (local Valhalla) are on the
+device, and there is no remote service to sync with yet.
 
 **Rationale:**
 - **Reliability**: System works without network; critical for in-vehicle use
@@ -669,6 +701,31 @@ decoder-backed source, Raspberry Pi ALSA tests, and only then integration into
 `MediaPlayer`. The current process path stays available until the hardware
 acceptance criteria are met.
 
+**Implementation status (v0.9.3):** The rewrite is done and some first-version
+rules above changed in the code:
+- `cpal` is the only playback engine (b3bd847); the `aplay`/`paplay` process
+  path is gone from the backend and survives only in
+  `examples/external_ffmpeg_spike.rs`. Decoding runs as an external FFmpeg
+  process that fills a bounded ring buffer (`audio_source.rs`); a track counts
+  as finished only when that buffer has played out (0277d28).
+  `RetryingAudioEngine` keeps the backend running without an audio device.
+- A rescan is not blocked during playback.
+- Files whose metadata cannot be read are still added, with the file name as
+  title and an empty artist; an earlier title and cover are kept. Without
+  `ffprobe` the library reports `LIBRARY_METADATA_TOOL_MISSING` once and imports
+  file names only.
+- `OFFLINE` exists in the schema but is never set; USB music is copied into
+  the internal folder (ADR-014) instead of being played from the stick.
+- Loading a playlist leaves playback paused unless `[media] resume_mode` is
+  `auto-play`.
+- `GetServiceVersion` exists on `MediaService`, `AudioService` and
+  `NavigationService`, not on every service.
+- The audio event stream reports `AUDIO_READY`, source start, pause, resume,
+  stop and removal, `AUDIO_DECODER_STOPPED` and `AUDIO_ERROR`; interruption and
+  ducking are not implemented.
+- USB discovery (ADR-014), seek (#8), shuffle (#9) and a settings page exist;
+  queue editing does not.
+
 **Rationale:**
 - Typed media operations are safer and easier to evolve than generic command
 	strings.
@@ -700,7 +757,11 @@ acceptance criteria are met.
 
 ## ADR-017: Speech Recognition and Voice Control - sherpa-onnx for Offline ASR
 
-**Status:** Accepted
+**Status:** Accepted, not implemented (v0.9.3: no sherpa-onnx dependency, no
+`SpeechService`, no `[speech]` configuration). The proto sketch below predates
+the current contract: `AudioEvent` is now `AudioEventType event` plus
+`message`, so new audio events would be new `AudioEventType` values rather
+than `oneof` fields.
 
 **Context:**
 Voice control is a natural interaction method for in-vehicle systems, allowing hands-free operation while driving. The system requires speech recognition that works offline (no cloud dependency), respects privacy (GDPR-compliant), runs efficiently on Raspberry Pi 4, and integrates with the existing audio architecture.
@@ -892,7 +953,7 @@ Plymouth theme, and backend service responses.
 **Decision:**
 The repository-root `VERSION` file is the single release-version source. The
 Pi build passes it to Cargo, Flutter, Debian packaging, and Debos. Rust embeds
-the same value for both existing `GetServiceVersion` RPCs. Plymouth replaces
+the same value for every `GetServiceVersion` RPC (media, audio, navigation). Plymouth replaces
 its template token from the Debos `version` parameter.
 
 **Consequences:**
@@ -1000,7 +1061,7 @@ decision replaces it.
 
 **Decision:**
 Build the frontend with `emb cross --target rpi4-trixie --backend drm-kms-egl`
-and run it under ivi-homescreen (`homescreen -b /opt/carnine/frontend -f`),
+and run it under ivi-homescreen (`homescreen -b /opt/carnine/frontend -f -c`, `-c` for touch only),
 replacing `flutterpi_tool` and flutter-pi. The switch is taken ahead of the
 evaluation protocol because of the fair deadline; the product owner accepts
 that risk. Embedder plugins stay disabled (`DISABLE_PLUGINS=ON`): the frontend
@@ -1066,6 +1127,8 @@ Add `NavigationService` to `carnine.proto`:
   Valhalla's `/trace_route`, so position and route on the fair stand come
   from the same recording.
 - `StreamPositions` - fixes at the source's rate (1 Hz), heading unsmoothed.
+- `SetTrackRecording` - switches recording of the driven track on or off
+  (`[navigation] track_directory`, see docs/07 "Recording drives").
 
 Conventions: SI units (metres, seconds, degrees, m/s); failures as gRPC
 status codes (`UNAVAILABLE` router down, `NOT_FOUND` no route or no replay,

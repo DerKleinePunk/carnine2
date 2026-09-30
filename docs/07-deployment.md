@@ -3,10 +3,10 @@
 ## Overview
 
 The CarPC system is deployed on an embedded Linux device (Raspberry Pi 4) with two main service components:
-- **Rust backend service** (headless) – handles business logic, CAN communication, and data operations
+- **Rust backend service** (headless) – handles business logic, media playback, navigation, the power supply link and data operations (CAN is planned)
 - **Flutter frontend application** – runs in a windowed GUI environment with touchscreen input
 
-The deployment architecture emphasizes reliability, minimal resource consumption, and support for over-the-air (OTA) updates.
+The deployment architecture emphasizes reliability and minimal resource consumption. Updates are Debian packages (`deploy_pi.sh`) or a new SD-card image; over-the-air (OTA) updates are planned.
 
 ---
 
@@ -28,7 +28,7 @@ The deployment architecture emphasizes reliability, minimal resource consumption
   - The panel ships a cloned EDID whose timings the vc4 driver rejects; an
     EDID override keeps it on full KMS at its native mode, see
     [22 – Waveshare 1024x600 Display under Full KMS](22-waveshare-display-1024x600.md)
-- **CAN Interface**:
+- **CAN Interface** (planned, no CAN code in the backend yet):
   • Adapter: MCP2515 (SPI) or isolated CAN HAT (e.g. PiCAN 2, Kvaser)
   • Protocol: CAN 2.0B, 500 kbps or 1 Mbps (vehicle‑specific)
   • Connection: SPI bus or USB
@@ -57,9 +57,11 @@ The deployment architecture emphasizes reliability, minimal resource consumption
 
 #### Carnine Runtime User
 
-The backend runs as the dedicated system user `carnine`. The user has no
-interactive login and is a member of the `audio` group. Debos creates the
-following runtime directories:
+The backend and the frontend run as the dedicated system user `carnine`. The
+user has no interactive login. The image adds it to the groups `audio`,
+`render`, `video` and `input`; the backend unit adds `dialout` (serial lines
+for GPS and power supply) and the capability `CAP_SYS_TIME` (clock from GPS).
+Debos creates the following runtime directories:
 
 - `/etc/carnine`: owned by `root:carnine`, mode `0770`
 - `/var/lib/carnine`: owned by `carnine:carnine`, mode `0750`
@@ -100,17 +102,23 @@ separately with `./deploy_maps.sh [user@host]`, see
 position_source = "replay"
 replay_file = "/var/lib/carnine/maps/GPS-Adnan-Tour.txt"
 replay_loop = true
+# serial_device = "/dev/gps"
+# serial_baud = 4800
+set_system_clock = true
+track_directory = "/var/lib/carnine/tracks"
 valhalla_url = "http://127.0.0.1:8002"
-map_region = "hessen"
+map_region = "Hessen"
 names_database = "/var/lib/carnine/maps/germany_names.db"
 ```
+
+(Shortened; the file in the repository also explains each key.)
 
 #### Volume state on test setups
 
 The backend keeps the volume across restarts in the file named by
 `[audio] volume_state_path`, by default `/var/lib/carnine/audio-volume`
 (`resources/config/carnine.toml`). The directory must exist and be writable
-by the backend's user; the package creates `/var/lib/carnine`. On a test
+by the backend's user; the image (debos) creates `/var/lib/carnine`, the backend package does not. On a test
 setup where it is missing, such as jeep-pi, either create that directory or
 point the key at a writable one in a drop-in, for example
 `config.d/20-audio.toml`.
@@ -149,7 +157,7 @@ carnine2 does not build any map data. Tiles, names database, routing tiles
 and the demo tour are made with the scripts in the map project
 [DerKleinePunk/flutter_local_map](https://github.com/DerKleinePunk/flutter_local_map),
 directory `scripts/`. Use the tag that `src/frontend/pubspec.yaml` pins for
-`local_map` (currently `local_map-v0.5.3`), so the data matches the library
+`local_map` (currently `local_map-v0.5.5`), so the data matches the library
 that draws it. The map project's `README.md` and
 `docs/valhalla-offline-setup.md` describe the tools and prerequisites
 (Docker, Python packages).
@@ -170,9 +178,11 @@ takes hours.
 
 The Valhalla program itself is not part of the data: it is built natively on
 a Pi with `scripts/valhalla/build_valhalla_on_pi.sh` from the map project
-(unit `scripts/valhalla/valhalla.service` beside it, described in
-`docs/valhalla-offline-setup.md`, "Stand auf den Test-Pis") and packaged as `carnine-valhalla.deb` with
-`resources/valhalla/package-deb.sh`.
+(described in `docs/valhalla-offline-setup.md`, "Stand auf den Test-Pis") and
+packaged as `carnine-valhalla.deb` with `resources/valhalla/package-deb.sh`.
+The package brings carnine2's own unit and configuration,
+`resources/valhalla/debian/valhalla.service` and `resources/valhalla/valhalla.json`
+(listening on `127.0.0.1:8002`).
 
 After building new data:
 
@@ -181,7 +191,9 @@ After building new data:
    files with `CARNINE_MAP_TILES` and `CARNINE_NAMES_DATABASE`).
 2. Renew the checksums there:
    `sha256sum hessen.mbtiles germany_names.db valhalla_tiles.tar GPS-Adnan-Tour.txt > SHA256SUMS`.
-3. `./deploy_maps.sh [user@host]`.
+3. `./deploy_maps.sh [user@host] [--no-restart]`. `CARNINE_MAPS_DIR`
+   names another source folder. Afterwards the script restarts `valhalla`,
+   the backend and the frontend, unless `--no-restart` is given.
 4. For another region, also set `map_region` in the navigation drop-in, and
    check the map style (`src/frontend/assets/maps/`) against the new tiles,
    see §8.11.
@@ -197,7 +209,9 @@ CARNINE_NAMES_DATABASE=~/develop/carnine-maps/germany/germany_names.db \
   ./deploy_maps.sh pi@carnine-pc
 ```
 
-and `map_region = "Deutschland"` in its navigation drop-in. The Hessen tiles
+and `map_region = "Deutschland"` in its navigation drop-in. The script checks
+only `SHA256SUMS` in `CARNINE_MAPS_DIR`, which covers the Hessen files; check
+the Germany files beforehand with `sha256sum -c` in `germany/`. The Hessen tiles
 (2.3 GB) remain the image's default for smaller cards; their names database
 in the new schema is `germany/hessen_names.db`.
 
@@ -448,17 +462,21 @@ Then check in the UI that music plays on the panel and that the volume
 slider changes `amixer -c 0 get PCM`.
 
 #### Operating System
-- **OS**: Raspberry Pi OS (Debian‑based, 64‑bit preferred)
-  • Kernel 5.10+ with `CONFIG_CAN=y`
-  • `systemd` for service management
+- **OS**: Debian trixie (arm64) with the Raspberry Pi kernel and firmware from
+  archive.raspberrypi.com, built as an SD-card image with debos
+  (`resources/debos/raspbian.yaml`, see 3.1)
+  • `systemd` for service management, `systemd-networkd` for the network
 
 #### Runtime Dependencies (on Pi)
-- **CAN Driver**: `socketcan` kernel module loaded (`modprobe can`, `modprobe can_raw`)
-- **System libraries**:
-  - `libegl1`, `libgles2`, `libgbm1` (Mesa EGL/GLES for ivi-homescreen)
-  - `seatd` running (`systemctl enable --now seatd`); `drm-kms-egl` hangs silently on `libseat` without it
-  - `libssl3` (OpenSSL runtime)
-  - `curl` (for OTA updates)
+The Debian packages pull in everything they need; the image installs them:
+- **Backend** (`src/backend/Cargo.toml`, `[package.metadata.deb]`):
+  `ffmpeg`, `libasound2t64`, `alsa-utils`, `udisks2`
+- **Frontend** (`src/frontend/debian/control`): `libdrm2`, `libgbm1`,
+  `libegl1`, `libgles2`, `libinput10`, `libxkbcommon0`, `libudev1`,
+  `libsystemd0`, `libseat1`, `libdisplay-info2`, `seatd`, `libatomic1`,
+  `fontconfig`, `fonts-liberation`. The frontend unit wants `seatd.service`;
+  `drm-kms-egl` hangs silently on `libseat` without it
+- **Map and routing**: `carnine-valhalla.deb` (`resources/valhalla/`)
 
 ### Workstation (x86_64 Linux)
 
@@ -466,14 +484,20 @@ slider changes `amixer -c 0 get PCM`.
 
 **Rust Backend Cross‑Compilation**
 - Rust toolchain with `aarch64-unknown-linux-gnu` target (installed via `rustup`)
+- `cargo-deb` (`cargo install cargo-deb`)
+- Cross linker `aarch64-linux-gnu-gcc` (`gcc-aarch64-linux-gnu`)
+- An arm64 sysroot with the ALSA development files at
+  `build/sysroots/carnine-pi-arm64` (override `CARNINE_ARM64_SYSROOT`);
+  `build_pi.sh` stops if `alsa.pc` is missing there
 - `protobuf-compiler` 3.20+
-- Standard build tools (gcc, make, pkg‑config)
+- Standard build tools (gcc, make, pkg‑config), `rsync`, `dpkg-deb`
 
 **Flutter Frontend Cross‑Compilation**
 - [`emb_cli`](https://pub.dev/packages/emb_cli) (`dart install emb_cli`)
 - An emb workspace with the Flutter SDK emb pins and an
   [ivi-homescreen](https://github.com/toyota-connected/ivi-homescreen) checkout
   (see 3.3); the Flutter SDK on `PATH` is not used for Pi builds (ADR-020)
+- `protoc-gen-dart` for the Dart gRPC code (`dart pub global activate protoc_plugin`)
 - Standard build tools
 
 #### System Packages (apt) on Workstation
@@ -482,8 +506,9 @@ slider changes `amixer -c 0 get PCM`.
 sudo apt-get update && sudo apt-get install -y \
   build-essential \
   pkg-config \
-  libssl-dev \
+  gcc-aarch64-linux-gnu \
   protobuf-compiler \
+  rsync \
   git \
   curl
 ```
@@ -502,64 +527,42 @@ sudo apt-get update && sudo apt-get install -y \
 
 ### 3.1 Operating System Setup
 
-1. **Write OS image** to microSD card:
+The device runs a complete SD-card image, built with debos from
+`resources/debos/raspbian.yaml` (Debian trixie plus the Raspberry Pi archive).
+It already contains the Carnine packages, the `carnine` user, the runtime
+directories and the configuration; there is no manual OS setup with
+`raspi-config`. `resources/debos/README.md` describes the build (podman with
+`godebos/debos`) and its switches:
 
-   ```bash
-   # on workstation
-   sudo dd if=2024-12-05-raspios-bookworm-arm64.img \
-       of=/dev/sdX bs=4M status=progress
-   sync
-   ```
+- `-t display:waveshare-1024x600`: Waveshare panel with its EDID (docs/22);
+  default `auto`
+- `-t audio_output:jack`: headphone jack as card 0 instead of HDMI (see
+  [Audio output](#audio-output))
+- `-t power_supply:auprv1`: car power supply with `gpio-poweroff` (docs/23)
+- `-t target_hostname:<name>`, `-t "ssh_public_key:…"`
 
-2. **Enable kernel modules/interfaces**:
+The result is `raspbian.img.gz` with the block map `raspbian.img.bmap` and
+the build log below `build-logs/`. Write it to the card with `bmaptool copy`,
+or from Windows with an imaging tool, after checking which card is selected.
 
-   ```bash
-   sudo raspi-config
-   # enable SPI, I2C, disable serial console if using hardware UART for CAN,
-   # set boot to Desktop.
-   ```
-
-3. **Configure CAN (socketcan)**:
-
-   ```bash
-   sudo tee /etc/network/interfaces.d/can0 > /dev/null <<'EOF'
-   auto can0
-   iface can0 can static
-       bitrate 500000
-       up ip link set \$IFACE type can bitrate 500000 restart-ms 100
-       down ip link set \$IFACE down
-   EOF
-
-   sudo systemctl restart networking
-   ip link show can0  # should be UP
-   ```
-
-4. **Update packages**:
-
-   ```bash
-   sudo apt-get update && sudo apt-get upgrade -y
-   ```
+CAN is not set up in the image yet: there is no CAN code in the backend, and
+the adapter depends on the vehicle.
 
 ### 3.2 Build Backend (Rust)
 
-**Build on workstation (Linux), then transfer to Pi.**
+`./build_pi.sh` builds the backend together with the frontend on the
+workstation. For the backend it
 
-1. Install Rust toolchain:
+1. checks the arm64 sysroot (`CARNINE_ARM64_SYSROOT`, default
+   `build/sysroots/carnine-pi-arm64`),
+2. cross-compiles with `aarch64-linux-gnu-gcc` as linker and `PKG_CONFIG_*`
+   pointing into the sysroot, with `CARNINE_VERSION` and `CARNINE_BUILD_ID`
+   from `VERSION` and the commit,
+3. packages it with `cargo deb --target aarch64-unknown-linux-gnu` and
+   stages the result as `resources/debos/carnine-backend.deb`.
 
-   ```bash
-   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-   source $HOME/.cargo/env
-   rustup target add aarch64-unknown-linux-gnu
-   ```
-
-2. Build:
-
-   ```bash
-   cd src/backend
-   cargo build --release --target aarch64-unknown-linux-gnu
-   mkdir -p build/backend
-   cp target/aarch64-unknown-linux-gnu/release/carnine-backend build/backend/
-   ```
+`./deploy_pi.sh` installs the staged packages on a device, and the debos
+recipe takes them into a new image.
 
 ### 3.3 Build Frontend (Flutter via emb_cli / ivi-homescreen)
 
@@ -604,7 +607,9 @@ the steps are listed for provisioning a new build host.
 3. **Install** the resulting `resources/debos/carnine-frontend.deb` with
    `./deploy_pi.sh`. The package installs the bundle to
    `/opt/carnine/frontend`; `/usr/bin/carnine-frontend` starts
-   `homescreen -b /opt/carnine/frontend -f`.
+   `homescreen -b /opt/carnine/frontend -f -c` (`-c`: touch only, no
+   pointer). `CARNINE_HOMESCREEN_ARGS` in a systemd drop-in adds further
+   embedder flags without a rebuild, for example `-d --drm-pipeline-depth 2`.
 
 4. **Stop it by hand** with `pkill -x homescreen`. `pkill -f homescreen`
    also matches the SSH command line that runs it.
@@ -710,11 +715,14 @@ Verify the service directly on the Pi:
 ```bash
 sudo systemctl is-active carnine-backend.service
 ls -l /run/carnine/carnine.sock
-sudo -u carnine grpcurl -plaintext -unix /run/carnine/carnine.sock carnine.SystemService/GetServiceVersion
+sudo -u carnine grpcurl -plaintext -import-path . -proto carnine.proto \
+  -unix /run/carnine/carnine.sock carnine.MediaService/GetServiceVersion
 ```
 
 (`grpcurl` supports Unix sockets via `-unix`; install it separately, it does
-not ship with the image.)
+not ship with the image. The backend offers no gRPC reflection, so grpcurl
+needs `src/proto/carnine.proto`, copied next to it. `GetServiceVersion`
+exists on `MediaService`, `AudioService` and `NavigationService`.)
 
 For debugging from a development machine against a Pi in the field, forward
 the remote Unix socket to a local one over SSH instead of exposing the
@@ -729,7 +737,8 @@ In a second terminal, point any Unix-socket-aware gRPC client at the local
 end of the tunnel, e.g.:
 
 ```bash
-grpcurl -plaintext -unix /tmp/carnine-debug.sock carnine.SystemService/GetServiceVersion
+grpcurl -plaintext -import-path src/proto -proto carnine.proto \
+  -unix /tmp/carnine-debug.sock carnine.MediaService/GetServiceVersion
 ```
 
 ### Local development (WSL2/desktop): TCP loopback fallback
@@ -749,7 +758,7 @@ root-owned tmpfs and a plain dev user cannot create it, unlike the installed
 service which gets it from `RuntimeDirectory=carnine`.) Then:
 
 ```bash
-cargo run --example media_grpc_client -- http://127.0.0.1:50052 version
+cargo run --example media_grpc_client -- http://127.0.0.1:50051 version
 ```
 
 Use `127.0.0.1`, not `[::1]`, for this fallback: WSL2's localhost port

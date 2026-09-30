@@ -4,7 +4,7 @@
 
 These are the next concrete work items after the current backend and image integration:
 
-1. ~~Validate UDisks2 add/remove and mount events with a real USB device on the Raspberry Pi.~~ Done on 2026-09-23 with a MUSIK-labelled stick on the test Pi. It uncovered two defects that had made the feature unusable: the NUL terminator in the UDisks2 mount path, so no volume was ever seen as existing, and a library event stream without a snapshot, so the offer was broadcast before the UI had subscribed. Follow-ups: debouncing the UDisks2 event storm (#25) and a global notification area, because the banner only exists on the media page (#24).
+1. ~~Validate UDisks2 add/remove and mount events with a real USB device on the Raspberry Pi.~~ Done on 2026-09-23 with a MUSIK-labelled stick on the test Pi. It uncovered two defects that had made the feature unusable: the NUL terminator in the UDisks2 mount path, so no volume was ever seen as existing, and a library event stream without a snapshot, so the offer was broadcast before the UI had subscribed. Follow-ups: debouncing the UDisks2 event storm (#25, done on 2026-09-27: one scan per burst) and a global notification area, because the banner only exists on the media page (#24).
 2. ~~Investigate audio pause latency and intermittent dropouts.~~ Closed on 2026-09-23 after listening on the target hardware: with the decoder no longer burning a core on a full ring buffer, playback and pause behave. Closed on listening, not on a measurement - reopen if it returns. The stop click/pop was resolved separately: it comes from the HDMI sink losing its IEC958 carrier when the PCM stream closes, not from the backend (see [20 – Media Backend Plan](20-media-backend-plan.md#audio-regressionsmessungen)).
 3. Standardize frontend error states and recovery actions, then verify the 1024x600 layout on the Raspberry Pi.
 4. Verify the complete image boot path after power cycles, including service recovery and graceful `SIGTERM` shutdown.
@@ -13,10 +13,10 @@ These are the next concrete work items after the current backend and image integ
 ## Feature Ideas
 
 ### Short-term Ideas
-- [ ] Define first stable `.proto` contract for core control and telemetry messages
-- [ ] Implement minimal end-to-end vertical slice (frontend button -> backend RPC -> response)
-- [ ] Add backend health endpoint and frontend connection banner handling
-- [ ] Create reproducible local build scripts for backend and frontend
+- [x] Define first stable `.proto` contract for core control messages (`src/proto/carnine.proto`); telemetry messages are still open (CAN)
+- [x] Implement minimal end-to-end vertical slice (frontend button -> backend RPC -> response)
+- [x] Frontend connection banner handling (gRPC keepalive); a separate backend health endpoint was not needed so far
+- [x] Create reproducible local build scripts for backend and frontend (`build_pi.sh`, `run_wsl.sh`)
 
 ### Media: Before Implementation
 - Detailed working plan: [20 – Media Backend Plan](20-media-backend-plan.md)
@@ -50,12 +50,12 @@ These are the next concrete work items after the current backend and image integ
 - [x] Package the selected audio dependencies in the Debos image and backend Debian package
 
 ### Media: Deferred
-- [ ] USB medium plugin/service and automatic mount or insertion detection
+- [x] USB medium plugin/service and automatic mount or insertion detection (`storage_events.rs`, ADR-014)
 - [x] Define and document systemd/D-Bus storage-event integration (selected `udisks2` API) before implementation
 - [x] Implement the systemd-managed storage event listener for block-device add/remove and mount-state changes, then notify the media service
 - [x] Validate UDisks2 add/remove and mount events with a real USB device on the Raspberry Pi
 - [ ] Settings UI for media folders and playlist resume mode
-- [ ] Queue editing, seek RPC (#8), shuffle (#9), and advanced queue operations
+- [ ] Queue editing and advanced queue operations (seek ±30 s #8 and shuffle #9 are done)
 - [ ] M3U import/export
 - [ ] Party mode
 - [ ] Gapless playback and cross-fading
@@ -70,7 +70,7 @@ These are the next concrete work items after the current backend and image integ
 - [ ] Integrate CAN telemetry ingestion with bounded update rates and UI throttling
 - [ ] Add offline cache synchronization strategy for navigation/media metadata
 - [ ] Introduce authenticated LAN remote control endpoint (no WAN exposure)
-- [ ] Add service recovery validation on power cycles and graceful `SIGTERM` shutdown of audio playback
+- [ ] Add service recovery validation on power cycles (graceful `SIGTERM` shutdown with saved resume state is implemented; the power-cycle test with the power supply is open, #36)
 - [x] Install the backend Debian package and its systemd unit as part of the Debos image build
 
 ### Long-term Vision
@@ -87,13 +87,13 @@ These are the next concrete work items after the current backend and image integ
 - [x] Create a Debian package for the Flutter frontend, matching the backend package
 
 ### Backend (Rust)
-- [ ] Finalize UDS-based gRPC transport behavior and reconnect policy
+- [x] Finalize UDS-based gRPC transport behavior and reconnect policy (`server_transport.rs`, reconnect fixed in #44)
 - [ ] Add structured error taxonomy and context propagation
 - [x] Add configuration layering (defaults, file, env overrides)
 - [x] Implement validated, atomic TOML configuration updates through `ConfigService`
 
 ### Infrastructure / DevOps
-- [ ] Establish GitHub Actions pipeline (lint, test, cross-build checks)
+- [x] Establish GitHub Actions pipeline (lint, test, native arm64 build)
 - [ ] Define a reproducible ARM64 audio-build environment for CI/CD: the local
 	Pi-derived `/tmp` sysroot used by the cpal spike is not suitable for CI.
 	Compare an ARM64 container/native runner with pinned Debian FFmpeg/ALSA

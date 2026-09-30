@@ -46,8 +46,8 @@ loslassen:
 
 ## Sonstiges
 
-- **⇧** gilt nur für das nächste Zeichen, eine Feststelltaste gibt es nicht. In
-  einem leeren Feld ist ⇧ schon an.
+- **⇧** gilt nur für das nächste Zeichen, eine Feststelltaste gibt es nicht. Tippt
+  man ein leeres Feld an, ist ⇧ schon an.
 - **⌫** löscht beim Drücken ein Zeichen, nach einer halben Sekunde Halten
   laufend weiter; markierter Text wird als Ganzes gelöscht.
 - **Fertig** schließt die Tastatur und bestätigt die Eingabe – beim
