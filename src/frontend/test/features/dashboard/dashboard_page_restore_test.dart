@@ -18,6 +18,17 @@ class FakeUiStateStore implements UiStateStore {
   final List<Object> loadErrors = <Object>[];
   int loadCalls = 0;
 
+  String language = '';
+  final List<String> savedLanguages = <String>[];
+
+  @override
+  Future<String> loadLanguage() async => language;
+
+  @override
+  Future<void> saveLanguage(String languageCode) async {
+    savedLanguages.add(languageCode);
+  }
+
   @override
   Future<String> loadLastPage() async {
     loadCalls++;

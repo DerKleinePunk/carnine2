@@ -1,4 +1,5 @@
 import 'package:carnine_frontend/app/app_theme.dart';
+import 'package:carnine_frontend/app/language_persistence.dart';
 import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_controller.dart';
 import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_overlay.dart';
 import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_scope.dart';
@@ -33,8 +34,24 @@ class _CarnineAppState extends State<CarnineApp> {
   late final OnScreenKeyboardController _keyboardController =
       OnScreenKeyboardController();
 
+  // The language survives a restart like the page shown last (#30).
+  LanguagePersistence? _languagePersistence;
+
+  @override
+  void initState() {
+    super.initState();
+    final store = widget.uiStateStore;
+    if (store != null) {
+      _languagePersistence = LanguagePersistence(
+        controller: _languageController,
+        store: store,
+      )..start();
+    }
+  }
+
   @override
   void dispose() {
+    _languagePersistence?.dispose();
     _languageController.dispose();
     _keyboardController.dispose();
     super.dispose();

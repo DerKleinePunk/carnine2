@@ -7,4 +7,10 @@ abstract interface class UiStateStore {
   Future<String> loadLastPage();
 
   Future<void> saveLastPage(String page);
+
+  /// Code of the display language chosen last (e.g. `en`), or an empty
+  /// string when none was saved (#30).
+  Future<String> loadLanguage();
+
+  Future<void> saveLanguage(String languageCode);
 }

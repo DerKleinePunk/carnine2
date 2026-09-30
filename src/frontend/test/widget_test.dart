@@ -2,6 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:carnine_frontend/app/carnine_app.dart';
+import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
+
+/// Answers like a backend that has English saved (#30).
+class _EnglishStore implements UiStateStore {
+  final List<String> savedLanguages = <String>[];
+
+  @override
+  Future<String> loadLanguage() async => 'en';
+
+  @override
+  Future<void> saveLanguage(String languageCode) async {
+    savedLanguages.add(languageCode);
+  }
+
+  @override
+  Future<String> loadLastPage() async => '';
+
+  @override
+  Future<void> saveLastPage(String page) async {}
+}
 
 void main() {
   testWidgets('shows dashboard shell', (WidgetTester tester) async {
@@ -18,6 +38,21 @@ void main() {
     expect(find.text('CarNiNe'), findsNothing);
     expect(find.text('Dashboard-Inhalt für Start'), findsOneWidget);
     expect(find.text('gRPC-Status: Nicht verbunden'), findsOneWidget);
+  });
+
+  testWidgets('starts in the language saved last (#30)', (tester) async {
+    tester.view.physicalSize = const Size(1024, 600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final store = _EnglishStore();
+
+    await tester.pumpWidget(CarnineApp(uiStateStore: store));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Settings'), findsOneWidget);
+    expect(find.text('Optionen'), findsNothing);
+    expect(store.savedLanguages, isEmpty, reason: 'restoring is no new pick');
   });
 
   testWidgets('opens option pages from the touch grid', (

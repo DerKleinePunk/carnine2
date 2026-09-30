@@ -60,6 +60,34 @@ class CarnineGrpcService implements UiStateStore {
     }
   }
 
+  @override
+  Future<String> loadLanguage() async {
+    final channel = _channelFactory();
+    try {
+      final stub = SystemServiceClient(channel);
+      final state = await stub.getUiState(Empty());
+      return state.language;
+    } finally {
+      await channel.shutdown();
+    }
+  }
+
+  /// Sends only the language, so the saved page stays (and the other way
+  /// round in [saveLastPage]).
+  @override
+  Future<void> saveLanguage(String languageCode) async {
+    final channel = _channelFactory();
+    try {
+      final stub = SystemServiceClient(channel);
+      final response = await stub.saveUiState(UiState(language: languageCode));
+      if (!response.success) {
+        throw StateError(response.message);
+      }
+    } finally {
+      await channel.shutdown();
+    }
+  }
+
   /// Fetches engine temperature CAN data through the generated protobuf stub.
   Future<List<CanData>> fetchEngineTemperature() {
     return fetchCanData(sensorId: 'engine_temp');
