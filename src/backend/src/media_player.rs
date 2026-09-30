@@ -7,7 +7,7 @@ use rand::seq::SliceRandom;
 use rand::thread_rng;
 use tokio::sync::broadcast;
 
-use crate::audio_engine::{AudioEngine, AudioOutputUnavailable, Playback, RetryingAudioEngine};
+use crate::audio_engine::{AudioEngine, Playback, RetryingAudioEngine};
 use crate::carnine::{
     AudioEvent, AudioEventType, PlayerEvent, PlayerEventType, PlayerState, RepeatMode,
 };
@@ -39,6 +39,9 @@ pub struct MediaPlayer {
     events: broadcast::Sender<PlayerEvent>,
     audio_events: broadcast::Sender<AudioEvent>,
     duration_lookup: Mutex<Option<DurationLookup>>,
+    /// Whether an output device was there when last reported (#56), so only
+    /// a change goes out as an audio event.
+    output_reported: Mutex<Option<bool>>,
     /// Duration of the last looked-up path, so position events - one a
     /// second - do not each open the library.
     duration_cache: Mutex<Option<(String, i64)>>,
@@ -69,6 +72,7 @@ impl MediaPlayer {
             events,
             audio_events,
             duration_lookup: Mutex::new(None),
+            output_reported: Mutex::new(None),
             duration_cache: Mutex::new(None),
         }
     }
@@ -125,9 +129,39 @@ impl MediaPlayer {
         self.engine.output_available()
     }
 
+    /// Publishes AUDIO_OUTPUT_UNAVAILABLE or AUDIO_OUTPUT_AVAILABLE when the
+    /// output device went away or came back since the last report (#56), so a
+    /// UI can keep its hint for exactly as long. A missing device is also
+    /// reported the first time; a present one only as a change.
+    pub fn report_output_availability(&self) {
+        let available = self.engine.output_available();
+        let mut reported = self
+            .output_reported
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let previous = reported.replace(available);
+        if previous == Some(available) || (previous.is_none() && available) {
+            return;
+        }
+        drop(reported);
+        if available {
+            tracing::info!("audio output available again");
+            self.publish_audio(
+                AudioEventType::AudioOutputAvailable,
+                "audio output available",
+            );
+        } else {
+            tracing::warn!("no audio output available");
+            self.publish_audio(
+                AudioEventType::AudioOutputUnavailable,
+                "no audio output available",
+            );
+        }
+    }
+
     /// Starts `input_path` on the engine; `None` starts at the beginning.
-    /// A missing output device is also reported as an audio error, which is
-    /// what the UI shows a hint for.
+    /// A device that went away or came back is reported as an audio event,
+    /// which the UI keeps its hint for (#56).
     fn start_engine(
         &self,
         input_path: &str,
@@ -137,11 +171,8 @@ impl MediaPlayer {
             Some(position_ms) => self.engine.start_at(input_path, position_ms),
             None => self.engine.start(input_path),
         };
-        if let Err(error) = &started {
-            if let Some(unavailable) = error.downcast_ref::<AudioOutputUnavailable>() {
-                self.publish_audio(AudioEventType::AudioError, unavailable.to_string());
-            }
-        }
+        // A start is where a missing device is opened again, or found gone.
+        self.report_output_availability();
         started
     }
 
@@ -591,7 +622,7 @@ impl MediaPlayer {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
         tracing::warn!(position_ms, "audio output lost while playing; paused");
-        self.publish_audio(AudioEventType::AudioError, "audio output failed");
+        self.report_output_availability();
         self.publish(
             PlayerEventType::PlayerPaused,
             "playback paused: audio output failed",
@@ -1012,6 +1043,7 @@ impl MediaPlayer {
             loop {
                 interval.tick().await;
                 player.handle_output_lost();
+                player.report_output_availability();
                 if player.is_active_track_finished() {
                     let player = Arc::clone(&player);
                     let _ =
@@ -1050,7 +1082,7 @@ mod tests {
     }
 
     #[test]
-    fn without_an_output_device_play_fails_and_reports_an_audio_error() {
+    fn without_an_output_device_play_fails_and_reports_the_missing_output() {
         use crate::audio_engine::RetryingAudioEngine;
         use crate::carnine::AudioEventType;
 
@@ -1070,9 +1102,66 @@ mod tests {
         assert!(format!("{error:#}").contains("no audio output available"));
         let event = audio_events
             .try_recv()
-            .expect("an audio error is published");
-        assert_eq!(event.event, AudioEventType::AudioError as i32);
+            .expect("the missing output is published");
+        assert_eq!(event.event, AudioEventType::AudioOutputUnavailable as i32);
+        // Once, not on every further attempt (#56).
+        let _ = player.execute("play", &track.to_string_lossy());
+        assert!(audio_events.try_recv().is_err());
         assert!(player.shutdown_output().is_ok());
+    }
+
+    // #56: HDMI that comes up late. The hint must stay while the device is
+    // missing and go once a later start opens it - each change reported once.
+    #[test]
+    fn a_device_that_appears_later_is_reported_as_available_again() {
+        use crate::audio_engine::RetryingAudioEngine;
+        use crate::carnine::AudioEventType;
+        use std::sync::atomic::AtomicBool;
+
+        let present = Arc::new(AtomicBool::new(false));
+        let factory_present = Arc::clone(&present);
+        let player =
+            MediaPlayer::with_engine(Box::new(RetryingAudioEngine::new(Box::new(move || {
+                if factory_present.load(Ordering::SeqCst) {
+                    Ok(Box::new(FakeAudioEngine {
+                        finished: Arc::new(AtomicBool::new(false)),
+                        starts: StartLog::default(),
+                    }) as Box<dyn AudioEngine>)
+                } else {
+                    Err(anyhow::anyhow!("snd_pcm_open failed"))
+                }
+            }))));
+        let mut audio_events = player.audio_event_sender().subscribe();
+        let track =
+            std::env::temp_dir().join(format!("carnine-late-output-{}.mp3", std::process::id()));
+        std::fs::write(&track, b"").expect("test track should be writable");
+        let path = track.to_string_lossy().into_owned();
+        let mut events = || -> Vec<i32> {
+            std::iter::from_fn(|| audio_events.try_recv().ok())
+                .map(|event| event.event)
+                .collect()
+        };
+
+        assert!(player.execute("play", &path).is_err());
+        player.report_output_availability();
+        assert_eq!(events(), [AudioEventType::AudioOutputUnavailable as i32]);
+
+        present.store(true, Ordering::SeqCst);
+        player
+            .execute("play", &path)
+            .expect("the device is there now");
+        player.report_output_availability();
+
+        let after = events();
+        assert_eq!(
+            after
+                .iter()
+                .filter(|event| **event == AudioEventType::AudioOutputAvailable as i32)
+                .count(),
+            1
+        );
+        assert!(!after.contains(&(AudioEventType::AudioOutputUnavailable as i32)));
+        let _ = std::fs::remove_file(track);
     }
 
     struct FakePlayback {
@@ -1239,8 +1328,8 @@ mod tests {
         std::thread::sleep(std::time::Duration::from_millis(20));
         assert_eq!(player.position_ms(), frozen, "the position must stop");
         assert_eq!(
-            audio_events.try_recv().expect("an audio error").event,
-            AudioEventType::AudioError as i32
+            audio_events.try_recv().expect("the lost output").event,
+            AudioEventType::AudioOutputUnavailable as i32
         );
 
         player
@@ -1252,6 +1341,11 @@ mod tests {
             last_start(&starts),
             ("/music/first.mp3".to_string(), frozen)
         );
+        // The new output ends the UI's hint (#56).
+        let back: Vec<i32> = std::iter::from_fn(|| audio_events.try_recv().ok())
+            .map(|event| event.event)
+            .collect();
+        assert!(back.contains(&(AudioEventType::AudioOutputAvailable as i32)));
     }
 
     #[test]

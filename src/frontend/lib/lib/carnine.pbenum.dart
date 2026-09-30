@@ -166,6 +166,16 @@ class AudioEventType extends $pb.ProtobufEnum {
   static const AudioEventType AUDIO_ERROR =
       AudioEventType._(9, _omitEnumNames ? '' : 'AUDIO_ERROR');
 
+  /// No output device to play on (#56): the backend runs on without sound.
+  /// A newly opened stream starts with this instead of AUDIO_READY. It stays
+  /// so until AUDIO_OUTPUT_AVAILABLE - a UI shows it for as long.
+  static const AudioEventType AUDIO_OUTPUT_UNAVAILABLE =
+      AudioEventType._(10, _omitEnumNames ? '' : 'AUDIO_OUTPUT_UNAVAILABLE');
+
+  /// The output opened again, on the next start after it was missing.
+  static const AudioEventType AUDIO_OUTPUT_AVAILABLE =
+      AudioEventType._(11, _omitEnumNames ? '' : 'AUDIO_OUTPUT_AVAILABLE');
+
   static const $core.List<AudioEventType> values = <AudioEventType>[
     AUDIO_EVENT_TYPE_UNSPECIFIED,
     AUDIO_READY,
@@ -177,10 +187,12 @@ class AudioEventType extends $pb.ProtobufEnum {
     AUDIO_SOURCE_REMOVED,
     AUDIO_DEVICE_CHANGED,
     AUDIO_ERROR,
+    AUDIO_OUTPUT_UNAVAILABLE,
+    AUDIO_OUTPUT_AVAILABLE,
   ];
 
   static final $core.List<AudioEventType?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 9);
+      $pb.ProtobufEnum.$_initByValueList(values, 11);
   static AudioEventType? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

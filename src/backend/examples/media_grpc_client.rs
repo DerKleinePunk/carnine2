@@ -298,7 +298,13 @@ async fn stream_audio_events(endpoint: &str) -> Result<()> {
     let mut client = AudioServiceClient::<Channel>::connect(endpoint.to_string()).await?;
     let mut stream = client.stream_audio_events(Empty {}).await?.into_inner();
     read_events(&mut stream, count, |event| {
-        println!("audio event={} message={}", event.event, event.message);
+        let name = carnine::AudioEventType::try_from(event.event)
+            .map(|kind| kind.as_str_name())
+            .unwrap_or("UNKNOWN");
+        println!(
+            "audio event={} ({name}) message={}",
+            event.event, event.message
+        );
     })
     .await
 }

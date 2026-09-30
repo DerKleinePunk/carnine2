@@ -1276,7 +1276,7 @@ impl AudioService for AudioServiceImpl {
             }
         } else {
             AudioEvent {
-                event: AudioEventType::AudioError as i32,
+                event: AudioEventType::AudioOutputUnavailable as i32,
                 message: "no audio output available".to_string(),
             }
         }));
@@ -2699,7 +2699,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn audio_event_stream_starts_with_an_error_without_an_output_device() {
+    async fn audio_event_stream_starts_with_the_missing_output() {
         let (events, _) = tokio::sync::broadcast::channel(32);
         let service = AudioServiceImpl::with_events(
             events,
@@ -2719,7 +2719,10 @@ mod tests {
             .await
             .expect("audio snapshot should arrive")
             .expect("audio snapshot should be valid");
-        assert_eq!(snapshot.event, AudioEventType::AudioError as i32);
+        assert_eq!(
+            snapshot.event,
+            AudioEventType::AudioOutputUnavailable as i32
+        );
     }
 
     #[tokio::test]

@@ -326,6 +326,12 @@ enum AudioEventType {
   AUDIO_SOURCE_REMOVED = 7;
   AUDIO_DEVICE_CHANGED = 8;
   AUDIO_ERROR = 9;
+  // No output device to play on (#56): the backend runs on without sound.
+  // A newly opened stream starts with this instead of AUDIO_READY. It stays
+  // so until AUDIO_OUTPUT_AVAILABLE - a UI shows it for as long.
+  AUDIO_OUTPUT_UNAVAILABLE = 10;
+  // The output opened again, on the next start after it was missing.
+  AUDIO_OUTPUT_AVAILABLE = 11;
 }
 
 message AudioEvent {
