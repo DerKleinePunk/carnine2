@@ -34,7 +34,7 @@ The Rust Backend is a headless service executing the core logic.
 - **Navigation** (`navigation/`): GPS mouse over NMEA, clock from GPS, place search, route calculation with a local Valhalla, track recording.
 - **Power Supply Link** (`power_supply.rs`, `serial_line.rs`): Talks to the car power supply AuPrV1_1 on `/dev/powersupply` (USB serial or UART), sends the sign of life and publishes its state (docs/23).
 - **System Metrics Sampler** (`system_metrics.rs`): Reads CPU temperature, CPU utilisation and load average from `/sys` and `/proc` on a short cadence, and disk usage per filesystem on a slower one. Holds the latest snapshot for `SystemService.GetSystemMetrics` and pushes it to `StreamSystemMetrics` subscribers.
-- **CAN-Bus Handler** (planned): `CarnineService.GetCanData` returns a fixed placeholder today. The adapter is a MCP2515 on SPI; its details depend on the vehicle.
+- **CAN-Bus Handler** (planned): `CarnineService.GetCanData` returns a fixed placeholder today. Prepared: pins for an MCP2515 on SPI0 with its interrupt on GPIO 25 ([24 – CAN Adapter](24-can-adapter-mcp2515.md)); the adapter itself depends on the vehicle.
 
 Relationships: The gRPC server connects to the frontend and delegates to the other blocks. The audio engine, media library, navigation and power supply link access hardware (sound card, USB storage, GPS mouse, serial line). Relays on the power supply are switched by its own firmware, not by the backend.
 
