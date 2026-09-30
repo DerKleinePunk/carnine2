@@ -400,12 +400,18 @@ impl MediaServiceImpl {
         service
     }
 
+    /// Also keeps the playlist's own place (#68). A loose track saves its
+    /// path instead and leaves every playlist's place alone.
     fn save_resume_state(&self) -> anyhow::Result<()> {
         let database = database::Database::open(&self.database_path)?;
+        let playlist_id = self.player.playlist_id();
+        let media_path =
+            Some(self.player.media_path()).filter(|path| playlist_id.is_none() && !path.is_empty());
         database.save_resume_state(&ResumeState {
-            playlist_id: self.player.playlist_id(),
+            playlist_id,
             playlist_entry_id: self.player.playlist_entry_id(),
             position_ms: self.player.position_ms(),
+            media_path,
             resume_mode: self.resume_mode.clone(),
             repeat_mode: self.player.repeat_mode().as_str_name().to_string(),
             shuffle_enabled: self.player.shuffle_enabled(),
@@ -454,6 +460,12 @@ impl MediaServiceImpl {
         );
         self.player.set_shuffle_mode(state.shuffle_enabled);
         let Some(playlist_id) = state.playlist_id else {
+            // What played last was a loose track (#68): it comes back like a
+            // playlist would, at its place.
+            if let Some(path) = state.media_path {
+                self.player
+                    .restore_path(&path, state.position_ms, &self.resume_mode)?;
+            }
             return Ok(());
         };
         let entries = database.playlist_media_paths(playlist_id)?;
@@ -881,19 +893,16 @@ impl MediaService for MediaServiceImpl {
         request: Request<PlayPlaylistRequest>,
     ) -> Result<Response<CommandResponse>, Status> {
         let playlist_id = request.into_inner().playlist_id as i64;
-        let resume_state = database::Database::open(&self.database_path)
-            .map_err(|error| Status::internal(error.to_string()))?
-            .load_resume_state()
-            .map_err(|error| Status::internal(error.to_string()))?;
         let database = database::Database::open(&self.database_path)
             .map_err(|error| Status::internal(error.to_string()))?;
+        // The playlist's own place, whatever played in between (#68).
+        let (resume_entry_id, resume_position_ms) = database
+            .load_playlist_resume(playlist_id)
+            .map_err(|error| Status::internal(error.to_string()))?
+            .unwrap_or((None, 0));
         let entries = database
             .playlist_media_paths(playlist_id)
             .map_err(|error| Status::not_found(error.to_string()))?;
-        let (resume_entry_id, resume_position_ms) = resume_state
-            .filter(|state| state.playlist_id == Some(playlist_id))
-            .map(|state| (state.playlist_entry_id, state.position_ms))
-            .unwrap_or((None, 0));
         let message = self
             .player
             .play_playlist(
@@ -2818,6 +2827,153 @@ mod tests {
             RepeatMode::RepeatQueue
         );
         assert!(restored_service.player.shuffle_enabled());
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    /// A service on a fresh database with a two-track playlist.
+    fn service_with_two_track_playlist(name: &str) -> (MediaServiceImpl, PathBuf, i64, [i64; 2]) {
+        let database_path =
+            std::env::temp_dir().join(format!("carnine-{name}-{}.sqlite3", std::process::id()));
+        let _ = std::fs::remove_file(&database_path);
+        let database = database::Database::open(&database_path).expect("database should open");
+        let source_id = database
+            .upsert_source("/music", "AVAILABLE")
+            .expect("source should save");
+        let playlist_id = database
+            .create_playlist("Hörbuch")
+            .expect("playlist should save");
+        let mut entry_ids = [0; 2];
+        for (index, entry_id) in entry_ids.iter_mut().enumerate() {
+            let media_id = database
+                .upsert_media(&database::MediaRecord {
+                    id: 0,
+                    source_id,
+                    path: format!("/music/chapter-{index}.mp3"),
+                    title: format!("Kapitel {index}"),
+                    artist: "Artist".to_string(),
+                    duration_ms: 600_000,
+                    status: "AVAILABLE".to_string(),
+                    cover_path: None,
+                })
+                .expect("media should save");
+            *entry_id = database
+                .add_playlist_entry(playlist_id, media_id)
+                .expect("playlist entry should save");
+        }
+        drop(database);
+        let service = MediaServiceImpl::with_player(
+            MediaPlayer::with_engine(Box::new(FakeAudioEngine)),
+            database_path.clone(),
+            Vec::new(),
+            Vec::new(),
+            "restore_paused".to_string(),
+            PathBuf::from("/tmp/carnine-covers"),
+        );
+        (service, database_path, playlist_id, entry_ids)
+    }
+
+    /// A real file for `play`, which refuses paths that do not exist.
+    fn loose_track(name: &str) -> PathBuf {
+        let path = std::env::temp_dir().join(format!("carnine-{name}-{}.mp3", std::process::id()));
+        std::fs::write(&path, b"").expect("loose track should be writable");
+        path
+    }
+
+    // #68: a track tapped in the search played as a queue of one and wiped
+    // the playlist's place - an audiobook started over from chapter one.
+    #[tokio::test]
+    async fn a_loose_track_keeps_the_place_of_the_playlist() {
+        let (service, database_path, playlist_id, entries) =
+            service_with_two_track_playlist("loose-keeps-place");
+        let loose = loose_track("loose-keeps-place");
+        service
+            .player
+            .play_playlist(
+                playlist_id,
+                vec![
+                    (entries[0], "/music/chapter-0.mp3".to_string()),
+                    (entries[1], "/music/chapter-1.mp3".to_string()),
+                ],
+                Some(entries[1]),
+                123_000,
+                "restore_paused",
+            )
+            .expect("playlist should load");
+        // What the UI sends for a track from the search: stop, then play.
+        MediaService::stop(&service, Request::new(Empty {}))
+            .await
+            .expect("stop should succeed");
+        MediaService::play(
+            &service,
+            Request::new(crate::carnine::PlayRequest {
+                media_path: loose.to_string_lossy().into_owned(),
+            }),
+        )
+        .await
+        .expect("the loose track should play");
+        service
+            .save_resume_state()
+            .expect("resume state should save");
+
+        MediaService::play_playlist(
+            &service,
+            Request::new(crate::carnine::PlayPlaylistRequest {
+                playlist_id: playlist_id as u64,
+            }),
+        )
+        .await
+        .expect("the playlist should start again");
+
+        assert_eq!(service.player.playlist_entry_id(), Some(entries[1]));
+        assert_eq!(service.player.position_ms(), 123_000);
+        let _ = std::fs::remove_file(loose);
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    #[test]
+    fn a_loose_track_comes_back_after_a_restart() {
+        let (service, database_path, _, _) = service_with_two_track_playlist("loose-restart");
+        let loose = loose_track("loose-restart");
+        let loose_path = loose.to_string_lossy().into_owned();
+        service
+            .player
+            .restore_path(&loose_path, 42_000, "restore_paused")
+            .expect("the loose track should load");
+        service
+            .save_resume_state()
+            .expect("resume state should save");
+
+        let restarted = MediaServiceImpl::with_player(
+            MediaPlayer::with_engine(Box::new(FakeAudioEngine)),
+            database_path.clone(),
+            Vec::new(),
+            Vec::new(),
+            "restore_paused".to_string(),
+            PathBuf::from("/tmp/carnine-covers"),
+        );
+        restarted
+            .restore_resume_state()
+            .expect("resume state should restore");
+
+        assert_eq!(restarted.player.media_path(), loose_path);
+        assert_eq!(restarted.player.position_ms(), 42_000);
+        assert_eq!(restarted.player.state(), "paused");
+        assert_eq!(restarted.player.playlist_id(), None);
+
+        // A file gone by the next start is left out, the start goes on.
+        std::fs::remove_file(&loose).expect("loose track should be removable");
+        let without_file = MediaServiceImpl::with_player(
+            MediaPlayer::with_engine(Box::new(FakeAudioEngine)),
+            database_path.clone(),
+            Vec::new(),
+            Vec::new(),
+            "restore_paused".to_string(),
+            PathBuf::from("/tmp/carnine-covers"),
+        );
+        without_file
+            .restore_resume_state()
+            .expect("a missing track must not fail the start");
+        assert_eq!(without_file.player.media_path(), "");
         let _ = std::fs::remove_file(database_path);
     }
 

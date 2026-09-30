@@ -422,6 +422,70 @@ impl MediaPlayer {
         Ok("playlist loaded".to_string())
     }
 
+    /// Brings back a loose track that played last (#68), the way
+    /// [`Self::play_playlist`] brings back a playlist: paused at
+    /// `position_ms`, at the start for `start-last-title`, playing for
+    /// `auto-play`. A file that is gone by now is left out rather than
+    /// failing the start.
+    pub fn restore_path(
+        &self,
+        input_path: &str,
+        position_ms: i64,
+        resume_mode: &str,
+    ) -> Result<String> {
+        if !matches!(
+            resume_mode,
+            "auto-play" | "start-last-title" | "restore_paused"
+        ) {
+            bail!("unsupported resume mode: {resume_mode}");
+        }
+        if !Path::new(input_path).is_file() {
+            tracing::warn!(input_path, "last track is gone, nothing to restore");
+            return Ok("last track is gone".to_string());
+        }
+        self.stop_active_playback()?;
+        *self
+            .queue
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = vec![input_path.to_string()];
+        self.queue_entry_ids
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clear();
+        *self
+            .queue_index
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(0);
+        *self
+            .playlist_id
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
+        *self
+            .position_ms
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = if resume_mode == "start-last-title"
+        {
+            0
+        } else {
+            position_ms.max(0)
+        };
+        *self
+            .media_path
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(input_path.to_string());
+        *self
+            .state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = PlaybackState::Paused;
+        if self.shuffle_enabled() {
+            self.reshuffle_from_current();
+        }
+        if resume_mode == "auto-play" {
+            self.start_current_path()?;
+        }
+        Ok("track loaded".to_string())
+    }
+
     /// Without a path: resume what is loaded, or start the current track.
     /// With a path: play that file from the start as a queue of one, also
     /// over a paused or playing track - a path that only resumed the old

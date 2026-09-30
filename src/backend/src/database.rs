@@ -5,9 +5,9 @@ use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use anyhow::{Context, Result};
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, OptionalExtension};
 
-const CURRENT_SCHEMA_VERSION: i64 = 6;
+const CURRENT_SCHEMA_VERSION: i64 = 7;
 
 pub struct Database {
     connection: Connection,
@@ -38,6 +38,8 @@ pub struct ResumeState {
     pub playlist_id: Option<i64>,
     pub playlist_entry_id: Option<i64>,
     pub position_ms: i64,
+    /// The loose file that played last, when it was no playlist (#68).
+    pub media_path: Option<String>,
     pub resume_mode: String,
     /// Proto name of the repeat mode, e.g. `REPEAT_QUEUE`.
     pub repeat_mode: String,
@@ -210,6 +212,24 @@ impl Database {
                 "ALTER TABLE media ADD COLUMN file_size INTEGER;
                 ALTER TABLE media ADD COLUMN file_mtime_ms INTEGER;
                 INSERT INTO schema_migrations (version) VALUES (6);",
+            )?;
+        }
+        if version < 7 {
+            // Each playlist keeps its own place, so a loose track from the
+            // search no longer wipes it (#68); the place saved so far becomes
+            // that playlist's. resume_state still says what played last, now
+            // also a loose file.
+            self.connection.execute_batch(
+                "CREATE TABLE playlist_resume (
+                    playlist_id INTEGER PRIMARY KEY REFERENCES playlists(id) ON DELETE CASCADE,
+                    playlist_entry_id INTEGER REFERENCES playlist_entries(id) ON DELETE SET NULL,
+                    position_ms INTEGER NOT NULL DEFAULT 0
+                );
+                INSERT INTO playlist_resume (playlist_id, playlist_entry_id, position_ms)
+                    SELECT playlist_id, playlist_entry_id, position_ms FROM resume_state
+                    WHERE id = 1 AND playlist_id IS NOT NULL;
+                ALTER TABLE resume_state ADD COLUMN media_path TEXT;
+                INSERT INTO schema_migrations (version) VALUES (7);",
             )?;
         }
         if version > CURRENT_SCHEMA_VERSION {
@@ -475,31 +495,57 @@ impl Database {
         self.connection.execute(
             "INSERT INTO resume_state
                 (id, playlist_id, playlist_entry_id, position_ms, resume_mode,
-                 repeat_mode, shuffle_enabled)
-             VALUES (1, ?1, ?2, ?3, ?4, ?5, ?6)
+                 repeat_mode, shuffle_enabled, media_path)
+             VALUES (1, ?1, ?2, ?3, ?4, ?5, ?6, ?7)
              ON CONFLICT(id) DO UPDATE SET
                 playlist_id = excluded.playlist_id,
                 playlist_entry_id = excluded.playlist_entry_id,
                 position_ms = excluded.position_ms,
                 resume_mode = excluded.resume_mode,
                 repeat_mode = excluded.repeat_mode,
-                shuffle_enabled = excluded.shuffle_enabled",
+                shuffle_enabled = excluded.shuffle_enabled,
+                media_path = excluded.media_path",
             params![
                 state.playlist_id,
                 state.playlist_entry_id,
                 state.position_ms,
                 state.resume_mode,
                 state.repeat_mode,
-                state.shuffle_enabled
+                state.shuffle_enabled,
+                state.media_path
             ],
         )?;
+        if let Some(playlist_id) = state.playlist_id {
+            self.connection.execute(
+                "INSERT INTO playlist_resume (playlist_id, playlist_entry_id, position_ms)
+                 VALUES (?1, ?2, ?3)
+                 ON CONFLICT(playlist_id) DO UPDATE SET
+                    playlist_entry_id = excluded.playlist_entry_id,
+                    position_ms = excluded.position_ms",
+                params![playlist_id, state.playlist_entry_id, state.position_ms],
+            )?;
+        }
         Ok(())
+    }
+
+    /// Where `playlist_id` stopped last: its entry (if that still exists)
+    /// and the position in it. `None` for a playlist that never played.
+    pub fn load_playlist_resume(&self, playlist_id: i64) -> Result<Option<(Option<i64>, i64)>> {
+        Ok(self
+            .connection
+            .query_row(
+                "SELECT playlist_entry_id, position_ms FROM playlist_resume
+                 WHERE playlist_id = ?1",
+                [playlist_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?)
     }
 
     pub fn load_resume_state(&self) -> Result<Option<ResumeState>> {
         let mut statement = self.connection.prepare(
             "SELECT playlist_id, playlist_entry_id, position_ms, resume_mode,
-                    repeat_mode, shuffle_enabled
+                    repeat_mode, shuffle_enabled, media_path
              FROM resume_state WHERE id = 1",
         )?;
         let mut rows = statement.query([])?;
@@ -513,6 +559,7 @@ impl Database {
             resume_mode: row.get(3)?,
             repeat_mode: row.get(4)?,
             shuffle_enabled: row.get(5)?,
+            media_path: row.get(6)?,
         }))
     }
 
@@ -1069,6 +1116,100 @@ mod tests {
     }
 
     #[test]
+    fn a_loose_track_leaves_the_place_of_every_playlist_alone() {
+        let database = Database::open(":memory:").expect("database should open");
+        let source_id = database.upsert_source("/music", "AVAILABLE").unwrap();
+        let media_id = database
+            .upsert_media(&MediaRecord {
+                id: 0,
+                source_id,
+                path: "/music/a.mp3".to_string(),
+                title: "A".to_string(),
+                artist: "Artist".to_string(),
+                duration_ms: 1_000,
+                status: "AVAILABLE".to_string(),
+                cover_path: None,
+            })
+            .unwrap();
+        let playlist_id = database.create_playlist("Drive").unwrap();
+        let entry_id = database.add_playlist_entry(playlist_id, media_id).unwrap();
+        assert_eq!(database.load_playlist_resume(playlist_id).unwrap(), None);
+
+        let mut state = ResumeState {
+            playlist_id: Some(playlist_id),
+            playlist_entry_id: Some(entry_id),
+            position_ms: 5_000,
+            resume_mode: "restore_paused".to_string(),
+            repeat_mode: "REPEAT_OFF".to_string(),
+            shuffle_enabled: false,
+            media_path: None,
+        };
+        database.save_resume_state(&state).unwrap();
+        state.playlist_id = None;
+        state.playlist_entry_id = None;
+        state.position_ms = 9_000;
+        state.media_path = Some("/music/loose.mp3".to_string());
+        database.save_resume_state(&state).unwrap();
+
+        assert_eq!(
+            database.load_playlist_resume(playlist_id).unwrap(),
+            Some((Some(entry_id), 5_000))
+        );
+        let last = database.load_resume_state().unwrap().unwrap();
+        assert_eq!(last.media_path.as_deref(), Some("/music/loose.mp3"));
+        assert_eq!(last.position_ms, 9_000);
+    }
+
+    #[test]
+    fn schema_7_takes_over_the_place_saved_before() {
+        let path = std::env::temp_dir().join(format!(
+            "carnine-database-schema7-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&path);
+        let database = Database::open(&path).expect("database should open");
+        let source_id = database.upsert_source("/music", "AVAILABLE").unwrap();
+        let media_id = database
+            .upsert_media(&MediaRecord {
+                id: 0,
+                source_id,
+                path: "/music/a.mp3".to_string(),
+                title: "A".to_string(),
+                artist: "Artist".to_string(),
+                duration_ms: 1_000,
+                status: "AVAILABLE".to_string(),
+                cover_path: None,
+            })
+            .unwrap();
+        let playlist_id = database.create_playlist("Drive").unwrap();
+        let entry_id = database.add_playlist_entry(playlist_id, media_id).unwrap();
+        // Back to schema 6, with a place saved there.
+        database
+            .connection
+            .execute_batch(&format!(
+                "DROP TABLE playlist_resume;
+                 ALTER TABLE resume_state DROP COLUMN media_path;
+                 DELETE FROM schema_migrations WHERE version = 7;
+                 INSERT INTO resume_state (id, playlist_id, playlist_entry_id, position_ms, resume_mode)
+                     VALUES (1, {playlist_id}, {entry_id}, 70262, 'restore_paused');"
+            ))
+            .unwrap();
+        drop(database);
+
+        let database = Database::open(&path).expect("schema 6 should migrate");
+
+        assert_eq!(database.schema_version().unwrap(), 7);
+        assert_eq!(
+            database.load_playlist_resume(playlist_id).unwrap(),
+            Some((Some(entry_id), 70_262))
+        );
+        let state = database.load_resume_state().unwrap().unwrap();
+        assert_eq!(state.playlist_id, Some(playlist_id));
+        assert_eq!(state.media_path, None);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
     fn keeps_the_track_recording_switch() {
         let database = Database::open(":memory:").expect("database should open");
         assert!(
@@ -1301,6 +1442,7 @@ mod tests {
             resume_mode: "restore_paused".to_string(),
             repeat_mode: "REPEAT_QUEUE".to_string(),
             shuffle_enabled: true,
+            media_path: None,
         };
         database
             .save_resume_state(&state)
