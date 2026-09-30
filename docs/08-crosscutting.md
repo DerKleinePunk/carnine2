@@ -136,7 +136,15 @@ Today updates are Debian packages installed by `deploy_pi.sh` or a new SD-card i
 
 The maps page draws the MBTiles vector tiles with
 `src/frontend/assets/maps/style_carnine_dark.json`, rendered by
-`vector_map_tiles` and `vector_tile_renderer` 6.1 through `local_map`.
+`vector_map_tiles` and `vector_tile_renderer` 6.1 through `local_map`. Since
+0.9.5 (`local_map-v0.6.0`) both come from forks pinned to commits in the
+`dependency_overrides` of `src/frontend/pubspec.yaml`: the tiles are rendered
+for the map rotation rounded to 45° steps (`labelRotationStep: 45` in
+`maps_content.dart`), so labels are never upside down when the map follows
+the heading (flutter_local_map #1). Measured on the Pi 4 (jeep-pi,
+2026-09-30): 0–5 instead of 0–1 frames over 100 ms per drive and about
+30 MB more resident. If that hurts, the one line `labelRotationStep` in
+`maps_content.dart` switches it off again.
 
 ### Field Names in the Tiles
 - The Hessen tiles are built with tilemaker in the OpenMapTiles schema, and

@@ -181,7 +181,7 @@ carnine2 does not build any map data. Tiles, names database, routing tiles
 and the demo tour are made with the scripts in the map project
 [DerKleinePunk/flutter_local_map](https://github.com/DerKleinePunk/flutter_local_map),
 directory `scripts/`. Use the tag that `src/frontend/pubspec.yaml` pins for
-`local_map` (currently `local_map-v0.5.5`), so the data matches the library
+`local_map` (currently `local_map-v0.6.0`), so the data matches the library
 that draws it. The map project's `README.md` and
 `docs/valhalla-offline-setup.md` describe the tools and prerequisites
 (Docker, Python packages).
