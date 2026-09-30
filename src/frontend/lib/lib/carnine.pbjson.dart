@@ -966,6 +966,43 @@ final $typed_data.Uint8List systemMetricsDescriptor = $convert.base64Decode(
     'YW1wbGVkQXRVbml4TXNCGgoYX2NwdV90ZW1wZXJhdHVyZV9jZWxzaXVzQhQKEl9jcHVfdXNhZ2'
     'VfcGVyY2VudA==');
 
+@$core.Deprecated('Use thermalStatusDescriptor instead')
+const ThermalStatus$json = {
+  '1': 'ThermalStatus',
+  '2': [
+    {'1': 'overheated', '3': 1, '4': 1, '5': 8, '10': 'overheated'},
+    {
+      '1': 'cpu_temperature_celsius',
+      '3': 2,
+      '4': 1,
+      '5': 1,
+      '9': 0,
+      '10': 'cpuTemperatureCelsius',
+      '17': true
+    },
+    {'1': 'warn_celsius', '3': 3, '4': 1, '5': 1, '10': 'warnCelsius'},
+    {'1': 'clear_celsius', '3': 4, '4': 1, '5': 1, '10': 'clearCelsius'},
+    {
+      '1': 'changed_at_unix_ms',
+      '3': 5,
+      '4': 1,
+      '5': 3,
+      '10': 'changedAtUnixMs'
+    },
+  ],
+  '8': [
+    {'1': '_cpu_temperature_celsius'},
+  ],
+};
+
+/// Descriptor for `ThermalStatus`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List thermalStatusDescriptor = $convert.base64Decode(
+    'Cg1UaGVybWFsU3RhdHVzEh4KCm92ZXJoZWF0ZWQYASABKAhSCm92ZXJoZWF0ZWQSOwoXY3B1X3'
+    'RlbXBlcmF0dXJlX2NlbHNpdXMYAiABKAFIAFIVY3B1VGVtcGVyYXR1cmVDZWxzaXVziAEBEiEK'
+    'DHdhcm5fY2Vsc2l1cxgDIAEoAVILd2FybkNlbHNpdXMSIwoNY2xlYXJfY2Vsc2l1cxgEIAEoAV'
+    'IMY2xlYXJDZWxzaXVzEisKEmNoYW5nZWRfYXRfdW5peF9tcxgFIAEoA1IPY2hhbmdlZEF0VW5p'
+    'eE1zQhoKGF9jcHVfdGVtcGVyYXR1cmVfY2Vsc2l1cw==');
+
 @$core.Deprecated('Use powerSupplyStatusDescriptor instead')
 const PowerSupplyStatus$json = {
   '1': 'PowerSupplyStatus',

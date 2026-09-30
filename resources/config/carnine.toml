@@ -48,6 +48,13 @@ disk_metrics_interval_seconds = 300
 # root filesystem plus every media folder above, deduplicated per filesystem,
 # so a mounted MUSIK volume is picked up without touching this file.
 disk_paths = []
+# Overheating (#70): from warn on, every UI shows a warning that has to be
+# confirmed; it ends only below clear, so it does not flicker around warn.
+# The Pi 4 throttles at 80 °C. While at or above clear, the CPU values are
+# sampled every warm_metrics_interval_seconds instead.
+cpu_temperature_warn_celsius = 75.0
+cpu_temperature_clear_celsius = 70.0
+warm_metrics_interval_seconds = 5
 
 # Navigation (ADR-021). Without this section there is no position source and
 # routing points at the default Valhalla address below. On a device, put the

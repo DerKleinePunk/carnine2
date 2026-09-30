@@ -990,6 +990,26 @@ class SystemServiceClient extends $grpc.Client {
         options: options);
   }
 
+  /// Whether the CPU is too hot (#70). The backend decides, with hysteresis
+  /// (system.cpu_temperature_warn_celsius / _clear_celsius), so every UI
+  /// agrees. Absent a thermal zone (e.g. WSL) it never reports overheated.
+  $grpc.ResponseFuture<$0.ThermalStatus> getThermalStatus(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getThermalStatus, request, options: options);
+  }
+
+  /// Starts with the current status, then pushes one on every change.
+  $grpc.ResponseStream<$0.ThermalStatus> streamThermalStatus(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$streamThermalStatus, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
   /// What the car power supply (AuPrV1_1, docs/23-power-supply.md) last
   /// reported. Answers with configured = false on a device without one.
   $grpc.ResponseFuture<$0.PowerSupplyStatus> getPowerSupplyStatus(
@@ -1043,6 +1063,16 @@ class SystemServiceClient extends $grpc.Client {
           '/carnine.SystemService/StreamSystemMetrics',
           ($0.Empty value) => value.writeToBuffer(),
           $0.SystemMetrics.fromBuffer);
+  static final _$getThermalStatus =
+      $grpc.ClientMethod<$0.Empty, $0.ThermalStatus>(
+          '/carnine.SystemService/GetThermalStatus',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.ThermalStatus.fromBuffer);
+  static final _$streamThermalStatus =
+      $grpc.ClientMethod<$0.Empty, $0.ThermalStatus>(
+          '/carnine.SystemService/StreamThermalStatus',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.ThermalStatus.fromBuffer);
   static final _$getPowerSupplyStatus =
       $grpc.ClientMethod<$0.Empty, $0.PowerSupplyStatus>(
           '/carnine.SystemService/GetPowerSupplyStatus',
@@ -1090,6 +1120,20 @@ abstract class SystemServiceBase extends $grpc.Service {
         true,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($0.SystemMetrics value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.ThermalStatus>(
+        'GetThermalStatus',
+        getThermalStatus_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.ThermalStatus value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.ThermalStatus>(
+        'StreamThermalStatus',
+        streamThermalStatus_Pre,
+        false,
+        true,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.ThermalStatus value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.Empty, $0.PowerSupplyStatus>(
         'GetPowerSupplyStatus',
         getPowerSupplyStatus_Pre,
@@ -1142,6 +1186,22 @@ abstract class SystemServiceBase extends $grpc.Service {
   }
 
   $async.Stream<$0.SystemMetrics> streamSystemMetrics(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.ThermalStatus> getThermalStatus_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return getThermalStatus($call, await $request);
+  }
+
+  $async.Future<$0.ThermalStatus> getThermalStatus(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Stream<$0.ThermalStatus> streamThermalStatus_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async* {
+    yield* streamThermalStatus($call, await $request);
+  }
+
+  $async.Stream<$0.ThermalStatus> streamThermalStatus(
       $grpc.ServiceCall call, $0.Empty request);
 
   $async.Future<$0.PowerSupplyStatus> getPowerSupplyStatus_Pre(

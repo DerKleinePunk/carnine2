@@ -55,6 +55,12 @@ service SystemService {
   // Pushes a snapshot on every CPU sample (system.metrics_interval_seconds),
   // starting with the current one.
   rpc StreamSystemMetrics (Empty) returns (stream SystemMetrics);
+  // Whether the CPU is too hot (#70). The backend decides, with hysteresis
+  // (system.cpu_temperature_warn_celsius / _clear_celsius), so every UI
+  // agrees. Absent a thermal zone (e.g. WSL) it never reports overheated.
+  rpc GetThermalStatus (Empty) returns (ThermalStatus);
+  // Starts with the current status, then pushes one on every change.
+  rpc StreamThermalStatus (Empty) returns (stream ThermalStatus);
   // What the car power supply (AuPrV1_1, docs/23-power-supply.md) last
   // reported. Answers with configured = false on a device without one.
   rpc GetPowerSupplyStatus (Empty) returns (PowerSupplyStatus);
@@ -398,6 +404,17 @@ message SystemMetrics {
   // and repeats unchanged across several CPU samples.
   repeated DiskUsage disks = 9;
   int64 disks_sampled_at_unix_ms = 10;
+}
+
+message ThermalStatus {
+  // Set at warn_celsius, cleared only once below clear_celsius again.
+  bool overheated = 1;
+  // The reading that caused the last change. Absent without a thermal zone.
+  optional double cpu_temperature_celsius = 2;
+  double warn_celsius = 3;
+  double clear_celsius = 4;
+  // When overheated last changed; 0 while it never has.
+  int64 changed_at_unix_ms = 5;
 }
 
 // The power supply's state machine (STATE_* in firmware/powersupply/).

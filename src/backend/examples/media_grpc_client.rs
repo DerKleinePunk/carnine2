@@ -22,7 +22,8 @@ use carnine::{
     NavigationStatus, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PositionFix,
     PositionSourceKind, PowerSupplyState, PowerSupplyStatus, RepeatMode, RescanMediaRequest, Route,
     SearchMediaRequest, SearchPlacesRequest, SeekRequest, SetRepeatModeRequest,
-    SetShuffleModeRequest, SetTrackRecordingRequest, SetVolumeRequest, SystemMetrics, UiState,
+    SetShuffleModeRequest, SetTrackRecordingRequest, SetVolumeRequest, SystemMetrics,
+    ThermalStatus, UiState,
 };
 
 #[tokio::main]
@@ -79,6 +80,8 @@ async fn main() -> Result<()> {
         "metrics-stream" => stream_system_metrics(&endpoint).await?,
         "power-supply" => get_power_supply_status(&endpoint).await?,
         "power-supply-stream" => stream_power_supply_status(&endpoint).await?,
+        "thermal" => get_thermal_status(&endpoint).await?,
+        "thermal-stream" => stream_thermal_status(&endpoint).await?,
         "ui-state" => get_ui_state(&endpoint).await?,
         "save-ui-state" => save_ui_state(&endpoint).await?,
         "nav-status" => get_navigation_status(&endpoint).await?,
@@ -595,6 +598,36 @@ async fn stream_power_supply_status(endpoint: &str) -> Result<()> {
         print_power_supply_status(&status)
     })
     .await
+}
+
+async fn get_thermal_status(endpoint: &str) -> Result<()> {
+    let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let status = client.get_thermal_status(Empty {}).await?.into_inner();
+    print_thermal_status(&status);
+    Ok(())
+}
+
+/// Prints the current status plus as many changes as requested (default 5),
+/// e.g. while the CPU heats up past the warn threshold and cools down again.
+async fn stream_thermal_status(endpoint: &str) -> Result<()> {
+    let count = event_count(5)?;
+    let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let mut stream = client.stream_thermal_status(Empty {}).await?.into_inner();
+    read_events(&mut stream, count, |status| print_thermal_status(&status)).await
+}
+
+fn print_thermal_status(status: &ThermalStatus) {
+    println!(
+        "overheated={} temperature={} warn={:.1}C clear={:.1}C changed_at_unix_ms={}",
+        status.overheated,
+        status
+            .cpu_temperature_celsius
+            .map(|celsius| format!("{celsius:.1}C"))
+            .unwrap_or_else(|| "-".to_string()),
+        status.warn_celsius,
+        status.clear_celsius,
+        status.changed_at_unix_ms
+    );
 }
 
 fn print_power_supply_status(status: &PowerSupplyStatus) {

@@ -8,6 +8,9 @@
 //!
 //! Nothing here blocks the gRPC handlers - the sampler writes into a shared
 //! snapshot, and `GetSystemMetrics` only reads that cache.
+//!
+//! The sampler also decides whether the CPU is overheated (#70), with
+//! hysteresis, and publishes that as its own status for the UI to warn on.
 
 use std::collections::HashSet;
 use std::fs;
@@ -17,17 +20,14 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, watch};
 use tracing::{debug, info, warn};
 
-use crate::carnine::{DiskUsage, SystemMetrics};
+use crate::carnine::{DiskUsage, SystemMetrics, ThermalStatus};
 
 /// Capacity of the broadcast channel behind `StreamSystemMetrics`. A client
 /// that falls this far behind loses samples rather than stalling the sampler.
 const EVENT_CHANNEL_CAPACITY: usize = 16;
-/// Logged as a warning once the CPU crosses this; the bcm2711 starts throttling
-/// at 80 °C.
-const TEMPERATURE_WARN_CELSIUS: f64 = 75.0;
 /// Logged as a warning once a monitored filesystem crosses this.
 const DISK_USAGE_WARN_PERCENT: f64 = 90.0;
 
@@ -36,6 +36,7 @@ const DISK_USAGE_WARN_PERCENT: f64 = 90.0;
 pub struct SystemMetricsHandle {
     latest: Mutex<SystemMetrics>,
     events: broadcast::Sender<SystemMetrics>,
+    thermal: watch::Sender<ThermalStatus>,
 }
 
 impl Default for SystemMetricsHandle {
@@ -43,6 +44,7 @@ impl Default for SystemMetricsHandle {
         Self {
             latest: Mutex::new(SystemMetrics::default()),
             events: broadcast::channel(EVENT_CHANNEL_CAPACITY).0,
+            thermal: watch::channel(ThermalStatus::default()).0,
         }
     }
 }
@@ -63,6 +65,20 @@ impl SystemMetricsHandle {
 
     pub fn subscribe(&self) -> broadcast::Receiver<SystemMetrics> {
         self.events.subscribe()
+    }
+
+    pub fn thermal_status(&self) -> ThermalStatus {
+        *self.thermal.borrow()
+    }
+
+    /// Yields the current thermal status first, then every change.
+    pub fn subscribe_thermal(&self) -> watch::Receiver<ThermalStatus> {
+        self.thermal.subscribe()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn publish_thermal_for_test(&self, status: ThermalStatus) {
+        self.thermal.send_replace(status);
     }
 
     /// Lets the gRPC-level tests in `main` drive a handle without running the
@@ -87,8 +103,72 @@ impl SystemMetricsHandle {
 #[derive(Debug, Clone)]
 pub struct SamplerSettings {
     pub cpu_interval: Duration,
+    /// Cadence while the CPU is at or above the clear threshold, so the
+    /// warning comes and goes without waiting a whole `cpu_interval`.
+    pub warm_interval: Duration,
     pub disk_interval: Duration,
     pub disk_paths: Vec<PathBuf>,
+    pub thermal: ThermalThresholds,
+    /// `/sys/class/thermal` in production; tests point it at a folder of
+    /// their own, so the overheating path runs without a Pi.
+    pub thermal_root: PathBuf,
+}
+
+pub const THERMAL_ROOT: &str = "/sys/class/thermal";
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ThermalThresholds {
+    pub warn_celsius: f64,
+    pub clear_celsius: f64,
+}
+
+/// Decides "overheated" with hysteresis: on at `warn_celsius`, off only
+/// below `clear_celsius`. A missing reading changes nothing - a sensor that
+/// cannot be read must not end a warning, and without one (WSL) there never
+/// is one.
+#[derive(Debug)]
+struct ThermalGuard {
+    thresholds: ThermalThresholds,
+    overheated: bool,
+}
+
+impl ThermalGuard {
+    fn new(thresholds: ThermalThresholds) -> Self {
+        Self {
+            thresholds,
+            overheated: false,
+        }
+    }
+
+    /// The new state, if this reading changes it.
+    fn update(&mut self, temperature: Option<f64>) -> Option<bool> {
+        let temperature = temperature?;
+        let overheated = if self.overheated {
+            temperature >= self.thresholds.clear_celsius
+        } else {
+            temperature >= self.thresholds.warn_celsius
+        };
+        if overheated == self.overheated {
+            return None;
+        }
+        self.overheated = overheated;
+        Some(overheated)
+    }
+
+    /// At or above the clear threshold the next sample comes sooner.
+    fn is_warm(&self, temperature: Option<f64>) -> bool {
+        self.overheated || temperature.is_some_and(|value| value >= self.thresholds.clear_celsius)
+    }
+
+    fn status(&self, temperature: Option<f64>, changed_at_unix_ms: i64) -> ThermalStatus {
+        ThermalStatus {
+            overheated: self.overheated,
+            cpu_temperature_celsius: temperature,
+            warn_celsius: self.thresholds.warn_celsius,
+            clear_celsius: self.thresholds.clear_celsius,
+            changed_at_unix_ms,
+        }
+    }
 }
 
 pub fn spawn(handle: Arc<SystemMetricsHandle>, settings: SamplerSettings) {
@@ -98,28 +178,31 @@ pub fn spawn(handle: Arc<SystemMetricsHandle>, settings: SamplerSettings) {
 async fn run(handle: Arc<SystemMetricsHandle>, settings: SamplerSettings) {
     info!(
         cpu_interval_seconds = settings.cpu_interval.as_secs(),
+        warm_interval_seconds = settings.warm_interval.as_secs(),
         disk_interval_seconds = settings.disk_interval.as_secs(),
         disk_paths = ?settings.disk_paths,
+        warn_celsius = settings.thermal.warn_celsius,
+        clear_celsius = settings.thermal.clear_celsius,
         "system metrics sampler started"
     );
 
-    let mut sampler = Sampler::new(settings.disk_paths.clone());
+    let mut sampler = Sampler::new(settings.disk_paths.clone(), settings.thermal_root.clone());
+    let mut thermal = ThermalGuard::new(settings.thermal);
+    handle.thermal.send_replace(thermal.status(None, 0));
     // One timer drives everything, and the disk group is folded into the tick
     // it is due on. Two independent timers would let a disk tick publish a
     // snapshot whose CPU values are stale - or, on the very first tick, absent
     // entirely. The cost is that the disk cadence is rounded up to the next CPU
-    // tick, which is exact for the defaults (300 is a multiple of 30).
-    let mut ticks = tokio::time::interval(settings.cpu_interval);
-    ticks.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
-    // `None` means "never sampled", which is always due. Seeding this with a
-    // timestamp instead would make the first tick depend on whether the
-    // interval's deadline lands before or after that timestamp - it lands
-    // before, by the microseconds it takes to construct the interval, so disks
-    // would be skipped on the very first tick.
+    // tick, which is exact for the defaults (300 is a multiple of 30). The
+    // next tick is set after each sample rather than by a fixed interval,
+    // because a warm CPU is sampled more often.
+    let mut next_tick = tokio::time::Instant::now();
+    // `None` means "never sampled", which is always due.
     let mut disks_due_at: Option<tokio::time::Instant> = None;
 
     loop {
-        let now = ticks.tick().await;
+        tokio::time::sleep_until(next_tick).await;
+        let now = tokio::time::Instant::now();
         sampler.sample_cpu();
 
         let disks_due = disks_due_at.is_none_or(|due| now >= due);
@@ -135,11 +218,28 @@ async fn run(handle: Arc<SystemMetricsHandle>, settings: SamplerSettings) {
             load_average_1m = metrics.load_average_1m,
             "sampled cpu metrics"
         );
-        if let Some(temperature) = metrics.cpu_temperature_celsius {
-            if temperature >= TEMPERATURE_WARN_CELSIUS {
-                warn!(temperature_celsius = temperature, "cpu temperature high");
+        let temperature = metrics.cpu_temperature_celsius;
+        if let Some(overheated) = thermal.update(temperature) {
+            if overheated {
+                warn!(temperature_celsius = temperature, "cpu overheated");
+            } else {
+                info!(
+                    temperature_celsius = temperature,
+                    "cpu no longer overheated"
+                );
             }
+            handle
+                .thermal
+                .send_replace(thermal.status(temperature, now_unix_ms()));
+        } else if thermal.overheated {
+            warn!(temperature_celsius = temperature, "cpu temperature high");
         }
+        let interval = if thermal.is_warm(temperature) {
+            settings.warm_interval.min(settings.cpu_interval)
+        } else {
+            settings.cpu_interval
+        };
+        next_tick = now + interval;
         if disks_due {
             for disk in &metrics.disks {
                 if disk.used_percent >= DISK_USAGE_WARN_PERCENT {
@@ -172,14 +272,16 @@ async fn run(handle: Arc<SystemMetricsHandle>, settings: SamplerSettings) {
 #[derive(Debug)]
 struct Sampler {
     disk_paths: Vec<PathBuf>,
+    thermal_root: PathBuf,
     previous_cpu_times: Option<CpuTimes>,
     metrics: SystemMetrics,
 }
 
 impl Sampler {
-    fn new(disk_paths: Vec<PathBuf>) -> Self {
+    fn new(disk_paths: Vec<PathBuf>, thermal_root: PathBuf) -> Self {
         Self {
             disk_paths,
+            thermal_root,
             previous_cpu_times: None,
             metrics: SystemMetrics::default(),
         }
@@ -190,13 +292,14 @@ impl Sampler {
     }
 
     fn sample_cpu(&mut self) -> SystemMetrics {
-        self.metrics.cpu_temperature_celsius = match read_cpu_temperature_celsius() {
-            Ok(temperature) => Some(temperature),
-            Err(error) => {
-                debug!(%error, "cpu temperature unavailable");
-                None
-            }
-        };
+        self.metrics.cpu_temperature_celsius =
+            match read_cpu_temperature_celsius(&self.thermal_root) {
+                Ok(temperature) => Some(temperature),
+                Err(error) => {
+                    debug!(%error, "cpu temperature unavailable");
+                    None
+                }
+            };
 
         match read_cpu_times() {
             Ok(times) => {
@@ -289,8 +392,8 @@ fn parse_cpu_times(content: &str) -> Result<CpuTimes> {
     })
 }
 
-fn read_cpu_temperature_celsius() -> Result<f64> {
-    let zone = cpu_thermal_zone().context("no cpu thermal zone found")?;
+fn read_cpu_temperature_celsius(thermal_root: &Path) -> Result<f64> {
+    let zone = cpu_thermal_zone(thermal_root).context("no cpu thermal zone found")?;
     let raw = fs::read_to_string(zone.join("temp"))
         .with_context(|| format!("failed to read {}", zone.join("temp").display()))?;
     parse_thermal_zone_temperature(&raw)
@@ -298,8 +401,8 @@ fn read_cpu_temperature_celsius() -> Result<f64> {
 
 /// Prefers the zone whose `type` names the CPU (`cpu-thermal` on the Pi) and
 /// falls back to the first zone on boards that label theirs differently.
-fn cpu_thermal_zone() -> Option<PathBuf> {
-    let mut zones: Vec<PathBuf> = fs::read_dir("/sys/class/thermal")
+fn cpu_thermal_zone(thermal_root: &Path) -> Option<PathBuf> {
+    let mut zones: Vec<PathBuf> = fs::read_dir(thermal_root)
         .ok()?
         .filter_map(|entry| entry.ok())
         .map(|entry| entry.path())
@@ -566,7 +669,7 @@ mod tests {
 
     #[test]
     fn samples_the_running_system() {
-        let mut sampler = Sampler::new(vec![std::env::temp_dir()]);
+        let mut sampler = Sampler::new(vec![std::env::temp_dir()], PathBuf::from(THERMAL_ROOT));
         let first = sampler.sample_cpu();
         // The very first sample has no predecessor to diff against.
         assert_eq!(first.cpu_usage_percent, None);
@@ -595,8 +698,14 @@ mod tests {
             Arc::clone(&handle),
             SamplerSettings {
                 cpu_interval: Duration::from_millis(50),
+                warm_interval: Duration::from_millis(50),
                 disk_interval: Duration::from_secs(300),
                 disk_paths: vec![std::env::temp_dir()],
+                thermal: ThermalThresholds {
+                    warn_celsius: 75.0,
+                    clear_celsius: 70.0,
+                },
+                thermal_root: PathBuf::from(THERMAL_ROOT),
             },
         );
 
@@ -623,6 +732,170 @@ mod tests {
             second.disks_sampled_at_unix_ms,
             first.disks_sampled_at_unix_ms
         );
+    }
+
+    const THRESHOLDS: ThermalThresholds = ThermalThresholds {
+        warn_celsius: 75.0,
+        clear_celsius: 70.0,
+    };
+
+    #[test]
+    fn overheated_starts_at_the_warn_threshold_and_ends_below_clear() {
+        let mut guard = ThermalGuard::new(THRESHOLDS);
+
+        assert_eq!(guard.update(Some(74.9)), None);
+        assert_eq!(guard.update(Some(75.0)), Some(true));
+        // Around the warn threshold nothing flickers.
+        assert_eq!(guard.update(Some(74.0)), None);
+        assert_eq!(guard.update(Some(76.0)), None);
+        assert_eq!(guard.update(Some(70.0)), None);
+        assert_eq!(guard.update(Some(69.9)), Some(false));
+        assert_eq!(guard.update(Some(74.0)), None);
+        assert_eq!(guard.update(Some(80.0)), Some(true));
+    }
+
+    #[test]
+    fn a_missing_reading_neither_warns_nor_ends_a_warning() {
+        let mut guard = ThermalGuard::new(THRESHOLDS);
+        assert_eq!(guard.update(None), None);
+        assert!(!guard.overheated);
+
+        guard.update(Some(90.0));
+        assert_eq!(guard.update(None), None);
+        assert!(guard.overheated);
+    }
+
+    #[test]
+    fn a_warm_cpu_is_sampled_sooner() {
+        let mut guard = ThermalGuard::new(THRESHOLDS);
+        assert!(!guard.is_warm(None));
+        assert!(!guard.is_warm(Some(69.0)));
+        assert!(guard.is_warm(Some(70.0)));
+
+        guard.update(Some(80.0));
+        assert!(
+            guard.is_warm(None),
+            "overheated stays warm without a reading"
+        );
+    }
+
+    /// A `/sys/class/thermal` of its own, with a CPU zone behind a non-CPU
+    /// one as on some boards.
+    struct FakeThermal {
+        root: PathBuf,
+    }
+
+    impl FakeThermal {
+        fn new(name: &str) -> Self {
+            let root =
+                std::env::temp_dir().join(format!("carnine-thermal-{name}-{}", std::process::id()));
+            let _ = fs::remove_dir_all(&root);
+            for (zone, zone_type) in [
+                ("thermal_zone0", "gpu-thermal"),
+                ("thermal_zone1", "cpu-thermal"),
+            ] {
+                fs::create_dir_all(root.join(zone)).expect("fake zone should be writable");
+                fs::write(root.join(zone).join("type"), format!("{zone_type}\n"))
+                    .expect("fake zone type should be writable");
+                fs::write(root.join(zone).join("temp"), "30000\n")
+                    .expect("fake zone temp should be writable");
+            }
+            Self { root }
+        }
+
+        fn set_cpu_celsius(&self, celsius: f64) {
+            fs::write(
+                self.root.join("thermal_zone1").join("temp"),
+                format!("{}\n", (celsius * 1000.0) as i64),
+            )
+            .expect("fake cpu temp should be writable");
+        }
+    }
+
+    impl Drop for FakeThermal {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.root);
+        }
+    }
+
+    #[test]
+    fn reads_the_cpu_zone_from_the_thermal_root() {
+        let thermal = FakeThermal::new("read");
+        thermal.set_cpu_celsius(71.5);
+
+        assert_eq!(read_cpu_temperature_celsius(&thermal.root).unwrap(), 71.5);
+        assert!(read_cpu_temperature_celsius(&thermal.root.join("missing")).is_err());
+    }
+
+    fn settings(thermal: &FakeThermal, cpu_interval: Duration) -> SamplerSettings {
+        SamplerSettings {
+            cpu_interval,
+            warm_interval: Duration::from_millis(20),
+            disk_interval: Duration::from_secs(300),
+            disk_paths: vec![std::env::temp_dir()],
+            thermal: THRESHOLDS,
+            thermal_root: thermal.root.clone(),
+        }
+    }
+
+    async fn wait_for_overheated(
+        status: &mut watch::Receiver<ThermalStatus>,
+        overheated: bool,
+    ) -> ThermalStatus {
+        tokio::time::timeout(
+            Duration::from_secs(5),
+            status.wait_for(|status| status.overheated == overheated),
+        )
+        .await
+        .expect("the thermal status should change in time")
+        .expect("the sampler should keep running")
+        .to_owned()
+    }
+
+    #[tokio::test]
+    async fn the_sampler_reports_overheating_and_its_end() {
+        let thermal = FakeThermal::new("sampler");
+        let handle = Arc::new(SystemMetricsHandle::new());
+        let mut status = handle.subscribe_thermal();
+        spawn(
+            Arc::clone(&handle),
+            settings(&thermal, Duration::from_millis(20)),
+        );
+
+        thermal.set_cpu_celsius(80.0);
+        let hot = wait_for_overheated(&mut status, true).await;
+        assert_eq!(hot.cpu_temperature_celsius, Some(80.0));
+        assert_eq!((hot.warn_celsius, hot.clear_celsius), (75.0, 70.0));
+        assert!(hot.changed_at_unix_ms > 0);
+
+        thermal.set_cpu_celsius(72.0);
+        tokio::time::sleep(Duration::from_millis(150)).await;
+        assert!(handle.thermal_status().overheated, "72 °C is above clear");
+
+        thermal.set_cpu_celsius(65.0);
+        let cool = wait_for_overheated(&mut status, false).await;
+        assert_eq!(cool.cpu_temperature_celsius, Some(65.0));
+    }
+
+    // With a 30 s cadence a CPU that heats up could stay unnoticed for 30 s;
+    // once warm it is sampled every warm_interval instead.
+    #[tokio::test]
+    async fn a_warm_cpu_is_noticed_without_waiting_a_whole_interval() {
+        let thermal = FakeThermal::new("warm");
+        thermal.set_cpu_celsius(72.0);
+        let handle = Arc::new(SystemMetricsHandle::new());
+        let mut status = handle.subscribe_thermal();
+        spawn(
+            Arc::clone(&handle),
+            settings(&thermal, Duration::from_secs(60)),
+        );
+        // The first sample sees 72 °C: warm, not overheated.
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        assert!(!handle.thermal_status().overheated);
+
+        thermal.set_cpu_celsius(78.0);
+
+        wait_for_overheated(&mut status, true).await;
     }
 
     #[test]

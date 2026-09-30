@@ -56,8 +56,8 @@ use carnine::{
     PlayQueueEntryRequest, PlayRequest, PlayerEvent, PlayerEventType, PlayerState, Playlist,
     PlaylistEntry, PowerSupplyState, PowerSupplyStatus, RepeatMode, RescanMediaRequest,
     SearchMediaRequest, SearchMediaResponse, SeekRequest, ServiceVersion, SetRepeatModeRequest,
-    SetShuffleModeRequest, SetVolumeRequest, SystemMetrics, UiState, UpdateConfigurationRequest,
-    VolumeResponse,
+    SetShuffleModeRequest, SetVolumeRequest, SystemMetrics, ThermalStatus, UiState,
+    UpdateConfigurationRequest, VolumeResponse,
 };
 
 #[derive(Debug, Default)]
@@ -130,6 +130,8 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
     type StreamPowerSupplyStatusStream = Pin<
         Box<dyn tokio_stream::Stream<Item = Result<PowerSupplyStatus, Status>> + Send + 'static>,
     >;
+    type StreamThermalStatusStream =
+        Pin<Box<dyn tokio_stream::Stream<Item = Result<ThermalStatus, Status>> + Send + 'static>>;
 
     async fn report_ui_ready(
         &self,
@@ -160,6 +162,25 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
         let updates = tokio_stream::wrappers::BroadcastStream::new(self.metrics.subscribe())
             .filter_map(|metrics| async move { metrics.ok().map(Ok) });
         Ok(Response::new(Box::pin(snapshot.chain(updates))))
+    }
+
+    async fn get_thermal_status(
+        &self,
+        _request: Request<Empty>,
+    ) -> Result<Response<ThermalStatus>, Status> {
+        Ok(Response::new(self.metrics.thermal_status()))
+    }
+
+    async fn stream_thermal_status(
+        &self,
+        _request: Request<Empty>,
+    ) -> Result<Response<Self::StreamThermalStatusStream>, Status> {
+        info!("thermal status stream opened");
+        // WatchStream yields the current status first, then every change, so
+        // a UI started while the CPU is hot warns at once.
+        let updates =
+            tokio_stream::wrappers::WatchStream::new(self.metrics.subscribe_thermal()).map(Ok);
+        Ok(Response::new(Box::pin(updates)))
     }
 
     async fn get_power_supply_status(
@@ -699,6 +720,12 @@ impl ConfigService for ConfigServiceImpl {
             updated.navigation = current.navigation.clone();
             updated.power_supply = current.power_supply.clone();
             updated.audio.volume_state_path = current.audio.volume_state_path.clone();
+            updated.system.cpu_temperature_warn_celsius =
+                current.system.cpu_temperature_warn_celsius;
+            updated.system.cpu_temperature_clear_celsius =
+                current.system.cpu_temperature_clear_celsius;
+            updated.system.warm_metrics_interval_seconds =
+                current.system.warm_metrics_interval_seconds;
         }
         let toml = toml::to_string_pretty(&updated)
             .map_err(|error| Status::internal(error.to_string()))?;
@@ -1362,6 +1389,9 @@ fn configuration_from_proto(configuration: &Configuration) -> Result<config::Con
                 config::SystemConfig::default().disk_metrics_interval_seconds,
             ),
             disk_paths: configuration.disk_paths.iter().map(PathBuf::from).collect(),
+            // Not in the Configuration message; update_configuration carries
+            // the current values over.
+            ..config::SystemConfig::default()
         },
         // Not part of the Configuration message; update_configuration carries
         // the current sections over so saving settings cannot drop them.
@@ -1538,8 +1568,14 @@ async fn main() -> Result<()> {
         Arc::clone(&system_metrics),
         system_metrics::SamplerSettings {
             cpu_interval: Duration::from_secs(configuration.system.metrics_interval_seconds),
+            warm_interval: Duration::from_secs(configuration.system.warm_metrics_interval_seconds),
             disk_interval: Duration::from_secs(configuration.system.disk_metrics_interval_seconds),
             disk_paths: configuration.disk_metric_paths(),
+            thermal: system_metrics::ThermalThresholds {
+                warn_celsius: configuration.system.cpu_temperature_warn_celsius,
+                clear_celsius: configuration.system.cpu_temperature_clear_celsius,
+            },
+            thermal_root: PathBuf::from(system_metrics::THERMAL_ROOT),
         },
     );
     let system_service = SystemServiceImpl::new(
@@ -1670,7 +1706,7 @@ mod tests {
         system_service_server::SystemService, AddPlaylistEntryRequest, AudioEventType,
         CreatePlaylistRequest, Empty, GetCoverArtRequest, GetPlaylistRequest, LibraryEventType,
         PlayerEventType, RepeatMode, RescanMediaRequest, SeekRequest, SetRepeatModeRequest,
-        SetShuffleModeRequest, SystemMetrics, UiState,
+        SetShuffleModeRequest, SystemMetrics, ThermalStatus, UiState,
     };
     use crate::config;
     use crate::database;
@@ -1931,6 +1967,60 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn system_service_streams_the_thermal_status() {
+        let metrics = Arc::new(system_metrics::SystemMetricsHandle::new());
+        let service = SystemServiceImpl::new(
+            Arc::clone(&metrics),
+            PathBuf::new(),
+            crate::power_supply::PowerSupplyHub::new(false),
+        );
+        let mut stream = SystemService::stream_thermal_status(&service, Request::new(Empty {}))
+            .await
+            .expect("thermal stream should open")
+            .into_inner();
+        let current = stream
+            .next()
+            .await
+            .expect("stream should open with the current status")
+            .expect("status should be valid");
+        assert!(!current.overheated);
+
+        metrics.publish_thermal_for_test(ThermalStatus {
+            overheated: true,
+            cpu_temperature_celsius: Some(76.5),
+            warn_celsius: 75.0,
+            clear_celsius: 70.0,
+            changed_at_unix_ms: 1_700_000_000_000,
+        });
+
+        let pushed = stream
+            .next()
+            .await
+            .expect("stream should push the change")
+            .expect("status should be valid");
+        assert!(pushed.overheated);
+        assert_eq!(pushed.cpu_temperature_celsius, Some(76.5));
+
+        // A UI that connects while the CPU is hot learns it at once.
+        let latest = SystemService::get_thermal_status(&service, Request::new(Empty {}))
+            .await
+            .expect("thermal status should be answerable")
+            .into_inner();
+        assert!(latest.overheated);
+        let mut late = SystemService::stream_thermal_status(&service, Request::new(Empty {}))
+            .await
+            .expect("thermal stream should open")
+            .into_inner();
+        assert!(
+            late.next()
+                .await
+                .expect("a late stream opens with the current status")
+                .expect("status should be valid")
+                .overheated
+        );
+    }
+
+    #[tokio::test]
     async fn media_and_audio_service_versions_match_central_version() {
         let configuration = test_configuration();
         let media = MediaServiceImpl::with_player(
@@ -2014,6 +2104,9 @@ mod tests {
         current.navigation.map_region = "hessen".to_string();
         current.power_supply.enabled = true;
         current.audio.volume_state_path = PathBuf::from("/srv/carnine/audio-volume");
+        current.system.cpu_temperature_warn_celsius = 68.0;
+        current.system.cpu_temperature_clear_celsius = 60.0;
+        current.system.warm_metrics_interval_seconds = 2;
         let service = ConfigServiceImpl::new(current, path.clone());
 
         // The settings page sends the Configuration message, which has no
@@ -2038,6 +2131,9 @@ mod tests {
             saved.audio.volume_state_path,
             PathBuf::from("/srv/carnine/audio-volume")
         );
+        assert_eq!(saved.system.cpu_temperature_warn_celsius, 68.0);
+        assert_eq!(saved.system.cpu_temperature_clear_celsius, 60.0);
+        assert_eq!(saved.system.warm_metrics_interval_seconds, 2);
         let _ = std::fs::remove_file(path);
     }
 

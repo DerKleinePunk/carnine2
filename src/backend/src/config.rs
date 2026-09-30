@@ -106,10 +106,33 @@ pub struct SystemConfig {
     /// plus every `media.folders` entry, deduplicated per filesystem.
     #[serde(default)]
     pub disk_paths: Vec<PathBuf>,
+    /// From here on the CPU counts as overheated, and every UI shows a
+    /// warning that has to be confirmed (#70). The Pi 4 throttles at 80 °C.
+    #[serde(default = "default_cpu_temperature_warn_celsius")]
+    pub cpu_temperature_warn_celsius: f64,
+    /// Overheated ends only below this, so a reading around the warn
+    /// threshold does not make the warning come and go.
+    #[serde(default = "default_cpu_temperature_clear_celsius")]
+    pub cpu_temperature_clear_celsius: f64,
+    /// Cadence while the CPU is at or above the clear threshold.
+    #[serde(default = "default_warm_metrics_interval_seconds")]
+    pub warm_metrics_interval_seconds: u64,
 }
 
 fn default_metrics_interval_seconds() -> u64 {
     30
+}
+
+fn default_cpu_temperature_warn_celsius() -> f64 {
+    75.0
+}
+
+fn default_cpu_temperature_clear_celsius() -> f64 {
+    70.0
+}
+
+fn default_warm_metrics_interval_seconds() -> u64 {
+    5
 }
 
 fn default_disk_metrics_interval_seconds() -> u64 {
@@ -122,6 +145,9 @@ impl Default for SystemConfig {
             metrics_interval_seconds: default_metrics_interval_seconds(),
             disk_metrics_interval_seconds: default_disk_metrics_interval_seconds(),
             disk_paths: Vec::new(),
+            cpu_temperature_warn_celsius: default_cpu_temperature_warn_celsius(),
+            cpu_temperature_clear_celsius: default_cpu_temperature_clear_celsius(),
+            warm_metrics_interval_seconds: default_warm_metrics_interval_seconds(),
         }
     }
 }
@@ -277,6 +303,7 @@ impl Config {
         self.server.socket_permissions()?;
         if self.system.metrics_interval_seconds == 0
             || self.system.disk_metrics_interval_seconds == 0
+            || self.system.warm_metrics_interval_seconds == 0
         {
             anyhow::bail!("system metric intervals must be greater than zero");
         }
@@ -287,6 +314,16 @@ impl Config {
             .any(|path| path.as_os_str().is_empty())
         {
             anyhow::bail!("system.disk_paths contains an empty path");
+        }
+        let (warn, clear) = (
+            self.system.cpu_temperature_warn_celsius,
+            self.system.cpu_temperature_clear_celsius,
+        );
+        if !(warn.is_finite() && clear.is_finite() && clear < warn) {
+            anyhow::bail!(
+                "system.cpu_temperature_clear_celsius ({clear}) must be below \
+                 system.cpu_temperature_warn_celsius ({warn})"
+            );
         }
         let navigation = &self.navigation;
         let missing =
@@ -538,6 +575,27 @@ mod tests {
         )
         .expect("a config without [system] must stay valid");
         assert_eq!(config.system.metrics_interval_seconds, 30);
+        assert_eq!(config.system.cpu_temperature_warn_celsius, 75.0);
+        assert_eq!(config.system.cpu_temperature_clear_celsius, 70.0);
+        assert_eq!(config.system.warm_metrics_interval_seconds, 5);
+    }
+
+    #[test]
+    fn rejects_a_clear_threshold_at_or_above_the_warn_threshold() {
+        let (mut config, _) =
+            Config::load_with_env(|_| None).expect("repository config should load");
+        assert!(config.validate().is_ok());
+
+        config.system.cpu_temperature_clear_celsius = config.system.cpu_temperature_warn_celsius;
+        assert!(config.validate().is_err());
+
+        config.system.cpu_temperature_clear_celsius = f64::NAN;
+        assert!(config.validate().is_err());
+
+        let (mut config, _) =
+            Config::load_with_env(|_| None).expect("repository config should load");
+        config.system.warm_metrics_interval_seconds = 0;
+        assert!(config.validate().is_err());
     }
 
     #[test]

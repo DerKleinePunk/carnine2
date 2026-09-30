@@ -3156,6 +3156,112 @@ class SystemMetrics extends $pb.GeneratedMessage {
   void clearDisksSampledAtUnixMs() => $_clearField(10);
 }
 
+class ThermalStatus extends $pb.GeneratedMessage {
+  factory ThermalStatus({
+    $core.bool? overheated,
+    $core.double? cpuTemperatureCelsius,
+    $core.double? warnCelsius,
+    $core.double? clearCelsius,
+    $fixnum.Int64? changedAtUnixMs,
+  }) {
+    final result = create();
+    if (overheated != null) result.overheated = overheated;
+    if (cpuTemperatureCelsius != null)
+      result.cpuTemperatureCelsius = cpuTemperatureCelsius;
+    if (warnCelsius != null) result.warnCelsius = warnCelsius;
+    if (clearCelsius != null) result.clearCelsius = clearCelsius;
+    if (changedAtUnixMs != null) result.changedAtUnixMs = changedAtUnixMs;
+    return result;
+  }
+
+  ThermalStatus._();
+
+  factory ThermalStatus.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ThermalStatus.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ThermalStatus',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'overheated')
+    ..aD(2, _omitFieldNames ? '' : 'cpuTemperatureCelsius')
+    ..aD(3, _omitFieldNames ? '' : 'warnCelsius')
+    ..aD(4, _omitFieldNames ? '' : 'clearCelsius')
+    ..aInt64(5, _omitFieldNames ? '' : 'changedAtUnixMs')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ThermalStatus clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ThermalStatus copyWith(void Function(ThermalStatus) updates) =>
+      super.copyWith((message) => updates(message as ThermalStatus))
+          as ThermalStatus;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ThermalStatus create() => ThermalStatus._();
+  @$core.override
+  ThermalStatus createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ThermalStatus getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ThermalStatus>(create);
+  static ThermalStatus? _defaultInstance;
+
+  /// Set at warn_celsius, cleared only once below clear_celsius again.
+  @$pb.TagNumber(1)
+  $core.bool get overheated => $_getBF(0);
+  @$pb.TagNumber(1)
+  set overheated($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasOverheated() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearOverheated() => $_clearField(1);
+
+  /// The reading that caused the last change. Absent without a thermal zone.
+  @$pb.TagNumber(2)
+  $core.double get cpuTemperatureCelsius => $_getN(1);
+  @$pb.TagNumber(2)
+  set cpuTemperatureCelsius($core.double value) => $_setDouble(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasCpuTemperatureCelsius() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearCpuTemperatureCelsius() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.double get warnCelsius => $_getN(2);
+  @$pb.TagNumber(3)
+  set warnCelsius($core.double value) => $_setDouble(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasWarnCelsius() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearWarnCelsius() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.double get clearCelsius => $_getN(3);
+  @$pb.TagNumber(4)
+  set clearCelsius($core.double value) => $_setDouble(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasClearCelsius() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearClearCelsius() => $_clearField(4);
+
+  /// When overheated last changed; 0 while it never has.
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get changedAtUnixMs => $_getI64(4);
+  @$pb.TagNumber(5)
+  set changedAtUnixMs($fixnum.Int64 value) => $_setInt64(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasChangedAtUnixMs() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearChangedAtUnixMs() => $_clearField(5);
+}
+
 class PowerSupplyStatus extends $pb.GeneratedMessage {
   factory PowerSupplyStatus({
     $core.bool? configured,
