@@ -24,13 +24,19 @@ class _SilentBackend {
   }
 
   ClientChannel channel({ClientKeepAliveOptions? keepAlive}) {
-    return ClientChannel(
-      InternetAddress.loopbackIPv4,
-      port: _server.port,
-      options: ChannelOptions(
+    return channelWith(
+      ChannelOptions(
         credentials: const ChannelCredentials.insecure(),
         keepAlive: keepAlive ?? const ClientKeepAliveOptions(),
       ),
+    );
+  }
+
+  ClientChannel channelWith(ChannelOptions options) {
+    return ClientChannel(
+      InternetAddress.loopbackIPv4,
+      port: _server.port,
+      options: options,
     );
   }
 
@@ -129,4 +135,31 @@ void main() {
 
     await failed.future.timeout(const Duration(seconds: 1));
   });
+
+  // Seen on carnine-pc: while the backend was frozen, every reconnect
+  // attempt logged "Unhandled Exception: HTTP/2 error: ... forcefully
+  // terminated" - the keepalive ping waiting for its answer when the
+  // heartbeat closed the channel.
+  test(
+    'closing the media channel to a frozen backend raises no error',
+    () async {
+      final unhandled = <Object>[];
+      await runZonedGuarded(() async {
+        final repository = GrpcMediaRepository(
+          channel: MediaChannel(
+            channelFactory: () =>
+                backend.channelWith(MediaChannel.defaultOptions),
+          ),
+        );
+        repository.playerEvents().listen((_) {}, onError: (Object _) {});
+        // Past the 5 s ping interval the channel used to have.
+        await Future<void>.delayed(const Duration(milliseconds: 5600));
+
+        await repository.reconnect();
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+      }, (error, _) => unhandled.add(error));
+
+      expect(unhandled, isEmpty);
+    },
+  );
 }
