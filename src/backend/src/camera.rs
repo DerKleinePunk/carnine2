@@ -159,11 +159,18 @@ pub fn list_camera_devices(video4linux_root: &Path) -> Vec<CameraDevice> {
             if read("index").is_some_and(|index| index != "0") {
                 return None;
             }
+            // device/driver links to the driver the kernel bound, named
+            // like the driver: .../drivers/uvcvideo.
+            let driver = fs::read_link(entry.path().join("device").join("driver"))
+                .ok()
+                .and_then(|target| Some(target.file_name()?.to_str()?.to_string()))
+                .unwrap_or_default();
             Some((
                 number,
                 CameraDevice {
                     path: format!("/dev/{node}"),
                     name,
+                    driver,
                 },
             ))
         })
@@ -239,6 +246,18 @@ mod tests {
             fs::create_dir_all(&directory).unwrap();
             fs::write(directory.join("name"), format!("{name}\n")).unwrap();
             fs::write(directory.join("index"), format!("{index}\n")).unwrap();
+        }
+
+        /// Binds `node` to `driver` the way sysfs shows it: device/driver is
+        /// a relative link into the bus's drivers directory.
+        fn bind(&self, node: &str, driver: &str) {
+            let device = self.0.join("video4linux").join(node).join("device");
+            fs::create_dir_all(&device).unwrap();
+            std::os::unix::fs::symlink(
+                format!("../../../../bus/usb/drivers/{driver}"),
+                device.join("driver"),
+            )
+            .unwrap();
         }
     }
 
@@ -470,8 +489,13 @@ mod tests {
         scratch.node("video13", "bcm2835-isp", "0");
         scratch.node("video19", "rpi-hevc-dec", "0");
         scratch.node("video0", "stk1160", "0");
+        scratch.bind("video0", "stk1160");
         scratch.node("video2", "USB Camera: USB Camera", "0");
+        scratch.bind("video2", "uvcvideo");
         scratch.node("video3", "USB Camera: USB Camera", "1");
+        scratch.bind("video3", "uvcvideo");
+        // No device/driver link: the driver stays empty.
+        scratch.node("video4", "vivid", "0");
         let service = scratch.service(CameraConfig::default());
 
         let devices = service
@@ -487,10 +511,17 @@ mod tests {
                 CameraDevice {
                     path: "/dev/video0".to_string(),
                     name: "stk1160".to_string(),
+                    driver: "stk1160".to_string(),
                 },
                 CameraDevice {
                     path: "/dev/video2".to_string(),
                     name: "USB Camera: USB Camera".to_string(),
+                    driver: "uvcvideo".to_string(),
+                },
+                CameraDevice {
+                    path: "/dev/video4".to_string(),
+                    name: "vivid".to_string(),
+                    driver: String::new(),
                 },
             ]
         );

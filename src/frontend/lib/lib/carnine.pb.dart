@@ -4605,10 +4605,12 @@ class CameraDevice extends $pb.GeneratedMessage {
   factory CameraDevice({
     $core.String? path,
     $core.String? name,
+    $core.String? driver,
   }) {
     final result = create();
     if (path != null) result.path = path;
     if (name != null) result.name = name;
+    if (driver != null) result.driver = driver;
     return result;
   }
 
@@ -4627,6 +4629,7 @@ class CameraDevice extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'path')
     ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..aOS(3, _omitFieldNames ? '' : 'driver')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -4667,6 +4670,18 @@ class CameraDevice extends $pb.GeneratedMessage {
   $core.bool hasName() => $_has(1);
   @$pb.TagNumber(2)
   void clearName() => $_clearField(2);
+
+  /// The kernel driver bound to it, e.g. "stk1160" for the grabber or
+  /// "uvcvideo" for a USB camera; empty when sysfs does not say. A USB camera
+  /// takes neither norm, input nor width, so the UI can grey them out.
+  @$pb.TagNumber(3)
+  $core.String get driver => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set driver($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasDriver() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearDriver() => $_clearField(3);
 }
 
 class ListCameraDevicesResponse extends $pb.GeneratedMessage {

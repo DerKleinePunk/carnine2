@@ -1587,12 +1587,14 @@ const CameraDevice$json = {
   '2': [
     {'1': 'path', '3': 1, '4': 1, '5': 9, '10': 'path'},
     {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'driver', '3': 3, '4': 1, '5': 9, '10': 'driver'},
   ],
 };
 
 /// Descriptor for `CameraDevice`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List cameraDeviceDescriptor = $convert.base64Decode(
-    'CgxDYW1lcmFEZXZpY2USEgoEcGF0aBgBIAEoCVIEcGF0aBISCgRuYW1lGAIgASgJUgRuYW1l');
+    'CgxDYW1lcmFEZXZpY2USEgoEcGF0aBgBIAEoCVIEcGF0aBISCgRuYW1lGAIgASgJUgRuYW1lEh'
+    'YKBmRyaXZlchgDIAEoCVIGZHJpdmVy');
 
 @$core.Deprecated('Use listCameraDevicesResponseDescriptor instead')
 const ListCameraDevicesResponse$json = {

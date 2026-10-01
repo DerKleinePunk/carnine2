@@ -617,6 +617,10 @@ message CameraDevice {
   string path = 1;
   // The driver's name for it, e.g. "stk1160".
   string name = 2;
+  // The kernel driver bound to it, e.g. "stk1160" for the grabber or
+  // "uvcvideo" for a USB camera; empty when sysfs does not say. A USB camera
+  // takes neither norm, input nor width, so the UI can grey them out.
+  string driver = 3;
 }
 
 message ListCameraDevicesResponse {

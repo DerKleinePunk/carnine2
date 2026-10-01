@@ -426,7 +426,12 @@ async fn list_camera_devices(endpoint: &str) -> Result<()> {
         println!("no camera devices");
     }
     for device in devices {
-        println!("{} {}", device.path, device.name);
+        let driver = if device.driver.is_empty() {
+            "-"
+        } else {
+            &device.driver
+        };
+        println!("{} {} driver={driver}", device.path, device.name);
     }
     Ok(())
 }
