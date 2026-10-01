@@ -4505,6 +4505,205 @@ class Route extends $pb.GeneratedMessage {
   $pb.PbList<Maneuver> get maneuvers => $_getList(4);
 }
 
+class CameraSettings extends $pb.GeneratedMessage {
+  factory CameraSettings({
+    $core.String? device,
+    CameraNorm? norm,
+    $core.int? input,
+  }) {
+    final result = create();
+    if (device != null) result.device = device;
+    if (norm != null) result.norm = norm;
+    if (input != null) result.input = input;
+    return result;
+  }
+
+  CameraSettings._();
+
+  factory CameraSettings.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory CameraSettings.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CameraSettings',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'device')
+    ..aE<CameraNorm>(2, _omitFieldNames ? '' : 'norm',
+        enumValues: CameraNorm.values)
+    ..aI(3, _omitFieldNames ? '' : 'input', fieldType: $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CameraSettings clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CameraSettings copyWith(void Function(CameraSettings) updates) =>
+      super.copyWith((message) => updates(message as CameraSettings))
+          as CameraSettings;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CameraSettings create() => CameraSettings._();
+  @$core.override
+  CameraSettings createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static CameraSettings getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CameraSettings>(create);
+  static CameraSettings? _defaultInstance;
+
+  /// Video device, e.g. "/dev/video0".
+  @$pb.TagNumber(1)
+  $core.String get device => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set device($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasDevice() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDevice() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  CameraNorm get norm => $_getN(1);
+  @$pb.TagNumber(2)
+  set norm(CameraNorm value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasNorm() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearNorm() => $_clearField(2);
+
+  /// Input of the grabber; on the STK1160 0-3 are composite 0-3, 4 S-Video.
+  @$pb.TagNumber(3)
+  $core.int get input => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set input($core.int value) => $_setUnsignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasInput() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearInput() => $_clearField(3);
+}
+
+class CameraDevice extends $pb.GeneratedMessage {
+  factory CameraDevice({
+    $core.String? path,
+    $core.String? name,
+  }) {
+    final result = create();
+    if (path != null) result.path = path;
+    if (name != null) result.name = name;
+    return result;
+  }
+
+  CameraDevice._();
+
+  factory CameraDevice.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory CameraDevice.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CameraDevice',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'path')
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CameraDevice clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CameraDevice copyWith(void Function(CameraDevice) updates) =>
+      super.copyWith((message) => updates(message as CameraDevice))
+          as CameraDevice;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CameraDevice create() => CameraDevice._();
+  @$core.override
+  CameraDevice createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static CameraDevice getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CameraDevice>(create);
+  static CameraDevice? _defaultInstance;
+
+  /// Device node, e.g. "/dev/video0".
+  @$pb.TagNumber(1)
+  $core.String get path => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set path($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPath() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPath() => $_clearField(1);
+
+  /// The driver's name for it, e.g. "stk1160".
+  @$pb.TagNumber(2)
+  $core.String get name => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set name($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearName() => $_clearField(2);
+}
+
+class ListCameraDevicesResponse extends $pb.GeneratedMessage {
+  factory ListCameraDevicesResponse({
+    $core.Iterable<CameraDevice>? devices,
+  }) {
+    final result = create();
+    if (devices != null) result.devices.addAll(devices);
+    return result;
+  }
+
+  ListCameraDevicesResponse._();
+
+  factory ListCameraDevicesResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ListCameraDevicesResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ListCameraDevicesResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..pPM<CameraDevice>(1, _omitFieldNames ? '' : 'devices',
+        subBuilder: CameraDevice.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListCameraDevicesResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListCameraDevicesResponse copyWith(
+          void Function(ListCameraDevicesResponse) updates) =>
+      super.copyWith((message) => updates(message as ListCameraDevicesResponse))
+          as ListCameraDevicesResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListCameraDevicesResponse create() => ListCameraDevicesResponse._();
+  @$core.override
+  ListCameraDevicesResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ListCameraDevicesResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListCameraDevicesResponse>(create);
+  static ListCameraDevicesResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<CameraDevice> get devices => $_getList(0);
+}
+
 const $core.bool _omitFieldNames =
     $core.bool.fromEnvironment('protobuf.omit_field_names');
 const $core.bool _omitMessageNames =

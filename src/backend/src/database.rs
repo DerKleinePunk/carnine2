@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use anyhow::{Context, Result};
 use rusqlite::{params, Connection, OptionalExtension};
 
-const CURRENT_SCHEMA_VERSION: i64 = 8;
+const CURRENT_SCHEMA_VERSION: i64 = 9;
 
 pub struct Database {
     connection: Connection,
@@ -23,6 +23,14 @@ pub struct MediaRecord {
     pub duration_ms: i64,
     pub status: String,
     pub cover_path: Option<String>,
+}
+
+/// Camera settings as stored: the norm by its configuration name ("ntsc").
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct SavedCameraSettings {
+    pub device: Option<String>,
+    pub norm: Option<String>,
+    pub input: Option<u32>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -237,6 +245,19 @@ impl Database {
             self.connection.execute_batch(
                 "ALTER TABLE ui_state ADD COLUMN language TEXT NOT NULL DEFAULT '';
                 INSERT INTO schema_migrations (version) VALUES (8);",
+            )?;
+        }
+        if version < 9 {
+            // Reversing camera settings saved from the settings page; NULL
+            // means "the default from [camera]".
+            self.connection.execute_batch(
+                "CREATE TABLE camera_settings (
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    device TEXT,
+                    norm TEXT,
+                    input INTEGER
+                );
+                INSERT INTO schema_migrations (version) VALUES (9);",
             )?;
         }
         if version > CURRENT_SCHEMA_VERSION {
@@ -599,6 +620,39 @@ impl Database {
             .unwrap_or_default())
     }
 
+    /// The camera settings saved so far: device, norm and input, each `None`
+    /// while it was never saved.
+    pub fn load_camera_settings(&self) -> Result<SavedCameraSettings> {
+        Ok(self
+            .connection
+            .query_row(
+                "SELECT device, norm, input FROM camera_settings WHERE id = 1",
+                [],
+                |row| {
+                    Ok(SavedCameraSettings {
+                        device: row.get(0)?,
+                        norm: row.get(1)?,
+                        input: row.get(2)?,
+                    })
+                },
+            )
+            .optional()?
+            .unwrap_or_default())
+    }
+
+    /// Stores the fields that are `Some`, keeps the others.
+    pub fn save_camera_settings(&self, settings: &SavedCameraSettings) -> Result<()> {
+        self.connection.execute(
+            "INSERT INTO camera_settings (id, device, norm, input) VALUES (1, ?1, ?2, ?3)
+             ON CONFLICT(id) DO UPDATE SET
+                device = COALESCE(excluded.device, device),
+                norm = COALESCE(excluded.norm, norm),
+                input = COALESCE(excluded.input, input)",
+            params![settings.device, settings.norm, settings.input],
+        )?;
+        Ok(())
+    }
+
     /// The page saved last, or an empty string when there is none.
     pub fn load_last_page(&self) -> Result<String> {
         let mut statement = self
@@ -917,7 +971,7 @@ pub fn find_audio_files(folder: &Path, supported_formats: &[String]) -> Result<V
 mod tests {
     use super::{
         extract_cover_art, find_folder_cover_image, read_audio_metadata, AudioMetadata, Database,
-        MediaReader, MediaRecord, ResumeState, CURRENT_SCHEMA_VERSION,
+        MediaReader, MediaRecord, ResumeState, SavedCameraSettings, CURRENT_SCHEMA_VERSION,
     };
     use std::cell::{Cell, RefCell};
     use std::path::{Path, PathBuf};
@@ -1217,6 +1271,7 @@ mod tests {
                 "DROP TABLE playlist_resume;
                  ALTER TABLE resume_state DROP COLUMN media_path;
                  ALTER TABLE ui_state DROP COLUMN language;
+                 DROP TABLE camera_settings;
                  DELETE FROM schema_migrations WHERE version >= 7;
                  INSERT INTO resume_state (id, playlist_id, playlist_entry_id, position_ms, resume_mode)
                      VALUES (1, {playlist_id}, {entry_id}, 70262, 'restore_paused');"
@@ -1251,7 +1306,8 @@ mod tests {
             .connection
             .execute_batch(
                 "ALTER TABLE ui_state DROP COLUMN language;
-                 DELETE FROM schema_migrations WHERE version = 8;",
+                 DROP TABLE camera_settings;
+                 DELETE FROM schema_migrations WHERE version >= 8;",
             )
             .unwrap();
         drop(database);
@@ -1264,6 +1320,67 @@ mod tests {
         assert_eq!(database.load_language().unwrap(), "fr");
         assert_eq!(database.load_last_page().unwrap(), "maps");
         let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn schema_9_adds_camera_settings_and_keeps_the_ui_state() {
+        let path = std::env::temp_dir().join(format!(
+            "carnine-database-schema9-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&path);
+        let database = Database::open(&path).expect("database should open");
+        database.save_last_page("media").unwrap();
+        database.save_language("de").unwrap();
+        // Back to schema 8.
+        database
+            .connection
+            .execute_batch(
+                "DROP TABLE camera_settings;
+                 DELETE FROM schema_migrations WHERE version = 9;",
+            )
+            .unwrap();
+        drop(database);
+
+        let database = Database::open(&path).expect("schema 8 should migrate");
+
+        assert_eq!(database.schema_version().unwrap(), CURRENT_SCHEMA_VERSION);
+        assert_eq!(
+            database.load_camera_settings().unwrap(),
+            SavedCameraSettings::default(),
+            "nothing saved yet"
+        );
+        assert_eq!(database.load_last_page().unwrap(), "media");
+        assert_eq!(database.load_language().unwrap(), "de");
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn camera_settings_store_only_what_is_set() {
+        let database = Database::open(":memory:").expect("database should open");
+        database
+            .save_camera_settings(&SavedCameraSettings {
+                device: Some("/dev/video2".to_string()),
+                norm: Some("pal".to_string()),
+                input: Some(4),
+            })
+            .unwrap();
+        // A later save of the norm alone keeps device and input.
+        database
+            .save_camera_settings(&SavedCameraSettings {
+                norm: Some("ntsc".to_string()),
+                ..SavedCameraSettings::default()
+            })
+            .unwrap();
+
+        assert_eq!(
+            database.load_camera_settings().unwrap(),
+            SavedCameraSettings {
+                device: Some("/dev/video2".to_string()),
+                norm: Some("ntsc".to_string()),
+                input: Some(4),
+            }
+        );
     }
 
     #[test]

@@ -22,6 +22,10 @@ pub struct Config {
     /// Optional: without it the backend does not talk to a power supply.
     #[serde(default)]
     pub power_supply: PowerSupplyConfig,
+    /// Optional: defaults of the reversing camera; what the settings page
+    /// saves overrides them (CameraService).
+    #[serde(default)]
+    pub camera: CameraConfig,
 }
 
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
@@ -232,6 +236,55 @@ impl Default for NavigationConfig {
     }
 }
 
+/// Video norm of the reversing camera's signal.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum CameraNormSetting {
+    #[default]
+    Ntsc,
+    Pal,
+}
+
+/// Highest grabber input the backend accepts; the STK1160 has 0-4.
+pub const MAX_CAMERA_INPUT: u32 = 15;
+
+/// Whether `device` may be a camera: a V4L2 node, by number or by the stable
+/// /dev/v4l/ links udev makes.
+pub fn is_camera_device(device: &str) -> bool {
+    let numbered = device
+        .strip_prefix("/dev/video")
+        .is_some_and(|number| !number.is_empty() && number.bytes().all(|b| b.is_ascii_digit()));
+    let linked = device
+        .strip_prefix("/dev/v4l/")
+        .is_some_and(|rest| !rest.is_empty() && !rest.split('/').any(|part| part == ".."));
+    numbered || linked
+}
+
+/// Defaults of the reversing camera: the video grabber on the camera page.
+#[derive(Debug, Clone, Deserialize, serde::Serialize)]
+pub struct CameraConfig {
+    #[serde(default = "default_camera_device")]
+    pub device: String,
+    #[serde(default)]
+    pub norm: CameraNormSetting,
+    #[serde(default)]
+    pub input: u32,
+}
+
+fn default_camera_device() -> String {
+    "/dev/video0".to_string()
+}
+
+impl Default for CameraConfig {
+    fn default() -> Self {
+        Self {
+            device: default_camera_device(),
+            norm: CameraNormSetting::default(),
+            input: 0,
+        }
+    }
+}
+
 /// The car power supply AuPrV1_1 (docs/23-power-supply.md) on a serial line.
 /// Its watchdog cuts the Pi off when the backend stops sending signs of life.
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
@@ -357,6 +410,18 @@ impl Config {
                 "power_supply.baud {} is not one of {:?}",
                 power_supply.baud,
                 SERIAL_BAUD_RATES
+            );
+        }
+        if !is_camera_device(&self.camera.device) {
+            anyhow::bail!(
+                "camera.device must be /dev/video<n> or under /dev/v4l/: {}",
+                self.camera.device
+            );
+        }
+        if self.camera.input > MAX_CAMERA_INPUT {
+            anyhow::bail!(
+                "camera.input {} is above {MAX_CAMERA_INPUT}",
+                self.camera.input
             );
         }
         if !navigation.valhalla_url.starts_with("http://") {
@@ -717,6 +782,50 @@ mod tests {
         config.power_supply.baud = 38400;
         config.power_supply.device = std::path::PathBuf::new();
         assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn camera_defaults_to_ntsc_on_video0_and_checks_its_values() {
+        let (mut config, _) =
+            Config::load_with_env(|_| None).expect("repository config should load");
+        assert_eq!(config.camera.device, "/dev/video0");
+        assert_eq!(config.camera.norm, super::CameraNormSetting::Ntsc);
+        assert_eq!(config.camera.input, 0);
+
+        config.camera.device = "/dev/v4l/by-id/usb-grabber-video-index0".to_string();
+        config.camera.input = super::MAX_CAMERA_INPUT;
+        assert!(config.validate().is_ok());
+        config.camera.input = super::MAX_CAMERA_INPUT + 1;
+        assert!(config.validate().is_err());
+        config.camera.input = 0;
+        for device in [
+            "/dev/sda",
+            "/dev/video",
+            "/dev/videoX",
+            "/dev/v4l/",
+            "/dev/v4l/../sda",
+        ] {
+            config.camera.device = device.to_string();
+            assert!(config.validate().is_err(), "{device}");
+        }
+    }
+
+    #[test]
+    fn a_camera_drop_in_sets_the_norm() {
+        let path = configuration_in("camera");
+        write_drop_in(
+            &path,
+            "30-camera.toml",
+            "[camera]\nnorm = \"pal\"\ninput = 4\n",
+        );
+
+        let config = load_from(&path).expect("config with a camera drop-in should load");
+        assert_eq!(config.camera.norm, super::CameraNormSetting::Pal);
+        assert_eq!(config.camera.input, 4);
+        assert_eq!(config.camera.device, "/dev/video0", "default kept");
+
+        write_drop_in(&path, "30-camera.toml", "[camera]\nnorm = \"secam\"\n");
+        assert!(load_from(&path).is_err(), "unknown norm refused");
     }
 
     /// A copy of the repository configuration in its own directory, so a test

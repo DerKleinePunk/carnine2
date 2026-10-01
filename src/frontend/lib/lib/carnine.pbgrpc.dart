@@ -1500,3 +1500,120 @@ abstract class NavigationServiceBase extends $grpc.Service {
   $async.Future<$0.NavigationStatus> setTrackRecording(
       $grpc.ServiceCall call, $0.SetTrackRecordingRequest request);
 }
+
+/// Settings of the reversing camera (video grabber on the camera page). The
+/// backend keeps them; the frontend reads them when it opens the camera and
+/// hands them to the grabber. Defaults come from [camera] in the
+/// configuration; what SaveCameraSettings stores overrides them.
+@$pb.GrpcServiceName('carnine.CameraService')
+class CameraServiceClient extends $grpc.Client {
+  /// The hostname for this service.
+  static const $core.String defaultHost = '';
+
+  /// OAuth scopes needed for the client.
+  static const $core.List<$core.String> oauthScopes = [
+    '',
+  ];
+
+  CameraServiceClient(super.channel, {super.options, super.interceptors});
+
+  /// The settings in effect: every field is set.
+  $grpc.ResponseFuture<$0.CameraSettings> getCameraSettings(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getCameraSettings, request, options: options);
+  }
+
+  /// Stores only the fields that are set and returns the settings in effect.
+  /// INVALID_ARGUMENT, and nothing stored, for a device outside /dev/video*
+  /// and /dev/v4l/, an unspecified norm or an input above 15.
+  $grpc.ResponseFuture<$0.CameraSettings> saveCameraSettings(
+    $0.CameraSettings request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$saveCameraSettings, request, options: options);
+  }
+
+  /// Video devices a camera can be on, for a choice in the settings: the
+  /// first node of each device, without the SoC's own codec, ISP and decoder
+  /// nodes (bcm2835-*, rpi-*).
+  $grpc.ResponseFuture<$0.ListCameraDevicesResponse> listCameraDevices(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$listCameraDevices, request, options: options);
+  }
+
+  // method descriptors
+
+  static final _$getCameraSettings =
+      $grpc.ClientMethod<$0.Empty, $0.CameraSettings>(
+          '/carnine.CameraService/GetCameraSettings',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.CameraSettings.fromBuffer);
+  static final _$saveCameraSettings =
+      $grpc.ClientMethod<$0.CameraSettings, $0.CameraSettings>(
+          '/carnine.CameraService/SaveCameraSettings',
+          ($0.CameraSettings value) => value.writeToBuffer(),
+          $0.CameraSettings.fromBuffer);
+  static final _$listCameraDevices =
+      $grpc.ClientMethod<$0.Empty, $0.ListCameraDevicesResponse>(
+          '/carnine.CameraService/ListCameraDevices',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.ListCameraDevicesResponse.fromBuffer);
+}
+
+@$pb.GrpcServiceName('carnine.CameraService')
+abstract class CameraServiceBase extends $grpc.Service {
+  $core.String get $name => 'carnine.CameraService';
+
+  CameraServiceBase() {
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.CameraSettings>(
+        'GetCameraSettings',
+        getCameraSettings_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.CameraSettings value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.CameraSettings, $0.CameraSettings>(
+        'SaveCameraSettings',
+        saveCameraSettings_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.CameraSettings.fromBuffer(value),
+        ($0.CameraSettings value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.ListCameraDevicesResponse>(
+        'ListCameraDevices',
+        listCameraDevices_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.ListCameraDevicesResponse value) => value.writeToBuffer()));
+  }
+
+  $async.Future<$0.CameraSettings> getCameraSettings_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return getCameraSettings($call, await $request);
+  }
+
+  $async.Future<$0.CameraSettings> getCameraSettings(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.CameraSettings> saveCameraSettings_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.CameraSettings> $request) async {
+    return saveCameraSettings($call, await $request);
+  }
+
+  $async.Future<$0.CameraSettings> saveCameraSettings(
+      $grpc.ServiceCall call, $0.CameraSettings request);
+
+  $async.Future<$0.ListCameraDevicesResponse> listCameraDevices_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return listCameraDevices($call, await $request);
+  }
+
+  $async.Future<$0.ListCameraDevicesResponse> listCameraDevices(
+      $grpc.ServiceCall call, $0.Empty request);
+}

@@ -14,9 +14,10 @@ pub mod carnine {
 }
 
 use carnine::{
-    audio_service_client::AudioServiceClient, get_cover_art_request::Target as CoverArtTarget,
-    media_service_client::MediaServiceClient, navigation_service_client::NavigationServiceClient,
-    system_service_client::SystemServiceClient, AddPlaylistEntryRequest, ComputeRouteRequest,
+    audio_service_client::AudioServiceClient, camera_service_client::CameraServiceClient,
+    get_cover_art_request::Target as CoverArtTarget, media_service_client::MediaServiceClient,
+    navigation_service_client::NavigationServiceClient, system_service_client::SystemServiceClient,
+    AddPlaylistEntryRequest, CameraNorm, CameraSettings, ComputeRouteRequest,
     CreatePlaylistRequest, Empty, FixState, GetCoverArtRequest, GetLocationNameRequest,
     GetPlaylistRequest, GetReplayRouteRequest, ImportMusicVolumeRequest, LatLon, LibraryEventType,
     NavigationStatus, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PositionFix,
@@ -92,6 +93,9 @@ async fn main() -> Result<()> {
         "route" => compute_route(&endpoint).await?,
         "replay-route" => replay_route(&endpoint).await?,
         "track-recording" => set_track_recording(&endpoint).await?,
+        "camera-settings" => get_camera_settings(&endpoint).await?,
+        "save-camera-settings" => save_camera_settings(&endpoint).await?,
+        "camera-devices" => list_camera_devices(&endpoint).await?,
         unknown => bail!("unknown command: {unknown}"),
     }
     Ok(())
@@ -360,6 +364,64 @@ async fn get_ui_state(endpoint: &str) -> Result<()> {
         state.last_page(),
         state.language()
     );
+    Ok(())
+}
+
+fn print_camera_settings(settings: &CameraSettings) {
+    println!(
+        "device={} norm={} input={}",
+        settings.device(),
+        settings.norm().as_str_name(),
+        settings.input()
+    );
+}
+
+async fn get_camera_settings(endpoint: &str) -> Result<()> {
+    let mut client = CameraServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    print_camera_settings(&client.get_camera_settings(Empty {}).await?.into_inner());
+    Ok(())
+}
+
+/// `save-camera-settings <device|-> [ntsc|pal|-] [input|-]`: `-` or a missing
+/// value keeps what is stored, e.g. `save-camera-settings - pal`.
+async fn save_camera_settings(endpoint: &str) -> Result<()> {
+    let value = |index| env::args().nth(index).filter(|value| value != "-");
+    let norm = match value(4).as_deref() {
+        None => None,
+        Some("ntsc") => Some(CameraNorm::Ntsc as i32),
+        Some("pal") => Some(CameraNorm::Pal as i32),
+        Some(other) => bail!("norm must be ntsc or pal, got {other}"),
+    };
+    let input = value(5)
+        .map(|input| input.parse::<u32>())
+        .transpose()
+        .context("input must be a number")?;
+    let mut client = CameraServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let settings = client
+        .save_camera_settings(CameraSettings {
+            device: value(3),
+            norm,
+            input,
+        })
+        .await?
+        .into_inner();
+    print_camera_settings(&settings);
+    Ok(())
+}
+
+async fn list_camera_devices(endpoint: &str) -> Result<()> {
+    let mut client = CameraServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let devices = client
+        .list_camera_devices(Empty {})
+        .await?
+        .into_inner()
+        .devices;
+    if devices.is_empty() {
+        println!("no camera devices");
+    }
+    for device in devices {
+        println!("{} {}", device.path, device.name);
+    }
     Ok(())
 }
 

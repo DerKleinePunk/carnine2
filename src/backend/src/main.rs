@@ -29,6 +29,7 @@ mod audio_engine;
 mod audio_mixer;
 mod audio_source;
 mod audio_volume;
+mod camera;
 mod config;
 mod cpal_audio_engine;
 mod database;
@@ -759,6 +760,7 @@ impl ConfigService for ConfigServiceImpl {
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
             updated.navigation = current.navigation.clone();
             updated.power_supply = current.power_supply.clone();
+            updated.camera = current.camera.clone();
             updated.audio.volume_state_path = current.audio.volume_state_path.clone();
             updated.system.cpu_temperature_warn_celsius =
                 current.system.cpu_temperature_warn_celsius;
@@ -1434,6 +1436,7 @@ fn configuration_from_proto(configuration: &Configuration) -> Result<config::Con
         // the current sections over so saving settings cannot drop them.
         navigation: config::NavigationConfig::default(),
         power_supply: config::PowerSupplyConfig::default(),
+        camera: config::CameraConfig::default(),
     };
     configuration.validate()?;
     Ok(configuration)
@@ -1679,6 +1682,13 @@ async fn main() -> Result<()> {
         .add_service(
             carnine::navigation_service_server::NavigationServiceServer::new(navigation_service),
         )
+        .add_service(carnine::camera_service_server::CameraServiceServer::new(
+            camera::CameraServiceImpl::new(
+                configuration.media.database_path.clone(),
+                configuration.camera.clone(),
+                PathBuf::from(camera::VIDEO4LINUX_ROOT),
+            ),
+        ))
         .serve_with_incoming_shutdown(incoming, async move {
             let _ = shutdown_receiver.await;
         });
@@ -1851,6 +1861,7 @@ mod tests {
             system: config::SystemConfig::default(),
             navigation: config::NavigationConfig::default(),
             power_supply: config::PowerSupplyConfig::default(),
+            camera: config::CameraConfig::default(),
         }
     }
 

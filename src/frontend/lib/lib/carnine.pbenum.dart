@@ -326,5 +326,28 @@ class PlaceType extends $pb.ProtobufEnum {
   const PlaceType._(super.value, super.name);
 }
 
+/// Video norm of the camera signal.
+class CameraNorm extends $pb.ProtobufEnum {
+  static const CameraNorm CAMERA_NORM_UNSPECIFIED =
+      CameraNorm._(0, _omitEnumNames ? '' : 'CAMERA_NORM_UNSPECIFIED');
+  static const CameraNorm CAMERA_NORM_NTSC =
+      CameraNorm._(1, _omitEnumNames ? '' : 'CAMERA_NORM_NTSC');
+  static const CameraNorm CAMERA_NORM_PAL =
+      CameraNorm._(2, _omitEnumNames ? '' : 'CAMERA_NORM_PAL');
+
+  static const $core.List<CameraNorm> values = <CameraNorm>[
+    CAMERA_NORM_UNSPECIFIED,
+    CAMERA_NORM_NTSC,
+    CAMERA_NORM_PAL,
+  ];
+
+  static final $core.List<CameraNorm?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 2);
+  static CameraNorm? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const CameraNorm._(super.value, super.name);
+}
+
 const $core.bool _omitEnumNames =
     $core.bool.fromEnvironment('protobuf.omit_enum_names');

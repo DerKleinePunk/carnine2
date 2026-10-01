@@ -187,6 +187,21 @@ final $typed_data.Uint8List placeTypeDescriptor = $convert.base64Decode(
     'EhkKFVBMQUNFX1RZUEVfV0FURVJfTkFNRRAEEiIKHlBMQUNFX1RZUEVfVFJBTlNQT1JUQVRJT0'
     '5fTkFNRRAF');
 
+@$core.Deprecated('Use cameraNormDescriptor instead')
+const CameraNorm$json = {
+  '1': 'CameraNorm',
+  '2': [
+    {'1': 'CAMERA_NORM_UNSPECIFIED', '2': 0},
+    {'1': 'CAMERA_NORM_NTSC', '2': 1},
+    {'1': 'CAMERA_NORM_PAL', '2': 2},
+  ],
+};
+
+/// Descriptor for `CameraNorm`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List cameraNormDescriptor = $convert.base64Decode(
+    'CgpDYW1lcmFOb3JtEhsKF0NBTUVSQV9OT1JNX1VOU1BFQ0lGSUVEEAASFAoQQ0FNRVJBX05PUk'
+    '1fTlRTQxABEhMKD0NBTUVSQV9OT1JNX1BBTBAC');
+
 @$core.Deprecated('Use uiStateDescriptor instead')
 const UiState$json = {
   '1': 'UiState',
@@ -1532,3 +1547,67 @@ final $typed_data.Uint8List routeDescriptor = $convert.base64Decode(
     'Nhcm5pbmUuTGF0TG9uUghnZW9tZXRyeRInCg9kaXN0YW5jZV9tZXRlcnMYAyABKAFSDmRpc3Rh'
     'bmNlTWV0ZXJzEikKEGR1cmF0aW9uX3NlY29uZHMYBCABKAFSD2R1cmF0aW9uU2Vjb25kcxIvCg'
     'ltYW5ldXZlcnMYBSADKAsyES5jYXJuaW5lLk1hbmV1dmVyUgltYW5ldXZlcnM=');
+
+@$core.Deprecated('Use cameraSettingsDescriptor instead')
+const CameraSettings$json = {
+  '1': 'CameraSettings',
+  '2': [
+    {'1': 'device', '3': 1, '4': 1, '5': 9, '9': 0, '10': 'device', '17': true},
+    {
+      '1': 'norm',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.carnine.CameraNorm',
+      '9': 1,
+      '10': 'norm',
+      '17': true
+    },
+    {'1': 'input', '3': 3, '4': 1, '5': 13, '9': 2, '10': 'input', '17': true},
+  ],
+  '8': [
+    {'1': '_device'},
+    {'1': '_norm'},
+    {'1': '_input'},
+  ],
+};
+
+/// Descriptor for `CameraSettings`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List cameraSettingsDescriptor = $convert.base64Decode(
+    'Cg5DYW1lcmFTZXR0aW5ncxIbCgZkZXZpY2UYASABKAlIAFIGZGV2aWNliAEBEiwKBG5vcm0YAi'
+    'ABKA4yEy5jYXJuaW5lLkNhbWVyYU5vcm1IAVIEbm9ybYgBARIZCgVpbnB1dBgDIAEoDUgCUgVp'
+    'bnB1dIgBAUIJCgdfZGV2aWNlQgcKBV9ub3JtQggKBl9pbnB1dA==');
+
+@$core.Deprecated('Use cameraDeviceDescriptor instead')
+const CameraDevice$json = {
+  '1': 'CameraDevice',
+  '2': [
+    {'1': 'path', '3': 1, '4': 1, '5': 9, '10': 'path'},
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+  ],
+};
+
+/// Descriptor for `CameraDevice`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List cameraDeviceDescriptor = $convert.base64Decode(
+    'CgxDYW1lcmFEZXZpY2USEgoEcGF0aBgBIAEoCVIEcGF0aBISCgRuYW1lGAIgASgJUgRuYW1l');
+
+@$core.Deprecated('Use listCameraDevicesResponseDescriptor instead')
+const ListCameraDevicesResponse$json = {
+  '1': 'ListCameraDevicesResponse',
+  '2': [
+    {
+      '1': 'devices',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.carnine.CameraDevice',
+      '10': 'devices'
+    },
+  ],
+};
+
+/// Descriptor for `ListCameraDevicesResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listCameraDevicesResponseDescriptor =
+    $convert.base64Decode(
+        'ChlMaXN0Q2FtZXJhRGV2aWNlc1Jlc3BvbnNlEi8KB2RldmljZXMYASADKAsyFS5jYXJuaW5lLk'
+        'NhbWVyYURldmljZVIHZGV2aWNlcw==');

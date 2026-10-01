@@ -91,3 +91,13 @@ warm_metrics_interval_seconds = 5
 # /dev/powersupply is the link the backend package's udev rule creates (uart5).
 # device = "/dev/powersupply"
 # baud = 38400
+
+# Reversing camera (video grabber on the camera page). These are the defaults;
+# what the settings page saves is kept in the media database and wins
+# (CameraService; CLI: camera-settings, save-camera-settings, camera-devices).
+# device is /dev/video<n> or a stable link under /dev/v4l/, norm "ntsc" or
+# "pal", input the grabber's input (STK1160: 0-3 composite, 4 S-Video).
+# [camera]
+# device = "/dev/video0"
+# norm = "ntsc"
+# input = 0

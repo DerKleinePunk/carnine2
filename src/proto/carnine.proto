@@ -110,6 +110,23 @@ service NavigationService {
   // Reserved for after the trade fair: StreamGuidance (progress, off-route).
 }
 
+// Settings of the reversing camera (video grabber on the camera page). The
+// backend keeps them; the frontend reads them when it opens the camera and
+// hands them to the grabber. Defaults come from [camera] in the
+// configuration; what SaveCameraSettings stores overrides them.
+service CameraService {
+  // The settings in effect: every field is set.
+  rpc GetCameraSettings (Empty) returns (CameraSettings);
+  // Stores only the fields that are set and returns the settings in effect.
+  // INVALID_ARGUMENT, and nothing stored, for a device outside /dev/video*
+  // and /dev/v4l/, an unspecified norm or an input above 15.
+  rpc SaveCameraSettings (CameraSettings) returns (CameraSettings);
+  // Video devices a camera can be on, for a choice in the settings: the
+  // first node of each device, without the SoC's own codec, ISP and decoder
+  // nodes (bcm2835-*, rpi-*).
+  rpc ListCameraDevices (Empty) returns (ListCameraDevicesResponse);
+}
+
 message CanDataRequest {
   string sensor_id = 1;
 }
@@ -573,4 +590,30 @@ message Route {
   double distance_meters = 3;
   double duration_seconds = 4;
   repeated Maneuver maneuvers = 5;
+}
+
+// Video norm of the camera signal.
+enum CameraNorm {
+  CAMERA_NORM_UNSPECIFIED = 0;
+  CAMERA_NORM_NTSC = 1;
+  CAMERA_NORM_PAL = 2;
+}
+
+message CameraSettings {
+  // Video device, e.g. "/dev/video0".
+  optional string device = 1;
+  optional CameraNorm norm = 2;
+  // Input of the grabber; on the STK1160 0-3 are composite 0-3, 4 S-Video.
+  optional uint32 input = 3;
+}
+
+message CameraDevice {
+  // Device node, e.g. "/dev/video0".
+  string path = 1;
+  // The driver's name for it, e.g. "stk1160".
+  string name = 2;
+}
+
+message ListCameraDevicesResponse {
+  repeated CameraDevice devices = 1;
 }
