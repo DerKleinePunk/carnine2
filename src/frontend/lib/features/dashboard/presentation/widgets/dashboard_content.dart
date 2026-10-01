@@ -1,3 +1,5 @@
+import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart';
+import 'package:carnine_frontend/features/camera/presentation/camera_content.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/models/dashboard_nav_item.dart';
 import 'package:carnine_frontend/features/maps/presentation/maps_content.dart';
@@ -24,6 +26,8 @@ class DashboardContent extends StatelessWidget {
     required this.languageController,
     required this.mediaController,
     required this.mapsController,
+    this.cameraSettingsStore,
+    this.cameraSourceFactory,
     super.key,
   });
 
@@ -36,6 +40,8 @@ class DashboardContent extends StatelessWidget {
   final AppLanguageController languageController;
   final MediaController mediaController;
   final MapsController mapsController;
+  final CameraSettingsStore? cameraSettingsStore;
+  final GrabberSourceFactory? cameraSourceFactory;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +55,14 @@ class DashboardContent extends StatelessWidget {
 
     if (selectedItem.destination == DashboardDestination.maps) {
       return MapsContent(controller: mapsController);
+    }
+
+    // Built only while the page is shown: leaving it closes the camera.
+    if (selectedItem.destination == DashboardDestination.camera) {
+      return CameraContent(
+        settingsStore: cameraSettingsStore,
+        sourceFactory: cameraSourceFactory,
+      );
     }
 
     final l10n = AppLocalizations.of(context);

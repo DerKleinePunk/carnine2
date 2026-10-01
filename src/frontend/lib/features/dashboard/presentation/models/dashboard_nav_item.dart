@@ -5,7 +5,7 @@ enum DashboardDestination {
   home,
   maps,
   media,
-  climate,
+  camera,
   controls,
   settings,
 }

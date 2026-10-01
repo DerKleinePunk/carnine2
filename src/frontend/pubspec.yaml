@@ -31,6 +31,13 @@ dependencies:
       # einem bewussten Wechsel der Marke ins Auto.
       ref: local_map-v0.6.0
       path: packages/local_map
+  # Rueckfahrkamera (USB-Grabber STK1160) als Platform View, eigenes Paket.
+  # Braucht zur Laufzeit libvideo_grabber_view.so, die build_pi.sh mitbaut.
+  video_grabber:
+    git:
+      url: https://github.com/DerKleinePunk/video_grabber.git
+      # Fester Commit (messageBuilder, Dart-SDK ab 3.12 wie die CI).
+      ref: 960f015c4a81892bdd01bc6fefaca791d47ee275
 
 # Pflicht fuer local_map: Overrides wirken nicht transitiv. Forks mit
 # einstellbarem panBuffer/rasterTileScale, mitdrehender Beschriftung

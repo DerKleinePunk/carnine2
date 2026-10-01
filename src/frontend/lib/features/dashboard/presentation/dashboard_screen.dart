@@ -1,3 +1,5 @@
+import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart';
+import 'package:carnine_frontend/features/camera/presentation/camera_content.dart';
 import 'dart:async';
 
 import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
@@ -24,6 +26,8 @@ class DashboardScreen extends StatefulWidget {
     this.powerSupplyController,
     this.thermalWarningController,
     this.uiStateStore,
+    this.cameraSettingsStore,
+    this.cameraSourceFactory,
     super.key,
   });
 
@@ -37,6 +41,13 @@ class DashboardScreen extends StatefulWidget {
   /// Where the page shown last is kept; without it the dashboard always
   /// starts on the first page. Ignored when [controller] is given.
   final UiStateStore? uiStateStore;
+
+  /// Where the camera page gets its settings; without it the defaults.
+  final CameraSettingsStore? cameraSettingsStore;
+
+  /// The camera page's picture source; the native grabber unless a test
+  /// gives one.
+  final GrabberSourceFactory? cameraSourceFactory;
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -205,6 +216,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   languageController: widget.languageController,
                   mediaController: _mediaController,
                   mapsController: _mapsController,
+                  cameraSettingsStore: widget.cameraSettingsStore,
+                  cameraSourceFactory: widget.cameraSourceFactory,
                 ),
               ),
             ],

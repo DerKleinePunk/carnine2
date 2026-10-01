@@ -40,7 +40,8 @@ Future<void> main() async {
   AppLogging.frontend.info(
     'Frontend app started; version=$_carnineVersion build=$_carnineBuildVersion',
   );
-  runApp(CarnineApp(uiStateStore: CarnineGrpcService()));
+  final backend = CarnineGrpcService();
+  runApp(CarnineApp(uiStateStore: backend, cameraSettingsStore: backend));
 
   _scheduleUiReadyDetection();
 }

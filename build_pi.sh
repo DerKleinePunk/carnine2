@@ -164,8 +164,9 @@ echo "[pi] Building ivi-homescreen bundle ($EMB_TARGET / $EMB_BACKEND, $FRONTEND
 EMB_LOG="$LOG_DIR/pi-${TIMESTAMP}-emb.log"
 (
   cd "$EMB_EMBEDDER_DIR"
-  # Plugins stay off: the frontend uses no native plugin on the Pi
-  # (window_manager is desktop-only and skipped under CARNINE_EMBEDDED).
+  # Plugins stay off: the frontend uses no ivi-homescreen plugin on the Pi
+  # (window_manager is desktop-only and skipped under CARNINE_EMBEDDED); the
+  # camera view is built on its own below.
   emb cross . --target "$EMB_TARGET" --build --backend "$EMB_BACKEND" \
     --app "$FRONTEND_STAGING_DIR" --mode "$FRONTEND_BUILD_MODE" \
     -D DISABLE_PLUGINS=ON \
@@ -180,7 +181,46 @@ if [[ -z "$FRONTEND_BUNDLE" || ! -x "$FRONTEND_BUNDLE/homescreen" ]]; then
   echo "[pi] ERROR: ivi-homescreen bundle not found (emb log: $EMB_LOG)"
   exit 1
 fi
+# The camera page's platform view (package video_grabber) is no ivi-homescreen
+# plugin in the tree, so emb leaves its native part out. It is built here
+# against the very shell build emb used for this bundle, so that it matches
+# libihs_shared.so.1, and lands in the bundle's lib/, which carnine-frontend
+# puts on LD_LIBRARY_PATH.
+VIDEO_GRABBER_SOURCE="$(python3 -c '
+import json, sys, urllib.parse
+packages = json.load(open(sys.argv[1]))["packages"]
+uri = next(p["rootUri"] for p in packages if p["name"] == "video_grabber")
+print(urllib.parse.urlparse(uri).path.rstrip("/"))
+' "$FRONTEND_STAGING_DIR/.dart_tool/package_config.json")"
+EMB_TOOLCHAIN="$(sed -n 's/^[[:space:]]*cmake tc file[[:space:]]*:[[:space:]]*\([^[:space:]]*\).*/\1/p' "$EMB_LOG" | tail -n 1)"
+IHS_BUILD_DIR="$(dirname "$FRONTEND_BUNDLE")/build-$EMB_BACKEND"
+if [[ ! -f "$VIDEO_GRABBER_SOURCE/native/CMakeLists.txt" || ! -f "$EMB_TOOLCHAIN" ||
+  ! -f "$IHS_BUILD_DIR/shell/lib/libihs_shared.so" ]]; then
+  echo "[pi] ERROR: cannot build the video grabber view (source: $VIDEO_GRABBER_SOURCE," \
+    "toolchain: $EMB_TOOLCHAIN, shell build: $IHS_BUILD_DIR)"
+  exit 1
+fi
+VIDEO_GRABBER_BUILD="$ROOT_DIR/build/video_grabber-pi"
+VIDEO_GRABBER_LOG="$LOG_DIR/pi-${TIMESTAMP}-video-grabber.log"
+echo "[pi] Building the video grabber view from $VIDEO_GRABBER_SOURCE..."
+rm -rf "$VIDEO_GRABBER_BUILD"
+cmake -S "$VIDEO_GRABBER_SOURCE/native" -B "$VIDEO_GRABBER_BUILD" -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF \
+  -DCMAKE_TOOLCHAIN_FILE="$EMB_TOOLCHAIN" \
+  -DIHS_BUILD_DIR="$IHS_BUILD_DIR" \
+  -DIHS_SOURCE_DIR="$EMB_EMBEDDER_DIR" > "$VIDEO_GRABBER_LOG" 2>&1
+cmake --build "$VIDEO_GRABBER_BUILD" >> "$VIDEO_GRABBER_LOG" 2>&1
+if [[ "$(file -b "$VIDEO_GRABBER_BUILD/libvideo_grabber_view.so" 2>/dev/null)" != *"ARM aarch64"* ]]; then
+  echo "[pi] ERROR: libvideo_grabber_view.so is missing or not arm64 (log: $VIDEO_GRABBER_LOG)"
+  exit 1
+fi
+install -m 0644 "$VIDEO_GRABBER_BUILD/libvideo_grabber_view.so" "$FRONTEND_BUNDLE/lib/"
+
 "$FRONTEND_DIR/package-deb.sh" "$FRONTEND_BUNDLE" "$FRONTEND_PACKAGE" "$BUILD_VERSION"
+if ! dpkg-deb -c "$FRONTEND_PACKAGE" | grep -q ' \./opt/carnine/frontend/lib/libvideo_grabber_view\.so$'; then
+  echo "[pi] ERROR: the frontend package lacks libvideo_grabber_view.so"
+  exit 1
+fi
 if [[ "$(dpkg-deb -f "$FRONTEND_PACKAGE" Architecture)" != "arm64" ]]; then
   echo "[pi] ERROR: Frontend package is not arm64: $FRONTEND_PACKAGE"
   exit 1

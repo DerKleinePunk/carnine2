@@ -1,8 +1,10 @@
 import 'package:carnine_frontend/core/platform/grpc_endpoint.dart';
+import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart';
 import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
 import 'package:carnine_frontend/lib/carnine.pbgrpc.dart';
 import 'package:grpc/grpc.dart';
 import 'package:logging/logging.dart';
+import 'package:video_grabber/video_grabber.dart';
 
 typedef ClientChannelFactory = ClientChannel Function();
 
@@ -10,7 +12,7 @@ typedef ClientChannelFactory = ClientChannel Function();
 ///
 /// The service keeps transport creation isolated in [GrpcEndpoint] so
 /// dashboard widgets don't need to know which transport is active.
-class CarnineGrpcService implements UiStateStore {
+class CarnineGrpcService implements UiStateStore, CameraSettingsStore {
   CarnineGrpcService({Logger? logger, ClientChannelFactory? channelFactory})
     : _logger = logger ?? Logger('CarnineGrpcService'),
       _channelFactory = channelFactory ?? _createDefaultChannel;
@@ -86,6 +88,35 @@ class CarnineGrpcService implements UiStateStore {
     } finally {
       await channel.shutdown();
     }
+  }
+
+  /// The camera settings in effect, as the backend keeps them.
+  @override
+  Future<GrabberConfig> loadCameraSettings() async {
+    final channel = _channelFactory();
+    try {
+      final settings = await CameraServiceClient(
+        channel,
+      ).getCameraSettings(Empty());
+      return grabberConfigFrom(settings);
+    } finally {
+      await channel.shutdown();
+    }
+  }
+
+  /// What the grabber needs from the backend's settings; a field the backend
+  /// left out keeps the grabber's default.
+  static GrabberConfig grabberConfigFrom(CameraSettings settings) {
+    const defaults = GrabberConfig();
+    return GrabberConfig(
+      device: settings.hasDevice() ? settings.device : defaults.device,
+      input: settings.hasInput() ? settings.input : defaults.input,
+      norm: switch (settings.norm) {
+        CameraNorm.CAMERA_NORM_PAL => VideoNorm.pal,
+        CameraNorm.CAMERA_NORM_NTSC => VideoNorm.ntsc,
+        _ => defaults.norm,
+      },
+    );
   }
 
   /// Fetches engine temperature CAN data through the generated protobuf stub.

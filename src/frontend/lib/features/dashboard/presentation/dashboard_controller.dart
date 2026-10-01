@@ -58,10 +58,10 @@ class DashboardController extends ChangeNotifier {
       semanticLabelKey: AppTextKey.navMediaSemantic,
     ),
     DashboardNavItem(
-      destination: DashboardDestination.climate,
-      icon: Icons.thermostat,
-      labelKey: AppTextKey.navClimate,
-      semanticLabelKey: AppTextKey.navClimateSemantic,
+      destination: DashboardDestination.camera,
+      icon: Icons.videocam,
+      labelKey: AppTextKey.navCamera,
+      semanticLabelKey: AppTextKey.navCameraSemantic,
     ),
     DashboardNavItem(
       destination: DashboardDestination.controls,
@@ -156,7 +156,11 @@ class DashboardController extends ChangeNotifier {
     }
   }
 
-  void _applyRestoredPage(String name) {
+  void _applyRestoredPage(String savedName) {
+    // The camera page was the climate page until October 2026.
+    final name = savedName == 'climate'
+        ? DashboardDestination.camera.name
+        : savedName;
     final index = navItems.indexWhere(
       (item) =>
           item.destination.name == name && _isRestorable(item.destination),

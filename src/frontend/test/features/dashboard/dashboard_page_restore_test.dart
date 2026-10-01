@@ -60,6 +60,22 @@ void main() {
     expect(controller.selectedItem.destination, DashboardDestination.maps);
   });
 
+  test('a saved climate page opens the camera page that replaced it', () async {
+    for (final name in ['climate', 'camera']) {
+      final controller = DashboardController(
+        uiStateStore: FakeUiStateStore(lastPage: name),
+      );
+
+      await controller.restoreLastPage();
+
+      expect(
+        controller.selectedItem.destination,
+        DashboardDestination.camera,
+        reason: name,
+      );
+    }
+  });
+
   test('stays on the first page for unknown names and settings', () async {
     for (final name in ['', 'gone', 'settings']) {
       final controller = DashboardController(
