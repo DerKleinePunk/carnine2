@@ -128,6 +128,10 @@ ersten Start hängt `carnine-hostname.service` die letzten vier Stellen der
 Seriennummer an, z. B. `carnine-pc-1a2b`, damit mehrere Geräte im selben Netz
 unterscheidbar sind (#62). Das passiert einmal. Ein inzwischen von Hand
 gesetzter Name bleibt. Tests: `sh tests/carnine-hostname-test.sh`.
+Umbenennen am Gerät: `sudo carnine-rename <name>` setzt `/etc/hostname`, die
+Zeile `127.0.1.1` in `/etc/hosts` und den laufenden Namen in einem Schritt und
+prüft, dass der Name für DHCP und mDNS taugt (Kleinbuchstaben, Ziffern, `-`).
+Im Netz gilt er nach einem Neustart. Tests: `sh tests/carnine-rename-test.sh`.
 
 Der Benutzer ist `pi` mit dem Passwort `raspberry`, änderbar mit
 `-t rootpassword:<passwort>`. SSH nimmt das Passwort an. Solange `pi` noch

@@ -498,6 +498,17 @@ actions:
       systemctl enable carnine-hostname.service
 
   - action: overlay
+    description: Install the rename command
+    origin: recipe
+    source: carnine-rename.sh
+    destination: /usr/local/sbin/carnine-rename
+
+  - action: run
+    description: Make the rename command executable
+    chroot: true
+    command: chmod 0755 /usr/local/sbin/carnine-rename
+
+  - action: overlay
     description: Install the default password check
     origin: recipe
     source: carnine-password-check.sh
