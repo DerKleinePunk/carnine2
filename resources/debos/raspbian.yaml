@@ -122,6 +122,8 @@ actions:
       - plymouth
       - plymouth-themes
       - zstd
+      # carnine-install-maps downloads the map package with it.
+      - curl
 
   - action: run
     description: Defer automatic Dracut kernel hook
@@ -403,6 +405,17 @@ actions:
     command: |
       install -d -o carnine -g carnine -m 0750 /var/lib/carnine/maps
       install -d -o root -g root -m 0755 /var/lib/valhalla
+
+  - action: overlay
+    description: Install the map package installer
+    origin: recipe
+    source: carnine-install-maps.sh
+    destination: /usr/local/sbin/carnine-install-maps
+
+  - action: run
+    description: Make the map package installer executable
+    chroot: true
+    command: chmod 0755 /usr/local/sbin/carnine-install-maps
 
   - action: run
     description: Enable a permanent debug console on tty2

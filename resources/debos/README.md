@@ -74,6 +74,22 @@ verdreifachen. Nach dem ersten Start bringt sie `deploy_maps.sh` auf das Gerät:
 Das Skript liest aus `~/develop/carnine-maps` (anders mit `CARNINE_MAPS_DIR`),
 prüft dort `SHA256SUMS` und startet danach Valhalla, Backend und Frontend neu.
 
+Ohne Entwicklungsrechner, z. B. bei Testern, holt sich das Gerät ein
+Kartenpaket selbst:
+
+```sh
+sudo carnine-install-maps                 # fragt nach dem Freigabe-Link
+sudo carnine-install-maps --dir /media/…  # Paketordner, z. B. auf einem USB-Stick
+```
+
+Ein Paket (Vorgabe `karten-hessen`) ist ein Ordner mit je einer `.zst` pro
+Datei, `INHALT` (Größen gepackt/entpackt), `SHA256SUMS` und
+`SHA256SUMS.entpackt`. Der Link (Nextcloud-Freigabe) steht nicht im Image, ihn
+gibt heraus, wer das Paket weitergibt. Das Skript prüft vorher den Platz, setzt
+abgebrochene Downloads beim nächsten Aufruf fort, stoppt die Dienste erst,
+wenn alles geladen und geprüft ist, und überspringt Dateien, die schon
+installiert sind. Tests: `sh tests/carnine-install-maps-test.sh`.
+
 Gebaut werden die Daten nicht in carnine2, sondern mit den Skripten im
 Kartenprojekt `DerKleinePunk/flutter_local_map` (`scripts/tilemaker.sh`,
 `scripts/extract_names_to_sqlite.py`, `scripts/valhalla/`). Welche Datei
