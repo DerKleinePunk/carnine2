@@ -43,8 +43,7 @@ der gewählten Seite. Die Oberfläche startet immer auf Deutsch.
 ![Seite Karten: links das Seitenmenü mit NOTFALL, oben rechts Kopfleiste und Uhr, darunter die Karte](bilder/start.png)
 
 *Die Bilder in dieser Anleitung stammen vom Test-Pi (Panel 1024 × 600,
-Replay-Tour in Hessen). Außer auf der Seite [Cam](kamera.md) sind sie von
-0.9.x und zeigen im Seitenmenü noch „Klima“ statt „Cam“.*
+Replay-Tour in Hessen).*
 
 ### Seitenmenü (links)
 
