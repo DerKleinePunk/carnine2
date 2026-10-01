@@ -241,9 +241,11 @@ steps for the tester in `docs/bedienung/nach-der-installation.md`.
 `~/develop/carnine-maps/dach` (`CARNINE_DACH_DIR`), a copy of the map
 project's build with its `SHA256SUMS`; the demo tour is the same as for
 Hessen. Replacing Germany with DACH needs about 29 GB free on the device (7 GB more
-data plus the rsync copy of the tiles). jeep-pi runs with DACH.
+data plus the rsync copy of the tiles). jeep-pi and carnine-pc run with
+DACH; on carnine-pc (Pi 3, 100 Mbit/s Ethernet) the 31 GB took 74 minutes
+on 2026-10-01, at 8 to 10 MB/s.
 
-Before that, **carnine-pc showed all of Germany** from 2026-09-26:
+Before that, **carnine-pc showed all of Germany** from 2026-09-26 to 2026-10-01:
 `germany.mbtiles` (17.2 GB) and its `germany_names.db` (1.8 GB, 3.95 million
 names) from `~/develop/carnine-maps/germany/`, deployed with
 `CARNINE_MAP_TILES` and `CARNINE_NAMES_DATABASE` and `map_region =
