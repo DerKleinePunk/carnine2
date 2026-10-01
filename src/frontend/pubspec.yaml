@@ -36,8 +36,8 @@ dependencies:
   video_grabber:
     git:
       url: https://github.com/DerKleinePunk/video_grabber.git
-      # Fester Commit (messageBuilder, Dart-SDK ab 3.12 wie die CI).
-      ref: 960f015c4a81892bdd01bc6fefaca791d47ee275
+      # Fester Commit (messageBuilder, Dart-SDK ab 3.12, Bildbreite width).
+      ref: a713000c8640f639fa5617d49af67397e37ed679
 
 # Pflicht fuer local_map: Overrides wirken nicht transitiv. Forks mit
 # einstellbarem panBuffer/rasterTileScale, mitdrehender Beschriftung

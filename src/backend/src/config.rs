@@ -248,6 +248,9 @@ pub enum CameraNormSetting {
 /// Highest grabber input the backend accepts; the STK1160 has 0-4.
 pub const MAX_CAMERA_INPUT: u32 = 15;
 
+/// Picture widths the video grabber offers.
+pub const CAMERA_WIDTHS: [u32; 2] = [360, 720];
+
 /// Whether `device` may be a camera: a V4L2 node, by number or by the stable
 /// /dev/v4l/ links udev makes.
 pub fn is_camera_device(device: &str) -> bool {
@@ -269,6 +272,12 @@ pub struct CameraConfig {
     pub norm: CameraNormSetting,
     #[serde(default)]
     pub input: u32,
+    #[serde(default = "default_camera_width")]
+    pub width: u32,
+}
+
+fn default_camera_width() -> u32 {
+    360
 }
 
 fn default_camera_device() -> String {
@@ -281,6 +290,7 @@ impl Default for CameraConfig {
             device: default_camera_device(),
             norm: CameraNormSetting::default(),
             input: 0,
+            width: default_camera_width(),
         }
     }
 }
@@ -416,6 +426,12 @@ impl Config {
             anyhow::bail!(
                 "camera.device must be /dev/video<n> or under /dev/v4l/: {}",
                 self.camera.device
+            );
+        }
+        if !CAMERA_WIDTHS.contains(&self.camera.width) {
+            anyhow::bail!(
+                "camera.width {} is not one of {CAMERA_WIDTHS:?}",
+                self.camera.width
             );
         }
         if self.camera.input > MAX_CAMERA_INPUT {
@@ -791,6 +807,13 @@ mod tests {
         assert_eq!(config.camera.device, "/dev/video0");
         assert_eq!(config.camera.norm, super::CameraNormSetting::Ntsc);
         assert_eq!(config.camera.input, 0);
+        assert_eq!(config.camera.width, 360);
+
+        config.camera.width = 720;
+        assert!(config.validate().is_ok());
+        config.camera.width = 640;
+        assert!(config.validate().is_err());
+        config.camera.width = 360;
 
         config.camera.device = "/dev/v4l/by-id/usb-grabber-video-index0".to_string();
         config.camera.input = super::MAX_CAMERA_INPUT;

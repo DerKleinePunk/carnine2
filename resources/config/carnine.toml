@@ -96,8 +96,10 @@ warm_metrics_interval_seconds = 5
 # what the settings page saves is kept in the media database and wins
 # (CameraService; CLI: camera-settings, save-camera-settings, camera-devices).
 # device is /dev/video<n> or a stable link under /dev/v4l/, norm "ntsc" or
-# "pal", input the grabber's input (STK1160: 0-3 composite, 4 S-Video).
+# "pal", input the grabber's input (STK1160: 0-3 composite, 4 S-Video), width
+# 360 or 720 (at 720 the STK1160 fills USB 2 and shows only about 10 frames/s).
 # [camera]
 # device = "/dev/video0"
 # norm = "ntsc"
 # input = 0
+# width = 360

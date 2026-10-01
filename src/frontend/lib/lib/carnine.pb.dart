@@ -4510,11 +4510,13 @@ class CameraSettings extends $pb.GeneratedMessage {
     $core.String? device,
     CameraNorm? norm,
     $core.int? input,
+    $core.int? width,
   }) {
     final result = create();
     if (device != null) result.device = device;
     if (norm != null) result.norm = norm;
     if (input != null) result.input = input;
+    if (width != null) result.width = width;
     return result;
   }
 
@@ -4535,6 +4537,7 @@ class CameraSettings extends $pb.GeneratedMessage {
     ..aE<CameraNorm>(2, _omitFieldNames ? '' : 'norm',
         enumValues: CameraNorm.values)
     ..aI(3, _omitFieldNames ? '' : 'input', fieldType: $pb.PbFieldType.OU3)
+    ..aI(4, _omitFieldNames ? '' : 'width', fieldType: $pb.PbFieldType.OU3)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -4584,6 +4587,18 @@ class CameraSettings extends $pb.GeneratedMessage {
   $core.bool hasInput() => $_has(2);
   @$pb.TagNumber(3)
   void clearInput() => $_clearField(3);
+
+  /// Picture width from the grabber, 360 or 720. At 720 the STK1160 fills
+  /// USB 2 and about two thirds of the frames come incomplete; 360 brings
+  /// all 30 per second.
+  @$pb.TagNumber(4)
+  $core.int get width => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set width($core.int value) => $_setUnsignedInt32(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasWidth() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearWidth() => $_clearField(4);
 }
 
 class CameraDevice extends $pb.GeneratedMessage {

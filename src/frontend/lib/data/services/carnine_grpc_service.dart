@@ -116,6 +116,11 @@ class CarnineGrpcService implements UiStateStore, CameraSettingsStore {
         CameraNorm.CAMERA_NORM_NTSC => VideoNorm.ntsc,
         _ => defaults.norm,
       },
+      // The grabber takes only 360 or 720; anything else keeps its default
+      // rather than failing the page.
+      width: settings.width == 720 || settings.width == 360
+          ? settings.width
+          : defaults.width,
     );
   }
 

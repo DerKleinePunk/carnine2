@@ -13,7 +13,7 @@ use crate::carnine::{
     camera_service_server::CameraService, CameraDevice, CameraNorm, CameraSettings, Empty,
     ListCameraDevicesResponse,
 };
-use crate::config::{self, CameraConfig, CameraNormSetting, MAX_CAMERA_INPUT};
+use crate::config::{self, CameraConfig, CameraNormSetting, CAMERA_WIDTHS, MAX_CAMERA_INPUT};
 use crate::database::{Database, SavedCameraSettings};
 
 /// Where the kernel lists the V4L2 device nodes.
@@ -53,6 +53,7 @@ impl CameraServiceImpl {
             ),
             norm: Some(norm as i32),
             input: Some(saved.input.unwrap_or(self.defaults.input)),
+            width: Some(saved.width.unwrap_or(self.defaults.width)),
         }
     }
 
@@ -116,10 +117,18 @@ fn validate(request: &CameraSettings) -> Result<SavedCameraSettings, Status> {
             )));
         }
     }
+    if let Some(width) = request.width {
+        if !CAMERA_WIDTHS.contains(&width) {
+            return Err(Status::invalid_argument(format!(
+                "camera width must be one of {CAMERA_WIDTHS:?}, got {width}"
+            )));
+        }
+    }
     Ok(SavedCameraSettings {
         device: request.device.clone(),
         norm: norm.map(str::to_string),
         input: request.input,
+        width: request.width,
     })
 }
 
@@ -257,11 +266,13 @@ mod tests {
             .map(Response::into_inner)
     }
 
+    /// Settings in effect with the default width of 360.
     fn settings(device: &str, norm: CameraNorm, input: u32) -> CameraSettings {
         CameraSettings {
             device: Some(device.to_string()),
             norm: Some(norm as i32),
             input: Some(input),
+            width: Some(360),
         }
     }
 
@@ -283,15 +294,19 @@ mod tests {
             device: "/dev/v4l/by-id/usb-grabber-video-index0".to_string(),
             norm: CameraNormSetting::Pal,
             input: 4,
+            width: 720,
         });
 
         assert_eq!(
             get(&service).await,
-            settings(
-                "/dev/v4l/by-id/usb-grabber-video-index0",
-                CameraNorm::Pal,
-                4
-            )
+            CameraSettings {
+                width: Some(720),
+                ..settings(
+                    "/dev/v4l/by-id/usb-grabber-video-index0",
+                    CameraNorm::Pal,
+                    4
+                )
+            }
         );
     }
 
@@ -324,6 +339,41 @@ mod tests {
             answer,
             settings("/dev/video0", CameraNorm::Pal, 4),
             "the norm saved before stays"
+        );
+        assert_eq!(get(&service).await, answer);
+    }
+
+    #[tokio::test]
+    async fn the_width_is_saved_like_the_rest() {
+        let scratch = Scratch::new("width");
+        let service = scratch.service(CameraConfig::default());
+        // Something saved before, so the width updates an existing row.
+        save(
+            &service,
+            CameraSettings {
+                norm: Some(CameraNorm::Pal as i32),
+                ..CameraSettings::default()
+            },
+        )
+        .await
+        .unwrap();
+
+        let answer = save(
+            &service,
+            CameraSettings {
+                width: Some(720),
+                ..CameraSettings::default()
+            },
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            answer,
+            CameraSettings {
+                width: Some(720),
+                ..settings("/dev/video0", CameraNorm::Pal, 0)
+            }
         );
         assert_eq!(get(&service).await, answer);
     }
@@ -373,6 +423,10 @@ mod tests {
             },
             CameraSettings {
                 input: Some(MAX_CAMERA_INPUT + 1),
+                ..CameraSettings::default()
+            },
+            CameraSettings {
+                width: Some(640),
                 ..CameraSettings::default()
             },
             // One bad field spoils the whole request.

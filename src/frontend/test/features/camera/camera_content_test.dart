@@ -258,9 +258,20 @@ void main() {
           device: '/dev/video2',
           norm: CameraNorm.CAMERA_NORM_PAL,
           input: 4,
+          width: 720,
         ),
       ),
-      const GrabberConfig(device: '/dev/video2', input: 4, norm: VideoNorm.pal),
+      const GrabberConfig(
+        device: '/dev/video2',
+        input: 4,
+        norm: VideoNorm.pal,
+        width: 720,
+      ),
+    );
+    expect(
+      CarnineGrpcService.grabberConfigFrom(CameraSettings(width: 640)).width,
+      360,
+      reason: 'a width the grabber does not offer keeps the default',
     );
     expect(
       CarnineGrpcService.grabberConfigFrom(CameraSettings()),

@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use anyhow::{Context, Result};
 use rusqlite::{params, Connection, OptionalExtension};
 
-const CURRENT_SCHEMA_VERSION: i64 = 9;
+const CURRENT_SCHEMA_VERSION: i64 = 10;
 
 pub struct Database {
     connection: Connection,
@@ -31,6 +31,7 @@ pub struct SavedCameraSettings {
     pub device: Option<String>,
     pub norm: Option<String>,
     pub input: Option<u32>,
+    pub width: Option<u32>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -258,6 +259,14 @@ impl Database {
                     input INTEGER
                 );
                 INSERT INTO schema_migrations (version) VALUES (9);",
+            )?;
+        }
+        if version < 10 {
+            // The grabber's picture width, a setting since the camera page
+            // showed only about 10 frames per second at 720.
+            self.connection.execute_batch(
+                "ALTER TABLE camera_settings ADD COLUMN width INTEGER;
+                INSERT INTO schema_migrations (version) VALUES (10);",
             )?;
         }
         if version > CURRENT_SCHEMA_VERSION {
@@ -626,13 +635,14 @@ impl Database {
         Ok(self
             .connection
             .query_row(
-                "SELECT device, norm, input FROM camera_settings WHERE id = 1",
+                "SELECT device, norm, input, width FROM camera_settings WHERE id = 1",
                 [],
                 |row| {
                     Ok(SavedCameraSettings {
                         device: row.get(0)?,
                         norm: row.get(1)?,
                         input: row.get(2)?,
+                        width: row.get(3)?,
                     })
                 },
             )
@@ -643,12 +653,13 @@ impl Database {
     /// Stores the fields that are `Some`, keeps the others.
     pub fn save_camera_settings(&self, settings: &SavedCameraSettings) -> Result<()> {
         self.connection.execute(
-            "INSERT INTO camera_settings (id, device, norm, input) VALUES (1, ?1, ?2, ?3)
+            "INSERT INTO camera_settings (id, device, norm, input, width) VALUES (1, ?1, ?2, ?3, ?4)
              ON CONFLICT(id) DO UPDATE SET
                 device = COALESCE(excluded.device, device),
                 norm = COALESCE(excluded.norm, norm),
-                input = COALESCE(excluded.input, input)",
-            params![settings.device, settings.norm, settings.input],
+                input = COALESCE(excluded.input, input),
+                width = COALESCE(excluded.width, width)",
+            params![settings.device, settings.norm, settings.input, settings.width],
         )?;
         Ok(())
     }
@@ -1337,7 +1348,7 @@ mod tests {
             .connection
             .execute_batch(
                 "DROP TABLE camera_settings;
-                 DELETE FROM schema_migrations WHERE version = 9;",
+                 DELETE FROM schema_migrations WHERE version >= 9;",
             )
             .unwrap();
         drop(database);
@@ -1356,6 +1367,47 @@ mod tests {
     }
 
     #[test]
+    fn schema_10_adds_the_width_and_keeps_the_camera_settings() {
+        let path = std::env::temp_dir().join(format!(
+            "carnine-database-schema10-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&path);
+        let database = Database::open(&path).expect("database should open");
+        database
+            .save_camera_settings(&SavedCameraSettings {
+                device: Some("/dev/video2".to_string()),
+                norm: Some("pal".to_string()),
+                input: Some(4),
+                width: None,
+            })
+            .unwrap();
+        // Back to schema 9, as on carnine-pc since 1 October 2026.
+        database
+            .connection
+            .execute_batch(
+                "ALTER TABLE camera_settings DROP COLUMN width;
+                 DELETE FROM schema_migrations WHERE version = 10;",
+            )
+            .unwrap();
+        drop(database);
+
+        let database = Database::open(&path).expect("schema 9 should migrate");
+
+        assert_eq!(database.schema_version().unwrap(), CURRENT_SCHEMA_VERSION);
+        assert_eq!(
+            database.load_camera_settings().unwrap(),
+            SavedCameraSettings {
+                device: Some("/dev/video2".to_string()),
+                norm: Some("pal".to_string()),
+                input: Some(4),
+                width: None,
+            }
+        );
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
     fn camera_settings_store_only_what_is_set() {
         let database = Database::open(":memory:").expect("database should open");
         database
@@ -1363,9 +1415,10 @@ mod tests {
                 device: Some("/dev/video2".to_string()),
                 norm: Some("pal".to_string()),
                 input: Some(4),
+                width: Some(720),
             })
             .unwrap();
-        // A later save of the norm alone keeps device and input.
+        // A later save of the norm alone keeps device, input and width.
         database
             .save_camera_settings(&SavedCameraSettings {
                 norm: Some("ntsc".to_string()),
@@ -1379,6 +1432,7 @@ mod tests {
                 device: Some("/dev/video2".to_string()),
                 norm: Some("ntsc".to_string()),
                 input: Some(4),
+                width: Some(720),
             }
         );
     }

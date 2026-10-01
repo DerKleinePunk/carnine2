@@ -119,7 +119,8 @@ service CameraService {
   rpc GetCameraSettings (Empty) returns (CameraSettings);
   // Stores only the fields that are set and returns the settings in effect.
   // INVALID_ARGUMENT, and nothing stored, for a device outside /dev/video*
-  // and /dev/v4l/, an unspecified norm or an input above 15.
+  // and /dev/v4l/, an unspecified norm, an input above 15 or a width other
+  // than 360 or 720.
   rpc SaveCameraSettings (CameraSettings) returns (CameraSettings);
   // Video devices a camera can be on, for a choice in the settings: the
   // first node of each device, without the SoC's own codec, ISP and decoder
@@ -605,6 +606,10 @@ message CameraSettings {
   optional CameraNorm norm = 2;
   // Input of the grabber; on the STK1160 0-3 are composite 0-3, 4 S-Video.
   optional uint32 input = 3;
+  // Picture width from the grabber, 360 or 720. At 720 the STK1160 fills
+  // USB 2 and about two thirds of the frames come incomplete; 360 brings
+  // all 30 per second.
+  optional uint32 width = 4;
 }
 
 message CameraDevice {

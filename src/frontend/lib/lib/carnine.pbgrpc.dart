@@ -1527,7 +1527,8 @@ class CameraServiceClient extends $grpc.Client {
 
   /// Stores only the fields that are set and returns the settings in effect.
   /// INVALID_ARGUMENT, and nothing stored, for a device outside /dev/video*
-  /// and /dev/v4l/, an unspecified norm or an input above 15.
+  /// and /dev/v4l/, an unspecified norm, an input above 15 or a width other
+  /// than 360 or 720.
   $grpc.ResponseFuture<$0.CameraSettings> saveCameraSettings(
     $0.CameraSettings request, {
     $grpc.CallOptions? options,

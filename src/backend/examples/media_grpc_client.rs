@@ -372,10 +372,11 @@ async fn get_ui_state(endpoint: &str) -> Result<()> {
 
 fn print_camera_settings(settings: &CameraSettings) {
     println!(
-        "device={} norm={} input={}",
+        "device={} norm={} input={} width={}",
         settings.device(),
         settings.norm().as_str_name(),
-        settings.input()
+        settings.input(),
+        settings.width()
     );
 }
 
@@ -385,8 +386,8 @@ async fn get_camera_settings(endpoint: &str) -> Result<()> {
     Ok(())
 }
 
-/// `save-camera-settings <device|-> [ntsc|pal|-] [input|-]`: `-` or a missing
-/// value keeps what is stored, e.g. `save-camera-settings - pal`.
+/// `save-camera-settings <device|-> [ntsc|pal|-] [input|-] [360|720|-]`: `-` or
+/// a missing value keeps what is stored, e.g. `save-camera-settings - pal`.
 async fn save_camera_settings(endpoint: &str) -> Result<()> {
     let value = |index| env::args().nth(index).filter(|value| value != "-");
     let norm = match value(4).as_deref() {
@@ -399,12 +400,17 @@ async fn save_camera_settings(endpoint: &str) -> Result<()> {
         .map(|input| input.parse::<u32>())
         .transpose()
         .context("input must be a number")?;
+    let width = value(6)
+        .map(|width| width.parse::<u32>())
+        .transpose()
+        .context("width must be a number")?;
     let mut client = CameraServiceClient::<Channel>::connect(endpoint.to_string()).await?;
     let settings = client
         .save_camera_settings(CameraSettings {
             device: value(3),
             norm,
             input,
+            width,
         })
         .await?
         .into_inner();

@@ -1564,11 +1564,13 @@ const CameraSettings$json = {
       '17': true
     },
     {'1': 'input', '3': 3, '4': 1, '5': 13, '9': 2, '10': 'input', '17': true},
+    {'1': 'width', '3': 4, '4': 1, '5': 13, '9': 3, '10': 'width', '17': true},
   ],
   '8': [
     {'1': '_device'},
     {'1': '_norm'},
     {'1': '_input'},
+    {'1': '_width'},
   ],
 };
 
@@ -1576,7 +1578,8 @@ const CameraSettings$json = {
 final $typed_data.Uint8List cameraSettingsDescriptor = $convert.base64Decode(
     'Cg5DYW1lcmFTZXR0aW5ncxIbCgZkZXZpY2UYASABKAlIAFIGZGV2aWNliAEBEiwKBG5vcm0YAi'
     'ABKA4yEy5jYXJuaW5lLkNhbWVyYU5vcm1IAVIEbm9ybYgBARIZCgVpbnB1dBgDIAEoDUgCUgVp'
-    'bnB1dIgBAUIJCgdfZGV2aWNlQgcKBV9ub3JtQggKBl9pbnB1dA==');
+    'bnB1dIgBARIZCgV3aWR0aBgEIAEoDUgDUgV3aWR0aIgBAUIJCgdfZGV2aWNlQgcKBV9ub3JtQg'
+    'gKBl9pbnB1dEIICgZfd2lkdGg=');
 
 @$core.Deprecated('Use cameraDeviceDescriptor instead')
 const CameraDevice$json = {
