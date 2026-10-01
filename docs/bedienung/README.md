@@ -20,7 +20,7 @@ dieser Seiten in denselben Commit.
 7. [Ton über die Klinke](ton-klinke.md) – für Displays ohne Lautsprecher
    (z. B. Waveshare 7C)
 8. [Nach der Installation](nach-der-installation.md) – Standardpasswort und
-   Gerätenamen ändern
+   Gerätenamen ändern, Kartendaten installieren
 
 ## Die häufigsten Abläufe
 

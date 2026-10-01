@@ -222,6 +222,13 @@ After building new data:
    check the map style (`src/frontend/assets/maps/`) against the new tiles,
    see §8.11.
 
+Without the development machine, e.g. for testers, the device installs a map
+package by itself: `sudo carnine-install-maps` asks for a Nextcloud share
+link (not built into the image), `--dir <folder>` takes a package folder on a
+USB stick. `./pack_maps.sh` builds such a package from the same sources as
+`deploy_maps.sh`; the format is described in `resources/debos/README.md`, the
+steps for the tester in `docs/bedienung/nach-der-installation.md`.
+
 **carnine-pc since 2026-09-26** shows all of Germany: `germany.mbtiles`
 (17.2 GB) and its `germany_names.db` (1.8 GB, 3.95 million names), both built
 by the map project on 2026-09-23/26 and kept in
@@ -565,7 +572,9 @@ directories and the configuration; there is no manual OS setup with
 - `-t power_supply:auprv1`: car power supply with `gpio-poweroff` (docs/23)
 - `-t target_hostname:<name>`, `-t "ssh_public_key:…"`
 - `-t rootpassword:<password>`: password of the user `pi`, default
-  `raspberry`. SSH accepts it and nothing warns about the default; changing
+  `raspberry`. SSH accepts it; since the release after 0.9.5 every
+  interactive login warns while it is still the default
+  (`carnine-password-check`, `/etc/profile.d/carnine-password.sh`). Changing
   it and the hostname on the device: `docs/bedienung/nach-der-installation.md`
 
 The result is `raspbian.img.gz` with the block map `raspbian.img.bmap` and
