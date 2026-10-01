@@ -484,6 +484,40 @@ actions:
       chmod 0755 /usr/local/sbin/carnine-hostname
       systemctl enable carnine-hostname.service
 
+  - action: overlay
+    description: Install the default password check
+    origin: recipe
+    source: carnine-password-check.sh
+    destination: /usr/local/sbin/carnine-password-check
+
+  - action: overlay
+    description: Install the default password check service
+    origin: recipe
+    source: carnine-password-check.service
+    destination: /etc/systemd/system/carnine-password-check.service
+
+  - action: overlay
+    description: Install the default password check path unit
+    origin: recipe
+    source: carnine-password-check.path
+    destination: /etc/systemd/system/carnine-password-check.path
+
+  - action: overlay
+    description: Install the default password login warning
+    origin: recipe
+    source: carnine-password.sh
+    destination: /etc/profile.d/carnine-password.sh
+
+  - action: run
+    description: Enable the default password warning
+    chroot: true
+    command: |
+      # Warns on every login, console and SSH, while pi still has the
+      # well-known password; gone right after passwd (path unit).
+      chmod 0755 /usr/local/sbin/carnine-password-check
+      chmod 0644 /etc/profile.d/carnine-password.sh
+      systemctl enable carnine-password-check.service carnine-password-check.path
+
   - action: run
     description: Setup network config
     chroot: true

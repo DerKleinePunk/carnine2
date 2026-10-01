@@ -109,9 +109,13 @@ unterscheidbar sind (#62). Das passiert einmal. Ein inzwischen von Hand
 gesetzter Name bleibt. Tests: `sh tests/carnine-hostname-test.sh`.
 
 Der Benutzer ist `pi` mit dem Passwort `raspberry`, änderbar mit
-`-t rootpassword:<passwort>`. SSH nimmt das Passwort an, und anders als bei
-Raspberry Pi OS warnt nichts davor. Passwort und Namen am Gerät ändern:
-`docs/bedienung/nach-der-installation.md`.
+`-t rootpassword:<passwort>`. SSH nimmt das Passwort an. Solange `pi` noch
+`raspberry` hat, warnt jede Anmeldung (Konsole und SSH) und nennt `passwd`.
+Die Prüfung macht `carnine-password-check.service` als root beim Start und
+nach jeder Änderung an `/etc/shadow` (`carnine-password-check.path`), die
+Meldung kommt aus `/etc/profile.d/carnine-password.sh`. Nach `passwd` ist sie
+ohne Neustart weg. Tests: `sh tests/carnine-password-test.sh`. Passwort und
+Namen am Gerät ändern: `docs/bedienung/nach-der-installation.md`.
 
 Für ein Gerät mit dem Kfz-Netzteil AuPrV1_1 kommt `-t power_supply:auprv1`
 dazu. Dann trägt das Rezept `dtoverlay=gpio-poweroff,active_low=1,gpiopin=5`

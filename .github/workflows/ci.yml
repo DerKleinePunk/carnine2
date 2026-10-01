@@ -98,11 +98,15 @@ jobs:
 
       - name: shellcheck
         working-directory: resources/debos
-        run: shellcheck carnine-hostname.sh tests/carnine-hostname-test.sh carnine-audio-output.sh tests/carnine-audio-output-test.sh image-sbom.sh
+        run: shellcheck carnine-hostname.sh tests/carnine-hostname-test.sh carnine-password-check.sh carnine-password.sh tests/carnine-password-test.sh carnine-audio-output.sh tests/carnine-audio-output-test.sh image-sbom.sh
 
       - name: carnine-hostname tests
         working-directory: resources/debos
         run: sh tests/carnine-hostname-test.sh
+
+      - name: carnine-password tests
+        working-directory: resources/debos
+        run: sh tests/carnine-password-test.sh
 
       - name: carnine-audio-output tests
         working-directory: resources/debos
