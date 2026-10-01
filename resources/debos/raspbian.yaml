@@ -124,6 +124,9 @@ actions:
       - zstd
       # carnine-install-maps downloads the map package with it.
       - curl
+      # carnine-wlan: the WLAN client and the regulatory domains.
+      - wpasupplicant
+      - wireless-regdb
 
   - action: run
     description: Defer automatic Dracut kernel hook
@@ -507,6 +510,21 @@ actions:
     description: Make the rename command executable
     chroot: true
     command: chmod 0755 /usr/local/sbin/carnine-rename
+
+  - action: overlay
+    description: Install the WLAN setup command
+    origin: recipe
+    source: carnine-wlan.sh
+    destination: /usr/local/sbin/carnine-wlan
+
+  - action: run
+    description: Make the WLAN setup command executable
+    chroot: true
+    command: |
+      chmod 0755 /usr/local/sbin/carnine-wlan
+      # WLAN stays off until carnine-wlan sets up a network; the package
+      # enables its global instance, which would run without one.
+      systemctl disable wpa_supplicant.service || true
 
   - action: overlay
     description: Install the default password check

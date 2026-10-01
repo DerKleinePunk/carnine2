@@ -98,7 +98,7 @@ jobs:
 
       - name: shellcheck
         working-directory: resources/debos
-        run: shellcheck carnine-hostname.sh tests/carnine-hostname-test.sh carnine-rename.sh tests/carnine-rename-test.sh carnine-password-check.sh carnine-password.sh tests/carnine-password-test.sh carnine-install-maps.sh tests/carnine-install-maps-test.sh ../../pack_maps.sh carnine-audio-output.sh tests/carnine-audio-output-test.sh image-sbom.sh
+        run: shellcheck carnine-hostname.sh tests/carnine-hostname-test.sh carnine-rename.sh tests/carnine-rename-test.sh carnine-wlan.sh tests/carnine-wlan-test.sh carnine-password-check.sh carnine-password.sh tests/carnine-password-test.sh carnine-install-maps.sh tests/carnine-install-maps-test.sh ../../pack_maps.sh carnine-audio-output.sh tests/carnine-audio-output-test.sh image-sbom.sh
 
       - name: carnine-hostname tests
         working-directory: resources/debos
@@ -107,6 +107,10 @@ jobs:
       - name: carnine-rename tests
         working-directory: resources/debos
         run: sh tests/carnine-rename-test.sh
+
+      - name: carnine-wlan tests
+        working-directory: resources/debos
+        run: sh tests/carnine-wlan-test.sh
 
       - name: carnine-password tests
         working-directory: resources/debos

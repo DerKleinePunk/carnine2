@@ -133,6 +133,15 @@ Zeile `127.0.1.1` in `/etc/hosts` und den laufenden Namen in einem Schritt und
 prüft, dass der Name für DHCP und mDNS taugt (Kleinbuchstaben, Ziffern, `-`).
 Im Netz gilt er nach einem Neustart. Tests: `sh tests/carnine-rename-test.sh`.
 
+WLAN ist ab Werk aus. `sudo carnine-wlan` hebt die rfkill-Sperre auf, startet
+`wpa_supplicant@wlan0`, sucht Netze, fragt nach Netz und Passwort und wartet
+auf eine Adresse (DHCP macht systemd-networkd wie beim Kabel). Gespeichert wird
+nur der Schlüssel, nicht das Passwort, in
+`/etc/wpa_supplicant/wpa_supplicant-wlan0.conf`. Weitere Netze kommen dazu,
+`--ssid <name>` nimmt auch ein verstecktes, `--country` setzt das Land
+(Vorgabe DE), `--status` zeigt die Verbindung, `--off` schaltet WLAN wieder
+aus, `--on` mit den gespeicherten Netzen wieder ein, ohne Abfrage. Tests: `sh tests/carnine-wlan-test.sh`.
+
 Der Benutzer ist `pi` mit dem Passwort `raspberry`, änderbar mit
 `-t rootpassword:<passwort>`. SSH nimmt das Passwort an. Solange `pi` noch
 `raspberry` hat, warnt jede Anmeldung (Konsole und SSH) und nennt `passwd`.
