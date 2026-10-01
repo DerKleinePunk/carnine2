@@ -12,7 +12,7 @@
 #
 # Demo file commands, one per line (# starts a comment):
 #   say TEXT                  cue on this terminal, nothing on the Pi
-#   page home|maps|media|climate|controls|settings
+#   page home|maps|media|camera|controls|settings
 #   tap X Y | swipe X Y DX DY [MS] | pinch CX CY FROM TO [MS] | wait MS
 #   type TEXT                 letters, space, capitals on the on-screen keyboard
 #   key done|backspace|space|shift
@@ -148,7 +148,8 @@ gesture() {
 page_y() {
   case $1 in
     home) echo 104 ;; maps) echo 176 ;; media) echo 248 ;;
-    climate) echo 320 ;; controls) echo 392 ;; settings) echo 464 ;;
+    # camera was the climate page until October 2026; old scripts keep working.
+    camera|climate) echo 320 ;; controls) echo 392 ;; settings) echo 464 ;;
     *) echo "unknown page: $1" >&2; exit 1 ;;
   esac
 }

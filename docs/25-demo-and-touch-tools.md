@@ -83,7 +83,7 @@ A demo file is plain text with one command per line. `#` starts a comment.
 | Command | Effect |
 |---|---|
 | `say TEXT` | Cue on the terminal (for the person filming); nothing on the Pi |
-| `page home\|maps\|media\|climate\|controls\|settings` | Tap that item in the side menu |
+| `page home\|maps\|media\|camera\|controls\|settings` | Tap that item in the side menu |
 | `tap X Y` | Tap at a point |
 | `swipe X Y DX DY [MS]` | Drag one finger |
 | `pinch CX CY FROM TO [MS]` | Two fingers, horizontal distance FROM → TO (zoom) |
