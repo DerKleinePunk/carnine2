@@ -112,6 +112,9 @@ jobs:
         working-directory: resources/debos
         run: sh tests/carnine-install-maps-test.sh
 
+      - name: deploy_maps tests
+        run: shellcheck deploy_maps.sh tests/deploy-maps-test.sh && sh tests/deploy-maps-test.sh
+
       - name: carnine-audio-output tests
         working-directory: resources/debos
         run: sh tests/carnine-audio-output-test.sh

@@ -72,7 +72,12 @@ verdreifachen. Nach dem ersten Start bringt sie `deploy_maps.sh` auf das Gerät:
 ```
 
 Das Skript liest aus `~/develop/carnine-maps` (anders mit `CARNINE_MAPS_DIR`),
-prüft dort `SHA256SUMS` und startet danach Valhalla, Backend und Frontend neu.
+prüft jede Datei gegen die `SHA256SUMS` in ihrem Ordner, vorher auch den Platz
+auf dem Gerät, und startet danach Valhalla, Backend und Frontend neu. Vorgabe
+ist Hessen wie im Paket für Tester; mit `--dach` kommen Deutschland,
+Österreich und die Schweiz aus `~/develop/carnine-maps/dach` (anders mit
+`CARNINE_DACH_DIR`), so laufen unsere eigenen Testgeräte. `map_region` im
+Drop-in folgt der Region.
 
 Ohne Entwicklungsrechner, z. B. bei Testern, holt sich das Gerät ein
 Kartenpaket selbst:
