@@ -76,10 +76,11 @@ address() {
     "$IP" -4 -o addr show dev "$interface" 2>/dev/null | awk '{ split($4, a, "/"); print a[1]; exit }'
 }
 
-# wpa_supplicant opens its control socket a moment after systemctl returns;
-# until then every wpa_cli call fails.
+# start_wpa_supplicant <systemctl action...>: wpa_supplicant opens its
+# control socket a moment after systemctl returns; until then every wpa_cli
+# call fails.
 start_wpa_supplicant() {
-    "$SYSTEMCTL" enable --now "$SERVICE"
+    "$SYSTEMCTL" "$@" "$SERVICE"
     waited=0
     until "$WPA_CLI" -i "$interface" ping 2>/dev/null | grep -q PONG; do
         if [ "$waited" -ge "$CONTROL_WAIT" ]; then
@@ -118,11 +119,27 @@ case "$MODE" in
     resume)
         grep -q '^network=' "$CONF" 2>/dev/null || die "noch kein Netz eingerichtet: sudo carnine-wlan"
         "$RFKILL" unblock wifi
-        start_wpa_supplicant
+        start_wpa_supplicant enable --now
         echo "WLAN ist wieder an, mit den gespeicherten Netzen ..."
         wait_for_address "Ist eines der gespeicherten Netze in Reichweite?"
         ;;
 esac
+
+# Setting up a network only starts wpa_supplicant for the scan; it is enabled
+# once the network is stored. A run that stops before (no network found, a
+# short password, Ctrl+C) leaves it as it was and the terminal echoing again.
+was_active=no
+if "$SYSTEMCTL" is-active --quiet "$SERVICE"; then was_active=yes; fi
+stored=no
+# shellcheck disable=SC2317 # called by the EXIT trap
+cleanup() {
+    if [ -t 0 ]; then stty echo; fi
+    if [ "$stored" = no ] && [ "$was_active" = no ]; then
+        "$SYSTEMCTL" stop "$SERVICE" || true
+    fi
+}
+trap cleanup EXIT
+trap 'exit 130' INT TERM
 
 "$RFKILL" unblock wifi
 mkdir -p "$WPA_DIR"
@@ -134,7 +151,7 @@ else
     printf 'country=%s\n' "$COUNTRY" >> "$CONF"
 fi
 chmod 0600 "$CONF"
-start_wpa_supplicant
+start_wpa_supplicant start
 
 # Networks in range, strongest first, each name once.
 if [ -z "$SSID" ]; then
@@ -160,7 +177,7 @@ fi
 printf "Passwort für '%s' (leer für ein offenes Netz): " "$SSID"
 if [ -t 0 ]; then stty -echo; fi
 password=""
-read -r password || true
+read -r password || die "abgebrochen, kein Netz gespeichert"
 if [ -t 0 ]; then stty echo; echo; fi
 
 # The name as hex, so that quotes or other odd characters in it are safe.
@@ -185,7 +202,9 @@ awk -v ssid="ssid=$ssid_hex" '
 printf '%s\n' "$block" >> "$CONF.new"
 chmod 0600 "$CONF.new"
 mv "$CONF.new" "$CONF"
+stored=yes
 "$WPA_CLI" -i "$interface" reconfigure > /dev/null
+"$SYSTEMCTL" enable "$SERVICE"
 
 echo "Verbinde mit '$SSID' ..."
 wait_for_address "Passwort falsch oder Netz zu weit weg? Noch einmal aufrufen."

@@ -45,10 +45,18 @@ EOF
 [ -e "$tree/connected" ] && echo "3: wlan0    inet 192.168.2.77/24 brd 192.168.2.255 scope global dynamic wlan0"
 exit 0
 EOF
-    # Starting wpa_supplicant with a stored network brings an address.
+    # Starting wpa_supplicant with a stored network brings an address; the
+    # file "active" stands for the running service.
     cat > "$tree/fake-systemctl" <<EOF
 #!/bin/sh
+case "\$1" in
+    is-active) [ -e "$tree/active" ]; exit ;;
+esac
 echo "systemctl \$*" >> "$tree/calls.log"
+case "\$1 \$2" in
+    start*|"enable --now") : > "$tree/active" ;;
+    stop*|"disable --now") rm -f "$tree/active" ;;
+esac
 if [ "\$1" = enable ] && [ ! -e "$tree/no-address" ] &&
     grep -q '^network=' "$tree/wpa/wpa_supplicant-wlan0.conf" 2>/dev/null; then
     : > "$tree/connected"
@@ -95,7 +103,10 @@ check "connect succeeds" "$status" "0"
 check "list strongest first, no doubles" "$(grep -E '^ +[0-9]+  ' "$tree/out.log" | awk '{ print $2 }' | tr '\n' ' ')" "Garage Handy Nachbar "
 check "address shown" "$(grep -c 'Verbunden, Adresse 192.168.2.77' "$tree/out.log")" "1"
 check "WLAN unblocked" "$(grep -c '^rfkill unblock wifi$' "$tree/calls.log")" "1"
-check "wpa_supplicant started" "$(grep -c '^systemctl enable --now wpa_supplicant@wlan0.service$' "$tree/calls.log")" "1"
+check "wpa_supplicant started for the scan" "$(grep -c '^systemctl start wpa_supplicant@wlan0.service$' "$tree/calls.log")" "1"
+check "enabled once the network is stored" "$(grep -E '^(systemctl enable|wpa_cli .*reconfigure)' "$tree/calls.log" | tr '\n' ';')" \
+    "wpa_cli -i wlan0 reconfigure;systemctl enable wpa_supplicant@wlan0.service;"
+check "connected: still running" "$(test -e "$tree/active" && echo running)" "running"
 check "country set" "$(conf | grep '^country=')" "country=DE"
 check "network stored as hex" "$(conf | grep -c "ssid=$(hex Garage)$")" "1"
 check "key stored" "$(conf | grep -c "psk=$(printf 'Garage:geheim123' | sha256sum | cut -c1-64)$")" "1"
@@ -207,6 +218,28 @@ rm -f "$tree/connected"
 run '' --on
 check "--on without address fails" "$status" "1"
 check "--on without address: hint" "$(grep -c 'gespeicherten Netze in Reichweite' "$tree/out.log")" "1"
+rm -rf "$tree"
+
+# A run that stops before a network is stored leaves wpa_supplicant as it
+# found it: off stays off, not enabled; on stays on.
+for case in "abort at password:1\n" "short password:1\nkurz\n" "no network found:"; do
+    name=${case%%:*}
+    input=${case#*:}
+    setup
+    [ "$name" = "no network found" ] && : > "$tree/scan.txt"
+    run "$input"
+    check "$name: fails" "$status" "1"
+    check "$name: not enabled" "$(grep -c '^systemctl enable' "$tree/calls.log")" "0"
+    check "$name: stopped again" "$(test -e "$tree/active" && echo running || echo stopped)" "stopped"
+    check "$name: no network stored" "$(conf | grep -c '^network={')" "0"
+    rm -rf "$tree"
+done
+check "abort at password: says so" "$(setup; run '1\n'; grep -c 'abgebrochen, kein Netz gespeichert' "$tree/out.log"; rm -rf "$tree")" "1"
+setup
+: > "$tree/active"
+run '1\nkurz\n'
+check "was running: left running" "$(test -e "$tree/active" && echo running || echo stopped)" "running"
+check "was running: no stop" "$(grep -c '^systemctl stop' "$tree/calls.log")" "0"
 rm -rf "$tree"
 
 # Without a WLAN interface.
