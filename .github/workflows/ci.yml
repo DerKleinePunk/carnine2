@@ -68,11 +68,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Pinned to the version the project is developed against, so a new
-      # Flutter release cannot turn CI red on its own.
+      # Pinned to the Flutter of the emb workspace the Pi build uses
+      # (docs/07-deployment.md, src/frontend/CLAUDE.md), so CI checks what
+      # runs on the device and a new release cannot turn CI red on its own.
+      # Raise it together with the emb workspace.
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.44.9
+          flutter-version: 3.47.5
           channel: stable
           cache: true
 
