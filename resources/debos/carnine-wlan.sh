@@ -31,6 +31,7 @@ WPA_PASSPHRASE=${CARNINE_WPA_PASSPHRASE:-wpa_passphrase}
 IP=${CARNINE_IP:-ip}
 SCAN_WAIT=${CARNINE_SCAN_WAIT:-4}
 ADDRESS_WAIT=${CARNINE_ADDRESS_WAIT:-30}
+CONTROL_WAIT=${CARNINE_CONTROL_WAIT:-10}
 
 MODE=on
 SSID=""
@@ -75,6 +76,20 @@ address() {
     "$IP" -4 -o addr show dev "$interface" 2>/dev/null | awk '{ split($4, a, "/"); print a[1]; exit }'
 }
 
+# wpa_supplicant opens its control socket a moment after systemctl returns;
+# until then every wpa_cli call fails.
+start_wpa_supplicant() {
+    "$SYSTEMCTL" enable --now "$SERVICE"
+    waited=0
+    until "$WPA_CLI" -i "$interface" ping 2>/dev/null | grep -q PONG; do
+        if [ "$waited" -ge "$CONTROL_WAIT" ]; then
+            die "wpa_supplicant antwortet nicht. Stand: systemctl status $SERVICE"
+        fi
+        sleep 1
+        waited=$((waited + 1))
+    done
+}
+
 wait_for_address() {
     waited=0
     while [ "$waited" -lt "$ADDRESS_WAIT" ]; do
@@ -103,7 +118,7 @@ case "$MODE" in
     resume)
         grep -q '^network=' "$CONF" 2>/dev/null || die "noch kein Netz eingerichtet: sudo carnine-wlan"
         "$RFKILL" unblock wifi
-        "$SYSTEMCTL" enable --now "$SERVICE"
+        start_wpa_supplicant
         echo "WLAN ist wieder an, mit den gespeicherten Netzen ..."
         wait_for_address "Ist eines der gespeicherten Netze in Reichweite?"
         ;;
@@ -119,7 +134,7 @@ else
     printf 'country=%s\n' "$COUNTRY" >> "$CONF"
 fi
 chmod 0600 "$CONF"
-"$SYSTEMCTL" enable --now "$SERVICE"
+start_wpa_supplicant
 
 # Networks in range, strongest first, each name once.
 if [ -z "$SSID" ]; then

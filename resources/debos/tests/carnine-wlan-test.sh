@@ -25,6 +25,11 @@ setup() {
 #!/bin/sh
 echo "wpa_cli \$*" >> "$tree/calls.log"
 case "\$3" in
+    # ping-late holds how many pings still go unanswered, as right after start.
+    ping)
+        late=\$(cat "$tree/ping-late" 2>/dev/null || echo 0)
+        if [ "\$late" -gt 0 ]; then echo \$((late - 1)) > "$tree/ping-late"; exit 1; fi
+        echo PONG ;;
     scan_results) cat "$tree/scan.txt" ;;
     reconfigure) [ -e "$tree/no-address" ] || : > "$tree/connected" ;;
     status) printf 'ssid=Garage\nwpa_state=COMPLETED\n' ;;
@@ -61,7 +66,7 @@ run() {
     printf '%b' "$input" | CARNINE_NET_DIR="$tree/net" CARNINE_WPA_DIR="$tree/wpa" \
         CARNINE_SYSTEMCTL="$tree/fake-systemctl" CARNINE_RFKILL="$tree/fake-rfkill" \
         CARNINE_WPA_CLI="$tree/fake-wpa_cli" CARNINE_WPA_PASSPHRASE="$tree/fake-wpa_passphrase" \
-        CARNINE_IP="$tree/fake-ip" CARNINE_SCAN_WAIT=0 CARNINE_ADDRESS_WAIT=2 CARNINE_SKIP_ROOT_CHECK=1 \
+        CARNINE_IP="$tree/fake-ip" CARNINE_SCAN_WAIT=0 CARNINE_ADDRESS_WAIT=2 CARNINE_CONTROL_WAIT=3 CARNINE_SKIP_ROOT_CHECK=1 \
         sh "$SCRIPT" "$@" > "$tree/out.log" 2>&1 || status=$?
 }
 
@@ -161,6 +166,23 @@ run '' --off
 check "off succeeds" "$status" "0"
 check "off disables wpa_supplicant" "$(grep -c '^systemctl disable --now wpa_supplicant@wlan0.service$' "$tree/calls.log")" "1"
 check "off keeps the networks" "$(conf | grep -c '^network={')" "1"
+rm -rf "$tree"
+
+# The control socket comes a moment after the start; the scan waits for it.
+setup
+echo 2 > "$tree/ping-late"
+run '1\ngeheim123\n'
+check "late control socket: connect succeeds" "$status" "0"
+check "late control socket: scanned after it" "$(grep -c ' scan$' "$tree/calls.log")" "1"
+rm -rf "$tree"
+
+# A wpa_supplicant that never answers is named, not a bare wpa_cli error.
+setup
+echo 99 > "$tree/ping-late"
+run '1\ngeheim123\n'
+check "no control socket fails" "$status" "1"
+check "no control socket: message" "$(grep -c 'wpa_supplicant antwortet nicht' "$tree/out.log")" "1"
+check "no control socket: no scan" "$(grep -c ' scan$' "$tree/calls.log")" "0"
 rm -rf "$tree"
 
 # --on brings WLAN back with the stored networks, without asking.
