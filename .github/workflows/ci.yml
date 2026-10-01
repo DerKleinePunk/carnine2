@@ -30,7 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # protoc for tonic-build, ALSA headers for cpal. The default feature set
+      # protoc for tonic-prost-build, ALSA headers for cpal. The default feature set
       # does not pull in ffmpeg-next, so no FFmpeg headers are needed - but the
       # metadata and cover-art tests shell out to the ffmpeg and ffprobe
       # binaries, which the runner image does not ship.

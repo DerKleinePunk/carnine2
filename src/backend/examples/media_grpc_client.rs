@@ -10,9 +10,6 @@ use futures_util::StreamExt;
 use tonic::transport::Channel;
 
 pub mod carnine {
-    // tonic-build marks the generated async trait methods #[must_use] on a
-    // future that already is; clippy 1.99 calls that double_must_use.
-    #![allow(clippy::double_must_use)]
     tonic::include_proto!("carnine");
 }
 

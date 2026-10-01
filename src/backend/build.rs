@@ -8,6 +8,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rustc-env=CARNINE_BUILD_ID={build_id}");
     println!("cargo:rerun-if-changed=../../VERSION");
     println!("cargo:rerun-if-env-changed=CARNINE_BUILD_ID");
-    tonic_build::compile_protos("../proto/carnine.proto")?;
+    tonic_prost_build::compile_protos("../proto/carnine.proto")?;
     Ok(())
 }
