@@ -122,8 +122,11 @@ actions:
       - plymouth
       - plymouth-themes
       - zstd
-      # carnine-install-maps downloads the map package with it.
+      # carnine-install-maps downloads the map package with it. curl only
+      # recommends the CA bundle, and the image installs no recommends:
+      # without it every https download fails (curl error 77).
       - curl
+      - ca-certificates
       # carnine-wlan: the WLAN client and the regulatory domains.
       - wpasupplicant
       - wireless-regdb

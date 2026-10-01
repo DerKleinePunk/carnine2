@@ -178,6 +178,26 @@ check "packed package installs" "$status" "0"
 check "packed package: same files" "$(installed a)" "yes"
 rm -rf "$tree"
 
+# A failed download says why: TLS and network errors are not blamed on the
+# link, only an HTTP error is.
+setup
+for code in 77 60 6 7 22; do
+    printf '#!/bin/sh\nexit %s\n' "$code" > "$tree/fake-curl"
+    chmod +x "$tree/fake-curl"
+    export CARNINE_CURL="$tree/fake-curl"
+    run 100000000 --link https://example.org/s/AbC123
+    unset CARNINE_CURL
+    case "$code" in
+        77|60) expected="HTTPS-Verbindung fehlgeschlagen (curl-Fehler $code)" ;;
+        6) expected="Server nicht gefunden (curl-Fehler 6)" ;;
+        7) expected="keine Verbindung zum Server (curl-Fehler 7)" ;;
+        22) expected="konnte INHALT nicht laden (curl-Fehler 22, Link oder Paketname falsch?)" ;;
+    esac
+    check "curl error $code explained" "$(grep -cF "$expected" "$tree/out.log")" "1"
+    check "curl error $code: services untouched" "$(cat "$tree/systemctl.log")" ""
+done
+rm -rf "$tree"
+
 # A package with a file the script does not know is refused.
 setup
 printf 'unbekannt.zst\t10\t10\n' >> "$tree/package-a/INHALT"

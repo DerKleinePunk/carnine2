@@ -102,6 +102,21 @@ fetch() {
     fi
 }
 
+# fetch_failure <curl exit code> <file>: what went wrong, in words a tester
+# can act on; only an HTTP error points at the link itself.
+fetch_failure() {
+    case "$1" in
+        35|58|59|60|77|83)
+            echo "HTTPS-Verbindung fehlgeschlagen (curl-Fehler $1): Zertifikate fehlen (Paket ca-certificates) oder die Uhrzeit des Geräts stimmt nicht" ;;
+        6)
+            echo "Server nicht gefunden (curl-Fehler 6): keine Internetverbindung oder Name im Link falsch" ;;
+        7|28)
+            echo "keine Verbindung zum Server (curl-Fehler $1): Internetverbindung prüfen" ;;
+        *)
+            echo "konnte $2 nicht laden (curl-Fehler $1, Link oder Paketname falsch?)" ;;
+    esac
+}
+
 target_of() {
     case "$1" in
         map.mbtiles|germany_names.db|GPS-Adnan-Tour.txt) echo "$MAPS_DIR/$1" ;;
@@ -125,7 +140,9 @@ gb() {
 mkdir -p "$WORK_DIR" "$MAPS_DIR" "$VALHALLA_DIR"
 echo "Hole die Paketliste von $BASE ..."
 for list in INHALT SHA256SUMS SHA256SUMS.entpackt; do
-    fetch "$list" "$WORK_DIR/$list" quiet || die "konnte $list nicht laden (Link oder Paketname falsch?)"
+    rc=0
+    fetch "$list" "$WORK_DIR/$list" quiet || rc=$?
+    [ "$rc" -eq 0 ] || die "$(fetch_failure "$rc" "$list")"
 done
 
 # Work out what is still to do and how much room that needs at most: the
