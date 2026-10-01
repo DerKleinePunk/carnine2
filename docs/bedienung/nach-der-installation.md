@@ -42,11 +42,11 @@ denken.
 - **Über das Netz:** `ssh pi@carnine-pc-a869.local` (den eigenen Namen
   einsetzen). Wer den Namen nicht kennt, findet ihn im Router unter den
   DHCP-Geräten oder mit `avahi-browse -at` auf einem Linux-Rechner.
-- **Am Gerät:** **Optionen → Beenden** in der Oberfläche, danach erscheint
-  die Text-Anmeldung ([Optionen](optionen.md#system)). Dafür braucht es eine
-  USB-Tastatur. Zusätzlich läuft auf der zweiten Konsole (`tty2`) immer eine
-  Anmeldung. Ob man mit **Strg + Alt + F2** dorthin kommt, während die
-  Oberfläche läuft, ist noch nicht geprüft.
+- **Am Gerät** mit einer USB-Tastatur: **Strg + Alt + F2** wechselt zur
+  zweiten Konsole (`tty2`), dort wartet immer eine Text-Anmeldung. Die
+  Oberfläche läuft weiter, **Strg + Alt + F1** führt zu ihr zurück. Oder
+  **Optionen → Beenden** in der Oberfläche, danach erscheint die
+  Text-Anmeldung auf dem ersten Bildschirm ([Optionen](optionen.md#system)).
 
 ## Passwort ändern
 
@@ -181,8 +181,11 @@ für Hessen lädt etwa 3,8 GB und belegt entpackt etwa 7,6 GB.
 sudo carnine-install-maps
 ```
 
-Der Befehl fragt nach dem Link, z. B. `https://magentacloud.de/s/…`. Mit
-`--link <link>` kann man ihn gleich mitgeben. Danach:
+Der Befehl fragt nach dem Link, z. B. `https://magentacloud.de/s/…`. Den
+Link dort einfügen. Man kann ihn auch mit `--link <link>` gleich mitgeben,
+aber dann schreibt `sudo` ihn mit der ganzen Befehlszeile ins Systemprotokoll
+des Geräts. Wer den Link nicht weitergeben darf, nimmt deshalb die Abfrage.
+Danach:
 
 1. Er prüft, ob genug Platz frei ist, und bricht sonst vorher ab.
 2. Er lädt das Paket. **Bricht das ab** (Netz weg, Strom weg), einfach
@@ -214,5 +217,7 @@ sudo umount /mnt
 `SHA256SUMS` und den `.zst`-Dateien. Wie man so ein Paket baut, steht in
 `resources/debos/README.md` (`pack_maps.sh`).
 
-Wie lange das auf dem Pi dauert, hängt vom Netz ab und ist noch nicht
-gemessen.
+Wie lange das dauert, hängt vor allem von der Leitung ab. Auf dem Test-Pi
+(Pi 4, Kabel, Anschluss mit etwa 300 Mbit/s) hat das Paket für Hessen mit
+Laden und Entpacken knapp 6 Minuten gebraucht. Mit 50 Mbit/s dauert allein
+das Laden der 3,8 GB gut 10 Minuten (gerechnet, nicht gemessen).

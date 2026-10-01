@@ -53,7 +53,7 @@ Kompass-Knopf die Position zurück.
    findet die Obergasse in Alsfeld. Eine Haltestelle, die wie eine Straße im
    selben Ort heißt, steht hinter der Straße.
 
-   ![Zielsuche „Alsfeld“ mit Treffern „Ort · 54 km“ und „Ort · Kirtorf · 55 km“, darunter die Bildschirmtastatur](bilder/karte-suche.png)
+   ![Zielsuche „Alsfeld“ mit Treffern „Ort · 39 km“ und „Ort · Kirtorf · 40 km“, darunter die Bildschirmtastatur](bilder/karte-suche.png)
 3. **Treffer antippen:** Die Route wird von der aktuellen Position aus
    berechnet („Route wird berechnet …“), danach zeigt die Karte die ganze
    Route im Überblick. Abbiegekarte und Leiste unten erscheinen schon jetzt.
@@ -84,7 +84,7 @@ erreichbar“ (Backend weg, rot).
   etwas schräg, weil die Karte für die Beschriftung in 45°-Schritten neu
   gezeichnet wird (seit 0.9.5, flutter_local_map #1).
 
-  ![Navigationsmodus mit gedrehter Karte: Orts- und Straßennamen wie „Rabenstein“ stehen schräg, aber keiner kopfüber](bilder/karte-mitdrehen.png)
+  ![Navigationsmodus mit gedrehter Karte: Straßennamen wie „Bermuthshainer Straße“ und „Frankfurter Straße“ stehen schräg, aber keiner kopfüber](bilder/karte-mitdrehen.png)
 
 Die Fahranweisungen erscheinen in der unter [Optionen → Sprache](optionen.md)
 gewählten Sprache.

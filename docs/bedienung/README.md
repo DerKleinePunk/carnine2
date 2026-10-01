@@ -12,14 +12,15 @@ dieser Seiten in denselben Commit.
 1. [Aufbau des Bildschirms](#aufbau-des-bildschirms) (diese Seite)
 2. [Medien](medien.md) – Player, Warteschlange, Bibliothek, Playlists, USB-Import
 3. [Karten](karte.md) – Zielsuche, Route, Navigationsmodus, Standort
-4. [Optionen](optionen.md) – Sprache, Logs, Neustart, Beenden
-5. [Bildschirmtastatur](tastatur.md)
-6. [Verhalten über Neustarts und ohne Backend](verhalten.md) – was gespeichert
+4. [Cam](kamera.md) – Rückfahrkamera, Hinweise, Einstellungen
+5. [Optionen](optionen.md) – Sprache, Logs, Neustart, Beenden
+6. [Bildschirmtastatur](tastatur.md)
+7. [Verhalten über Neustarts und ohne Backend](verhalten.md) – was gespeichert
    wird, was bei Verbindungsverlust, ohne Tonausgang und bei Überhitzung
    passiert, was noch Platzhalter ist, Dauertest einrichten
-7. [Ton über die Klinke](ton-klinke.md) – für Displays ohne Lautsprecher
+8. [Ton über die Klinke](ton-klinke.md) – für Displays ohne Lautsprecher
    (z. B. Waveshare 7C)
-8. [Nach der Installation](nach-der-installation.md) – Standardpasswort und
+9. [Nach der Installation](nach-der-installation.md) – Standardpasswort und
    Gerätenamen ändern, WLAN einrichten, Kartendaten installieren
 
 ## Die häufigsten Abläufe
@@ -53,7 +54,7 @@ Oben das Logo „CarNine / V8-ACTIVE“ (ohne Funktion), darunter die Seiten:
 | **Start** | Platzhalter für Entwickler (siehe unten) |
 | **Karten** | [Offline-Karte mit Navigation](karte.md) |
 | **Medien** | [Musik-Player](medien.md) |
-| **Klima** | Platzhalter |
+| **Cam** | [Bild der Rückfahrkamera](kamera.md) (bis 0.9.5 „Klima“, Platzhalter) |
 | **Technik** | Platzhalter |
 | **Optionen** | [Einstellungen](optionen.md) |
 
@@ -95,7 +96,7 @@ bis zu 2 Minuten lang immer wieder nach und springt dann auf die gemerkte
 Seite. Wählt man in der Zeit selbst eine Seite, bleibt es bei dieser. Kommt
 das Backend nicht, bleibt sie ohne Meldung auf **Start** (#52, ab 0.9.0).
 
-### Start, Klima, Technik
+### Start, Technik
 
 Entwickler-Platzhalter: Text „Dashboard-Inhalt für …“, der gRPC-Status und der
 Knopf **gRPC testen**. Der fragt einen CAN-Wert (`engine_temp`) beim Backend ab

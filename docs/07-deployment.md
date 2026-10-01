@@ -36,6 +36,10 @@ The deployment architecture emphasizes reliability and minimal resource consumpt
     GPIO 25, see [24 – CAN Adapter (MCP2515 on SPI0)](24-can-adapter-mcp2515.md)
 - **GPS receiver** (optional, `position_source = "serial"`): any NMEA 0183
   receiver on USB or a UART, see [GPS receiver](#gps-receiver) below
+- **Reversing camera** (optional, Cam page since 0.10.0): an analogue camera
+  on a USB grabber with the STK1160 chip, or a USB camera that delivers YUYV
+  (uvcvideo); not on a hub that also carries the SSD, see
+  [Reversing camera](#reversing-camera) below
 - **Vehicle power supply** (optional): the AuPrV1_1 board switches the Pi
   with the ignition and gives it time to shut down; serial line on uart5
   (`/dev/powersupply`), see [23 – Vehicle Power Supply](23-power-supply.md)
@@ -175,6 +179,14 @@ sudo systemctl stop carnine-frontend carnine-backend
 sudo cp -a /var/lib/carnine/media.sqlite3 /var/lib/carnine/media.sqlite3.0.9.3
 ```
 
+#### Media database schema 9 and 10 (0.10.0)
+
+- **9** adds the table `camera_settings` for the reversing camera.
+- **10** adds its column `width`.
+
+Both only add; nothing existing changes. As before, an older backend refuses
+the newer file, so keep a copy before the update as shown above.
+
 #### Where the map data comes from
 
 carnine2 does not build any map data. Tiles, names database, routing tiles
@@ -241,9 +253,11 @@ steps for the tester in `docs/bedienung/nach-der-installation.md`.
 `~/develop/carnine-maps/dach` (`CARNINE_DACH_DIR`), a copy of the map
 project's build with its `SHA256SUMS`; the demo tour is the same as for
 Hessen. Replacing Germany with DACH needs about 29 GB free on the device (7 GB more
-data plus the rsync copy of the tiles). jeep-pi runs with DACH.
+data plus the rsync copy of the tiles). jeep-pi and carnine-pc run with
+DACH; on carnine-pc (Pi 3, 100 Mbit/s Ethernet) the 31 GB took 74 minutes
+on 2026-10-01, at 8 to 10 MB/s.
 
-Before that, **carnine-pc showed all of Germany** from 2026-09-26:
+Before that, **carnine-pc showed all of Germany** from 2026-09-26 to 2026-10-01:
 `germany.mbtiles` (17.2 GB) and its `germany_names.db` (1.8 GB, 3.95 million
 names) from `~/develop/carnine-maps/germany/`, deployed with
 `CARNINE_MAP_TILES` and `CARNINE_NAMES_DATABASE` and `map_region =
@@ -335,6 +349,53 @@ recording is switched on and whenever the receiver is reopened (unplugged,
 backend restarted). If the directory cannot be written, the backend logs it
 once and pauses recording until it is switched again. At 1 Hz a receiver
 produces roughly 1 MB per hour; nothing deletes old files.
+
+#### Reversing camera
+
+The Cam page (the former climate page, `DashboardDestination.camera`; a saved
+page `climate` opens it) shows the picture through the `video_grabber`
+plugin, pinned in `src/frontend/pubspec.yaml`. `build_pi.sh` builds its
+`libvideo_grabber_view.so` against the same shell build as the bundle and
+puts it into `/opt/carnine/frontend/lib/`. The page opens the device only
+while it is shown and closes it when the page is left.
+
+The capture path follows the device's format:
+
+| Device | Driver | Format | Settings that apply |
+|---|---|---|---|
+| USB grabber with STK1160 (composite/S-Video) | `stk1160` | UYVY | `norm`, `input` (0–3 composite, 4 S-Video), `width` 360 or 720 |
+| USB camera | `uvcvideo` | YUYV, always 640×480 | none of them |
+| camera with MJPEG only | `uvcvideo` | — | not supported, the page shows "Kamera gestört" |
+
+At width 720 the STK1160 fills USB 2: on jeep-pi about two thirds of the
+frames came incomplete and the page showed about 10 per second; at 360, the
+default, all 30 arrive. At 720 on a hub shared with the boot SSD the grabber
+stalled the USB controller, so put grabber and camera straight on the Pi.
+
+**Settings.** The backend keeps them (`CameraService`); the frontend reads
+the settings in effect when it opens the page. Defaults come from `[camera]`
+in the configuration (template in `resources/config/carnine.toml`, best set
+in a drop-in such as `/etc/carnine/config.d/30-camera.toml`, then restart the
+backend). What `SaveCameraSettings` stores goes into the database and wins
+over the configuration, field by field. There is no settings page yet (#79);
+until then the example client does it:
+
+```bash
+media_grpc_client <endpoint> camera-devices    # /dev/video0 <name> driver=stk1160
+media_grpc_client <endpoint> camera-settings   # the settings in effect
+media_grpc_client <endpoint> save-camera-settings - pal 2   # '-' keeps a value
+```
+
+`camera-devices` lists the first node of each video device and leaves out
+the SoC's own nodes (`bcm2835-*`, `rpi-*`), so a Pi without a camera shows
+none. `SaveCameraSettings` refuses a device outside `/dev/video*` and
+`/dev/v4l/`, an unspecified norm, an input above 15 and any width other than
+360 or 720 with `INVALID_ARGUMENT` and stores nothing. A changed
+configuration has no effect on a field the database already holds; save that
+field again instead.
+
+Switching to the camera with the reverse gear needs a signal from the car
+(CAN or a GPIO) and is not done yet.
 
 #### Clock without RTC and network
 

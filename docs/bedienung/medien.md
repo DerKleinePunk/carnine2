@@ -11,7 +11,7 @@ dem Inhalt können Hinweisbanner erscheinen, siehe [Banner](#banner).
 Links Cover, Titelangaben, Zeitleiste, Tasten und Lautstärke; rechts die
 Warteschlange.
 
-![Player: Cover, Titel „Amazing“, Titel 1 von 5, Zeitleiste, Tasten mit Wiederholung an, Lautstärke 61 %, rechts NÄCHSTE TITEL und die Kacheln BIBLIOTHEK und SAMMLUNGEN](bilder/medien-player.png)
+![Player: Cover, Titel „Amazing“, Titel 1 von 5, Zeitleiste, Tasten mit Wiederholung an, Lautstärke 67 %, rechts NÄCHSTE TITEL und die Kacheln BIBLIOTHEK und SAMMLUNGEN](bilder/medien-player.png)
 
 - **Cover:** ohne Cover ein Equalizer-Symbol.
 - **Titelangaben:** Titel, Interpret, darunter „TITEL 3 VON 19“,
@@ -120,7 +120,7 @@ werden die Cover auch bei schon bekannten Titeln neu übernommen.
 
 Erreichbar über die Kachel **SAMMLUNGEN**.
 
-![Sammlungen: vier Playlists mit ▶ am Zeilenende, rechts oben ＋](bilder/medien-playlists.png)
+![Sammlungen: Playlists mit ▶ am Zeilenende, rechts oben ＋](bilder/medien-playlists.png)
 
 - **＋** oben rechts: neue Playlist anlegen (siehe unten).
 - **Zeile antippen:** Playlist öffnen (Detailansicht).
