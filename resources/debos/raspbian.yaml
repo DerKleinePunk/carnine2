@@ -130,6 +130,8 @@ actions:
       # carnine-wlan: the WLAN client and the regulatory domains.
       - wpasupplicant
       - wireless-regdb
+      # vcgencmd, for get_throttled when looking into power or heat trouble.
+      - raspi-utils-core
 
   - action: run
     description: Defer automatic Dracut kernel hook
@@ -570,7 +572,19 @@ actions:
       mkdir -p /etc/systemd/network/
       cat > /etc/systemd/network/wired.network << __EOF__
       [Match]
-      Name=eth* en* end* wl* wlan*
+      Name=eth* en* end*
+
+      [Network]
+      DHCP=yes
+      __EOF__
+      # WLAN is off until carnine-wlan sets it up, so it must not hold up
+      # systemd-networkd-wait-online (30 s timeout on every boot otherwise).
+      cat > /etc/systemd/network/wireless.network << __EOF__
+      [Match]
+      Name=wl* wlan*
+
+      [Link]
+      RequiredForOnline=no
 
       [Network]
       DHCP=yes
@@ -585,6 +599,9 @@ actions:
       # timedatectl set-timezone <Zone> on the device.
       ln -sf /usr/share/zoneinfo/Europe/Berlin /etc/localtime
       echo Europe/Berlin > /etc/timezone
+      # The only locale the image has; without the file pam_env complains on
+      # every SSH login.
+      echo LANG=C.UTF-8 > /etc/default/locale
 
   - action: run
     description: Drop SSH host keys
