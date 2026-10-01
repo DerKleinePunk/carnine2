@@ -16,7 +16,8 @@ bringt Hessen mit, carnine-pc zeigt seit 26.09.2026 ganz Deutschland.
 - Drehen per Geste ist ausgeschaltet.
 - Tipp auf die Karte entfernt eine Ortsmarkierung.
 
-Fehlen die Kartendaten, steht dort „Keine Kartendaten installiert“.
+Fehlen die Kartendaten, steht dort „Keine Kartendaten installiert“. Wie man sie
+installiert: [Nach der Installation](nach-der-installation.md#kartendaten-installieren).
 
 ## Knöpfe am rechten Rand
 
