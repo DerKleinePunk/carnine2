@@ -907,8 +907,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: a713000c8640f639fa5617d49af67397e37ed679
-      resolved-ref: a713000c8640f639fa5617d49af67397e37ed679
+      ref: "3114ff6e9ec227f1976f93053005ff7b22f73a76"
+      resolved-ref: "3114ff6e9ec227f1976f93053005ff7b22f73a76"
       url: "https://github.com/DerKleinePunk/video_grabber.git"
     source: git
     version: "1.0.0+1"
