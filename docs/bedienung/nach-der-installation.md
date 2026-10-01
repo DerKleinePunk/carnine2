@@ -1,4 +1,4 @@
-# Nach der Installation: Passwort, Gerätename, Kartendaten
+# Nach der Installation: Passwort, Gerätename, WLAN, Kartendaten
 
 [← Übersicht](README.md)
 
@@ -6,7 +6,8 @@ Ein frisch geschriebenes Image hat ein **bekanntes Standardpasswort**, einen
 Namen, den das Gerät sich beim ersten Start selbst gibt, und **keine
 Kartendaten**. Passwort und Namen sollte man gleich nach dem ersten Start
 anpassen, spätestens bevor das Gerät in ein fremdes Netz oder ins Auto kommt.
-Die Kartendaten holt sich das Gerät mit einem Befehl selbst.
+WLAN ist ab Werk aus und lässt sich mit einem Befehl einrichten. Die
+Kartendaten holt sich das Gerät mit einem Befehl selbst.
 
 ## Was das Image mitbringt
 
@@ -128,6 +129,42 @@ dem Gerät wie oben wieder den alten Namen geben. Ein Eintrag über die
 Steckt man die SD-Karte in einen anderen Pi um, wandert der Name mit, auch der
 mit der alten Seriennummer. Er wird nicht neu vergeben.
 
+## WLAN einrichten
+
+Ab Werk ist WLAN aus, das Gerät hängt nur am Kabel. Ab der Version nach 0.9.5
+richtet ein Befehl das WLAN ein (bis 0.9.5 fehlt dafür der WLAN-Client im
+Image):
+
+```sh
+sudo carnine-wlan
+```
+
+1. Er schaltet WLAN ein und zeigt die Netze in Reichweite als nummerierte
+   Liste, das stärkste zuerst.
+2. Er fragt „Nummer oder Name des Netzes:“, dann nach dem **Passwort**. Es
+   erscheint beim Tippen nicht. Leer lassen heißt offenes Netz, sonst sind
+   es 8 bis 63 Zeichen.
+3. Er wartet bis zu 30 Sekunden auf eine Adresse und meldet „Verbunden,
+   Adresse …“. Kommt keine, steht dort „nach 30 s keine Adresse. Passwort
+   falsch oder Netz zu weit weg?“. Dann einfach noch einmal aufrufen.
+
+Das Netz bleibt gespeichert, und WLAN bleibt auch über einen Neustart an. Gespeichert wird nur
+ein daraus berechneter Schlüssel, nicht das Passwort selbst, in einer Datei,
+die nur root lesen kann. Ein weiterer Aufruf fügt ein **zweites Netz** hinzu,
+z. B. Zuhause und den Hotspot vom Handy. Richtet man dasselbe Netz noch einmal
+ein, ersetzt das den alten Eintrag, etwa nach einem neuen Passwort.
+
+| Aufruf | Wirkung |
+|---|---|
+| `sudo carnine-wlan --ssid <name>` | dasselbe ohne Suche, auch für ein verstecktes Netz, das in der Liste fehlt |
+| `sudo carnine-wlan --country AT` | anderes Land für die Funkkanäle, zwei Großbuchstaben (Vorgabe `DE`) |
+| `sudo carnine-wlan --status` | zeigt Netz, Zustand und Adresse |
+| `sudo carnine-wlan --off` | schaltet WLAN aus, auch über Neustarts. Die Netze bleiben gespeichert |
+| `sudo carnine-wlan --on` | schaltet es mit den gespeicherten Netzen wieder ein, ohne Abfrage |
+
+Findet die Suche nichts, meldet er „kein Netz gefunden“ und nennt `--ssid`.
+Hat das Gerät gar kein WLAN, steht dort „kein WLAN-Gerät gefunden“.
+
 ## Kartendaten installieren
 
 Kacheln, Namensdatenbank, Routing-Kacheln und Demo-Tour sind **nicht im
@@ -136,8 +173,8 @@ Image**, dafür sind sie zu groß. Bis sie da sind, zeigt die Kartenseite
 weitergibt, gibt auch einen **Freigabe-Link** dazu heraus (MagentaCloud oder
 eine andere Nextcloud). Der Link steht nicht im Image.
 
-Das Gerät braucht dafür ein **Netzwerkkabel** (WLAN ist im Image nicht
-eingerichtet) und eine Karte mit mindestens 16 GB, besser 32 GB. Das Paket
+Das Gerät braucht dafür Netz, ein **Netzwerkkabel** oder [WLAN](#wlan-einrichten)
+(bis 0.9.5 nur das Kabel), und eine Karte mit mindestens 16 GB, besser 32 GB. Das Paket
 für Hessen lädt etwa 3,8 GB und belegt entpackt etwa 7,6 GB.
 
 ```sh

@@ -502,6 +502,11 @@ slider changes `amixer -c 0 get PCM`.
   archive.raspberrypi.com, built as an SD-card image with debos
   (`resources/debos/raspbian.yaml`, see 3.1)
   • `systemd` for service management, `systemd-networkd` for the network
+    (DHCP on every wired and wireless interface). Wi-Fi is off by default;
+    since the release after 0.9.5 `sudo carnine-wlan` unblocks it, scans,
+    and stores the network for `wpa_supplicant@wlan0`
+    (`/etc/wpa_supplicant/wpa_supplicant-wlan0.conf`, root only); `--off` and
+    `--on` switch it off and back on across reboots
 
 #### Runtime Dependencies (on Pi)
 The Debian packages pull in everything they need; the image installs them:
