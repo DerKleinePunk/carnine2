@@ -49,6 +49,9 @@ const ALIVE: &[u8] = b"+";
 const ALIVE_INTERVAL: Duration = Duration::from_secs(1);
 /// Wait before reopening a line that vanished or failed.
 const RETRY_INTERVAL: Duration = Duration::from_secs(3);
+/// While the line keeps failing the same way, one reminder at warn this often
+/// (an hour at RETRY_INTERVAL); the attempts in between log at debug only.
+const RETRY_REMINDER_EVERY: u64 = 1200;
 /// The supply reports every second; this long without a telegram it counts
 /// as gone (switched off, cable loose).
 const SILENCE_TIMEOUT: Duration = Duration::from_secs(3);
@@ -325,21 +328,98 @@ fn apply(status: &mut PowerSupplyStatus, telegram: &Telegram) {
     }
 }
 
+/// How loud a retry of the serial line is logged. Without a supply, or with
+/// it switched off, the line fails every few seconds the same way; that
+/// filled the log with thousands of identical warnings a day. Now the first
+/// failure and every new kind of failure log at warn, the repeats at debug
+/// with an hourly reminder, and the line opening again at info with how many
+/// attempts it took (as with the audio output, #59).
+#[derive(Debug, Default)]
+struct RetryLog {
+    failing: Option<String>,
+    repeats: u64,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum RetryNotice {
+    /// A failure not seen just before: log it at warn.
+    New,
+    /// The same failure again: debug only.
+    Repeat,
+    /// The same failure for an hour now, `attempts` in a row: warn once more.
+    Reminder { attempts: u64 },
+}
+
+impl RetryLog {
+    fn failed(&mut self, problem: String) -> RetryNotice {
+        if self.failing.as_deref() == Some(problem.as_str()) {
+            self.repeats += 1;
+            if self.repeats.is_multiple_of(RETRY_REMINDER_EVERY) {
+                RetryNotice::Reminder {
+                    attempts: self.repeats + 1,
+                }
+            } else {
+                RetryNotice::Repeat
+            }
+        } else {
+            self.failing = Some(problem);
+            self.repeats = 0;
+            RetryNotice::New
+        }
+    }
+
+    /// The line opened: the failed attempts in a row before, if there were.
+    fn opened(&mut self) -> Option<u64> {
+        let attempts = self.failing.take().map(|_| self.repeats + 1);
+        self.repeats = 0;
+        attempts
+    }
+
+    /// Whether the line is failing right now, so an attempt logs quietly.
+    fn failing(&self) -> bool {
+        self.failing.is_some()
+    }
+}
+
 /// Talks to the supply on `device`, reopening it whenever it fails or is not
 /// there yet. Runs on its own threads.
 pub fn spawn(hub: PowerSupplyHub, device: PathBuf, baud: u32) {
     std::thread::Builder::new()
         .name("power-supply".to_string())
-        .spawn(move || loop {
-            info!(device = %device.display(), baud, "opening power supply serial line");
-            match run_line(&hub, &device, baud) {
-                Ok(()) => warn!(device = %device.display(), "power supply serial line closed"),
-                Err(err) => {
-                    warn!(device = %device.display(), error = %format!("{err:#}"), "power supply serial line failed")
+        .spawn(move || {
+            let mut retries = RetryLog::default();
+            loop {
+                if retries.failing() {
+                    debug!(device = %device.display(), baud, "opening power supply serial line");
+                } else {
+                    info!(device = %device.display(), baud, "opening power supply serial line");
                 }
+                let problem = match open_line(&device, baud) {
+                    Err(err) => format!("{err:#}"),
+                    Ok(file) => {
+                        if let Some(attempts) = retries.opened() {
+                            info!(device = %device.display(), attempts, "power supply serial line back");
+                        }
+                        match run_line(&hub, file) {
+                            Ok(()) => "closed".to_string(),
+                            Err(err) => format!("{err:#}"),
+                        }
+                    }
+                };
+                match retries.failed(problem.clone()) {
+                    RetryNotice::New => {
+                        warn!(device = %device.display(), error = %problem, "power supply serial line failed; retrying quietly every {}s", RETRY_INTERVAL.as_secs())
+                    }
+                    RetryNotice::Repeat => {
+                        debug!(device = %device.display(), error = %problem, "power supply serial line failed again")
+                    }
+                    RetryNotice::Reminder { attempts } => {
+                        warn!(device = %device.display(), error = %problem, attempts, "power supply serial line still failing")
+                    }
+                }
+                hub.update(|status| status.connected = false);
+                std::thread::sleep(RETRY_INTERVAL);
             }
-            hub.update(|status| status.connected = false);
-            std::thread::sleep(RETRY_INTERVAL);
         })
         .map(|_| ())
         .unwrap_or_else(|err| error!(error = %err, "could not start the power supply thread"));
@@ -347,8 +427,7 @@ pub fn spawn(hub: PowerSupplyHub, device: PathBuf, baud: u32) {
 
 /// One connection: a sender thread writes the sign of life every second and
 /// notices silence, while this thread reads telegrams, until either fails.
-fn run_line(hub: &PowerSupplyHub, device: &Path, baud: u32) -> Result<()> {
-    let file = open_line(device, baud)?;
+fn run_line(hub: &PowerSupplyHub, file: File) -> Result<()> {
     let writer = file
         .try_clone()
         .context("duplicating the line for sending")?;
@@ -456,6 +535,58 @@ mod tests {
     use super::*;
     use crate::serial_line::pseudo_terminal;
 
+    #[test]
+    fn a_line_failing_the_same_way_warns_once_then_hourly() {
+        let mut retries = RetryLog::default();
+        let missing = || "opening /dev/powersupply: No such file or directory".to_string();
+
+        assert_eq!(retries.failed(missing()), RetryNotice::New);
+        assert!(retries.failing());
+        for attempt in 2..=RETRY_REMINDER_EVERY {
+            assert_eq!(retries.failed(missing()), RetryNotice::Repeat, "{attempt}");
+        }
+        assert_eq!(
+            retries.failed(missing()),
+            RetryNotice::Reminder {
+                attempts: RETRY_REMINDER_EVERY + 1
+            }
+        );
+        assert_eq!(retries.failed(missing()), RetryNotice::Repeat);
+    }
+
+    #[test]
+    fn a_new_kind_of_failure_warns_again() {
+        let mut retries = RetryLog::default();
+        assert_eq!(
+            retries.failed("opening: missing".to_string()),
+            RetryNotice::New
+        );
+        assert_eq!(
+            retries.failed("opening: missing".to_string()),
+            RetryNotice::Repeat
+        );
+        assert_eq!(
+            retries.failed("setting up: not permitted".to_string()),
+            RetryNotice::New
+        );
+    }
+
+    #[test]
+    fn opening_again_reports_the_attempts_and_starts_over() {
+        let mut retries = RetryLog::default();
+        assert_eq!(retries.opened(), None, "no failure before");
+        for _ in 0..5 {
+            retries.failed("opening: missing".to_string());
+        }
+        assert_eq!(retries.opened(), Some(5));
+        assert!(!retries.failing());
+        // The same failure after the line was open counts as new.
+        assert_eq!(
+            retries.failed("opening: missing".to_string()),
+            RetryNotice::New
+        );
+    }
+
     /// The four telegrams the firmware sends every second.
     fn status_telegrams(kl15: u8, alive: &str, state: u8, tenths: &str) -> Vec<u8> {
         let mut bytes = vec![STX, ID_KL15, kl15, ETX, STX, ID_ALIVE];
@@ -544,7 +675,7 @@ mod tests {
     #[test]
     fn a_missing_device_is_an_error_not_a_panic() {
         let hub = PowerSupplyHub::new(true);
-        assert!(run_line(&hub, Path::new("/nonexistent/powersupply"), 38400).is_err());
+        assert!(open_line(Path::new("/nonexistent/powersupply"), 38400).is_err());
         assert!(!hub.current().connected);
     }
 
