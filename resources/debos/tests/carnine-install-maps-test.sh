@@ -81,8 +81,8 @@ tree=$(mktemp -d)
 show() {
     CARNINE_SKIP_ROOT_CHECK=1 sh "$SCRIPT" --show-source "$@" 2>&1 || true
 }
-check "MagentaCloud link" "$(show --link https://magentacloud.de/s/LBoMW7gt8L7EYdP)" \
-    "https://magentacloud.de/public.php/webdav/karten-hessen LBoMW7gt8L7EYdP"
+check "MagentaCloud link" "$(show --link https://magentacloud.de/s/AbCdEf0123456789)" \
+    "https://magentacloud.de/public.php/webdav/karten-hessen AbCdEf0123456789"
 check "link with index.php, path and slash" \
     "$(show --link https://example.org/cloud/index.php/s/AbC123/ --package karten-dach)" \
     "https://example.org/cloud/public.php/webdav/karten-dach AbC123"
