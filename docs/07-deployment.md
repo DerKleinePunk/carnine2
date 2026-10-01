@@ -564,6 +564,9 @@ directories and the configuration; there is no manual OS setup with
   [Audio output](#audio-output))
 - `-t power_supply:auprv1`: car power supply with `gpio-poweroff` (docs/23)
 - `-t target_hostname:<name>`, `-t "ssh_public_key:…"`
+- `-t rootpassword:<password>`: password of the user `pi`, default
+  `raspberry`. SSH accepts it and nothing warns about the default; changing
+  it and the hostname on the device: `docs/bedienung/nach-der-installation.md`
 
 The result is `raspbian.img.gz` with the block map `raspbian.img.bmap` and
 the build log below `build-logs/`. Write it to the card with `bmaptool copy`,

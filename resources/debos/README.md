@@ -108,6 +108,11 @@ Seriennummer an, z. B. `carnine-pc-1a2b`, damit mehrere Geräte im selben Netz
 unterscheidbar sind (#62). Das passiert einmal. Ein inzwischen von Hand
 gesetzter Name bleibt. Tests: `sh tests/carnine-hostname-test.sh`.
 
+Der Benutzer ist `pi` mit dem Passwort `raspberry`, änderbar mit
+`-t rootpassword:<passwort>`. SSH nimmt das Passwort an, und anders als bei
+Raspberry Pi OS warnt nichts davor. Passwort und Namen am Gerät ändern:
+`docs/bedienung/nach-der-installation.md`.
+
 Für ein Gerät mit dem Kfz-Netzteil AuPrV1_1 kommt `-t power_supply:auprv1`
 dazu. Dann trägt das Rezept `dtoverlay=gpio-poweroff,active_low=1,gpiopin=5`
 ein, das Signal „Pi ist angehalten“ an Dig3. Ohne Netzteil darf das Overlay

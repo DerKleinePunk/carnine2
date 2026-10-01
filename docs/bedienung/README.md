@@ -19,6 +19,8 @@ dieser Seiten in denselben Commit.
    passiert, was noch Platzhalter ist, Dauertest einrichten
 7. [Ton über die Klinke](ton-klinke.md) – für Displays ohne Lautsprecher
    (z. B. Waveshare 7C)
+8. [Nach der Installation](nach-der-installation.md) – Standardpasswort und
+   Gerätenamen ändern
 
 ## Die häufigsten Abläufe
 
