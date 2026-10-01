@@ -196,7 +196,7 @@ takes hours.
 | File in `~/develop/carnine-maps` | Made by (map project) | Notes |
 |---|---|---|
 | `hessen.mbtiles` | `scripts/tilemaker.sh hessen` | tilemaker in a container (docker or podman, `CONTAINER_CMD`), OpenMapTiles schema, `scripts/tilemaker/config-openmaptiles-z17.json` together with the map project's own `scripts/tilemaker/process-openmaptiles.lua` (residential areas by size instead of from z8; the original Lua builds something else); source `germany-latest.osm.pbf` from Geofabrik, cut to the Hessen bounding box. Installed as `map.mbtiles`; the file in use is from 2026-09-23. Names only as `name:latin`, see §8.11 in [08 – Cross-cutting Concepts](08-crosscutting.md). |
-| `germany_names.db` | `scripts/extract_names_to_sqlite.py`, run by `tilemaker.sh` as `<region>_names.db` | FTS5 index for `SearchPlaces` and the `reverse_*` tables for `GetLocationName`. **A names database belongs to its tiles**: positions and each name's area come from them, so build it from the very `.mbtiles` that is installed. Since local_map 0.5.0 (September 2026) it carries the area and grid cells; an older one is still searched, but country-wide, without area and without a location name. It no longer uses WAL: before replacing it on a device, stop the services and delete a leftover `-wal`/`-shm`, which `deploy_maps.sh` does. |
+| `germany/hessen_names.db` | `scripts/extract_names_to_sqlite.py`, run by `tilemaker.sh` as `<region>_names.db` | Installed as `germany_names.db`, built from `hessen.mbtiles`. FTS5 index for `SearchPlaces` and the `reverse_*` tables for `GetLocationName`. **A names database belongs to its tiles**: positions and each name's area come from them, so build it from the very `.mbtiles` that is installed. Since local_map 0.5.0 (September 2026) it carries the area and grid cells; an older one is still searched, but country-wide, without area and without a location name. It no longer uses WAL: before replacing it on a device, stop the services and delete a leftover `-wal`/`-shm`, which `deploy_maps.sh` does. |
 | `valhalla_tiles.tar` | `scripts/valhalla/build_valhalla_from_pbf.sh`, called at the end of `tilemaker.sh` | Routing tiles for the local Valhalla. The current file (5 GB) is from a build on 2026-04-11 (container, an older Valhalla), which Valhalla 3.9.0 reads; on 2026-09-24 only the program was rebuilt. It covers all of Germany: read from its level-2 tile names on 2026-09-25, 895 of 1068 tiles lie in the German bounding box, the rest along ferry lines to Scandinavia and the Baltic, as in a Geofabrik Germany extract. So routes work beyond the Hessen tiles, into areas the map does not draw. |
 | `GPS-Adnan-Tour.txt` | `scripts/GpsTest/` | Recorded NMEA tour replayed on the stand. New tours: record a drive, see [Recording drives](#recording-drives). |
 
@@ -213,14 +213,20 @@ After building new data:
 1. Copy the files into `~/develop/carnine-maps` under the names above;
    `deploy_maps.sh` expects exactly these (tiles and names can be other
    files with `CARNINE_MAP_TILES` and `CARNINE_NAMES_DATABASE`).
-2. Renew the checksums there:
-   `sha256sum hessen.mbtiles germany_names.db valhalla_tiles.tar GPS-Adnan-Tour.txt > SHA256SUMS`.
-3. `./deploy_maps.sh [user@host] [--no-restart]`. `CARNINE_MAPS_DIR`
-   names another source folder. Afterwards the script restarts `valhalla`,
-   the backend and the frontend, unless `--no-restart` is given.
-4. For another region, also set `map_region` in the navigation drop-in, and
-   check the map style (`src/frontend/assets/maps/`) against the new tiles,
-   see §8.11.
+2. Renew the entry of each changed file in the `SHA256SUMS` of its folder
+   (`sha256sum <file>`; `germany/` and `dach/` have their own). The script checks every file against
+   the `SHA256SUMS` in its own folder, if that lists it, before it copies
+   anything; a file without an entry is copied unchecked and named in the
+   output.
+3. `./deploy_maps.sh [user@host] [--dach] [--no-restart]`. `CARNINE_MAPS_DIR`
+   names another source folder. Before stopping any service it checks the
+   free space on the device: the new files plus a copy of the largest, since
+   rsync writes the new file beside the old one. It sets `map_region` in
+   `/etc/carnine/config.d/10-navigation.toml` to the region deployed
+   (`Hessen` or `DACH`) and afterwards restarts `valhalla`, the backend and
+   the frontend, unless `--no-restart` is given.
+4. For another region, check the map style (`src/frontend/assets/maps/`)
+   against the new tiles, see §8.11.
 
 Without the development machine, e.g. for testers, the device installs a map
 package by itself: `sudo carnine-install-maps` asks for a Nextcloud share
@@ -229,22 +235,21 @@ USB stick. `./pack_maps.sh` builds such a package from the same sources as
 `deploy_maps.sh`; the format is described in `resources/debos/README.md`, the
 steps for the tester in `docs/bedienung/nach-der-installation.md`.
 
-**carnine-pc since 2026-09-26** shows all of Germany: `germany.mbtiles`
-(17.2 GB) and its `germany_names.db` (1.8 GB, 3.95 million names), both built
-by the map project on 2026-09-23/26 and kept in
-`~/develop/carnine-maps/germany/` with their `SHA256SUMS`. Deployed with
+**Our own test devices run with DACH** (Germany, Austria, Switzerland):
+`./deploy_maps.sh pi@<device> --dach` takes `dach.mbtiles` (22.1 GB),
+`dach_names.db` (2.3 GB) and their own `valhalla_tiles.tar` (6.6 GB) from
+`~/develop/carnine-maps/dach` (`CARNINE_DACH_DIR`), a copy of the map
+project's build with its `SHA256SUMS`; the demo tour is the same as for
+Hessen. Replacing Germany with DACH needs about 29 GB free on the device (7 GB more
+data plus the rsync copy of the tiles). jeep-pi runs with DACH.
 
-```bash
-CARNINE_MAP_TILES=~/develop/carnine-maps/germany/germany.mbtiles \
-CARNINE_NAMES_DATABASE=~/develop/carnine-maps/germany/germany_names.db \
-  ./deploy_maps.sh pi@carnine-pc
-```
-
-and `map_region = "Deutschland"` in its navigation drop-in. The script checks
-only `SHA256SUMS` in `CARNINE_MAPS_DIR`, which covers the Hessen files; check
-the Germany files beforehand with `sha256sum -c` in `germany/`. The Hessen tiles
-(2.3 GB) remain the image's default for smaller cards; their names database
-in the new schema is `germany/hessen_names.db`.
+Before that, **carnine-pc showed all of Germany** from 2026-09-26:
+`germany.mbtiles` (17.2 GB) and its `germany_names.db` (1.8 GB, 3.95 million
+names) from `~/develop/carnine-maps/germany/`, deployed with
+`CARNINE_MAP_TILES` and `CARNINE_NAMES_DATABASE` and `map_region =
+"Deutschland"`. The Hessen tiles (2.3 GB) remain the default for testers and
+smaller cards, with `germany/hessen_names.db`, as in the package for
+`carnine-install-maps`.
 
 #### GPS receiver
 
@@ -570,7 +575,9 @@ directories and the configuration; there is no manual OS setup with
 - `-t audio_output:jack`: headphone jack as card 0 instead of HDMI (see
   [Audio output](#audio-output))
 - `-t power_supply:auprv1`: car power supply with `gpio-poweroff` (docs/23)
-- `-t target_hostname:<name>`, `-t "ssh_public_key:…"`
+- `-t target_hostname:<name>`, `-t "ssh_public_key:…"`; on the device the
+  name changes with `sudo carnine-rename <name>` (since the release after
+  0.9.5)
 - `-t rootpassword:<password>`: password of the user `pi`, default
   `raspberry`. SSH accepts it; since the release after 0.9.5 every
   interactive login warns while it is still the default

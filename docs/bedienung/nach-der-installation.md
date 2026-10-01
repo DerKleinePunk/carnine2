@@ -85,20 +85,37 @@ Kleinbuchstaben, Ziffern und Bindestrichen, ohne Bindestrich am Anfang oder
 Ende, höchstens 63 Zeichen. Beispiel `jeep-carpc`:
 
 ```sh
-sudo hostnamectl set-hostname jeep-carpc
-sudo sed -i 's/^127\.0\.1\.1[[:space:]].*/127.0.1.1\tjeep-carpc/' /etc/hosts
+sudo carnine-rename jeep-carpc
 sudo reboot
 ```
 
-- `hostnamectl` schreibt `/etc/hostname`. Die Zeile `127.0.1.1` in
-  `/etc/hosts` ändert es nicht mit, deshalb der `sed`. Ohne sie meldet `sudo`
-  „unable to resolve host“.
+`carnine-rename` meldet „Name geändert: carnine-pc-a869 → jeep-carpc“. Einen
+Namen, der nicht geht (Großbuchstaben, Leerzeichen, Umlaute), lehnt es mit
+einer Fehlermeldung ab und ändert nichts.
+
+- Es schreibt `/etc/hostname`, die Zeile `127.0.1.1` in `/etc/hosts` und den
+  laufenden Namen in einem Schritt.
 - Nach dem Neustart meldet sich das Gerät mit dem neuen Namen beim DHCP-Server
   und per mDNS: `ssh pi@jeep-carpc.local`. Ein bekannter Host-Schlüssel unter
   dem alten Namen stört nicht, er gehört nur zum alten Namen.
 - Der Name bleibt. Den Namen mit der Seriennummer vergibt das Image nur
   **einmal**, beim allerersten Start (`carnine-hostname.service`, gemerkt in
   `/var/lib/carnine/hostname-set`). Danach fasst es ihn nicht mehr an.
+
+### Ohne `carnine-rename` (bis 0.9.5)
+
+Den Befehl gibt es in Images ab der Version nach 0.9.5. Davor geht es von
+Hand:
+
+```sh
+sudo hostnamectl set-hostname jeep-carpc
+sudo sed -i 's/^127\.0\.1\.1[[:space:]].*/127.0.1.1\tjeep-carpc/' /etc/hosts
+sudo reboot
+```
+
+`hostnamectl` schreibt `/etc/hostname`, die Zeile `127.0.1.1` in `/etc/hosts`
+ändert es nicht mit, deshalb der `sed`. Ohne sie meldet `sudo` „unable to
+resolve host“.
 
 ### Fester Name im Router
 
