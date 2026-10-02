@@ -159,6 +159,42 @@ void main() {
     },
   );
 
+  test(
+    'reconnect clears metadataToolMissing unless the backend repeats it',
+    () async {
+      await controller.start();
+      LibraryScanEvent event(LibraryScanEventKind kind) => LibraryScanEvent(
+        kind: kind,
+        scanId: 0,
+        processed: 0,
+        imported: 0,
+        path: '',
+        message: '',
+        sourceLabel: '',
+        sourcePath: '',
+        matchingFiles: 0,
+      );
+      repository.libraryEventsController.add(
+        event(LibraryScanEventKind.metadataToolMissing),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.mediaToolsMissing, isTrue);
+
+      // The backend restarted with ffmpeg installed: the new subscription
+      // gets no metadataToolMissing, so nothing else would clear the flag.
+      await controller.reconnect();
+      expect(controller.mediaToolsMissing, isFalse);
+
+      // Still missing after the restart: the backend replays the event.
+      await controller.reconnect();
+      repository.libraryEventsController.add(
+        event(LibraryScanEventKind.metadataToolMissing),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.mediaToolsMissing, isTrue);
+    },
+  );
+
   test('musicFound with matching files stages a pending import', () async {
     await controller.start();
 

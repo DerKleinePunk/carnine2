@@ -67,6 +67,10 @@ class LibraryController extends ChangeNotifier {
   /// call again after [reconnect] tore the previous subscription down.
   Future<void> start() async {
     await _libraryEvents?.cancel();
+    // The backend replays metadataToolMissing to every new subscriber but
+    // sends nothing once the tools are back (#83), so a fresh subscription
+    // starts without the hint and the replay raises it again if needed.
+    _mediaToolsMissing = false;
     _libraryEvents = _repository.libraryEvents().listen(
       _onLibraryEvent,
       onError: _onStreamError,
