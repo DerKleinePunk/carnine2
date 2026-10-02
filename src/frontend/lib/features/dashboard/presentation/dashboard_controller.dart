@@ -116,6 +116,12 @@ class DashboardController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Selects the section for [destination], like a tap in the side menu
+  /// (the camera settings jump to the camera page this way).
+  void selectDestination(DashboardDestination destination) {
+    selectItem(navItems.indexWhere((item) => item.destination == destination));
+  }
+
   /// Opens the page saved last, unless the user picked one in the meantime.
   ///
   /// While the backend is unreachable it tries again with growing pauses

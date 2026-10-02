@@ -130,14 +130,44 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.mediaBackToCollectionsSemantic: 'Vissza a gyűjteményekhez',
   AppTextKey.settingsBackToOptions: 'Vissza az opciókhoz',
   AppTextKey.settingsLanguageTitle: 'Nyelv',
-  AppTextKey.settingsLanguageSubtitle: 'Megjelenítési nyelv kiválasztása',
-  AppTextKey.settingsLanguageSemantic: 'Nyelvi beállítások megnyitása',
   AppTextKey.settingsDiagnosticsTitle: 'Rendszer',
   AppTextKey.settingsDiagnosticsSubtitle: 'Naplók, újraindítás és frissítések',
   AppTextKey.settingsDiagnosticsSemantic: 'Rendszerbeállítások megnyitása',
-  AppTextKey.settingsAppearanceTitle: 'Megjelenés',
-  AppTextKey.settingsAppearanceSubtitle: 'Színek és tipográfia',
-  AppTextKey.settingsAppearanceSemantic: 'Megjelenési beállítások megnyitása',
+  AppTextKey.settingsAppearanceTitle: 'Megjelenés és nyelv',
+  AppTextKey.settingsAppearanceSubtitle:
+      'Színek, tipográfia és megjelenítési nyelv',
+  AppTextKey.settingsAppearanceSemantic:
+      'Megjelenési és nyelvi beállítások megnyitása',
+  AppTextKey.settingsAppearanceTabTitle: 'Megjelenés',
+  AppTextKey.settingsDevicesTitle: 'Eszközök',
+  AppTextKey.settingsDevicesSubtitle:
+      'Kamera, hangkimenet és telefonos alkalmazás',
+  AppTextKey.settingsDevicesSemantic: 'Eszközbeállítások megnyitása',
+  AppTextKey.settingsDevicesCameraTitle: 'Kamera',
+  AppTextKey.settingsDevicesCameraSubtitle:
+      'Eszköz, videószabvány, bemenet és képszélesség',
+  AppTextKey.settingsDevicesAudioTitle: 'Hangkimenet',
+  AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, jack vagy USB-hangkártya',
+  AppTextKey.settingsDevicesPhoneTitle: 'Telefonos alkalmazás',
+  AppTextKey.settingsDevicesPhoneSubtitle:
+      'Bluetooth-párosítás kóddal a telefonon',
+  AppTextKey.settingsDevicesPowerTitle: 'Tápegység',
+  AppTextKey.settingsDevicesPowerSubtitle: 'Gyújtás, feszültség és szervizmód',
+  AppTextKey.settingsBackToDevices: 'Vissza az eszközökhöz',
+  AppTextKey.settingsCameraDeviceLabel: 'Eszköz',
+  AppTextKey.settingsCameraNoDevices: 'Nem található kamera',
+  AppTextKey.settingsCameraNormLabel: 'Videószabvány',
+  AppTextKey.settingsCameraInputLabel: 'Bemenet',
+  AppTextKey.settingsCameraInputSVideo: 'S-Video',
+  AppTextKey.settingsCameraWidthLabel: 'Képszélesség',
+  AppTextKey.settingsCameraWidthHint:
+      'A 720 élesebb, de csak másodpercenként körülbelül 10 képkockát ad.',
+  AppTextKey.settingsCameraAnalogOnlyNote:
+      'A szabvány, a bemenet és a szélesség csak az USB-adapteres analóg '
+      'kamerákra vonatkozik, az USB-kamerákra nem.',
+  AppTextKey.settingsCameraAppliesNote:
+      'A Kamera oldal következő megnyitásától érvényes.',
+  AppTextKey.settingsCameraShowAction: 'Kamerakép megtekintése',
   AppTextKey.settingsMapTitle: 'Térképbeállítások',
   AppTextKey.settingsMapSubtitle: 'Térképnézet és útvonalviselkedés',
   AppTextKey.settingsMapSemantic: 'Térképbeállítások megnyitása',

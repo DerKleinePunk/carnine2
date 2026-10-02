@@ -127,14 +127,43 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.mediaBackToCollectionsSemantic: 'Zpět na kolekce',
   AppTextKey.settingsBackToOptions: 'Zpět na možnosti',
   AppTextKey.settingsLanguageTitle: 'Jazyk',
-  AppTextKey.settingsLanguageSubtitle: 'Vybrat jazyk zobrazení',
-  AppTextKey.settingsLanguageSemantic: 'Otevřít nastavení jazyka',
   AppTextKey.settingsDiagnosticsTitle: 'Systém',
   AppTextKey.settingsDiagnosticsSubtitle: 'Protokoly, restart a aktualizace',
   AppTextKey.settingsDiagnosticsSemantic: 'Otevřít systémová nastavení',
-  AppTextKey.settingsAppearanceTitle: 'Vzhled',
-  AppTextKey.settingsAppearanceSubtitle: 'Barvy a typografie',
-  AppTextKey.settingsAppearanceSemantic: 'Otevřít nastavení vzhledu',
+  AppTextKey.settingsAppearanceTitle: 'Vzhled a jazyk',
+  AppTextKey.settingsAppearanceSubtitle: 'Barvy, typografie a jazyk zobrazení',
+  AppTextKey.settingsAppearanceSemantic: 'Otevřít nastavení vzhledu a jazyka',
+  AppTextKey.settingsAppearanceTabTitle: 'Vzhled',
+  AppTextKey.settingsDevicesTitle: 'Zařízení',
+  AppTextKey.settingsDevicesSubtitle:
+      'Kamera, zvukový výstup a aplikace v telefonu',
+  AppTextKey.settingsDevicesSemantic: 'Otevřít nastavení zařízení',
+  AppTextKey.settingsDevicesCameraTitle: 'Kamera',
+  AppTextKey.settingsDevicesCameraSubtitle:
+      'Zařízení, videonorma, vstup a šířka obrazu',
+  AppTextKey.settingsDevicesAudioTitle: 'Zvukový výstup',
+  AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, jack nebo USB zvuková karta',
+  AppTextKey.settingsDevicesPhoneTitle: 'Aplikace v telefonu',
+  AppTextKey.settingsDevicesPhoneSubtitle:
+      'Párování Bluetooth s kódem v telefonu',
+  AppTextKey.settingsDevicesPowerTitle: 'Zdroj',
+  AppTextKey.settingsDevicesPowerSubtitle:
+      'Zapalování, napětí a servisní režim',
+  AppTextKey.settingsBackToDevices: 'Zpět na zařízení',
+  AppTextKey.settingsCameraDeviceLabel: 'Zařízení',
+  AppTextKey.settingsCameraNoDevices: 'Nenalezena žádná kamera',
+  AppTextKey.settingsCameraNormLabel: 'Videonorma',
+  AppTextKey.settingsCameraInputLabel: 'Vstup',
+  AppTextKey.settingsCameraInputSVideo: 'S-Video',
+  AppTextKey.settingsCameraWidthLabel: 'Šířka obrazu',
+  AppTextKey.settingsCameraWidthHint:
+      '720 je ostřejší, ale dává jen asi 10 snímků za sekundu.',
+  AppTextKey.settingsCameraAnalogOnlyNote:
+      'Norma, vstup a šířka platí jen pro analogové kamery s USB adaptérem, '
+      'ne pro USB kamery.',
+  AppTextKey.settingsCameraAppliesNote:
+      'Platí od příštího otevření stránky Kamera.',
+  AppTextKey.settingsCameraShowAction: 'Zobrazit obraz kamery',
   AppTextKey.settingsMapTitle: 'Nastavení mapy',
   AppTextKey.settingsMapSubtitle: 'Zobrazení mapy a chování tras',
   AppTextKey.settingsMapSemantic: 'Otevřít nastavení mapy',

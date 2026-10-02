@@ -28,6 +28,7 @@ class DashboardContent extends StatelessWidget {
     required this.mapsController,
     this.cameraSettingsStore,
     this.cameraSourceFactory,
+    this.onShowCamera,
     super.key,
   });
 
@@ -43,10 +44,17 @@ class DashboardContent extends StatelessWidget {
   final CameraSettingsStore? cameraSettingsStore;
   final GrabberSourceFactory? cameraSourceFactory;
 
+  /// Selects the Kamera page - from the camera settings, to look at a change.
+  final VoidCallback? onShowCamera;
+
   @override
   Widget build(BuildContext context) {
     if (selectedItem.destination == DashboardDestination.settings) {
-      return SettingsContent(languageController: languageController);
+      return SettingsContent(
+        languageController: languageController,
+        cameraSettingsStore: cameraSettingsStore,
+        onShowCamera: onShowCamera,
+      );
     }
 
     if (selectedItem.destination == DashboardDestination.media) {

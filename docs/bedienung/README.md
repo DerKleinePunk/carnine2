@@ -13,7 +13,7 @@ dieser Seiten in denselben Commit.
 2. [Medien](medien.md) – Player, Warteschlange, Bibliothek, Playlists, USB-Import
 3. [Karten](karte.md) – Zielsuche, Route, Navigationsmodus, Standort
 4. [Kamera](kamera.md) – Rückfahrkamera, Hinweise, Einstellungen
-5. [Optionen](optionen.md) – Sprache, Logs, Neustart, Beenden
+5. [Optionen](optionen.md) – Darstellung & Sprache, Geräte, Logs, Neustart, Beenden
 6. [Bildschirmtastatur](tastatur.md)
 7. [Verhalten über Neustarts und ohne Backend](verhalten.md) – was gespeichert
    wird, was bei Verbindungsverlust, ohne Tonausgang und bei Überhitzung

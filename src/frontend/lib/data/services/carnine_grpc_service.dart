@@ -1,5 +1,6 @@
 import 'package:carnine_frontend/core/platform/grpc_endpoint.dart';
 import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart';
+import 'package:carnine_frontend/features/camera/domain/video_device.dart';
 import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
 import 'package:carnine_frontend/lib/carnine.pbgrpc.dart';
 import 'package:grpc/grpc.dart';
@@ -102,6 +103,76 @@ class CarnineGrpcService implements UiStateStore, CameraSettingsStore {
     } finally {
       await channel.shutdown();
     }
+  }
+
+  @override
+  Future<List<VideoDevice>> listCameraDevices() async {
+    final channel = _channelFactory();
+    try {
+      final response = await CameraServiceClient(
+        channel,
+      ).listCameraDevices(Empty());
+      return [
+        for (final device in response.devices)
+          VideoDevice(
+            path: device.path,
+            name: device.name,
+            driver: device.driver,
+          ),
+      ];
+    } finally {
+      await channel.shutdown();
+    }
+  }
+
+  @override
+  Future<GrabberConfig> saveCameraSettings({
+    String? device,
+    VideoNorm? norm,
+    int? input,
+    int? width,
+  }) async {
+    final channel = _channelFactory();
+    try {
+      final saved = await CameraServiceClient(channel).saveCameraSettings(
+        cameraSettingsRequestFrom(
+          device: device,
+          norm: norm,
+          input: input,
+          width: width,
+        ),
+      );
+      return grabberConfigFrom(saved);
+    } finally {
+      await channel.shutdown();
+    }
+  }
+
+  /// A request that carries only the fields that are given - the backend
+  /// saves just those.
+  static CameraSettings cameraSettingsRequestFrom({
+    String? device,
+    VideoNorm? norm,
+    int? input,
+    int? width,
+  }) {
+    final request = CameraSettings();
+    if (device != null) {
+      request.device = device;
+    }
+    if (norm != null) {
+      request.norm = switch (norm) {
+        VideoNorm.pal => CameraNorm.CAMERA_NORM_PAL,
+        VideoNorm.ntsc => CameraNorm.CAMERA_NORM_NTSC,
+      };
+    }
+    if (input != null) {
+      request.input = input;
+    }
+    if (width != null) {
+      request.width = width;
+    }
+    return request;
   }
 
   /// What the grabber needs from the backend's settings; a field the backend

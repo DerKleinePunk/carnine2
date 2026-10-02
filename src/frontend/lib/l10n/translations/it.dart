@@ -129,14 +129,44 @@ const Map<AppTextKey, String> itTranslations = <AppTextKey, String>{
   AppTextKey.mediaBackToCollectionsSemantic: 'Torna alle raccolte',
   AppTextKey.settingsBackToOptions: 'Torna alle opzioni',
   AppTextKey.settingsLanguageTitle: 'Lingua',
-  AppTextKey.settingsLanguageSubtitle: 'Scegli la lingua di visualizzazione',
-  AppTextKey.settingsLanguageSemantic: 'Apri le impostazioni lingua',
   AppTextKey.settingsDiagnosticsTitle: 'Sistema',
   AppTextKey.settingsDiagnosticsSubtitle: 'Log, riavvio e aggiornamenti',
   AppTextKey.settingsDiagnosticsSemantic: 'Apri le impostazioni di sistema',
-  AppTextKey.settingsAppearanceTitle: 'Aspetto',
-  AppTextKey.settingsAppearanceSubtitle: 'Colori e tipografia',
-  AppTextKey.settingsAppearanceSemantic: 'Apri impostazioni aspetto',
+  AppTextKey.settingsAppearanceTitle: 'Aspetto e lingua',
+  AppTextKey.settingsAppearanceSubtitle:
+      'Colori, tipografia e lingua di visualizzazione',
+  AppTextKey.settingsAppearanceSemantic: 'Apri impostazioni aspetto e lingua',
+  AppTextKey.settingsAppearanceTabTitle: 'Aspetto',
+  AppTextKey.settingsDevicesTitle: 'Dispositivi',
+  AppTextKey.settingsDevicesSubtitle:
+      'Telecamera, uscita audio e app del telefono',
+  AppTextKey.settingsDevicesSemantic: 'Apri impostazioni dispositivi',
+  AppTextKey.settingsDevicesCameraTitle: 'Telecamera',
+  AppTextKey.settingsDevicesCameraSubtitle:
+      'Dispositivo, standard video, ingresso e larghezza immagine',
+  AppTextKey.settingsDevicesAudioTitle: 'Uscita audio',
+  AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, jack o scheda audio USB',
+  AppTextKey.settingsDevicesPhoneTitle: 'App del telefono',
+  AppTextKey.settingsDevicesPhoneSubtitle:
+      'Associazione Bluetooth con codice sul telefono',
+  AppTextKey.settingsDevicesPowerTitle: 'Alimentatore',
+  AppTextKey.settingsDevicesPowerSubtitle:
+      'Quadro, tensione e modalità servizio',
+  AppTextKey.settingsBackToDevices: 'Torna ai dispositivi',
+  AppTextKey.settingsCameraDeviceLabel: 'Dispositivo',
+  AppTextKey.settingsCameraNoDevices: 'Nessuna telecamera trovata',
+  AppTextKey.settingsCameraNormLabel: 'Standard video',
+  AppTextKey.settingsCameraInputLabel: 'Ingresso',
+  AppTextKey.settingsCameraInputSVideo: 'S-Video',
+  AppTextKey.settingsCameraWidthLabel: 'Larghezza immagine',
+  AppTextKey.settingsCameraWidthHint:
+      '720 è più nitido, ma fornisce solo circa 10 fotogrammi al secondo.',
+  AppTextKey.settingsCameraAnalogOnlyNote:
+      'Standard, ingresso e larghezza valgono solo per le telecamere '
+      'analogiche con adattatore USB, non per le telecamere USB.',
+  AppTextKey.settingsCameraAppliesNote:
+      'Vale dalla prossima apertura della pagina Telecamera.',
+  AppTextKey.settingsCameraShowAction: 'Mostra l’immagine della telecamera',
   AppTextKey.settingsMapTitle: 'Impostazioni mappa',
   AppTextKey.settingsMapSubtitle: 'Vista mappa e comportamento dei percorsi',
   AppTextKey.settingsMapSemantic: 'Apri impostazioni mappa',

@@ -50,6 +50,15 @@ int indexOf(DashboardDestination destination) => DashboardController.navItems
     .indexWhere((item) => item.destination == destination);
 
 void main() {
+  test('selectDestination switches like a tap in the side menu', () {
+    final controller = DashboardController();
+    addTearDown(controller.dispose);
+
+    controller.selectDestination(DashboardDestination.camera);
+
+    expect(controller.selectedItem.destination, DashboardDestination.camera);
+  });
+
   test('restores the page saved last', () async {
     final controller = DashboardController(
       uiStateStore: FakeUiStateStore(lastPage: 'maps'),

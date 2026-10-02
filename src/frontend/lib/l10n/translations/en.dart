@@ -125,14 +125,43 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.mediaBackToCollectionsSemantic: 'Back to collections',
   AppTextKey.settingsBackToOptions: 'Back to options',
   AppTextKey.settingsLanguageTitle: 'Language',
-  AppTextKey.settingsLanguageSubtitle: 'Choose display language',
-  AppTextKey.settingsLanguageSemantic: 'Open language settings',
   AppTextKey.settingsDiagnosticsTitle: 'System',
   AppTextKey.settingsDiagnosticsSubtitle: 'Logs, restart and updates',
   AppTextKey.settingsDiagnosticsSemantic: 'Open system settings',
-  AppTextKey.settingsAppearanceTitle: 'Appearance',
-  AppTextKey.settingsAppearanceSubtitle: 'Colors and typography',
-  AppTextKey.settingsAppearanceSemantic: 'Open appearance settings',
+  AppTextKey.settingsAppearanceTitle: 'Appearance & language',
+  AppTextKey.settingsAppearanceSubtitle:
+      'Colors, typography and display language',
+  AppTextKey.settingsAppearanceSemantic:
+      'Open appearance and language settings',
+  AppTextKey.settingsAppearanceTabTitle: 'Appearance',
+  AppTextKey.settingsDevicesTitle: 'Devices',
+  AppTextKey.settingsDevicesSubtitle: 'Camera, audio output and phone app',
+  AppTextKey.settingsDevicesSemantic: 'Open device settings',
+  AppTextKey.settingsDevicesCameraTitle: 'Camera',
+  AppTextKey.settingsDevicesCameraSubtitle:
+      'Device, video standard, input and picture width',
+  AppTextKey.settingsDevicesAudioTitle: 'Audio output',
+  AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, jack or USB sound card',
+  AppTextKey.settingsDevicesPhoneTitle: 'Phone app',
+  AppTextKey.settingsDevicesPhoneSubtitle:
+      'Bluetooth pairing with a code on the phone',
+  AppTextKey.settingsDevicesPowerTitle: 'Power supply',
+  AppTextKey.settingsDevicesPowerSubtitle: 'Ignition, voltage and service mode',
+  AppTextKey.settingsBackToDevices: 'Back to devices',
+  AppTextKey.settingsCameraDeviceLabel: 'Device',
+  AppTextKey.settingsCameraNoDevices: 'No camera found',
+  AppTextKey.settingsCameraNormLabel: 'Video standard',
+  AppTextKey.settingsCameraInputLabel: 'Input',
+  AppTextKey.settingsCameraInputSVideo: 'S-Video',
+  AppTextKey.settingsCameraWidthLabel: 'Picture width',
+  AppTextKey.settingsCameraWidthHint:
+      '720 is sharper but delivers only about 10 frames per second.',
+  AppTextKey.settingsCameraAnalogOnlyNote:
+      'Standard, input and width apply only to analog cameras on a USB '
+      'adapter, not to USB cameras.',
+  AppTextKey.settingsCameraAppliesNote:
+      'Applies from the next time the Camera page is opened.',
+  AppTextKey.settingsCameraShowAction: 'View camera picture',
   AppTextKey.settingsMapTitle: 'Map settings',
   AppTextKey.settingsMapSubtitle: 'Map view and route behavior',
   AppTextKey.settingsMapSemantic: 'Open map settings',

@@ -127,15 +127,44 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.mediaBackToCollectionsSemantic: 'Koleksiyonlara dön',
   AppTextKey.settingsBackToOptions: 'Seçeneklere dön',
   AppTextKey.settingsLanguageTitle: 'Dil',
-  AppTextKey.settingsLanguageSubtitle: 'Görüntüleme dilini seç',
-  AppTextKey.settingsLanguageSemantic: 'Dil ayarlarını aç',
   AppTextKey.settingsDiagnosticsTitle: 'Sistem',
   AppTextKey.settingsDiagnosticsSubtitle:
       'Günlükler, yeniden başlatma ve güncellemeler',
   AppTextKey.settingsDiagnosticsSemantic: 'Sistem ayarlarını aç',
-  AppTextKey.settingsAppearanceTitle: 'Görünüm',
-  AppTextKey.settingsAppearanceSubtitle: 'Renkler ve tipografi',
-  AppTextKey.settingsAppearanceSemantic: 'Görünüm ayarlarını aç',
+  AppTextKey.settingsAppearanceTitle: 'Görünüm ve dil',
+  AppTextKey.settingsAppearanceSubtitle:
+      'Renkler, tipografi ve görüntüleme dili',
+  AppTextKey.settingsAppearanceSemantic: 'Görünüm ve dil ayarlarını aç',
+  AppTextKey.settingsAppearanceTabTitle: 'Görünüm',
+  AppTextKey.settingsDevicesTitle: 'Cihazlar',
+  AppTextKey.settingsDevicesSubtitle:
+      'Kamera, ses çıkışı ve telefon uygulaması',
+  AppTextKey.settingsDevicesSemantic: 'Cihaz ayarlarını aç',
+  AppTextKey.settingsDevicesCameraTitle: 'Kamera',
+  AppTextKey.settingsDevicesCameraSubtitle:
+      'Cihaz, video standardı, giriş ve görüntü genişliği',
+  AppTextKey.settingsDevicesAudioTitle: 'Ses çıkışı',
+  AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, jak veya USB ses kartı',
+  AppTextKey.settingsDevicesPhoneTitle: 'Telefon uygulaması',
+  AppTextKey.settingsDevicesPhoneSubtitle:
+      'Telefonda kodla Bluetooth eşleştirme',
+  AppTextKey.settingsDevicesPowerTitle: 'Güç kaynağı',
+  AppTextKey.settingsDevicesPowerSubtitle: 'Kontak, voltaj ve servis modu',
+  AppTextKey.settingsBackToDevices: 'Cihazlara dön',
+  AppTextKey.settingsCameraDeviceLabel: 'Cihaz',
+  AppTextKey.settingsCameraNoDevices: 'Kamera bulunamadı',
+  AppTextKey.settingsCameraNormLabel: 'Video standardı',
+  AppTextKey.settingsCameraInputLabel: 'Giriş',
+  AppTextKey.settingsCameraInputSVideo: 'S-Video',
+  AppTextKey.settingsCameraWidthLabel: 'Görüntü genişliği',
+  AppTextKey.settingsCameraWidthHint:
+      '720 daha keskindir ancak saniyede yalnızca yaklaşık 10 kare verir.',
+  AppTextKey.settingsCameraAnalogOnlyNote:
+      'Standart, giriş ve genişlik yalnızca USB adaptörlü analog kameralar '
+      'için geçerlidir, USB kameralar için değil.',
+  AppTextKey.settingsCameraAppliesNote:
+      'Kamera sayfası bir sonraki açılışında geçerli olur.',
+  AppTextKey.settingsCameraShowAction: 'Kamera görüntüsünü gör',
   AppTextKey.settingsMapTitle: 'Harita ayarları',
   AppTextKey.settingsMapSubtitle: 'Harita görünümü ve rota davranışı',
   AppTextKey.settingsMapSemantic: 'Harita ayarlarını aç',

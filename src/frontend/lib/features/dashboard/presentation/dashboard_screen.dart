@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
 import 'package:carnine_frontend/features/maps/presentation/maps_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_controller.dart';
+import 'package:carnine_frontend/features/dashboard/presentation/models/dashboard_nav_item.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/power_supply_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/thermal_warning_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/carnine_top_bar.dart';
@@ -218,6 +219,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   mapsController: _mapsController,
                   cameraSettingsStore: widget.cameraSettingsStore,
                   cameraSourceFactory: widget.cameraSourceFactory,
+                  onShowCamera: () => _controller.selectDestination(
+                    DashboardDestination.camera,
+                  ),
                 ),
               ),
             ],
