@@ -53,11 +53,12 @@ use carnine::{
     config_service_server::{ConfigService, ConfigServiceServer},
     media_service_server::{MediaService, MediaServiceServer},
     AddPlaylistEntryRequest, AudioEvent, AudioEventType, CanData, CanDataRequest, CanDataResponse,
-    CommandResponse, Configuration, ConfigurationResponse, CreatePlaylistRequest, Empty,
-    ExitPasswordCheck, ExitPasswordRequest, GetCoverArtRequest, GetCoverArtResponse,
-    GetPlaylistRequest, ImportMusicVolumeRequest, LibraryEvent, LibraryEventType,
-    ListPlaylistsResponse, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PlayerEvent,
-    PlayerEventType, PlayerState, Playlist, PlaylistEntry, PowerSupplyState, PowerSupplyStatus,
+    CommandResponse, Configuration, ConfigurationResponse, CreatePlaylistRequest,
+    DeletePlaylistRequest, Empty, ExitPasswordCheck, ExitPasswordRequest, GetCoverArtRequest,
+    GetCoverArtResponse, GetPlaylistRequest, ImportMusicVolumeRequest, LibraryEvent,
+    LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest, PlayQueueEntryRequest,
+    PlayRequest, PlayerEvent, PlayerEventType, PlayerState, Playlist, PlaylistEntry,
+    PowerSupplyState, PowerSupplyStatus, RemovePlaylistEntryRequest, RenamePlaylistRequest,
     RepeatMode, RescanMediaRequest, SearchMediaRequest, SearchMediaResponse, SeekRequest,
     ServiceVersion, SetExitPasswordRequest, SetRepeatModeRequest, SetShuffleModeRequest,
     SetVolumeRequest, SystemMetrics, ThermalStatus, UiState, UpdateConfigurationRequest,
@@ -335,6 +336,37 @@ use media_player::MediaPlayer;
 
 #[derive(Debug, Default)]
 pub struct CarnineServiceImpl;
+
+/// The playlist as GetPlaylist answers it, entries in order.
+fn playlist_with_entries(
+    database: &database::Database,
+    playlist_id: i64,
+) -> Result<Playlist, Status> {
+    let name = database
+        .playlist_name(playlist_id)
+        .map_err(|error| Status::not_found(error.to_string()))?;
+    let entries = database
+        .playlist_entries(playlist_id)
+        .map_err(|error| Status::internal(error.to_string()))?
+        .into_iter()
+        .map(|entry| PlaylistEntry {
+            id: entry.id as u64,
+            playlist_id: entry.playlist_id as u64,
+            media_id: entry.media_id as u64,
+            position: entry.position as u64,
+        })
+        .collect();
+    let has_cover_art = database
+        .playlist_cover_path(playlist_id)
+        .map_err(|error| Status::internal(error.to_string()))?
+        .is_some();
+    Ok(Playlist {
+        id: playlist_id as u64,
+        name,
+        entries,
+        has_cover_art,
+    })
+}
 
 fn saves_resume_state(event: i32) -> bool {
     [
@@ -1203,30 +1235,106 @@ impl MediaService for MediaServiceImpl {
         let playlist_id = request.into_inner().playlist_id as i64;
         let database = database::Database::open(&self.database_path)
             .map_err(|error| Status::internal(error.to_string()))?;
-        let name = database
-            .playlist_name(playlist_id)
-            .map_err(|error| Status::not_found(error.to_string()))?;
-        let entries = database
-            .playlist_entries(playlist_id)
+        playlist_with_entries(&database, playlist_id).map(Response::new)
+    }
+
+    async fn rename_playlist(
+        &self,
+        request: Request<RenamePlaylistRequest>,
+    ) -> Result<Response<Playlist>, Status> {
+        let request = request.into_inner();
+        let name = request.name.trim().to_string();
+        if name.is_empty() {
+            return Err(Status::invalid_argument("playlist name must not be empty"));
+        }
+        let playlist_id = request.playlist_id as i64;
+        let database = database::Database::open(&self.database_path)
+            .map_err(|error| Status::internal(error.to_string()))?;
+        match database
+            .rename_playlist(playlist_id, &name)
             .map_err(|error| Status::internal(error.to_string()))?
-            .into_iter()
-            .map(|entry| PlaylistEntry {
-                id: entry.id as u64,
-                playlist_id: entry.playlist_id as u64,
-                media_id: entry.media_id as u64,
-                position: entry.position as u64,
-            })
-            .collect();
-        let has_cover_art = database
-            .playlist_cover_path(playlist_id)
-            .map_err(|error| Status::internal(error.to_string()))?
-            .is_some();
+        {
+            database::RenameOutcome::Renamed => {}
+            database::RenameOutcome::NotFound => {
+                return Err(Status::not_found(format!("no playlist {playlist_id}")))
+            }
+            database::RenameOutcome::NameTaken => {
+                return Err(Status::already_exists(format!(
+                    "a playlist named {name:?} exists already"
+                )))
+            }
+        }
+        let _ = self.library_events.send(LibraryEvent {
+            event: LibraryEventType::PlaylistRenamed as i32,
+            playlist_id: request.playlist_id,
+            playlist_name: name.clone(),
+            ..Default::default()
+        });
         Ok(Response::new(Playlist {
-            id: playlist_id as u64,
+            id: request.playlist_id,
             name,
-            entries,
-            has_cover_art,
+            entries: Vec::new(),
+            has_cover_art: false,
         }))
+    }
+
+    async fn delete_playlist(
+        &self,
+        request: Request<DeletePlaylistRequest>,
+    ) -> Result<Response<Empty>, Status> {
+        let playlist_id = request.into_inner().playlist_id as i64;
+        let database = database::Database::open(&self.database_path)
+            .map_err(|error| Status::internal(error.to_string()))?;
+        if !database
+            .delete_playlist(playlist_id)
+            .map_err(|error| Status::internal(error.to_string()))?
+        {
+            return Err(Status::not_found(format!("no playlist {playlist_id}")));
+        }
+        if self.player.playlist_id() == Some(playlist_id) {
+            self.player.forget_playlist(playlist_id);
+            self.save_resume_state_after_setting("deleting the loaded playlist");
+        }
+        let _ = self.library_events.send(LibraryEvent {
+            event: LibraryEventType::PlaylistDeleted as i32,
+            playlist_id: playlist_id as u64,
+            ..Default::default()
+        });
+        Ok(Response::new(Empty {}))
+    }
+
+    async fn remove_playlist_entry(
+        &self,
+        request: Request<RemovePlaylistEntryRequest>,
+    ) -> Result<Response<Playlist>, Status> {
+        let entry_id = request.into_inner().entry_id as i64;
+        let database = database::Database::open(&self.database_path)
+            .map_err(|error| Status::internal(error.to_string()))?;
+        let Some(playlist_id) = database
+            .remove_playlist_entry(entry_id)
+            .map_err(|error| Status::internal(error.to_string()))?
+        else {
+            return Err(Status::not_found(format!("no playlist entry {entry_id}")));
+        };
+        if self.player.playlist_id() == Some(playlist_id) {
+            let player = Arc::clone(&self.player);
+            let moved_on =
+                tokio::task::spawn_blocking(move || player.remove_playlist_entry(entry_id))
+                    .await
+                    .map_err(|error| Status::internal(error.to_string()))?;
+            // The entry is gone either way; a track that failed to start is
+            // the player's error, reported on its stream.
+            if let Err(error) = moved_on {
+                warn!(%error, entry_id, "player could not go on after a removed entry");
+            }
+            self.save_resume_state_after_setting("removing a playlist entry");
+        }
+        let _ = self.library_events.send(LibraryEvent {
+            event: LibraryEventType::PlaylistEntryRemoved as i32,
+            playlist_id: playlist_id as u64,
+            ..Default::default()
+        });
+        playlist_with_entries(&database, playlist_id).map(Response::new)
     }
 
     async fn get_cover_art(
@@ -1841,10 +1949,11 @@ mod tests {
         audio_service_server::AudioService, config_service_server::ConfigService,
         get_cover_art_request::Target as CoverArtTarget, media_service_server::MediaService,
         system_service_server::SystemService, AddPlaylistEntryRequest, AudioEventType,
-        CreatePlaylistRequest, Empty, ExitPasswordRequest, GetCoverArtRequest, GetPlaylistRequest,
-        LibraryEventType, PlayerEventType, RepeatMode, RescanMediaRequest, SeekRequest,
-        SetExitPasswordRequest, SetRepeatModeRequest, SetShuffleModeRequest, SystemMetrics,
-        ThermalStatus, UiState,
+        CreatePlaylistRequest, DeletePlaylistRequest, Empty, ExitPasswordRequest,
+        GetCoverArtRequest, GetPlaylistRequest, LibraryEventType, PlayerEventType,
+        RemovePlaylistEntryRequest, RenamePlaylistRequest, RepeatMode, RescanMediaRequest,
+        SeekRequest, SetExitPasswordRequest, SetRepeatModeRequest, SetShuffleModeRequest,
+        SystemMetrics, ThermalStatus, UiState,
     };
     use crate::config;
     use crate::database;
@@ -3105,6 +3214,187 @@ mod tests {
             PathBuf::from("/tmp/carnine-covers"),
         );
         (service, database_path, playlist_id, entry_ids)
+    }
+
+    /// Loads the two-track playlist of [`service_with_two_track_playlist`]
+    /// at its first entry, paused.
+    fn load_two_track_playlist(service: &MediaServiceImpl, playlist_id: i64, entries: [i64; 2]) {
+        service
+            .player
+            .play_playlist(
+                playlist_id,
+                vec![
+                    (entries[0], "/music/chapter-0.mp3".to_string()),
+                    (entries[1], "/music/chapter-1.mp3".to_string()),
+                ],
+                Some(entries[0]),
+                0,
+                "restore_paused",
+            )
+            .expect("playlist should load");
+    }
+
+    #[tokio::test]
+    async fn rename_playlist_trims_saves_and_announces_the_name() {
+        let (service, database_path, playlist_id, _) =
+            service_with_two_track_playlist("playlist-rename");
+        let mut events = service.library_events.subscribe();
+
+        let playlist = service
+            .rename_playlist(Request::new(RenamePlaylistRequest {
+                playlist_id: playlist_id as u64,
+                name: "  Krimi ".to_string(),
+            }))
+            .await
+            .expect("rename should work")
+            .into_inner();
+
+        assert_eq!(playlist.id, playlist_id as u64);
+        assert_eq!(playlist.name, "Krimi");
+        let stored = service
+            .get_playlist(Request::new(GetPlaylistRequest {
+                playlist_id: playlist_id as u64,
+            }))
+            .await
+            .expect("playlist should load")
+            .into_inner();
+        assert_eq!(stored.name, "Krimi");
+        assert_eq!(stored.entries.len(), 2, "the entries stay");
+        let event = events.try_recv().expect("the rename is announced");
+        assert_eq!(event.event, LibraryEventType::PlaylistRenamed as i32);
+        assert_eq!(event.playlist_id, playlist_id as u64);
+        assert_eq!(event.playlist_name, "Krimi");
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    #[tokio::test]
+    async fn rename_playlist_rejects_empty_taken_and_unknown() {
+        let (service, database_path, playlist_id, _) =
+            service_with_two_track_playlist("playlist-rename-errors");
+        database::Database::open(&database_path)
+            .unwrap()
+            .create_playlist("Musik")
+            .unwrap();
+        let rename = |playlist_id: i64, name: &str| {
+            service.rename_playlist(Request::new(RenamePlaylistRequest {
+                playlist_id: playlist_id as u64,
+                name: name.to_string(),
+            }))
+        };
+
+        let empty = rename(playlist_id, "  ").await.expect_err("empty name");
+        assert_eq!(empty.code(), tonic::Code::InvalidArgument);
+        let taken = rename(playlist_id, "Musik").await.expect_err("taken name");
+        assert_eq!(taken.code(), tonic::Code::AlreadyExists);
+        let unknown = rename(999, "Neu").await.expect_err("unknown playlist");
+        assert_eq!(unknown.code(), tonic::Code::NotFound);
+        assert_eq!(
+            database::Database::open(&database_path)
+                .unwrap()
+                .playlist_name(playlist_id)
+                .unwrap(),
+            "Hörbuch"
+        );
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    #[tokio::test]
+    async fn delete_playlist_removes_it_and_announces_it() {
+        let (service, database_path, playlist_id, _) =
+            service_with_two_track_playlist("playlist-delete");
+        let mut events = service.library_events.subscribe();
+        let delete = || {
+            service.delete_playlist(Request::new(DeletePlaylistRequest {
+                playlist_id: playlist_id as u64,
+            }))
+        };
+
+        delete().await.expect("delete should work");
+
+        let gone = service
+            .get_playlist(Request::new(GetPlaylistRequest {
+                playlist_id: playlist_id as u64,
+            }))
+            .await
+            .expect_err("the playlist is gone");
+        assert_eq!(gone.code(), tonic::Code::NotFound);
+        let event = events.try_recv().expect("the delete is announced");
+        assert_eq!(event.event, LibraryEventType::PlaylistDeleted as i32);
+        assert_eq!(event.playlist_id, playlist_id as u64);
+        let again = delete().await.expect_err("already deleted");
+        assert_eq!(again.code(), tonic::Code::NotFound);
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    // The loaded playlist: the current track stays as a loose one, and the
+    // last place saved points at it, not at the deleted playlist.
+    #[tokio::test]
+    async fn delete_playlist_keeps_the_loaded_track_as_a_loose_one() {
+        let (service, database_path, playlist_id, entries) =
+            service_with_two_track_playlist("playlist-delete-loaded");
+        load_two_track_playlist(&service, playlist_id, entries);
+        service.save_resume_state().unwrap();
+
+        service
+            .delete_playlist(Request::new(DeletePlaylistRequest {
+                playlist_id: playlist_id as u64,
+            }))
+            .await
+            .expect("delete should work");
+
+        assert_eq!(service.player.playlist_id(), None);
+        assert_eq!(service.player.media_path(), "/music/chapter-0.mp3");
+        let last = database::Database::open(&database_path)
+            .unwrap()
+            .load_resume_state()
+            .unwrap()
+            .unwrap();
+        assert_eq!(last.playlist_id, None);
+        assert_eq!(last.media_path.as_deref(), Some("/music/chapter-0.mp3"));
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    #[tokio::test]
+    async fn remove_playlist_entry_returns_the_rest_and_the_player_follows() {
+        let (service, database_path, playlist_id, entries) =
+            service_with_two_track_playlist("playlist-remove-entry");
+        load_two_track_playlist(&service, playlist_id, entries);
+        service.save_resume_state().unwrap();
+        let mut events = service.library_events.subscribe();
+
+        let playlist = service
+            .remove_playlist_entry(Request::new(RemovePlaylistEntryRequest {
+                entry_id: entries[0] as u64,
+            }))
+            .await
+            .expect("remove should work")
+            .into_inner();
+
+        assert_eq!(playlist.id, playlist_id as u64);
+        assert_eq!(playlist.name, "Hörbuch");
+        assert_eq!(playlist.entries.len(), 1);
+        assert_eq!(playlist.entries[0].id, entries[1] as u64);
+        assert_eq!(playlist.entries[0].position, 0);
+        let event = events.try_recv().expect("the removal is announced");
+        assert_eq!(event.event, LibraryEventType::PlaylistEntryRemoved as i32);
+        assert_eq!(event.playlist_id, playlist_id as u64);
+        assert_eq!(service.player.playlist_entry_id(), Some(entries[1]));
+        assert_eq!(service.player.state(), "paused");
+        let last = database::Database::open(&database_path)
+            .unwrap()
+            .load_resume_state()
+            .unwrap()
+            .unwrap();
+        assert_eq!(last.playlist_entry_id, Some(entries[1]));
+
+        let unknown = service
+            .remove_playlist_entry(Request::new(RemovePlaylistEntryRequest {
+                entry_id: entries[0] as u64,
+            }))
+            .await
+            .expect_err("already removed");
+        assert_eq!(unknown.code(), tonic::Code::NotFound);
+        let _ = std::fs::remove_file(database_path);
     }
 
     /// A real file for `play`, which refuses paths that do not exist.

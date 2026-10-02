@@ -59,6 +59,15 @@ pub struct ResumeState {
     pub shuffle_enabled: bool,
 }
 
+/// What [`Database::rename_playlist`] did.
+#[derive(Debug, PartialEq, Eq)]
+pub enum RenameOutcome {
+    Renamed,
+    NotFound,
+    /// Another playlist already has the name.
+    NameTaken,
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct PlaylistRecord {
     pub id: i64,
@@ -514,6 +523,83 @@ impl Database {
             params![playlist_id, media_id, position],
         )?;
         Ok(self.connection.last_insert_rowid())
+    }
+
+    /// Gives the playlist the trimmed `name`. Keeping its own name counts as
+    /// renamed.
+    pub fn rename_playlist(&self, playlist_id: i64, name: &str) -> Result<RenameOutcome> {
+        let changed = match self.connection.execute(
+            "UPDATE playlists SET name = ?1 WHERE id = ?2",
+            params![name.trim(), playlist_id],
+        ) {
+            Ok(changed) => changed,
+            Err(rusqlite::Error::SqliteFailure(error, _))
+                if error.code == rusqlite::ErrorCode::ConstraintViolation =>
+            {
+                return Ok(RenameOutcome::NameTaken);
+            }
+            Err(error) => return Err(error.into()),
+        };
+        Ok(if changed == 0 {
+            RenameOutcome::NotFound
+        } else {
+            RenameOutcome::Renamed
+        })
+    }
+
+    /// Deletes the playlist; its entries and its own place go with it
+    /// (ON DELETE CASCADE). `resume_state` points at it without a cascade,
+    /// so a last place inside it is dropped first. `false` for an unknown id.
+    pub fn delete_playlist(&self, playlist_id: i64) -> Result<bool> {
+        let transaction = self.connection.unchecked_transaction()?;
+        transaction.execute(
+            "UPDATE resume_state SET playlist_id = NULL, playlist_entry_id = NULL
+             WHERE playlist_id = ?1",
+            [playlist_id],
+        )?;
+        let deleted = transaction.execute("DELETE FROM playlists WHERE id = ?1", [playlist_id])?;
+        transaction.commit()?;
+        Ok(deleted > 0)
+    }
+
+    /// Takes the entry out of its playlist and moves the ones after it up, so
+    /// positions stay 0..n-1. Returns the playlist it was in, `None` for an
+    /// unknown entry.
+    pub fn remove_playlist_entry(&self, entry_id: i64) -> Result<Option<i64>> {
+        let transaction = self.connection.unchecked_transaction()?;
+        let Some((playlist_id, position)) = transaction
+            .query_row(
+                "SELECT playlist_id, position FROM playlist_entries WHERE id = ?1",
+                [entry_id],
+                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
+            )
+            .optional()?
+        else {
+            return Ok(None);
+        };
+        // resume_state has no ON DELETE for the entry; playlist_resume sets
+        // it NULL by itself.
+        transaction.execute(
+            "UPDATE resume_state SET playlist_entry_id = NULL WHERE playlist_entry_id = ?1",
+            [entry_id],
+        )?;
+        transaction.execute("DELETE FROM playlist_entries WHERE id = ?1", [entry_id])?;
+        // UNIQUE (playlist_id, position) is checked row by row. Moving up in
+        // one step only works while rows come in position order, which holds
+        // today (entries are appended) but not once they can be reordered;
+        // going through negative numbers never collides.
+        transaction.execute(
+            "UPDATE playlist_entries SET position = -position
+             WHERE playlist_id = ?1 AND position > ?2",
+            params![playlist_id, position],
+        )?;
+        transaction.execute(
+            "UPDATE playlist_entries SET position = -position - 1
+             WHERE playlist_id = ?1 AND position < 0",
+            [playlist_id],
+        )?;
+        transaction.commit()?;
+        Ok(Some(playlist_id))
     }
 
     pub fn playlist_entries(&self, playlist_id: i64) -> Result<Vec<PlaylistEntry>> {
@@ -1029,7 +1115,8 @@ pub fn find_audio_files(folder: &Path, supported_formats: &[String]) -> Result<V
 mod tests {
     use super::{
         extract_cover_art, find_folder_cover_image, read_audio_metadata, AudioMetadata, Database,
-        MediaReader, MediaRecord, ResumeState, SavedCameraSettings, CURRENT_SCHEMA_VERSION,
+        MediaReader, MediaRecord, RenameOutcome, ResumeState, SavedCameraSettings,
+        CURRENT_SCHEMA_VERSION,
     };
     use std::cell::{Cell, RefCell};
     use std::path::{Path, PathBuf};
@@ -1713,6 +1800,168 @@ mod tests {
         assert_eq!(entries[0].media_id, entries[1].media_id);
         assert_eq!(entries[0].position, 0);
         assert_eq!(entries[1].position, 1);
+    }
+
+    /// A playlist `name` with one entry per track, each its own file.
+    fn playlist_with_entries(database: &Database, name: &str, tracks: usize) -> (i64, Vec<i64>) {
+        let source_id = database.upsert_source("/music", "AVAILABLE").unwrap();
+        let playlist_id = database.create_playlist(name).unwrap();
+        let entries = (0..tracks)
+            .map(|track| {
+                let media_id = database
+                    .upsert_media(&MediaRecord {
+                        id: 0,
+                        source_id,
+                        path: format!("/music/{name}-{track}.mp3"),
+                        title: format!("{name} {track}"),
+                        artist: "Artist".to_string(),
+                        duration_ms: 1_000,
+                        status: "AVAILABLE".to_string(),
+                        cover_path: None,
+                    })
+                    .unwrap();
+                database.add_playlist_entry(playlist_id, media_id).unwrap()
+            })
+            .collect();
+        (playlist_id, entries)
+    }
+
+    fn resume_in(playlist_id: i64, entry_id: i64) -> ResumeState {
+        ResumeState {
+            playlist_id: Some(playlist_id),
+            playlist_entry_id: Some(entry_id),
+            position_ms: 5_000,
+            resume_mode: "restore_paused".to_string(),
+            repeat_mode: "REPEAT_OFF".to_string(),
+            shuffle_enabled: false,
+            media_path: None,
+        }
+    }
+
+    #[test]
+    fn renames_a_playlist_trimmed() {
+        let database = Database::open(":memory:").unwrap();
+        let (playlist_id, _) = playlist_with_entries(&database, "Drive", 0);
+
+        assert_eq!(
+            database
+                .rename_playlist(playlist_id, "  Night drive ")
+                .unwrap(),
+            RenameOutcome::Renamed
+        );
+        assert_eq!(database.playlist_name(playlist_id).unwrap(), "Night drive");
+        assert_eq!(
+            database
+                .rename_playlist(playlist_id, "Night drive")
+                .unwrap(),
+            RenameOutcome::Renamed,
+            "keeping its own name is no clash"
+        );
+    }
+
+    #[test]
+    fn renaming_to_a_taken_name_or_an_unknown_id_changes_nothing() {
+        let database = Database::open(":memory:").unwrap();
+        let (drive, _) = playlist_with_entries(&database, "Drive", 0);
+        playlist_with_entries(&database, "Work", 0);
+
+        assert_eq!(
+            database.rename_playlist(drive, "Work").unwrap(),
+            RenameOutcome::NameTaken
+        );
+        assert_eq!(database.playlist_name(drive).unwrap(), "Drive");
+        assert_eq!(
+            database.rename_playlist(999, "Other").unwrap(),
+            RenameOutcome::NotFound
+        );
+    }
+
+    #[test]
+    fn deletes_a_playlist_with_its_entries_and_places() {
+        let database = Database::open(":memory:").unwrap();
+        let (drive, drive_entries) = playlist_with_entries(&database, "Drive", 2);
+        let (work, work_entries) = playlist_with_entries(&database, "Work", 1);
+        database
+            .save_resume_state(&resume_in(work, work_entries[0]))
+            .unwrap();
+        // Saved last: resume_state points into the playlist being deleted,
+        // without ON DELETE - the delete must not fail on it.
+        database
+            .save_resume_state(&resume_in(drive, drive_entries[1]))
+            .unwrap();
+
+        assert!(database.delete_playlist(drive).unwrap());
+
+        assert!(database.playlist_name(drive).is_err());
+        assert!(database.playlist_entries(drive).unwrap().is_empty());
+        assert_eq!(database.load_playlist_resume(drive).unwrap(), None);
+        let last = database.load_resume_state().unwrap().unwrap();
+        assert_eq!(last.playlist_id, None);
+        assert_eq!(last.playlist_entry_id, None);
+        assert_eq!(
+            database.load_playlist_resume(work).unwrap(),
+            Some((Some(work_entries[0]), 5_000)),
+            "other playlists keep their place"
+        );
+        assert_eq!(database.playlist_entries(work).unwrap().len(), 1);
+        assert!(!database.delete_playlist(drive).unwrap(), "already gone");
+    }
+
+    #[test]
+    fn removing_an_entry_moves_the_later_ones_up() {
+        let database = Database::open(":memory:").unwrap();
+        let (drive, entries) = playlist_with_entries(&database, "Drive", 4);
+        let (work, work_entries) = playlist_with_entries(&database, "Work", 2);
+
+        assert_eq!(
+            database.remove_playlist_entry(entries[1]).unwrap(),
+            Some(drive)
+        );
+
+        let left = database.playlist_entries(drive).unwrap();
+        assert_eq!(
+            left.iter()
+                .map(|entry| (entry.id, entry.position))
+                .collect::<Vec<_>>(),
+            vec![(entries[0], 0), (entries[2], 1), (entries[3], 2)]
+        );
+        let other = database.playlist_entries(work).unwrap();
+        assert_eq!(
+            other
+                .iter()
+                .map(|entry| (entry.id, entry.position))
+                .collect::<Vec<_>>(),
+            vec![(work_entries[0], 0), (work_entries[1], 1)],
+            "another playlist keeps its positions"
+        );
+        // The next entry goes to the end, after the moved-up ones.
+        let media_id = left[0].media_id;
+        let added = database.add_playlist_entry(drive, media_id).unwrap();
+        assert_eq!(database.playlist_entries(drive).unwrap()[3].id, added);
+        assert_eq!(database.playlist_entries(drive).unwrap()[3].position, 3);
+        assert_eq!(database.remove_playlist_entry(entries[1]).unwrap(), None);
+    }
+
+    #[test]
+    fn removing_the_entry_of_the_last_place_keeps_the_playlist_place() {
+        let database = Database::open(":memory:").unwrap();
+        let (drive, entries) = playlist_with_entries(&database, "Drive", 2);
+        database
+            .save_resume_state(&resume_in(drive, entries[0]))
+            .unwrap();
+
+        assert_eq!(
+            database.remove_playlist_entry(entries[0]).unwrap(),
+            Some(drive)
+        );
+
+        let last = database.load_resume_state().unwrap().unwrap();
+        assert_eq!(last.playlist_id, Some(drive));
+        assert_eq!(last.playlist_entry_id, None);
+        assert_eq!(
+            database.load_playlist_resume(drive).unwrap(),
+            Some((None, 5_000))
+        );
     }
 
     #[test]

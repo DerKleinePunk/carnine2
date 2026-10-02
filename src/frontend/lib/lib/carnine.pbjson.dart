@@ -32,6 +32,9 @@ const LibraryEventType$json = {
     {'1': 'PLAYLIST_ENTRY_ADDED', '2': 10},
     {'1': 'LIBRARY_MUSIC_GONE', '2': 11},
     {'1': 'LIBRARY_METADATA_TOOL_MISSING', '2': 12},
+    {'1': 'PLAYLIST_RENAMED', '2': 13},
+    {'1': 'PLAYLIST_DELETED', '2': 14},
+    {'1': 'PLAYLIST_ENTRY_REMOVED', '2': 15},
   ],
 };
 
@@ -43,7 +46,8 @@ final $typed_data.Uint8List libraryEventTypeDescriptor = $convert.base64Decode(
     '9GT1VORBAFEhoKFkxJQlJBUllfSU1QT1JUX1NUQVJURUQQBhIbChdMSUJSQVJZX0lNUE9SVF9Q'
     'Uk9HUkVTUxAHEhwKGExJQlJBUllfSU1QT1JUX0NPTVBMRVRFRBAIEhQKEFBMQVlMSVNUX0NSRU'
     'FURUQQCRIYChRQTEFZTElTVF9FTlRSWV9BRERFRBAKEhYKEkxJQlJBUllfTVVTSUNfR09ORRAL'
-    'EiEKHUxJQlJBUllfTUVUQURBVEFfVE9PTF9NSVNTSU5HEAw=');
+    'EiEKHUxJQlJBUllfTUVUQURBVEFfVE9PTF9NSVNTSU5HEAwSFAoQUExBWUxJU1RfUkVOQU1FRB'
+    'ANEhQKEFBMQVlMSVNUX0RFTEVURUQQDhIaChZQTEFZTElTVF9FTlRSWV9SRU1PVkVEEA8=');
 
 @$core.Deprecated('Use playerEventTypeDescriptor instead')
 const PlayerEventType$json = {
@@ -728,6 +732,47 @@ const GetPlaylistRequest$json = {
 /// Descriptor for `GetPlaylistRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getPlaylistRequestDescriptor = $convert.base64Decode(
     'ChJHZXRQbGF5bGlzdFJlcXVlc3QSHwoLcGxheWxpc3RfaWQYASABKARSCnBsYXlsaXN0SWQ=');
+
+@$core.Deprecated('Use renamePlaylistRequestDescriptor instead')
+const RenamePlaylistRequest$json = {
+  '1': 'RenamePlaylistRequest',
+  '2': [
+    {'1': 'playlist_id', '3': 1, '4': 1, '5': 4, '10': 'playlistId'},
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+  ],
+};
+
+/// Descriptor for `RenamePlaylistRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List renamePlaylistRequestDescriptor = $convert.base64Decode(
+    'ChVSZW5hbWVQbGF5bGlzdFJlcXVlc3QSHwoLcGxheWxpc3RfaWQYASABKARSCnBsYXlsaXN0SW'
+    'QSEgoEbmFtZRgCIAEoCVIEbmFtZQ==');
+
+@$core.Deprecated('Use deletePlaylistRequestDescriptor instead')
+const DeletePlaylistRequest$json = {
+  '1': 'DeletePlaylistRequest',
+  '2': [
+    {'1': 'playlist_id', '3': 1, '4': 1, '5': 4, '10': 'playlistId'},
+  ],
+};
+
+/// Descriptor for `DeletePlaylistRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deletePlaylistRequestDescriptor = $convert.base64Decode(
+    'ChVEZWxldGVQbGF5bGlzdFJlcXVlc3QSHwoLcGxheWxpc3RfaWQYASABKARSCnBsYXlsaXN0SW'
+    'Q=');
+
+@$core.Deprecated('Use removePlaylistEntryRequestDescriptor instead')
+const RemovePlaylistEntryRequest$json = {
+  '1': 'RemovePlaylistEntryRequest',
+  '2': [
+    {'1': 'entry_id', '3': 1, '4': 1, '5': 4, '10': 'entryId'},
+  ],
+};
+
+/// Descriptor for `RemovePlaylistEntryRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List removePlaylistEntryRequestDescriptor =
+    $convert.base64Decode(
+        'ChpSZW1vdmVQbGF5bGlzdEVudHJ5UmVxdWVzdBIZCghlbnRyeV9pZBgBIAEoBFIHZW50cnlJZA'
+        '==');
 
 @$core.Deprecated('Use playerStateDescriptor instead')
 const PlayerState$json = {

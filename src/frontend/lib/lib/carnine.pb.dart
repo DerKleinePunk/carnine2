@@ -2203,6 +2203,189 @@ class GetPlaylistRequest extends $pb.GeneratedMessage {
   void clearPlaylistId() => $_clearField(1);
 }
 
+class RenamePlaylistRequest extends $pb.GeneratedMessage {
+  factory RenamePlaylistRequest({
+    $fixnum.Int64? playlistId,
+    $core.String? name,
+  }) {
+    final result = create();
+    if (playlistId != null) result.playlistId = playlistId;
+    if (name != null) result.name = name;
+    return result;
+  }
+
+  RenamePlaylistRequest._();
+
+  factory RenamePlaylistRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RenamePlaylistRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RenamePlaylistRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..a<$fixnum.Int64>(
+        1, _omitFieldNames ? '' : 'playlistId', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RenamePlaylistRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RenamePlaylistRequest copyWith(
+          void Function(RenamePlaylistRequest) updates) =>
+      super.copyWith((message) => updates(message as RenamePlaylistRequest))
+          as RenamePlaylistRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RenamePlaylistRequest create() => RenamePlaylistRequest._();
+  @$core.override
+  RenamePlaylistRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RenamePlaylistRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RenamePlaylistRequest>(create);
+  static RenamePlaylistRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get playlistId => $_getI64(0);
+  @$pb.TagNumber(1)
+  set playlistId($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPlaylistId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPlaylistId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get name => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set name($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearName() => $_clearField(2);
+}
+
+class DeletePlaylistRequest extends $pb.GeneratedMessage {
+  factory DeletePlaylistRequest({
+    $fixnum.Int64? playlistId,
+  }) {
+    final result = create();
+    if (playlistId != null) result.playlistId = playlistId;
+    return result;
+  }
+
+  DeletePlaylistRequest._();
+
+  factory DeletePlaylistRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory DeletePlaylistRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DeletePlaylistRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..a<$fixnum.Int64>(
+        1, _omitFieldNames ? '' : 'playlistId', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeletePlaylistRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeletePlaylistRequest copyWith(
+          void Function(DeletePlaylistRequest) updates) =>
+      super.copyWith((message) => updates(message as DeletePlaylistRequest))
+          as DeletePlaylistRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DeletePlaylistRequest create() => DeletePlaylistRequest._();
+  @$core.override
+  DeletePlaylistRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static DeletePlaylistRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DeletePlaylistRequest>(create);
+  static DeletePlaylistRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get playlistId => $_getI64(0);
+  @$pb.TagNumber(1)
+  set playlistId($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPlaylistId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPlaylistId() => $_clearField(1);
+}
+
+class RemovePlaylistEntryRequest extends $pb.GeneratedMessage {
+  factory RemovePlaylistEntryRequest({
+    $fixnum.Int64? entryId,
+  }) {
+    final result = create();
+    if (entryId != null) result.entryId = entryId;
+    return result;
+  }
+
+  RemovePlaylistEntryRequest._();
+
+  factory RemovePlaylistEntryRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RemovePlaylistEntryRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RemovePlaylistEntryRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..a<$fixnum.Int64>(1, _omitFieldNames ? '' : 'entryId', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RemovePlaylistEntryRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RemovePlaylistEntryRequest copyWith(
+          void Function(RemovePlaylistEntryRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as RemovePlaylistEntryRequest))
+          as RemovePlaylistEntryRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RemovePlaylistEntryRequest create() => RemovePlaylistEntryRequest._();
+  @$core.override
+  RemovePlaylistEntryRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RemovePlaylistEntryRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RemovePlaylistEntryRequest>(create);
+  static RemovePlaylistEntryRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get entryId => $_getI64(0);
+  @$pb.TagNumber(1)
+  set entryId($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasEntryId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEntryId() => $_clearField(1);
+}
+
 class PlayerState extends $pb.GeneratedMessage {
   factory PlayerState({
     $core.String? status,

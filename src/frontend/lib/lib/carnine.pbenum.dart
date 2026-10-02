@@ -51,6 +51,18 @@ class LibraryEventType extends $pb.ProtobufEnum {
       LibraryEventType._(
           12, _omitEnumNames ? '' : 'LIBRARY_METADATA_TOOL_MISSING');
 
+  /// playlist_id and the new playlist_name.
+  static const LibraryEventType PLAYLIST_RENAMED =
+      LibraryEventType._(13, _omitEnumNames ? '' : 'PLAYLIST_RENAMED');
+
+  /// playlist_id names the playlist that is gone.
+  static const LibraryEventType PLAYLIST_DELETED =
+      LibraryEventType._(14, _omitEnumNames ? '' : 'PLAYLIST_DELETED');
+
+  /// playlist_id names the playlist that lost an entry.
+  static const LibraryEventType PLAYLIST_ENTRY_REMOVED =
+      LibraryEventType._(15, _omitEnumNames ? '' : 'PLAYLIST_ENTRY_REMOVED');
+
   static const $core.List<LibraryEventType> values = <LibraryEventType>[
     LIBRARY_EVENT_TYPE_UNSPECIFIED,
     LIBRARY_SCAN_STARTED,
@@ -65,10 +77,13 @@ class LibraryEventType extends $pb.ProtobufEnum {
     PLAYLIST_ENTRY_ADDED,
     LIBRARY_MUSIC_GONE,
     LIBRARY_METADATA_TOOL_MISSING,
+    PLAYLIST_RENAMED,
+    PLAYLIST_DELETED,
+    PLAYLIST_ENTRY_REMOVED,
   ];
 
   static final $core.List<LibraryEventType?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 12);
+      $pb.ProtobufEnum.$_initByValueList(values, 15);
   static LibraryEventType? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

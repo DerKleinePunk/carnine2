@@ -29,6 +29,19 @@ service MediaService {
   rpc ListPlaylists (Empty) returns (ListPlaylistsResponse);
   rpc AddPlaylistEntry (AddPlaylistEntryRequest) returns (PlaylistEntry);
   rpc GetPlaylist (GetPlaylistRequest) returns (Playlist);
+  // A new name for the playlist, trimmed like CreatePlaylist. INVALID_ARGUMENT
+  // for an empty name, ALREADY_EXISTS when another playlist has it,
+  // NOT_FOUND for an unknown id. Returns the playlist without its entries.
+  rpc RenamePlaylist (RenamePlaylistRequest) returns (Playlist);
+  // Deletes the playlist with its entries. If it is the one loaded, the
+  // current track plays on as a loose track. NOT_FOUND for an unknown id.
+  rpc DeletePlaylist (DeletePlaylistRequest) returns (Empty);
+  // Takes one entry out of its playlist; the entries after it move up, so
+  // positions stay 0..n-1. If the playlist is loaded, its queue follows; for
+  // the current track the player goes on to the following one, in the same
+  // state (playing or paused), or stops when none follows. Returns the
+  // playlist as it is now. NOT_FOUND for an unknown entry id.
+  rpc RemovePlaylistEntry (RemovePlaylistEntryRequest) returns (Playlist);
   rpc StreamPlayerEvents (Empty) returns (stream PlayerEvent);
   rpc GetCoverArt (GetCoverArtRequest) returns (GetCoverArtResponse);
   rpc SetRepeatMode (SetRepeatModeRequest) returns (CommandResponse);
@@ -235,6 +248,12 @@ enum LibraryEventType {
   // artist, duration and cover. Sent after LIBRARY_SCAN_STARTED, and replayed
   // to new subscribers while the last check failed.
   LIBRARY_METADATA_TOOL_MISSING = 12;
+  // playlist_id and the new playlist_name.
+  PLAYLIST_RENAMED = 13;
+  // playlist_id names the playlist that is gone.
+  PLAYLIST_DELETED = 14;
+  // playlist_id names the playlist that lost an entry.
+  PLAYLIST_ENTRY_REMOVED = 15;
 }
 
 message LibraryEvent {
@@ -315,6 +334,19 @@ message AddPlaylistEntryRequest {
 
 message GetPlaylistRequest {
   uint64 playlist_id = 1;
+}
+
+message RenamePlaylistRequest {
+  uint64 playlist_id = 1;
+  string name = 2;
+}
+
+message DeletePlaylistRequest {
+  uint64 playlist_id = 1;
+}
+
+message RemovePlaylistEntryRequest {
+  uint64 entry_id = 1;
 }
 
 message PlayerState {

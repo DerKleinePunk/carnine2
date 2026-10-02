@@ -17,6 +17,15 @@ enum LibraryScanEventKind {
   playlistCreated,
   playlistEntryAdded,
 
+  /// `playlistId` got the new `playlistName`.
+  playlistRenamed,
+
+  /// The playlist `playlistId` is gone.
+  playlistDeleted,
+
+  /// The playlist `playlistId` lost an entry.
+  playlistEntryRemoved,
+
   /// ffprobe/ffmpeg cannot run on the device: scans store file names only,
   /// without artist, duration or cover. Cleared by the next [scanStarted].
   metadataToolMissing,
@@ -42,6 +51,10 @@ LibraryScanEventKind libraryScanEventKindFrom(LibraryEventType raw) {
     LibraryEventType.PLAYLIST_CREATED => LibraryScanEventKind.playlistCreated,
     LibraryEventType.PLAYLIST_ENTRY_ADDED =>
       LibraryScanEventKind.playlistEntryAdded,
+    LibraryEventType.PLAYLIST_RENAMED => LibraryScanEventKind.playlistRenamed,
+    LibraryEventType.PLAYLIST_DELETED => LibraryScanEventKind.playlistDeleted,
+    LibraryEventType.PLAYLIST_ENTRY_REMOVED =>
+      LibraryScanEventKind.playlistEntryRemoved,
     LibraryEventType.LIBRARY_METADATA_TOOL_MISSING =>
       LibraryScanEventKind.metadataToolMissing,
     _ => LibraryScanEventKind.unknown,

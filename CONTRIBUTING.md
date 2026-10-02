@@ -73,6 +73,15 @@ display panel, the audio sink and USB media. Those are verified on the test Pi.
 3. Ensure all tests pass and the code builds successfully.
 4. Your PR will be reviewed by maintainers and merged once approved.
 
+## Release Checklist
+
+- Before tagging, check that the pictures in `docs/bedienung/bilder/` still
+  match the UI of this version (menu labels, pages, the version number on
+  `optionen-system.png`). If they do not, take the set again on the test Pi
+  with the release packages and update the user guide in the same release.
+  The pictures on the project website (carnine.de, "So sieht es heute aus")
+  are checked and taken again at the same time.
+
 ## Reporting Bugs
 
 Please use GitHub Issues to report bugs. When filing a bug report, include:
