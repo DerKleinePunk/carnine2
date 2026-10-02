@@ -9,6 +9,9 @@ anpassen, spätestens bevor das Gerät in ein fremdes Netz oder ins Auto kommt.
 WLAN ist ab Werk aus und lässt sich mit einem Befehl einrichten. Die
 Kartendaten holt sich das Gerät mit einem Befehl selbst.
 
+Wie das Image auf die Karte kommt, steht unter
+[Image auf die SD-Karte schreiben](image-schreiben.md).
+
 ## Was das Image mitbringt
 
 | | Wert nach dem ersten Start |
