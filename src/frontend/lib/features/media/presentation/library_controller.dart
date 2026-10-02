@@ -299,6 +299,9 @@ class LibraryController extends ChangeNotifier {
         }
       case LibraryScanEventKind.playlistCreated:
       case LibraryScanEventKind.playlistEntryAdded:
+      case LibraryScanEventKind.playlistRenamed:
+      case LibraryScanEventKind.playlistDeleted:
+      case LibraryScanEventKind.playlistEntryRemoved:
         // Handled by PlaylistController, not the library search results.
         break;
       case LibraryScanEventKind.unknown:

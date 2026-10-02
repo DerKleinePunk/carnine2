@@ -191,6 +191,10 @@ void main() {
         LibraryEventType.LIBRARY_ERROR: LibraryScanEventKind.error,
         LibraryEventType.LIBRARY_SCAN_COMPLETED:
             LibraryScanEventKind.scanCompleted,
+        LibraryEventType.PLAYLIST_RENAMED: LibraryScanEventKind.playlistRenamed,
+        LibraryEventType.PLAYLIST_DELETED: LibraryScanEventKind.playlistDeleted,
+        LibraryEventType.PLAYLIST_ENTRY_REMOVED:
+            LibraryScanEventKind.playlistEntryRemoved,
       };
 
       for (final entry in cases.entries) {

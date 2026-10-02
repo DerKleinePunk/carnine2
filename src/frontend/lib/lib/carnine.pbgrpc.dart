@@ -225,6 +225,37 @@ class MediaServiceClient extends $grpc.Client {
     return $createUnaryCall(_$getPlaylist, request, options: options);
   }
 
+  /// A new name for the playlist, trimmed like CreatePlaylist. INVALID_ARGUMENT
+  /// for an empty name, ALREADY_EXISTS when another playlist has it,
+  /// NOT_FOUND for an unknown id. Returns the playlist without its entries.
+  $grpc.ResponseFuture<$0.Playlist> renamePlaylist(
+    $0.RenamePlaylistRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$renamePlaylist, request, options: options);
+  }
+
+  /// Deletes the playlist with its entries. If it is the one loaded, the
+  /// current track plays on as a loose track. NOT_FOUND for an unknown id.
+  $grpc.ResponseFuture<$0.Empty> deletePlaylist(
+    $0.DeletePlaylistRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$deletePlaylist, request, options: options);
+  }
+
+  /// Takes one entry out of its playlist; the entries after it move up, so
+  /// positions stay 0..n-1. If the playlist is loaded, its queue follows; for
+  /// the current track the player goes on to the following one, in the same
+  /// state (playing or paused), or stops when none follows. Returns the
+  /// playlist as it is now. NOT_FOUND for an unknown entry id.
+  $grpc.ResponseFuture<$0.Playlist> removePlaylistEntry(
+    $0.RemovePlaylistEntryRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$removePlaylistEntry, request, options: options);
+  }
+
   $grpc.ResponseStream<$0.PlayerEvent> streamPlayerEvents(
     $0.Empty request, {
     $grpc.CallOptions? options,
@@ -344,6 +375,21 @@ class MediaServiceClient extends $grpc.Client {
       $grpc.ClientMethod<$0.GetPlaylistRequest, $0.Playlist>(
           '/carnine.MediaService/GetPlaylist',
           ($0.GetPlaylistRequest value) => value.writeToBuffer(),
+          $0.Playlist.fromBuffer);
+  static final _$renamePlaylist =
+      $grpc.ClientMethod<$0.RenamePlaylistRequest, $0.Playlist>(
+          '/carnine.MediaService/RenamePlaylist',
+          ($0.RenamePlaylistRequest value) => value.writeToBuffer(),
+          $0.Playlist.fromBuffer);
+  static final _$deletePlaylist =
+      $grpc.ClientMethod<$0.DeletePlaylistRequest, $0.Empty>(
+          '/carnine.MediaService/DeletePlaylist',
+          ($0.DeletePlaylistRequest value) => value.writeToBuffer(),
+          $0.Empty.fromBuffer);
+  static final _$removePlaylistEntry =
+      $grpc.ClientMethod<$0.RemovePlaylistEntryRequest, $0.Playlist>(
+          '/carnine.MediaService/RemovePlaylistEntry',
+          ($0.RemovePlaylistEntryRequest value) => value.writeToBuffer(),
           $0.Playlist.fromBuffer);
   static final _$streamPlayerEvents =
       $grpc.ClientMethod<$0.Empty, $0.PlayerEvent>(
@@ -516,6 +562,30 @@ abstract class MediaServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) =>
             $0.GetPlaylistRequest.fromBuffer(value),
+        ($0.Playlist value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.RenamePlaylistRequest, $0.Playlist>(
+        'RenamePlaylist',
+        renamePlaylist_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.RenamePlaylistRequest.fromBuffer(value),
+        ($0.Playlist value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.DeletePlaylistRequest, $0.Empty>(
+        'DeletePlaylist',
+        deletePlaylist_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.DeletePlaylistRequest.fromBuffer(value),
+        ($0.Empty value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.RemovePlaylistEntryRequest, $0.Playlist>(
+        'RemovePlaylistEntry',
+        removePlaylistEntry_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.RemovePlaylistEntryRequest.fromBuffer(value),
         ($0.Playlist value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.Empty, $0.PlayerEvent>(
         'StreamPlayerEvents',
@@ -703,6 +773,30 @@ abstract class MediaServiceBase extends $grpc.Service {
 
   $async.Future<$0.Playlist> getPlaylist(
       $grpc.ServiceCall call, $0.GetPlaylistRequest request);
+
+  $async.Future<$0.Playlist> renamePlaylist_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.RenamePlaylistRequest> $request) async {
+    return renamePlaylist($call, await $request);
+  }
+
+  $async.Future<$0.Playlist> renamePlaylist(
+      $grpc.ServiceCall call, $0.RenamePlaylistRequest request);
+
+  $async.Future<$0.Empty> deletePlaylist_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.DeletePlaylistRequest> $request) async {
+    return deletePlaylist($call, await $request);
+  }
+
+  $async.Future<$0.Empty> deletePlaylist(
+      $grpc.ServiceCall call, $0.DeletePlaylistRequest request);
+
+  $async.Future<$0.Playlist> removePlaylistEntry_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.RemovePlaylistEntryRequest> $request) async {
+    return removePlaylistEntry($call, await $request);
+  }
+
+  $async.Future<$0.Playlist> removePlaylistEntry(
+      $grpc.ServiceCall call, $0.RemovePlaylistEntryRequest request);
 
   $async.Stream<$0.PlayerEvent> streamPlayerEvents_Pre(
       $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async* {
