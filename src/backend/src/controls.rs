@@ -21,6 +21,10 @@ pub const LEVEL_MIN: u32 = 0;
 pub const LEVEL_MAX: u32 = 100;
 
 const DEFAULT_BUS: &str = "/dev/i2c-1";
+const DEFAULT_GPIO_CHIP: &str = "/dev/gpiochip0";
+/// /RESET low this long restarts the MCP23017 (datasheet: 1 µs), and the
+/// same again before it is talked to.
+const RESET_SETTLE: std::time::Duration = std::time::Duration::from_millis(1);
 const DEFAULT_MCP23017_ADDRESS: u16 = 0x20;
 
 // MCP23017 registers with IOCON.BANK = 0 (the reset state): A and B side by
@@ -37,7 +41,13 @@ pub enum Kind {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Binding {
     Demo,
-    Mcp23017 { bus: PathBuf, address: u16, pin: u8 },
+    Mcp23017 {
+        bus: PathBuf,
+        address: u16,
+        pin: u8,
+        /// GPIO chip and line that hold /RESET high, if the board needs it.
+        reset: Option<(PathBuf, u32)>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -111,6 +121,15 @@ impl Control {
                         .unwrap_or_else(|| PathBuf::from(DEFAULT_BUS)),
                     address,
                     pin,
+                    reset: entry.reset_gpio.map(|line| {
+                        (
+                            entry
+                                .gpio_chip
+                                .clone()
+                                .unwrap_or_else(|| PathBuf::from(DEFAULT_GPIO_CHIP)),
+                            line,
+                        )
+                    }),
                 }
             }
             other => return Err(format!("control {id}: unknown chip {other:?}")),
@@ -172,6 +191,45 @@ impl I2cBus for LinuxI2cBus {
     }
 }
 
+/// An output line that holds a chip's /RESET.
+pub trait ResetLine: Send {
+    fn set(&mut self, high: bool) -> io::Result<()>;
+}
+
+/// Requests a GPIO line as output, already high, from a GPIO chip.
+pub type ResetOpener = Box<dyn Fn(&Path, u32) -> io::Result<Box<dyn ResetLine>> + Send + Sync>;
+
+struct CdevResetLine {
+    request: gpiocdev::Request,
+    line: u32,
+}
+
+impl ResetLine for CdevResetLine {
+    fn set(&mut self, high: bool) -> io::Result<()> {
+        let value = if high {
+            gpiocdev::line::Value::Active
+        } else {
+            gpiocdev::line::Value::Inactive
+        };
+        self.request
+            .set_value(self.line, value)
+            .map_err(|error| io::Error::other(error.to_string()))
+    }
+}
+
+pub fn linux_reset_opener() -> ResetOpener {
+    Box::new(|chip, line| {
+        let request = gpiocdev::Request::builder()
+            .on_chip(chip)
+            .with_consumer("carnine-backend")
+            .with_line(line)
+            .as_output(gpiocdev::line::Value::Active)
+            .request()
+            .map_err(|error| io::Error::other(error.to_string()))?;
+        Ok(Box::new(CdevResetLine { request, line }) as Box<dyn ResetLine>)
+    })
+}
+
 pub fn linux_bus_opener() -> BusOpener {
     Box::new(|path| {
         let file = std::fs::OpenOptions::new()
@@ -190,6 +248,8 @@ struct Mcp23017 {
     used_pins: u16,
     latch: u16,
     available: bool,
+    reset: Option<(PathBuf, u32)>,
+    reset_line: Option<Box<dyn ResetLine>>,
     /// Its absence is in the log already; the retries every few seconds
     /// stay quiet until it answers again.
     missing_reported: bool,
@@ -203,9 +263,37 @@ impl Mcp23017 {
         Ok(self.bus.as_mut().expect("just opened"))
     }
 
+    /// Takes the chip out of reset where a GPIO holds it: the first time by
+    /// requesting the line high, after that with a short low pulse, so a
+    /// chip that stopped answering starts from scratch.
+    fn release_reset(&mut self, reset_opener: &ResetOpener) -> io::Result<()> {
+        let Some((chip, line)) = &self.reset else {
+            return Ok(());
+        };
+        match self.reset_line.as_mut() {
+            None => {
+                let reset_line = reset_opener(chip, *line).map_err(|error| {
+                    io::Error::new(
+                        error.kind(),
+                        format!("reset GPIO {line} on {}: {error}", chip.display()),
+                    )
+                })?;
+                self.reset_line = Some(reset_line);
+            }
+            Some(reset_line) => {
+                reset_line.set(false)?;
+                std::thread::sleep(RESET_SETTLE);
+                reset_line.set(true)?;
+            }
+        }
+        std::thread::sleep(RESET_SETTLE);
+        Ok(())
+    }
+
     /// Latch first, then the direction: a pin turns into an output already
     /// at its right level.
-    fn initialise(&mut self, opener: &BusOpener) -> io::Result<()> {
+    fn initialise(&mut self, opener: &BusOpener, reset_opener: &ResetOpener) -> io::Result<()> {
+        self.release_reset(reset_opener)?;
         let [latch_a, latch_b] = self.latch.to_le_bytes();
         let [inputs_a, inputs_b] = (!self.used_pins).to_le_bytes();
         let address = self.address;
@@ -229,7 +317,11 @@ struct Inner {
     states: Vec<ControlState>,
     chips: HashMap<ChipKey, Mcp23017>,
     opener: BusOpener,
+    reset_opener: ResetOpener,
     database_path: Option<PathBuf>,
+    /// Set by [`ControlHub::shut_down`]: nothing touches a chip after it, so
+    /// the retry every few seconds cannot lift the reset again.
+    shutting_down: bool,
 }
 
 /// Keeps the state of every control and drives the chips. Clients read the
@@ -247,6 +339,7 @@ impl ControlHub {
     pub fn new(
         entries: &[ControlConfig],
         opener: BusOpener,
+        reset_opener: ResetOpener,
         database_path: Option<PathBuf>,
     ) -> Self {
         let mut controls: Vec<Control> = Vec::new();
@@ -289,7 +382,13 @@ impl ControlHub {
 
         let mut chips: HashMap<ChipKey, Mcp23017> = HashMap::new();
         for (control, state) in controls.iter().zip(&states) {
-            if let Binding::Mcp23017 { bus, address, pin } = &control.binding {
+            if let Binding::Mcp23017 {
+                bus,
+                address,
+                pin,
+                reset,
+            } = &control.binding
+            {
                 let chip = chips
                     .entry((bus.clone(), *address))
                     .or_insert_with(|| Mcp23017 {
@@ -299,8 +398,13 @@ impl ControlHub {
                         used_pins: 0,
                         latch: 0,
                         available: false,
+                        reset: reset.clone(),
+                        reset_line: None,
                         missing_reported: false,
                     });
+                if chip.reset != *reset {
+                    warn!(id = %control.id, "controls of one MCP23017 name different reset GPIOs; the first one counts");
+                }
                 if chip.used_pins & (1 << pin) != 0 {
                     warn!(id = %control.id, pin, "MCP23017 pin used by two controls");
                 }
@@ -317,7 +421,9 @@ impl ControlHub {
                 states,
                 chips,
                 opener,
+                reset_opener,
                 database_path,
+                shutting_down: false,
             }),
             changes,
         };
@@ -340,9 +446,14 @@ impl ControlHub {
     }
 
     fn bring_up(inner: &mut Inner, key: &ChipKey) -> bool {
-        let Inner { chips, opener, .. } = inner;
+        let Inner {
+            chips,
+            opener,
+            reset_opener,
+            ..
+        } = inner;
         let chip = chips.get_mut(key).expect("known chip");
-        match chip.initialise(opener) {
+        match chip.initialise(opener, reset_opener) {
             Ok(()) => {
                 if !chip.available {
                     info!(bus = %key.0.display(), address = format!("{:#04x}", key.1), "MCP23017 answers");
@@ -398,6 +509,11 @@ impl ControlHub {
 
     pub fn set(&self, id: &str, value: Value) -> Result<ControlState, SetError> {
         let mut inner = self.lock();
+        if inner.shutting_down {
+            return Err(SetError::Unavailable(
+                "the backend is shutting down".to_owned(),
+            ));
+        }
         let index = inner
             .controls
             .iter()
@@ -420,9 +536,17 @@ impl ControlHub {
             }
         }
 
-        if let Binding::Mcp23017 { bus, address, pin } = &control.binding {
+        if let Binding::Mcp23017 {
+            bus, address, pin, ..
+        } = &control.binding
+        {
             let key = (bus.clone(), *address);
-            let Inner { chips, opener, .. } = &mut *inner;
+            let Inner {
+                chips,
+                opener,
+                reset_opener,
+                ..
+            } = &mut *inner;
             let chip = chips.get_mut(&key).expect("known chip");
             let previous = chip.latch;
             if value == Value::On(true) {
@@ -434,7 +558,7 @@ impl ControlHub {
             let result = if chip.available {
                 chip.write_latch(opener)
             } else {
-                chip.initialise(opener)
+                chip.initialise(opener, reset_opener)
             };
             if let Err(error) = result {
                 chip.latch = previous;
@@ -478,10 +602,30 @@ impl ControlHub {
         Ok(state)
     }
 
+    /// Puts every chip with a reset GPIO back into reset, which turns all
+    /// its outputs off, before the backend exits.
+    pub fn shut_down(&self) {
+        let mut inner = self.lock();
+        inner.shutting_down = true;
+        for (key, chip) in inner.chips.iter_mut() {
+            if let Some(reset_line) = chip.reset_line.as_mut() {
+                match reset_line.set(false) {
+                    Ok(()) => {
+                        info!(bus = %key.0.display(), address = format!("{:#04x}", key.1), "MCP23017 held in reset")
+                    }
+                    Err(error) => warn!(error = %error, "putting the MCP23017 into reset failed"),
+                }
+            }
+        }
+    }
+
     /// Tries the chips that did not answer again and puts the current
     /// values on them; meant to run every few seconds.
     pub fn retry_unavailable(&self) {
         let mut inner = self.lock();
+        if inner.shutting_down {
+            return;
+        }
         let keys: Vec<ChipKey> = inner
             .chips
             .iter()
@@ -629,6 +773,31 @@ mod tests {
         Box::new(move |_| Ok(Box::new(FakeBus(Arc::clone(&log))) as Box<dyn I2cBus>))
     }
 
+    fn no_reset() -> ResetOpener {
+        Box::new(|_, _| panic!("no reset GPIO is configured"))
+    }
+
+    /// Records what happens on the reset line, in order with the bus.
+    struct FakeReset(Arc<StdMutex<BusLog>>);
+
+    impl ResetLine for FakeReset {
+        fn set(&mut self, high: bool) -> io::Result<()> {
+            let mut log = self.0.lock().unwrap();
+            log.writes.push((0, vec![if high { 0xF1 } else { 0xF0 }]));
+            Ok(())
+        }
+    }
+
+    fn fake_reset(log: &Arc<StdMutex<BusLog>>) -> ResetOpener {
+        let log = Arc::clone(log);
+        Box::new(move |_, line| {
+            assert_eq!(line, 17);
+            // Requesting the line drives it high at once.
+            log.lock().unwrap().writes.push((0, vec![0xF1]));
+            Ok(Box::new(FakeReset(Arc::clone(&log))) as Box<dyn ResetLine>)
+        })
+    }
+
     fn entry(id: &str, kind: &str, chip: &str, pin: Option<u8>) -> ControlConfig {
         ControlConfig {
             id: id.to_owned(),
@@ -663,7 +832,7 @@ mod tests {
             entry("dimmer", "slider", "demo", None),
         ];
         let log = Arc::new(StdMutex::new(BusLog::default()));
-        let hub = ControlHub::new(&entries, fake_opener(&log), None);
+        let hub = ControlHub::new(&entries, fake_opener(&log), no_reset(), None);
 
         let ids: Vec<String> = hub.controls().into_iter().map(|c| c.id).collect();
         assert_eq!(ids, ["light", "dimmer"]);
@@ -676,7 +845,7 @@ mod tests {
             entry("b1", "switch", "mcp23017", Some(9)),
         ];
         let log = Arc::new(StdMutex::new(BusLog::default()));
-        let hub = ControlHub::new(&entries, fake_opener(&log), None);
+        let hub = ControlHub::new(&entries, fake_opener(&log), no_reset(), None);
 
         let writes = log.lock().unwrap().writes.clone();
         // Latch (all off) before direction; only pins 0 and 9 are outputs.
@@ -700,7 +869,7 @@ mod tests {
             entry("b1", "switch", "mcp23017", Some(9)),
         ];
         let log = Arc::new(StdMutex::new(BusLog::default()));
-        let hub = ControlHub::new(&entries, fake_opener(&log), None);
+        let hub = ControlHub::new(&entries, fake_opener(&log), no_reset(), None);
         let mut changes = hub.subscribe();
 
         hub.set("b1", Value::On(true)).unwrap();
@@ -722,7 +891,7 @@ mod tests {
             entry("dimmer", "slider", "demo", None),
         ];
         let log = Arc::new(StdMutex::new(BusLog::default()));
-        let hub = ControlHub::new(&entries, fake_opener(&log), None);
+        let hub = ControlHub::new(&entries, fake_opener(&log), no_reset(), None);
 
         assert_eq!(hub.set("nope", Value::On(true)), Err(SetError::NotFound));
         assert!(matches!(
@@ -751,7 +920,7 @@ mod tests {
     fn the_demo_chip_keeps_what_is_set() {
         let entries = vec![entry("dimmer", "slider", "demo", None)];
         let log = Arc::new(StdMutex::new(BusLog::default()));
-        let hub = ControlHub::new(&entries, fake_opener(&log), None);
+        let hub = ControlHub::new(&entries, fake_opener(&log), no_reset(), None);
 
         hub.set("dimmer", Value::Level(42)).unwrap();
 
@@ -770,7 +939,7 @@ mod tests {
             broken: true,
             ..BusLog::default()
         }));
-        let hub = ControlHub::new(&entries, fake_opener(&log), None);
+        let hub = ControlHub::new(&entries, fake_opener(&log), no_reset(), None);
         let mut changes = hub.subscribe();
 
         assert!(!hub.states()[0].available);
@@ -796,7 +965,7 @@ mod tests {
     fn a_chip_lost_while_switching_is_reported_and_reset_on_return() {
         let entries = vec![entry("a0", "switch", "mcp23017", Some(0))];
         let log = Arc::new(StdMutex::new(BusLog::default()));
-        let hub = ControlHub::new(&entries, fake_opener(&log), None);
+        let hub = ControlHub::new(&entries, fake_opener(&log), no_reset(), None);
         let mut changes = hub.subscribe();
 
         log.lock().unwrap().broken = true;
@@ -831,13 +1000,14 @@ mod tests {
         ];
         let log = Arc::new(StdMutex::new(BusLog::default()));
         {
-            let hub = ControlHub::new(&entries, fake_opener(&log), Some(path.clone()));
+            let hub = ControlHub::new(&entries, fake_opener(&log), no_reset(), Some(path.clone()));
             hub.set("light", Value::On(true)).unwrap();
             hub.set("dimmer", Value::Level(70)).unwrap();
             hub.set("pump", Value::On(true)).unwrap();
         }
 
-        let restarted = ControlHub::new(&entries, fake_opener(&log), Some(path.clone()));
+        let restarted =
+            ControlHub::new(&entries, fake_opener(&log), no_reset(), Some(path.clone()));
         let values: Vec<Value> = restarted.states().into_iter().map(|s| s.value).collect();
         assert_eq!(
             values,
@@ -856,7 +1026,12 @@ mod tests {
             entry("dimmer", "slider", "demo", None),
         ];
         let log = Arc::new(StdMutex::new(BusLog::default()));
-        let hub = std::sync::Arc::new(ControlHub::new(&entries, fake_opener(&log), None));
+        let hub = std::sync::Arc::new(ControlHub::new(
+            &entries,
+            fake_opener(&log),
+            no_reset(),
+            None,
+        ));
         let service = ControlServiceImpl::new(std::sync::Arc::clone(&hub));
 
         let list = service
@@ -930,5 +1105,82 @@ mod tests {
             tonic::Code::InvalidArgument
         );
         assert_eq!(code(set("light", None).await), tonic::Code::InvalidArgument);
+    }
+
+    #[test]
+    fn a_reset_gpio_releases_the_chip_before_it_is_talked_to() {
+        let entries = vec![ControlConfig {
+            reset_gpio: Some(17),
+            ..entry("a0", "switch", "mcp23017", Some(0))
+        }];
+        let log = Arc::new(StdMutex::new(BusLog::default()));
+        let hub = ControlHub::new(&entries, fake_opener(&log), fake_reset(&log), None);
+
+        let steps: Vec<u8> = log
+            .lock()
+            .unwrap()
+            .writes
+            .iter()
+            .map(|(_, b)| b[0])
+            .collect();
+        // Reset high first, then latch and direction.
+        assert_eq!(steps, [0xF1, MCP23017_OLATA, MCP23017_IODIRA]);
+        assert!(hub.states()[0].available);
+
+        hub.shut_down();
+        assert_eq!(log.lock().unwrap().writes.last().unwrap().1, [0xF0]);
+    }
+
+    #[test]
+    fn after_shut_down_nothing_lifts_the_reset_again() {
+        // As on carnine-pc without the board: the chip never answers, so the
+        // retry every five seconds keeps pulsing the reset - and the backend
+        // still runs for a few seconds after the shutdown began.
+        let entries = vec![ControlConfig {
+            reset_gpio: Some(17),
+            ..entry("a0", "switch", "mcp23017", Some(0))
+        }];
+        let log = Arc::new(StdMutex::new(BusLog {
+            broken: true,
+            ..BusLog::default()
+        }));
+        let hub = ControlHub::new(&entries, fake_opener(&log), fake_reset(&log), None);
+
+        hub.shut_down();
+        hub.retry_unavailable();
+        assert!(matches!(
+            hub.set("a0", Value::On(true)),
+            Err(SetError::Unavailable(_))
+        ));
+
+        assert_eq!(log.lock().unwrap().writes.last().unwrap().1, [0xF0]);
+    }
+
+    #[test]
+    fn a_chip_that_came_back_gets_a_reset_pulse_first() {
+        let entries = vec![ControlConfig {
+            reset_gpio: Some(17),
+            ..entry("a0", "switch", "mcp23017", Some(0))
+        }];
+        let log = Arc::new(StdMutex::new(BusLog {
+            broken: true,
+            ..BusLog::default()
+        }));
+        let hub = ControlHub::new(&entries, fake_opener(&log), fake_reset(&log), None);
+        assert!(!hub.states()[0].available);
+
+        log.lock().unwrap().broken = false;
+        log.lock().unwrap().writes.clear();
+        hub.retry_unavailable();
+
+        let steps: Vec<u8> = log
+            .lock()
+            .unwrap()
+            .writes
+            .iter()
+            .map(|(_, b)| b[0])
+            .collect();
+        assert_eq!(steps, [0xF0, 0xF1, MCP23017_OLATA, MCP23017_IODIRA]);
+        assert!(hub.states()[0].available);
     }
 }

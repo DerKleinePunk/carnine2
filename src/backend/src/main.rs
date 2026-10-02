@@ -1686,6 +1686,7 @@ async fn main() -> Result<()> {
     let control_hub = Arc::new(controls::ControlHub::new(
         &configuration.controls,
         controls::linux_bus_opener(),
+        controls::linux_reset_opener(),
         Some(configuration.media.database_path.clone()),
     ));
     {
@@ -1795,6 +1796,7 @@ async fn main() -> Result<()> {
                 warn!(%error, "failed to pause audio output during shutdown");
             }
             audio_volume.shutdown();
+            control_hub.shut_down();
             let _ = shutdown_sender.send(());
             match tokio::time::timeout(Duration::from_secs(5), &mut server).await {
                 Ok(result) => result?,

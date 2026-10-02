@@ -61,6 +61,14 @@ pub struct ControlConfig {
     /// start off.
     #[serde(default)]
     pub restore: Option<bool>,
+    /// GPIO (BCM number) that holds the chip's /RESET high; on Michael's IO
+    /// board a pull-down keeps the MCP23017 in reset without it. The same
+    /// for every control of one chip.
+    #[serde(default)]
+    pub reset_gpio: Option<u32>,
+    /// GPIO character device of reset_gpio, /dev/gpiochip0 unless given.
+    #[serde(default)]
+    pub gpio_chip: Option<PathBuf>,
 }
 
 /// The password "Beenden" asks for (#51), as an Argon2id hash only. The

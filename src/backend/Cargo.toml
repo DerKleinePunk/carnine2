@@ -19,6 +19,7 @@ assets = [
 	["target/release/carnine-backend", "usr/bin/carnine-backend", "755"],
 	["debian/60-carnine-gps.rules", "lib/udev/rules.d/60-carnine-gps.rules", "644"],
 	["debian/61-carnine-powersupply.rules", "lib/udev/rules.d/61-carnine-powersupply.rules", "644"],
+	["debian/60-carnine-gpio.rules", "lib/udev/rules.d/60-carnine-gpio.rules", "644"],
 ]
 maintainer-scripts = "debian/"
 systemd-units = { enable = true, start = true }
@@ -80,6 +81,7 @@ ringbuf = "0.4"
 ffmpeg-next = { version = "8", optional = true }
 rand = "0.8"
 argon2 = "0.5"
+gpiocdev = "0.8"
 
 [dev-dependencies]
 # test-util gives the metrics sampler tests a paused clock, so they cover the

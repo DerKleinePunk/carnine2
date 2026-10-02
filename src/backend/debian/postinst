@@ -1,12 +1,21 @@
 #!/bin/sh
 set -e
 
+# The backend holds the /RESET of the Technik page's MCP23017 through
+# /dev/gpiochip*, which this package's udev rule gives the gpio group. The
+# group must exist before udev reloads the rules, or it ignores the name.
+if [ "$1" = "configure" ] && id carnine >/dev/null 2>&1; then
+    getent group gpio >/dev/null || addgroup --quiet --system gpio
+    adduser --quiet carnine gpio
+fi
+
 # Give an already plugged-in GPS receiver its /dev/gps link, and the power
 # supply's UART its /dev/powersupply link, now instead of at the next replug
 # or boot. Fails harmlessly where udev does not run (image build).
 if [ "$1" = "configure" ] && command -v udevadm >/dev/null 2>&1; then
     udevadm control --reload-rules 2>/dev/null || true
     udevadm trigger --subsystem-match=tty --action=add 2>/dev/null || true
+    udevadm trigger --subsystem-match=gpio --action=change 2>/dev/null || true
 fi
 
 # SetExitPassword (#51) writes its drop-in into /etc/carnine/config.d, so the
@@ -22,5 +31,6 @@ fi
 if [ "$1" = "configure" ] && getent group i2c >/dev/null && id carnine >/dev/null 2>&1; then
     adduser --quiet carnine i2c
 fi
+
 
 #DEBHELPER#

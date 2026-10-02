@@ -1,0 +1,4 @@
+# GPIO character devices for the gpio group, as raspberrypi-sys-mods does it
+# on Raspberry Pi OS: the backend holds the /RESET of the Technik page's
+# MCP23017 through one (reset_gpio in [[controls]]).
+SUBSYSTEM=="gpio", KERNEL=="gpiochip*", GROUP="gpio", MODE="0660"

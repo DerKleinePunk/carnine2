@@ -119,8 +119,12 @@ hash = "$argon2id$v=19$m=19456,t=2,p=1$Y2FybmluZS1leGl0LXB3$O+DjYmFGfVSWu+fkiM29
 # "slider" (0-100); chip is "mcp23017" (switches only; bus /dev/i2c-1 and
 # address 0x20 unless given, pin 0-7 = GPA0-7, 8-15 = GPB0-7) or "demo"
 # (keeps what is set, for trying without hardware). restore = true brings the
-# last value back at start-up; unset, sliders do and switches start off. A
-# broken entry is skipped with an error in the log.
+# last value back at start-up; unset, sliders do and switches start off.
+# reset_gpio = <BCM number> (gpio_chip /dev/gpiochip0 unless given) has the
+# backend hold the chip's /RESET high, as Michael's IO board needs: a
+# pull-down keeps the MCP23017 in reset otherwise, and puts it back there
+# (all relays off) when the backend exits. A broken entry is skipped with an
+# error in the log.
 # [[controls]]
 # id = "interior_light"
 # name = "Innenlicht"
@@ -128,3 +132,4 @@ hash = "$argon2id$v=19$m=19456,t=2,p=1$Y2FybmluZS1leGl0LXB3$O+DjYmFGfVSWu+fkiM29
 # chip = "mcp23017"
 # address = 0x20
 # pin = 0
+# reset_gpio = 17
