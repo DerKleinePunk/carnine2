@@ -184,6 +184,13 @@ vc4 dort schon lädt. Vorgabe ist seit 29.09.2026 das EDID von Waveshare selbst,
 in `cmdline.txt` den Dateinamen tauscht. Begründung, Gegenproben und wie der Blob neu erzeugt wird, stehen in
 [docs/22-waveshare-display-1024x600.md](../../docs/22-waveshare-display-1024x600.md).
 
+Das **Waveshare 7C** hat ein sauberes EDID und flackert unter dem des 7H. Sein
+Image bekommt `-t edid:none`: Dann steht kein `drm.edid_firmware` in der
+cmdline, und das Panel meldet sich selbst. Zusammen mit `-t audio_output:jack`
+ist das das dritte Image (`…-waveshare-7c`). Erlaubt sind `7h` (Vorgabe) und
+`none`, ein anderer Wert bricht den Bau ab. Die cmdline schreibt
+`carnine-cmdline.sh`. Tests: `sh tests/carnine-cmdline-test.sh`.
+
 **SBOM und CVE-Bericht des Images (#41):** Das Rezept legt die Paketliste des Images (`/var/lib/dpkg/status` und
 `os-release`) neben das Image in `<image>.<audio_output>.sbom-input/`, mit Netzteil zusätzlich `.auprv1`
 (`raspbian-1024x600.img.jack.sbom-input`). So überschreibt der Bau der zweiten Variante die erste nicht. Daraus macht

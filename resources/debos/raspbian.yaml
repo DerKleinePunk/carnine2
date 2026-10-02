@@ -5,6 +5,8 @@
 {{- $ssh_public_key := or .ssh_public_key "" -}}
 {{- $power_supply := or .power_supply "none" -}}
 {{- $audio_output := or .audio_output "hdmi" -}}
+{{- /* EDID forced for the Waveshare panel: 7h (default) or none (7C). */ -}}
+{{- $edid := or .edid "7h" -}}
 {{- $default_image := "raspbian.img" -}}
 {{- if eq $display "waveshare-1024x600" -}}
 {{- $default_image = "raspbian-1024x600.img" -}}
@@ -325,19 +327,13 @@ actions:
       printf '%s\n' 'install_items+=" /usr/lib/firmware/edid/waveshare-7h-260929.bin /usr/lib/firmware/edid/waveshare-1024x600.bin "' \
         > /etc/dracut.conf.d/carnine-edid.conf
 
+  # Mit -t edid:none (Waveshare 7C) bleibt die EDID des Panels selbst; die
+  # Vorgabe 7h schiebt dem 7H die EDID von Waveshare unter. Begruendung im
+  # Skript, Tests in tests/carnine-cmdline-test.sh.
   - action: run
-    description: Set up cmdline.txt
-    chroot: true
-    command: |
-      printf '%s' 'root=LABEL=ROOTFS quiet splash logo.nologo' > /boot/firmware/cmdline.txt
-      {{ if eq $display "waveshare-1024x600" -}}
-      printf '%s' ' drm.edid_firmware=HDMI-A-1:edid/waveshare-7h-260929.bin' >> /boot/firmware/cmdline.txt
-      {{- end }}
-      printf '%s' ' vt.global_cursor_default=1' >> /boot/firmware/cmdline.txt
-      # A GPIO line the backend lets go of (it exits or crashes) falls back to
-      # an input instead of keeping its level: the pull-down on the IO board's
-      # /RESET then turns all relays off (Technik page, reset_gpio).
-      printf '%s\n' ' pinctrl_bcm2835.persist_gpio_outputs=n' >> /boot/firmware/cmdline.txt
+    description: Set up cmdline.txt (edid {{ $edid }})
+    chroot: false
+    command: sh "${RECIPEDIR}/carnine-cmdline.sh" "{{ $display }}" "{{ $edid }}" "${ROOTDIR}"
 
   - action: run
     description: Set up user/password
