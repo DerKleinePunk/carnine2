@@ -202,6 +202,61 @@ final $typed_data.Uint8List cameraNormDescriptor = $convert.base64Decode(
     'CgpDYW1lcmFOb3JtEhsKF0NBTUVSQV9OT1JNX1VOU1BFQ0lGSUVEEAASFAoQQ0FNRVJBX05PUk'
     '1fTlRTQxABEhMKD0NBTUVSQV9OT1JNX1BBTBAC');
 
+@$core.Deprecated('Use controlTypeDescriptor instead')
+const ControlType$json = {
+  '1': 'ControlType',
+  '2': [
+    {'1': 'CONTROL_TYPE_UNSPECIFIED', '2': 0},
+    {'1': 'CONTROL_TYPE_SWITCH', '2': 1},
+    {'1': 'CONTROL_TYPE_SLIDER', '2': 2},
+  ],
+};
+
+/// Descriptor for `ControlType`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List controlTypeDescriptor = $convert.base64Decode(
+    'CgtDb250cm9sVHlwZRIcChhDT05UUk9MX1RZUEVfVU5TUEVDSUZJRUQQABIXChNDT05UUk9MX1'
+    'RZUEVfU1dJVENIEAESFwoTQ09OVFJPTF9UWVBFX1NMSURFUhAC');
+
+@$core.Deprecated('Use exitPasswordRequestDescriptor instead')
+const ExitPasswordRequest$json = {
+  '1': 'ExitPasswordRequest',
+  '2': [
+    {'1': 'password', '3': 1, '4': 1, '5': 9, '10': 'password'},
+  ],
+};
+
+/// Descriptor for `ExitPasswordRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List exitPasswordRequestDescriptor =
+    $convert.base64Decode(
+        'ChNFeGl0UGFzc3dvcmRSZXF1ZXN0EhoKCHBhc3N3b3JkGAEgASgJUghwYXNzd29yZA==');
+
+@$core.Deprecated('Use exitPasswordCheckDescriptor instead')
+const ExitPasswordCheck$json = {
+  '1': 'ExitPasswordCheck',
+  '2': [
+    {'1': 'valid', '3': 1, '4': 1, '5': 8, '10': 'valid'},
+  ],
+};
+
+/// Descriptor for `ExitPasswordCheck`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List exitPasswordCheckDescriptor = $convert
+    .base64Decode('ChFFeGl0UGFzc3dvcmRDaGVjaxIUCgV2YWxpZBgBIAEoCFIFdmFsaWQ=');
+
+@$core.Deprecated('Use setExitPasswordRequestDescriptor instead')
+const SetExitPasswordRequest$json = {
+  '1': 'SetExitPasswordRequest',
+  '2': [
+    {'1': 'current_password', '3': 1, '4': 1, '5': 9, '10': 'currentPassword'},
+    {'1': 'new_password', '3': 2, '4': 1, '5': 9, '10': 'newPassword'},
+  ],
+};
+
+/// Descriptor for `SetExitPasswordRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setExitPasswordRequestDescriptor =
+    $convert.base64Decode(
+        'ChZTZXRFeGl0UGFzc3dvcmRSZXF1ZXN0EikKEGN1cnJlbnRfcGFzc3dvcmQYASABKAlSD2N1cn'
+        'JlbnRQYXNzd29yZBIhCgxuZXdfcGFzc3dvcmQYAiABKAlSC25ld1Bhc3N3b3Jk');
+
 @$core.Deprecated('Use uiStateDescriptor instead')
 const UiState$json = {
   '1': 'UiState',
@@ -1616,3 +1671,86 @@ final $typed_data.Uint8List listCameraDevicesResponseDescriptor =
     $convert.base64Decode(
         'ChlMaXN0Q2FtZXJhRGV2aWNlc1Jlc3BvbnNlEi8KB2RldmljZXMYASADKAsyFS5jYXJuaW5lLk'
         'NhbWVyYURldmljZVIHZGV2aWNlcw==');
+
+@$core.Deprecated('Use controlDescriptor instead')
+const Control$json = {
+  '1': 'Control',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+    {
+      '1': 'type',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.carnine.ControlType',
+      '10': 'type'
+    },
+    {'1': 'min', '3': 4, '4': 1, '5': 13, '10': 'min'},
+    {'1': 'max', '3': 5, '4': 1, '5': 13, '10': 'max'},
+  ],
+};
+
+/// Descriptor for `Control`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List controlDescriptor = $convert.base64Decode(
+    'CgdDb250cm9sEg4KAmlkGAEgASgJUgJpZBISCgRuYW1lGAIgASgJUgRuYW1lEigKBHR5cGUYAy'
+    'ABKA4yFC5jYXJuaW5lLkNvbnRyb2xUeXBlUgR0eXBlEhAKA21pbhgEIAEoDVIDbWluEhAKA21h'
+    'eBgFIAEoDVIDbWF4');
+
+@$core.Deprecated('Use controlListDescriptor instead')
+const ControlList$json = {
+  '1': 'ControlList',
+  '2': [
+    {
+      '1': 'controls',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.carnine.Control',
+      '10': 'controls'
+    },
+  ],
+};
+
+/// Descriptor for `ControlList`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List controlListDescriptor = $convert.base64Decode(
+    'CgtDb250cm9sTGlzdBIsCghjb250cm9scxgBIAMoCzIQLmNhcm5pbmUuQ29udHJvbFIIY29udH'
+    'JvbHM=');
+
+@$core.Deprecated('Use controlStateDescriptor instead')
+const ControlState$json = {
+  '1': 'ControlState',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {'1': 'on', '3': 2, '4': 1, '5': 8, '9': 0, '10': 'on'},
+    {'1': 'level', '3': 3, '4': 1, '5': 13, '9': 0, '10': 'level'},
+    {'1': 'available', '3': 4, '4': 1, '5': 8, '10': 'available'},
+  ],
+  '8': [
+    {'1': 'value'},
+  ],
+};
+
+/// Descriptor for `ControlState`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List controlStateDescriptor = $convert.base64Decode(
+    'CgxDb250cm9sU3RhdGUSDgoCaWQYASABKAlSAmlkEhAKAm9uGAIgASgISABSAm9uEhYKBWxldm'
+    'VsGAMgASgNSABSBWxldmVsEhwKCWF2YWlsYWJsZRgEIAEoCFIJYXZhaWxhYmxlQgcKBXZhbHVl');
+
+@$core.Deprecated('Use setControlStateRequestDescriptor instead')
+const SetControlStateRequest$json = {
+  '1': 'SetControlStateRequest',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {'1': 'on', '3': 2, '4': 1, '5': 8, '9': 0, '10': 'on'},
+    {'1': 'level', '3': 3, '4': 1, '5': 13, '9': 0, '10': 'level'},
+  ],
+  '8': [
+    {'1': 'value'},
+  ],
+};
+
+/// Descriptor for `SetControlStateRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setControlStateRequestDescriptor =
+    $convert.base64Decode(
+        'ChZTZXRDb250cm9sU3RhdGVSZXF1ZXN0Eg4KAmlkGAEgASgJUgJpZBIQCgJvbhgCIAEoCEgAUg'
+        'JvbhIWCgVsZXZlbBgDIAEoDUgAUgVsZXZlbEIHCgV2YWx1ZQ==');

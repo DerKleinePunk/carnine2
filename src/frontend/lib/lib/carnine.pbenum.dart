@@ -349,5 +349,31 @@ class CameraNorm extends $pb.ProtobufEnum {
   const CameraNorm._(super.value, super.name);
 }
 
+class ControlType extends $pb.ProtobufEnum {
+  static const ControlType CONTROL_TYPE_UNSPECIFIED =
+      ControlType._(0, _omitEnumNames ? '' : 'CONTROL_TYPE_UNSPECIFIED');
+
+  /// On / off.
+  static const ControlType CONTROL_TYPE_SWITCH =
+      ControlType._(1, _omitEnumNames ? '' : 'CONTROL_TYPE_SWITCH');
+
+  /// A level between min and max.
+  static const ControlType CONTROL_TYPE_SLIDER =
+      ControlType._(2, _omitEnumNames ? '' : 'CONTROL_TYPE_SLIDER');
+
+  static const $core.List<ControlType> values = <ControlType>[
+    CONTROL_TYPE_UNSPECIFIED,
+    CONTROL_TYPE_SWITCH,
+    CONTROL_TYPE_SLIDER,
+  ];
+
+  static final $core.List<ControlType?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 2);
+  static ControlType? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const ControlType._(super.value, super.name);
+}
+
 const $core.bool _omitEnumNames =
     $core.bool.fromEnvironment('protobuf.omit_enum_names');

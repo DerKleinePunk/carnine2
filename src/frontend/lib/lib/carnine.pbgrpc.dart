@@ -1046,6 +1046,28 @@ class SystemServiceClient extends $grpc.Client {
     return $createUnaryCall(_$saveUiState, request, options: options);
   }
 
+  /// The password "Beenden" in the options asks for (#51). The backend keeps
+  /// only an Argon2id hash: the factory default from the configuration, a
+  /// changed one in /etc/carnine/config.d/30-exit-password.toml. Verify
+  /// answers valid = false for a wrong password; it is not an error.
+  $grpc.ResponseFuture<$0.ExitPasswordCheck> verifyExitPassword(
+    $0.ExitPasswordRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$verifyExitPassword, request, options: options);
+  }
+
+  /// Needs the current password. PERMISSION_DENIED when it is wrong,
+  /// INVALID_ARGUMENT when the new one breaks the rules (4 to 64 characters,
+  /// no control characters), INTERNAL when it cannot be stored. The new
+  /// password counts at once and survives restarts and deployments.
+  $grpc.ResponseFuture<$0.CommandResponse> setExitPassword(
+    $0.SetExitPasswordRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setExitPassword, request, options: options);
+  }
+
   // method descriptors
 
   static final _$reportUiReady =
@@ -1091,6 +1113,16 @@ class SystemServiceClient extends $grpc.Client {
       $grpc.ClientMethod<$0.UiState, $0.CommandResponse>(
           '/carnine.SystemService/SaveUiState',
           ($0.UiState value) => value.writeToBuffer(),
+          $0.CommandResponse.fromBuffer);
+  static final _$verifyExitPassword =
+      $grpc.ClientMethod<$0.ExitPasswordRequest, $0.ExitPasswordCheck>(
+          '/carnine.SystemService/VerifyExitPassword',
+          ($0.ExitPasswordRequest value) => value.writeToBuffer(),
+          $0.ExitPasswordCheck.fromBuffer);
+  static final _$setExitPassword =
+      $grpc.ClientMethod<$0.SetExitPasswordRequest, $0.CommandResponse>(
+          '/carnine.SystemService/SetExitPassword',
+          ($0.SetExitPasswordRequest value) => value.writeToBuffer(),
           $0.CommandResponse.fromBuffer);
 }
 
@@ -1162,6 +1194,24 @@ abstract class SystemServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.UiState.fromBuffer(value),
         ($0.CommandResponse value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.ExitPasswordRequest, $0.ExitPasswordCheck>(
+            'VerifyExitPassword',
+            verifyExitPassword_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.ExitPasswordRequest.fromBuffer(value),
+            ($0.ExitPasswordCheck value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.SetExitPasswordRequest, $0.CommandResponse>(
+            'SetExitPassword',
+            setExitPassword_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.SetExitPasswordRequest.fromBuffer(value),
+            ($0.CommandResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.CommandResponse> reportUiReady_Pre(
@@ -1235,6 +1285,23 @@ abstract class SystemServiceBase extends $grpc.Service {
 
   $async.Future<$0.CommandResponse> saveUiState(
       $grpc.ServiceCall call, $0.UiState request);
+
+  $async.Future<$0.ExitPasswordCheck> verifyExitPassword_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ExitPasswordRequest> $request) async {
+    return verifyExitPassword($call, await $request);
+  }
+
+  $async.Future<$0.ExitPasswordCheck> verifyExitPassword(
+      $grpc.ServiceCall call, $0.ExitPasswordRequest request);
+
+  $async.Future<$0.CommandResponse> setExitPassword_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.SetExitPasswordRequest> $request) async {
+    return setExitPassword($call, await $request);
+  }
+
+  $async.Future<$0.CommandResponse> setExitPassword(
+      $grpc.ServiceCall call, $0.SetExitPasswordRequest request);
 }
 
 /// Routing, own position and place search for the navigation page (ADR-021).
@@ -1617,4 +1684,125 @@ abstract class CameraServiceBase extends $grpc.Service {
 
   $async.Future<$0.ListCameraDevicesResponse> listCameraDevices(
       $grpc.ServiceCall call, $0.Empty request);
+}
+
+/// Switches and sliders on the "Technik" page, driven over I2C. What an id
+/// means in hardware (chip, address, pin) lives only in the backend
+/// configuration ([[controls]]); the UI only knows what this service tells
+/// it. Without hardware (WSL) the "demo" chip stands in and simply keeps
+/// what is set.
+@$pb.GrpcServiceName('carnine.ControlService')
+class ControlServiceClient extends $grpc.Client {
+  /// The hostname for this service.
+  static const $core.String defaultHost = '';
+
+  /// OAuth scopes needed for the client.
+  static const $core.List<$core.String> oauthScopes = [
+    '',
+  ];
+
+  ControlServiceClient(super.channel, {super.options, super.interceptors});
+
+  /// Every configured control, in the order the configuration lists them.
+  /// Empty when none is configured: the page then has nothing to operate.
+  $grpc.ResponseFuture<$0.ControlList> getControls(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getControls, request, options: options);
+  }
+
+  /// Starts with the state of every control, then pushes one ControlState
+  /// per change - also one made by another client or by the backend itself
+  /// (the chip went missing or came back).
+  $grpc.ResponseStream<$0.ControlState> streamControlStates(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$streamControlStates, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
+  /// Sets one control and answers with the state that now applies.
+  /// NOT_FOUND for an unknown id, INVALID_ARGUMENT for a value that does not
+  /// fit the type (a level for a switch, a level outside min..max),
+  /// UNAVAILABLE when the chip does not answer.
+  $grpc.ResponseFuture<$0.ControlState> setControlState(
+    $0.SetControlStateRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setControlState, request, options: options);
+  }
+
+  // method descriptors
+
+  static final _$getControls = $grpc.ClientMethod<$0.Empty, $0.ControlList>(
+      '/carnine.ControlService/GetControls',
+      ($0.Empty value) => value.writeToBuffer(),
+      $0.ControlList.fromBuffer);
+  static final _$streamControlStates =
+      $grpc.ClientMethod<$0.Empty, $0.ControlState>(
+          '/carnine.ControlService/StreamControlStates',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.ControlState.fromBuffer);
+  static final _$setControlState =
+      $grpc.ClientMethod<$0.SetControlStateRequest, $0.ControlState>(
+          '/carnine.ControlService/SetControlState',
+          ($0.SetControlStateRequest value) => value.writeToBuffer(),
+          $0.ControlState.fromBuffer);
+}
+
+@$pb.GrpcServiceName('carnine.ControlService')
+abstract class ControlServiceBase extends $grpc.Service {
+  $core.String get $name => 'carnine.ControlService';
+
+  ControlServiceBase() {
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.ControlList>(
+        'GetControls',
+        getControls_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.ControlList value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.ControlState>(
+        'StreamControlStates',
+        streamControlStates_Pre,
+        false,
+        true,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.ControlState value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.SetControlStateRequest, $0.ControlState>(
+        'SetControlState',
+        setControlState_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.SetControlStateRequest.fromBuffer(value),
+        ($0.ControlState value) => value.writeToBuffer()));
+  }
+
+  $async.Future<$0.ControlList> getControls_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return getControls($call, await $request);
+  }
+
+  $async.Future<$0.ControlList> getControls(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Stream<$0.ControlState> streamControlStates_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async* {
+    yield* streamControlStates($call, await $request);
+  }
+
+  $async.Stream<$0.ControlState> streamControlStates(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.ControlState> setControlState_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.SetControlStateRequest> $request) async {
+    return setControlState($call, await $request);
+  }
+
+  $async.Future<$0.ControlState> setControlState(
+      $grpc.ServiceCall call, $0.SetControlStateRequest request);
 }

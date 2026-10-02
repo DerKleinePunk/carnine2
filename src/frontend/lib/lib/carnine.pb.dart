@@ -21,6 +21,181 @@ export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 export 'carnine.pbenum.dart';
 
+class ExitPasswordRequest extends $pb.GeneratedMessage {
+  factory ExitPasswordRequest({
+    $core.String? password,
+  }) {
+    final result = create();
+    if (password != null) result.password = password;
+    return result;
+  }
+
+  ExitPasswordRequest._();
+
+  factory ExitPasswordRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ExitPasswordRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ExitPasswordRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'password')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ExitPasswordRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ExitPasswordRequest copyWith(void Function(ExitPasswordRequest) updates) =>
+      super.copyWith((message) => updates(message as ExitPasswordRequest))
+          as ExitPasswordRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ExitPasswordRequest create() => ExitPasswordRequest._();
+  @$core.override
+  ExitPasswordRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ExitPasswordRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ExitPasswordRequest>(create);
+  static ExitPasswordRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get password => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set password($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPassword() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPassword() => $_clearField(1);
+}
+
+class ExitPasswordCheck extends $pb.GeneratedMessage {
+  factory ExitPasswordCheck({
+    $core.bool? valid,
+  }) {
+    final result = create();
+    if (valid != null) result.valid = valid;
+    return result;
+  }
+
+  ExitPasswordCheck._();
+
+  factory ExitPasswordCheck.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ExitPasswordCheck.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ExitPasswordCheck',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'valid')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ExitPasswordCheck clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ExitPasswordCheck copyWith(void Function(ExitPasswordCheck) updates) =>
+      super.copyWith((message) => updates(message as ExitPasswordCheck))
+          as ExitPasswordCheck;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ExitPasswordCheck create() => ExitPasswordCheck._();
+  @$core.override
+  ExitPasswordCheck createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ExitPasswordCheck getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ExitPasswordCheck>(create);
+  static ExitPasswordCheck? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get valid => $_getBF(0);
+  @$pb.TagNumber(1)
+  set valid($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasValid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearValid() => $_clearField(1);
+}
+
+class SetExitPasswordRequest extends $pb.GeneratedMessage {
+  factory SetExitPasswordRequest({
+    $core.String? currentPassword,
+    $core.String? newPassword,
+  }) {
+    final result = create();
+    if (currentPassword != null) result.currentPassword = currentPassword;
+    if (newPassword != null) result.newPassword = newPassword;
+    return result;
+  }
+
+  SetExitPasswordRequest._();
+
+  factory SetExitPasswordRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SetExitPasswordRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SetExitPasswordRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'currentPassword')
+    ..aOS(2, _omitFieldNames ? '' : 'newPassword')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetExitPasswordRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetExitPasswordRequest copyWith(
+          void Function(SetExitPasswordRequest) updates) =>
+      super.copyWith((message) => updates(message as SetExitPasswordRequest))
+          as SetExitPasswordRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetExitPasswordRequest create() => SetExitPasswordRequest._();
+  @$core.override
+  SetExitPasswordRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SetExitPasswordRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SetExitPasswordRequest>(create);
+  static SetExitPasswordRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get currentPassword => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set currentPassword($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasCurrentPassword() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCurrentPassword() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get newPassword => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set newPassword($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasNewPassword() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearNewPassword() => $_clearField(2);
+}
+
 class UiState extends $pb.GeneratedMessage {
   factory UiState({
     $core.String? lastPage,
@@ -4732,6 +4907,367 @@ class ListCameraDevicesResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(1)
   $pb.PbList<CameraDevice> get devices => $_getList(0);
+}
+
+class Control extends $pb.GeneratedMessage {
+  factory Control({
+    $core.String? id,
+    $core.String? name,
+    ControlType? type,
+    $core.int? min,
+    $core.int? max,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (name != null) result.name = name;
+    if (type != null) result.type = type;
+    if (min != null) result.min = min;
+    if (max != null) result.max = max;
+    return result;
+  }
+
+  Control._();
+
+  factory Control.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory Control.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'Control',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..aE<ControlType>(3, _omitFieldNames ? '' : 'type',
+        enumValues: ControlType.values)
+    ..aI(4, _omitFieldNames ? '' : 'min', fieldType: $pb.PbFieldType.OU3)
+    ..aI(5, _omitFieldNames ? '' : 'max', fieldType: $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Control clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Control copyWith(void Function(Control) updates) =>
+      super.copyWith((message) => updates(message as Control)) as Control;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static Control create() => Control._();
+  @$core.override
+  Control createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static Control getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Control>(create);
+  static Control? _defaultInstance;
+
+  /// Stable identifier from the configuration, e.g. "interior_light".
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => $_clearField(1);
+
+  /// What the user named it in the configuration, e.g. "Innenlicht". Shown
+  /// as it is, never translated.
+  @$pb.TagNumber(2)
+  $core.String get name => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set name($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearName() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  ControlType get type => $_getN(2);
+  @$pb.TagNumber(3)
+  set type(ControlType value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasType() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearType() => $_clearField(3);
+
+  /// Sliders only: the range of level, 0 to 100.
+  @$pb.TagNumber(4)
+  $core.int get min => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set min($core.int value) => $_setUnsignedInt32(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasMin() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearMin() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.int get max => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set max($core.int value) => $_setUnsignedInt32(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasMax() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearMax() => $_clearField(5);
+}
+
+class ControlList extends $pb.GeneratedMessage {
+  factory ControlList({
+    $core.Iterable<Control>? controls,
+  }) {
+    final result = create();
+    if (controls != null) result.controls.addAll(controls);
+    return result;
+  }
+
+  ControlList._();
+
+  factory ControlList.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ControlList.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ControlList',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..pPM<Control>(1, _omitFieldNames ? '' : 'controls',
+        subBuilder: Control.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ControlList clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ControlList copyWith(void Function(ControlList) updates) =>
+      super.copyWith((message) => updates(message as ControlList))
+          as ControlList;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ControlList create() => ControlList._();
+  @$core.override
+  ControlList createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ControlList getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ControlList>(create);
+  static ControlList? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<Control> get controls => $_getList(0);
+}
+
+enum ControlState_Value { on, level, notSet }
+
+class ControlState extends $pb.GeneratedMessage {
+  factory ControlState({
+    $core.String? id,
+    $core.bool? on,
+    $core.int? level,
+    $core.bool? available,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (on != null) result.on = on;
+    if (level != null) result.level = level;
+    if (available != null) result.available = available;
+    return result;
+  }
+
+  ControlState._();
+
+  factory ControlState.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ControlState.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, ControlState_Value>
+      _ControlState_ValueByTag = {
+    2: ControlState_Value.on,
+    3: ControlState_Value.level,
+    0: ControlState_Value.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ControlState',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..oo(0, [2, 3])
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..aOB(2, _omitFieldNames ? '' : 'on')
+    ..aI(3, _omitFieldNames ? '' : 'level', fieldType: $pb.PbFieldType.OU3)
+    ..aOB(4, _omitFieldNames ? '' : 'available')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ControlState clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ControlState copyWith(void Function(ControlState) updates) =>
+      super.copyWith((message) => updates(message as ControlState))
+          as ControlState;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ControlState create() => ControlState._();
+  @$core.override
+  ControlState createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ControlState getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ControlState>(create);
+  static ControlState? _defaultInstance;
+
+  @$pb.TagNumber(2)
+  @$pb.TagNumber(3)
+  ControlState_Value whichValue() => _ControlState_ValueByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(2)
+  @$pb.TagNumber(3)
+  void clearValue() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => $_clearField(1);
+
+  /// SWITCH.
+  @$pb.TagNumber(2)
+  $core.bool get on => $_getBF(1);
+  @$pb.TagNumber(2)
+  set on($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasOn() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearOn() => $_clearField(2);
+
+  /// SLIDER, min..max.
+  @$pb.TagNumber(3)
+  $core.int get level => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set level($core.int value) => $_setUnsignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasLevel() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLevel() => $_clearField(3);
+
+  /// False while the chip behind this control does not answer; the UI shows
+  /// the control greyed out. The value is the last one that was set.
+  @$pb.TagNumber(4)
+  $core.bool get available => $_getBF(3);
+  @$pb.TagNumber(4)
+  set available($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasAvailable() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearAvailable() => $_clearField(4);
+}
+
+enum SetControlStateRequest_Value { on, level, notSet }
+
+class SetControlStateRequest extends $pb.GeneratedMessage {
+  factory SetControlStateRequest({
+    $core.String? id,
+    $core.bool? on,
+    $core.int? level,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (on != null) result.on = on;
+    if (level != null) result.level = level;
+    return result;
+  }
+
+  SetControlStateRequest._();
+
+  factory SetControlStateRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SetControlStateRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, SetControlStateRequest_Value>
+      _SetControlStateRequest_ValueByTag = {
+    2: SetControlStateRequest_Value.on,
+    3: SetControlStateRequest_Value.level,
+    0: SetControlStateRequest_Value.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SetControlStateRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..oo(0, [2, 3])
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..aOB(2, _omitFieldNames ? '' : 'on')
+    ..aI(3, _omitFieldNames ? '' : 'level', fieldType: $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetControlStateRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetControlStateRequest copyWith(
+          void Function(SetControlStateRequest) updates) =>
+      super.copyWith((message) => updates(message as SetControlStateRequest))
+          as SetControlStateRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetControlStateRequest create() => SetControlStateRequest._();
+  @$core.override
+  SetControlStateRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SetControlStateRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SetControlStateRequest>(create);
+  static SetControlStateRequest? _defaultInstance;
+
+  @$pb.TagNumber(2)
+  @$pb.TagNumber(3)
+  SetControlStateRequest_Value whichValue() =>
+      _SetControlStateRequest_ValueByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(2)
+  @$pb.TagNumber(3)
+  void clearValue() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get on => $_getBF(1);
+  @$pb.TagNumber(2)
+  set on($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasOn() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearOn() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get level => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set level($core.int value) => $_setUnsignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasLevel() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLevel() => $_clearField(3);
 }
 
 const $core.bool _omitFieldNames =
