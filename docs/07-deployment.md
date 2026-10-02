@@ -595,7 +595,22 @@ The Debian packages pull in everything they need; the image installs them:
 - Standard build tools (gcc, make, pkg‑config), `rsync`, `dpkg-deb`
 
 **Flutter Frontend Cross‑Compilation**
-- [`emb_cli`](https://pub.dev/packages/emb_cli) (`dart install emb_cli`)
+- [`emb_cli`](https://github.com/toyota-connected/emb_cli) from git at
+  `5813fa8`, the state release builds use. **Not** `dart install emb_cli`:
+  the pub.dev release 0.3.6 (16 Aug 2026) rejects the code assets emb stages
+  itself, so `build_pi.sh` stops with
+  `bundle lib/: unexpected file "libsqlite3.so"`. The fix (`75a26f3b`,
+  27 Aug 2026) is not released yet, and `emb --version` prints `0.3.6` for
+  both, so it does not tell them apart. Once a newer release is on pub.dev,
+  `dart install emb_cli` works again.
+
+  ```
+  dart install 'emb_cli@{git: {url: https://github.com/toyota-connected/emb_cli, ref: 5813fa8}}'
+  ```
+
+  It worked if the build finishes and the bundle's `lib/` holds
+  `libapp.so`, `libflutter_engine.so`, `libihs_shared.so.1`,
+  `libsqlite3.so` (ARM aarch64) and `libvideo_grabber_view.so`.
 - An emb workspace with the Flutter SDK emb pins and an
   [ivi-homescreen](https://github.com/toyota-connected/ivi-homescreen) checkout
   (see 3.3); the Flutter SDK on `PATH` is not used for Pi builds (ADR-020)
