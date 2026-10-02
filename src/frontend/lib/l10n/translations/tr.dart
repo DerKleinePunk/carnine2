@@ -5,7 +5,7 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.navHome: 'Ana sayfa',
   AppTextKey.navMaps: 'Haritalar',
   AppTextKey.navMedia: 'Medya',
-  AppTextKey.navCamera: 'Cam',
+  AppTextKey.navCamera: 'Kamera',
   AppTextKey.navControls: 'Kontroller',
   AppTextKey.navSettings: 'Seçenekler',
   AppTextKey.navHomeSemantic: 'Ana sayfa paneli',

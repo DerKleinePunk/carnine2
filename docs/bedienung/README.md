@@ -12,7 +12,7 @@ dieser Seiten in denselben Commit.
 1. [Aufbau des Bildschirms](#aufbau-des-bildschirms) (diese Seite)
 2. [Medien](medien.md) – Player, Warteschlange, Bibliothek, Playlists, USB-Import
 3. [Karten](karte.md) – Zielsuche, Route, Navigationsmodus, Standort
-4. [Cam](kamera.md) – Rückfahrkamera, Hinweise, Einstellungen
+4. [Kamera](kamera.md) – Rückfahrkamera, Hinweise, Einstellungen
 5. [Optionen](optionen.md) – Sprache, Logs, Neustart, Beenden
 6. [Bildschirmtastatur](tastatur.md)
 7. [Verhalten über Neustarts und ohne Backend](verhalten.md) – was gespeichert
@@ -54,7 +54,7 @@ Oben das Logo „CarNine / V8-ACTIVE“ (ohne Funktion), darunter die Seiten:
 | **Start** | Platzhalter für Entwickler (siehe unten) |
 | **Karten** | [Offline-Karte mit Navigation](karte.md) |
 | **Medien** | [Musik-Player](medien.md) |
-| **Cam** | [Bild der Rückfahrkamera](kamera.md) (bis 0.9.5 „Klima“, Platzhalter) |
+| **Kamera** | [Bild der Rückfahrkamera](kamera.md) (bis 0.9.5 „Klima“, Platzhalter) |
 | **Technik** | Platzhalter |
 | **Optionen** | [Einstellungen](optionen.md) |
 

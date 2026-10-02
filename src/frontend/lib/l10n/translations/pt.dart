@@ -5,7 +5,7 @@ const Map<AppTextKey, String> ptTranslations = <AppTextKey, String>{
   AppTextKey.navHome: 'Início',
   AppTextKey.navMaps: 'Mapas',
   AppTextKey.navMedia: 'Mídia',
-  AppTextKey.navCamera: 'Cam',
+  AppTextKey.navCamera: 'Câmara',
   AppTextKey.navControls: 'Controles',
   AppTextKey.navSettings: 'Opções',
   AppTextKey.navHomeSemantic: 'Painel inicial',

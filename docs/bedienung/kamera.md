@@ -1,12 +1,12 @@
-# Cam (Rückfahrkamera)
+# Kamera (Rückfahrkamera)
 
 [← Übersicht](README.md)
 
-Die Seite **Cam** zeigt das Bild einer Rückfahrkamera. Sie ersetzt ab 0.10.0
+Die Seite **Kamera** zeigt das Bild einer Rückfahrkamera. Sie ersetzt ab 0.10.0
 die frühere Platzhalter-Seite „Klima“. War vor dem Update „Klima“ die
-zuletzt gewählte Seite, öffnet die Oberfläche danach **Cam**.
+zuletzt gewählte Seite, öffnet die Oberfläche danach **Kamera**.
 
-![Seite Cam mit dem Bild einer analogen Rückfahrkamera am Grabber, darin die farbigen Hilfslinien der Kamera](bilder/cam-grabber.png)
+![Seite Kamera mit dem Bild einer analogen Rückfahrkamera am Grabber, darin die farbigen Hilfslinien der Kamera](bilder/cam-grabber.png)
 
 *Analoge Rückfahrkamera am Grabber, auf dem Test-Pi (Pi 4). Die Hilfslinien
 kommen aus der Kamera selbst.*
@@ -33,7 +33,7 @@ Grabber und USB-Kamera **direkt an den Pi** stecken, nicht an einen
 USB-Hub, an dem auch die SSD hängt. Auf dem Test-Pi hat der Grabber dort
 den USB-Controller zum Stehen gebracht.
 
-![Seite Cam mit dem Bild einer USB-Kamera: ein Schreibtisch mit Kabeln und einem Raspberry Pi](bilder/cam-usb-kamera.png)
+![Seite Kamera mit dem Bild einer USB-Kamera: ein Schreibtisch mit Kabeln und einem Raspberry Pi](bilder/cam-usb-kamera.png)
 
 *USB-Kamera direkt am Test-Pi, 640 × 480.*
 
@@ -75,7 +75,7 @@ width = 360              # oder 720
 - **Ändern:** am besten in einer eigenen Datei, z. B.
   `/etc/carnine/config.d/30-camera.toml`, nur mit den Zeilen, die anders sein
   sollen. Danach `sudo systemctl restart carnine-backend` und einmal die Seite
-  Cam verlassen und wieder öffnen. Der Neustart des Backends unterbricht die
+  Kamera verlassen und wieder öffnen. Der Neustart des Backends unterbricht die
   Wiedergabe.
 - **Norm, Eingang, Breite** gelten nur für den Grabber. Eine USB-Kamera
   liefert immer 640 × 480 und kennt sie nicht.

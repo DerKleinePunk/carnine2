@@ -5,7 +5,7 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.navHome: 'Domů',
   AppTextKey.navMaps: 'Mapy',
   AppTextKey.navMedia: 'Média',
-  AppTextKey.navCamera: 'Cam',
+  AppTextKey.navCamera: 'Kamera',
   AppTextKey.navControls: 'Ovládání',
   AppTextKey.navSettings: 'Možnosti',
   AppTextKey.navHomeSemantic: 'Domovský panel',

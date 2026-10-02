@@ -5,7 +5,7 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.navHome: 'Hem',
   AppTextKey.navMaps: 'Kartor',
   AppTextKey.navMedia: 'Media',
-  AppTextKey.navCamera: 'Cam',
+  AppTextKey.navCamera: 'Kamera',
   AppTextKey.navControls: 'Kontroller',
   AppTextKey.navSettings: 'Alternativ',
   AppTextKey.navHomeSemantic: 'Hemspanel',

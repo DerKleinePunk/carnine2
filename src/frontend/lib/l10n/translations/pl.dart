@@ -5,7 +5,7 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.navHome: 'Start',
   AppTextKey.navMaps: 'Mapy',
   AppTextKey.navMedia: 'Media',
-  AppTextKey.navCamera: 'Cam',
+  AppTextKey.navCamera: 'Kamera',
   AppTextKey.navControls: 'Sterowanie',
   AppTextKey.navSettings: 'Opcje',
   AppTextKey.navHomeSemantic: 'Pulpit startowy',

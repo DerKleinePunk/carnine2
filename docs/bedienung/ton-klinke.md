@@ -84,17 +84,57 @@ nicht, weil sie dann nicht in die Datei gelangt, die der Pi beim Start lädt
 
 ## Das EDID des Displays
 
-Das Image ist auf das Waveshare **7H** eingestellt: Der Pi liest die Kennung
-(EDID) des Displays nicht, sondern nimmt eine gespeicherte des 7H, auch wenn
-ein 7C dranhängt. Für den Ton über die Klinke spielt das keine Rolle. Für ein
-sauberes Bild und künftige Images brauchen wir aber die Kennung weiterer
-Displays. Wie man sie ausliest, mit Sicherung und Rückweg (auch wenn das Bild
-schwarz bleibt), steht in
-[22 – Waveshare Display, „Reading a panel's own EDID“](../22-waveshare-display-1024x600.md#reading-a-panels-own-edid).
-Die Datei bitte an Michael schicken.
+Je nach Image ist der Pi auf das Waveshare **7H** eingestellt: Er liest dann die
+Kennung (EDID) des Displays nicht, sondern nimmt eine gespeicherte des 7H, auch
+wenn ein 7C dranhängt. Für den Ton über die Klinke spielt das keine Rolle. Für
+ein sauberes Bild und künftige Images brauchen wir aber die Kennung weiterer
+Displays. So bekommt man sie als Datei auf den PC:
+
+1. **Prüfen, ob eine gespeicherte Kennung eingestellt ist:**
+   ```bash
+   grep -o 'drm.edid_firmware=[^ ]*' /proc/cmdline
+   ```
+   - **Keine Ausgabe:** Der Pi liest das Display selbst, weiter mit Schritt 2.
+   - **Eine Zeile erscheint:** Dann zeigt der Pi die gespeicherte Datei statt des
+     Displays. Erst den Eintrag entfernen, wie in
+     [22 – Waveshare Display, „Reading a panel's own EDID“](../22-waveshare-display-1024x600.md#reading-a-panels-own-edid)
+     beschrieben (mit Sicherung und Rückweg, auch wenn das Bild schwarz
+     bleibt), danach hier weitermachen.
+2. **Die Kennung in eine Datei schreiben.** Das Display muss an **HDMI 0**
+   hängen (beim Pi 4 der Anschluss neben USB-C):
+   ```bash
+   cat /sys/class/drm/card*-HDMI-A-1/edid > ~/edid-panel.bin
+   ls -l ~/edid-panel.bin
+   ```
+   Die Datei ist 128 oder 256 Byte groß. Steht dort **0**, ist kein Display
+   erkannt, dann Kabel und Anschluss prüfen. Zusätzlich, was der Kernel dazu
+   meldet (`dmesg` braucht `sudo`):
+   ```bash
+   sudo dmesg | grep -iE "edid|not supported" > ~/edid-panel-dmesg.txt
+   ```
+3. **Die Datei auf den PC holen.** Am PC (Windows PowerShell, Git Bash oder
+   Linux), den eigenen Gerätenamen einsetzen:
+   ```bash
+   scp pi@carnine-pc-843d.local:edid-panel.bin .
+   scp pi@carnine-pc-843d.local:edid-panel-dmesg.txt .
+   ```
+   Ohne `scp` geht es auch mit WinSCP oder FileZilla (SFTP, Benutzer `pi`,
+   Ordner `/home/pi`).
+4. **Wiederherstellen**, falls in Schritt 1 etwas entfernt wurde (Anleitung
+   in 22), und die Datei(en) bitte an Michael schicken.
+
+Gemessen am Waveshare-Display von `carnine-pc-843d` (02.10.2026): Dort war kein
+`drm.edid_firmware` eingestellt, der Pi las das Display selbst. Es lieferte
+**128 Byte ohne Audioteil** (1024 × 600). Das erklärt, warum über HDMI kein Ton
+kam: Das Display meldet keinen Ton, der Pi schickt ihn nicht dorthin.
 
 Den Ausgang in der Oberfläche wählen zu können, ist geplant (#48).
 
 *Geprüft:* genau nach dieser Seite auf einem **Pi 3** (carnine-pc, 29.09.):
 danach 0 Headphones, 1 vc4hdmi, der Ton lief auf Karte 0, zurück auf HDMI ging
-ebenso. Vorher schon auf einem Pi 4. Am Waveshare 7C ist es noch nicht geprüft.
+ebenso. Auf einem **Pi 4** (carnine-pc-843d, 02.10.2026, Image 0.10.0) ebenso:
+vorher 0 vc4hdmi0, 1 vc4hdmi1, 2 Headphones, danach 0 Headphones, 1 vc4hdmi0,
+2 vc4hdmi1. Das Backend öffnete den Ton auf Karte 0 und stellte die Lautstärke
+über deren Regler `PCM` ein. `dracut` brauchte auf dem Pi 4 nur wenige
+Sekunden. Gehört wurde der Ton an der Klinke noch nicht; am Waveshare 7C ist es
+noch nicht geprüft.

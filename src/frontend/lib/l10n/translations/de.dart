@@ -5,7 +5,7 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.navHome: 'Start',
   AppTextKey.navMaps: 'Karten',
   AppTextKey.navMedia: 'Medien',
-  AppTextKey.navCamera: 'Cam',
+  AppTextKey.navCamera: 'Kamera',
   AppTextKey.navControls: 'Technik',
   AppTextKey.navSettings: 'Optionen',
   AppTextKey.navHomeSemantic: 'Start-Dashboard',
