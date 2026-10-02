@@ -1,0 +1,171 @@
+/* Print style of the user guide PDF (WeasyPrint). */
+
+@page {
+  size: A4;
+  margin: 20mm 18mm 22mm 18mm;
+  @bottom-left {
+    content: string(chapter);
+    font-size: 8.5pt;
+    color: #666;
+  }
+  @bottom-right {
+    content: counter(page) " / " counter(pages);
+    font-size: 8.5pt;
+    color: #666;
+  }
+}
+
+@page :first {
+  @bottom-left { content: none; }
+  @bottom-right { content: none; }
+}
+
+html {
+  font-family: "DejaVu Sans", "Noto Sans", sans-serif;
+  font-size: 10pt;
+  line-height: 1.45;
+  color: #1a1a1a;
+}
+
+/* Title page and table of contents */
+
+.title-page {
+  break-after: page;
+  padding-top: 70mm;
+  text-align: center;
+}
+
+.title-page h1 {
+  font-size: 28pt;
+  border: none;
+  bookmark-level: none;
+}
+
+.title-page .subtitle {
+  font-size: 13pt;
+  margin-top: 6mm;
+}
+
+.title-page .version {
+  margin-top: 30mm;
+  color: #555;
+}
+
+.toc {
+  break-after: page;
+}
+
+.toc h1 {
+  bookmark-level: none;
+}
+
+.toc ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.toc ul ul {
+  padding-left: 6mm;
+  font-size: 9.5pt;
+}
+
+.toc > ul > li {
+  margin-top: 3mm;
+  font-weight: bold;
+}
+
+.toc > ul > li li {
+  font-weight: normal;
+}
+
+.toc a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.toc a::after {
+  content: leader(".") target-counter(attr(href), page);
+}
+
+/* Chapters: each page of the guide starts on a new sheet */
+
+h1 { font-size: 20pt; }
+
+h2 {
+  break-before: page;
+  font-size: 17pt;
+  border-bottom: 1px solid #bbb;
+  padding-bottom: 1mm;
+  string-set: chapter content();
+}
+
+h3 { font-size: 13pt; margin-top: 7mm; }
+h4 { font-size: 11pt; margin-top: 5mm; }
+
+h2, h3, h4 {
+  break-after: avoid;
+}
+
+a {
+  color: #0b5394;
+  text-decoration: none;
+}
+
+/* Pictures are 1024 x 600 screenshots of the panel */
+
+img {
+  display: block;
+  max-width: 100%;
+  max-height: 110mm;
+  margin: 3mm auto;
+  border: 1px solid #ccc;
+  break-inside: avoid;
+}
+
+p:has(> img) {
+  break-inside: avoid;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 3mm 0;
+  font-size: 9pt;
+  break-inside: auto;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 1.2mm 2mm;
+  vertical-align: top;
+  text-align: left;
+}
+
+th {
+  background: #eee;
+}
+
+tr {
+  break-inside: avoid;
+}
+
+code {
+  font-family: "DejaVu Sans Mono", monospace;
+  font-size: 8.8pt;
+}
+
+pre {
+  background: #f4f4f4;
+  border: 1px solid #ddd;
+  padding: 2mm 3mm;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  break-inside: avoid;
+}
+
+blockquote {
+  margin-left: 0;
+  padding-left: 4mm;
+  border-left: 3px solid #bbb;
+  color: #444;
+}

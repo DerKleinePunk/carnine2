@@ -129,6 +129,41 @@ jobs:
         working-directory: resources/debos
         run: sh tests/carnine-audio-output-test.sh
 
+  user-guide:
+    name: User guide PDF (pandoc, WeasyPrint)
+    # docs/bedienung/pdf/README.md. The script fails on a page missing from
+    # its page list and on a link inside the guide without a target, so a
+    # change to the guide is checked here even if nobody reads the PDF.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # git describe for the version on the title page needs the tags.
+          fetch-depth: 0
+          # The pictures of the guide are in Git LFS (.gitattributes).
+          lfs: true
+
+      # The versions of Ubuntu 24.04 (pandoc 3.1.3, WeasyPrint 61.1), the same
+      # the script is tested with on the developer machine.
+      - name: Install pandoc and WeasyPrint
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            pandoc weasyprint fonts-dejavu-core
+
+      - name: shellcheck
+        run: shellcheck docs/bedienung/pdf/build.sh
+
+      - name: Build the PDF
+        run: docs/bedienung/pdf/build.sh
+
+      - name: Upload the PDF
+        uses: actions/upload-artifact@v7
+        with:
+          name: bedienungsanleitung
+          path: build/bedienungsanleitung.pdf
+          retention-days: 30
+
   sbom:
     name: SBOM and known vulnerabilities (syft, grype)
     # The bill of materials of our own dependencies, from Cargo.lock and the
