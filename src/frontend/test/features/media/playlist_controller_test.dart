@@ -446,4 +446,273 @@ void main() {
       expect(controller.openPlaylist?.entries, isEmpty);
     },
   );
+
+  group('editing playlists (#89)', () {
+    const entryA = MediaPlaylistEntry(
+      id: 11,
+      playlistId: 1,
+      mediaId: 1,
+      position: 0,
+      track: _trackA,
+    );
+    const entryB = MediaPlaylistEntry(
+      id: 12,
+      playlistId: 1,
+      mediaId: 2,
+      position: 1,
+      track: _trackB,
+    );
+
+    const drive = MediaPlaylist(
+      id: 1,
+      name: 'Drive',
+      entries: [entryA, entryB],
+    );
+
+    LibraryScanEvent event(
+      LibraryScanEventKind kind, {
+      int playlistId = 0,
+      String name = '',
+    }) => LibraryScanEvent(
+      kind: kind,
+      scanId: 0,
+      processed: 0,
+      imported: 0,
+      path: '',
+      message: '',
+      playlistId: playlistId,
+      playlistName: name,
+    );
+
+    List<String> names() =>
+        controller.playlists.map((playlist) => playlist.name).toList();
+
+    setUp(() async {
+      repository.playlists = const [
+        MediaPlaylist(id: 1, name: 'Drive', entries: []),
+        MediaPlaylist(id: 2, name: 'Zulu', entries: []),
+      ];
+      repository.playlistDetails[1] = drive;
+      await controller.start();
+    });
+
+    tearDown(() {
+      controller.dispose();
+    });
+
+    test('renaming trims the name and puts the playlist at its sorted '
+        'place', () async {
+      controller.startRenaming(controller.playlists.first);
+
+      final done = await controller.renamePlaylist('  Zzz  ');
+
+      expect(done, isTrue);
+      expect(repository.commands, contains('renamePlaylist:1:Zzz'));
+      expect(names(), ['Zulu', 'Zzz']);
+      expect(controller.renameTarget, isNull);
+    });
+
+    test('renaming to the same name closes the page without a call', () async {
+      controller.startRenaming(controller.playlists.first);
+
+      final done = await controller.renamePlaylist('Drive');
+
+      expect(done, isTrue);
+      expect(controller.renameTarget, isNull);
+      expect(
+        repository.commands.where((c) => c.startsWith('renamePlaylist')),
+        isEmpty,
+      );
+    });
+
+    test('an empty new name is rejected and the page stays', () async {
+      controller.startRenaming(controller.playlists.first);
+
+      final done = await controller.renamePlaylist('   ');
+
+      expect(done, isFalse);
+      expect(controller.renameErrorKey, AppTextKey.mediaPlaylistNameRequired);
+      expect(controller.renameTarget, isNotNull);
+    });
+
+    test(
+      'a name another playlist has shows the duplicate-name error',
+      () async {
+        controller.startRenaming(controller.playlists.first);
+        repository.nextError = const MediaBackendException(
+          MediaErrorKind.alreadyExists,
+          'dup',
+        );
+
+        final done = await controller.renamePlaylist('Zulu');
+
+        expect(done, isFalse);
+        expect(controller.renameErrorKey, AppTextKey.mediaPlaylistExistsError);
+        expect(controller.renameTarget?.id, 1);
+        expect(controller.isRenaming, isFalse);
+      },
+    );
+
+    test('renaming the open playlist renames its detail page too', () async {
+      await controller.openPlaylistById(1);
+      controller.startRenaming(drive);
+
+      await controller.renamePlaylist('Road');
+
+      expect(controller.openPlaylist?.name, 'Road');
+      expect(controller.openPlaylist?.entries, hasLength(2));
+    });
+
+    test(
+      'deleting removes the playlist and closes it if it was open',
+      () async {
+        await controller.openPlaylistById(1);
+
+        final gone = await controller.deletePlaylist(1);
+
+        expect(gone, isTrue);
+        expect(repository.commands, contains('deletePlaylist:1'));
+        expect(names(), ['Zulu']);
+        expect(controller.openPlaylist, isNull);
+      },
+    );
+
+    test('deleting the last playlist shows the empty list', () async {
+      await controller.deletePlaylist(1);
+      await controller.deletePlaylist(2);
+
+      expect(controller.playlists, isEmpty);
+      expect(controller.listState.status, MediaViewStatus.empty);
+      expect(controller.listState.messageKey, AppTextKey.mediaPlaylistsEmpty);
+    });
+
+    test('a failed delete keeps the playlist and says so', () async {
+      repository.nextError = const MediaBackendException(
+        MediaErrorKind.unknown,
+        'boom',
+      );
+
+      final gone = await controller.deletePlaylist(1);
+
+      expect(gone, isFalse);
+      expect(names(), ['Drive', 'Zulu']);
+      expect(controller.actionErrorKey, AppTextKey.mediaCommandFailed);
+
+      controller.dismissActionError();
+      expect(controller.actionErrorKey, isNull);
+    });
+
+    test(
+      'deleting a playlist the backend no longer knows counts as done',
+      () async {
+        repository.nextError = const MediaBackendException(
+          MediaErrorKind.notFound,
+          'gone',
+        );
+
+        final gone = await controller.deletePlaylist(1);
+
+        expect(gone, isTrue);
+        expect(names(), ['Zulu']);
+        expect(controller.actionErrorKey, isNull);
+      },
+    );
+
+    test(
+      'removing an entry shows the playlist as the backend returns it',
+      () async {
+        await controller.openPlaylistById(1);
+
+        await controller.removeEntry(entryA);
+
+        expect(repository.commands, contains('removePlaylistEntry:11'));
+        final entries = controller.openPlaylist?.entries ?? const [];
+        expect(entries, hasLength(1));
+        expect(entries.first.mediaId, 2);
+        expect(entries.first.position, 0);
+        expect(controller.pendingRemoveEntryIds, isEmpty);
+      },
+    );
+
+    test('removing the last entry leaves the empty-playlist message', () async {
+      await controller.openPlaylistById(1);
+      await controller.removeEntry(entryA);
+      await controller.removeEntry(entryB);
+
+      expect(controller.detailState.status, MediaViewStatus.empty);
+      expect(
+        controller.detailState.messageKey,
+        AppTextKey.mediaPlaylistDetailEmpty,
+      );
+    });
+
+    test('a failed removal keeps the entry and says so', () async {
+      await controller.openPlaylistById(1);
+      repository.nextError = const MediaBackendException(
+        MediaErrorKind.unknown,
+        'boom',
+      );
+
+      await controller.removeEntry(entryA);
+
+      expect(controller.openPlaylist?.entries, hasLength(2));
+      expect(controller.actionErrorKey, AppTextKey.mediaCommandFailed);
+      expect(controller.pendingRemoveEntryIds, isEmpty);
+    });
+
+    test(
+      'a rename from elsewhere reaches the list and the open page',
+      () async {
+        await controller.openPlaylistById(1);
+
+        repository.libraryEventsController.add(
+          event(
+            LibraryScanEventKind.playlistRenamed,
+            playlistId: 1,
+            name: 'Zzz',
+          ),
+        );
+        await pumpEventQueue();
+
+        expect(names(), ['Zulu', 'Zzz']);
+        expect(controller.openPlaylist?.name, 'Zzz');
+      },
+    );
+
+    test('a delete from elsewhere closes the page that was open', () async {
+      await controller.openPlaylistById(1);
+      controller.startRenaming(drive);
+
+      repository.libraryEventsController.add(
+        event(LibraryScanEventKind.playlistDeleted, playlistId: 1),
+      );
+      await pumpEventQueue();
+
+      expect(names(), ['Zulu']);
+      expect(controller.openPlaylist, isNull);
+      expect(controller.renameTarget, isNull);
+    });
+
+    test('an entry removed elsewhere refreshes the open page without '
+        'blanking it', () async {
+      await controller.openPlaylistById(1);
+      var wasBlank = false;
+      controller.addListener(() {
+        wasBlank = wasBlank || controller.openPlaylist == null;
+      });
+      repository.playlistDetails[1] = const MediaPlaylist(
+        id: 1,
+        name: 'Drive',
+        entries: [entryB],
+      );
+
+      repository.libraryEventsController.add(
+        event(LibraryScanEventKind.playlistEntryRemoved, playlistId: 1),
+      );
+      await pumpEventQueue();
+
+      expect(controller.openPlaylist?.entries, hasLength(1));
+      expect(wasBlank, isFalse);
+    });
+  });
 }

@@ -195,6 +195,18 @@ class AppLocalizations {
     ).replaceFirst('{title}', title).replaceFirst('{playlist}', playlist);
   }
 
+  String mediaPlaylistDeleteConfirmMessage(String name) {
+    return text(
+      AppTextKey.mediaPlaylistDeleteConfirmMessage,
+    ).replaceFirst('{name}', name);
+  }
+
+  String mediaPlaylistEntryRemoveSemantic(String title) {
+    return text(
+      AppTextKey.mediaPlaylistEntryRemoveSemantic,
+    ).replaceFirst('{title}', title);
+  }
+
   /// Appends [AppTextKey.mediaFeatureUnavailableHint] to an existing action
   /// label, for controls that are visible but not yet wired to the backend.
   String mediaUnavailableActionSemantic(AppTextKey actionLabelKey) {

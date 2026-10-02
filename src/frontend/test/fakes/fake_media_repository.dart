@@ -269,6 +269,79 @@ class FakeMediaRepository implements MediaRepository {
   }
 
   @override
+  Future<MediaPlaylist> renamePlaylist({
+    required int playlistId,
+    required String name,
+  }) async {
+    commands.add('renamePlaylist:$playlistId:$name');
+    await _maybeThrow();
+    if (!playlists.any((playlist) => playlist.id == playlistId)) {
+      throw const MediaBackendException(MediaErrorKind.notFound, 'not found');
+    }
+    playlists = [
+      for (final playlist in playlists)
+        if (playlist.id == playlistId)
+          MediaPlaylist(id: playlistId, name: name, entries: const [])
+        else
+          playlist,
+    ];
+    final detail = playlistDetails[playlistId];
+    if (detail != null) {
+      playlistDetails[playlistId] = MediaPlaylist(
+        id: playlistId,
+        name: name,
+        entries: detail.entries,
+        hasCoverArt: detail.hasCoverArt,
+      );
+    }
+    return MediaPlaylist(id: playlistId, name: name, entries: const []);
+  }
+
+  @override
+  Future<void> deletePlaylist(int playlistId) async {
+    commands.add('deletePlaylist:$playlistId');
+    await _maybeThrow();
+    if (!playlists.any((playlist) => playlist.id == playlistId)) {
+      throw const MediaBackendException(MediaErrorKind.notFound, 'not found');
+    }
+    playlists = playlists
+        .where((playlist) => playlist.id != playlistId)
+        .toList();
+    playlistDetails.remove(playlistId);
+  }
+
+  @override
+  Future<MediaPlaylist> removePlaylistEntry(int entryId) async {
+    commands.add('removePlaylistEntry:$entryId');
+    await _maybeThrow();
+    for (final detail in playlistDetails.values) {
+      if (!detail.entries.any((entry) => entry.id == entryId)) {
+        continue;
+      }
+      final kept = detail.entries.where((entry) => entry.id != entryId);
+      final renumbered = [
+        for (final (index, entry) in kept.indexed)
+          MediaPlaylistEntry(
+            id: entry.id,
+            playlistId: entry.playlistId,
+            mediaId: entry.mediaId,
+            position: index,
+            track: entry.track,
+          ),
+      ];
+      final updated = MediaPlaylist(
+        id: detail.id,
+        name: detail.name,
+        entries: renumbered,
+        hasCoverArt: detail.hasCoverArt,
+      );
+      playlistDetails[detail.id] = updated;
+      return updated;
+    }
+    throw const MediaBackendException(MediaErrorKind.notFound, 'not found');
+  }
+
+  @override
   Future<Uint8List?> getTrackCoverArt(int mediaId) async {
     await _maybeThrow();
     return trackCoverArt[mediaId];

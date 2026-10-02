@@ -114,6 +114,17 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistAddEntryAction: 'Számok hozzáadása',
   AppTextKey.mediaPlaylistTrackAlreadyAdded:
       'A szám már szerepel a lejátszási listán',
+  AppTextKey.mediaPlaylistRenameAction: 'Playlist átnevezése',
+  AppTextKey.mediaPlaylistDeleteSemantic: 'Playlist törlése',
+  AppTextKey.mediaPlaylistDeleteConfirmTitle: 'Törli a playlistet?',
+  AppTextKey.mediaPlaylistDeleteConfirmMessage:
+      'A(z) "{name}" playlist véglegesen törlődik. A számok a könyvtárban '
+      'maradnak.',
+  AppTextKey.mediaPlaylistDeleteAction: 'Törlés',
+  AppTextKey.mediaPlaylistEntryRemoveSemantic:
+      '{title} eltávolítása a playlistből',
+  AppTextKey.mediaSaveAction: 'Mentés',
+  AppTextKey.mediaCancelAction: 'Mégse',
   AppTextKey.mediaPlaylistAddEntrySemantic:
       '{title} hozzáadása ehhez: {playlist}',
   AppTextKey.mediaBackToCollectionsSemantic: 'Vissza a gyűjteményekhez',

@@ -111,6 +111,16 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistAddEntriesTitle: 'Add tracks',
   AppTextKey.mediaPlaylistAddEntryAction: 'Add tracks',
   AppTextKey.mediaPlaylistTrackAlreadyAdded: 'Track is already in the playlist',
+  AppTextKey.mediaPlaylistRenameAction: 'Rename playlist',
+  AppTextKey.mediaPlaylistDeleteSemantic: 'Delete playlist',
+  AppTextKey.mediaPlaylistDeleteConfirmTitle: 'Delete playlist?',
+  AppTextKey.mediaPlaylistDeleteConfirmMessage:
+      '"{name}" will be deleted for good. The tracks stay in the library.',
+  AppTextKey.mediaPlaylistDeleteAction: 'Delete',
+  AppTextKey.mediaPlaylistEntryRemoveSemantic:
+      'Remove {title} from the playlist',
+  AppTextKey.mediaSaveAction: 'Save',
+  AppTextKey.mediaCancelAction: 'Cancel',
   AppTextKey.mediaPlaylistAddEntrySemantic: 'Add {title} to {playlist}',
   AppTextKey.mediaBackToCollectionsSemantic: 'Back to collections',
   AppTextKey.settingsBackToOptions: 'Back to options',

@@ -380,9 +380,8 @@ void main() {
             .text =
         'Drive';
     await tester.pump();
-    // There's no separate "create" button anymore - submitting via the
-    // on-screen keyboard's Fertig key is the only way to create the
-    // playlist now.
+    // Fertig on the on-screen keyboard creates the playlist, the same as
+    // the Erstellen button under the field (#31).
     await tester.tap(find.text('Fertig'));
     await tester.pumpAndSettle();
 

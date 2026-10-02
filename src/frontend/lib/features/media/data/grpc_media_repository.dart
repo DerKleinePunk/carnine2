@@ -361,27 +361,32 @@ class GrpcMediaRepository implements MediaRepository {
         GetPlaylistRequest(playlistId: Int64(playlistId)),
         options: CallOptions(timeout: _commandTimeout),
       );
-      final entries = playlist.entries
-          .map(
-            (entry) => MediaPlaylistEntry(
-              id: idFrom(entry.id),
-              playlistId: idFrom(entry.playlistId),
-              mediaId: idFrom(entry.mediaId),
-              position: idFrom(entry.position),
-              track: trackForId(idFrom(entry.mediaId)),
-            ),
-          )
-          .toList();
-      return MediaPlaylist(
-        id: idFrom(playlist.id),
-        name: playlist.name,
-        entries: entries,
-        hasCoverArt: playlist.hasCoverArt,
-      );
+      return _playlistFrom(playlist);
     } catch (error, stackTrace) {
       _logger.severe('GetPlaylist($playlistId) failed', error, stackTrace);
       throw mediaExceptionFrom(error);
     }
+  }
+
+  /// A playlist with its entries resolved against the library cache.
+  MediaPlaylist _playlistFrom(Playlist playlist) {
+    final entries = playlist.entries
+        .map(
+          (entry) => MediaPlaylistEntry(
+            id: idFrom(entry.id),
+            playlistId: idFrom(entry.playlistId),
+            mediaId: idFrom(entry.mediaId),
+            position: idFrom(entry.position),
+            track: trackForId(idFrom(entry.mediaId)),
+          ),
+        )
+        .toList();
+    return MediaPlaylist(
+      id: idFrom(playlist.id),
+      name: playlist.name,
+      entries: entries,
+      hasCoverArt: playlist.hasCoverArt,
+    );
   }
 
   @override
@@ -398,6 +403,58 @@ class GrpcMediaRepository implements MediaRepository {
       );
     } catch (error, stackTrace) {
       _logger.severe('CreatePlaylist("$name") failed', error, stackTrace);
+      throw mediaExceptionFrom(error);
+    }
+  }
+
+  @override
+  Future<MediaPlaylist> renamePlaylist({
+    required int playlistId,
+    required String name,
+  }) async {
+    try {
+      final playlist = await _channel.stub.renamePlaylist(
+        RenamePlaylistRequest(playlistId: Int64(playlistId), name: name),
+        options: CallOptions(timeout: _commandTimeout),
+      );
+      return MediaPlaylist(
+        id: idFrom(playlist.id),
+        name: playlist.name,
+        entries: const [],
+      );
+    } catch (error, stackTrace) {
+      _logger.severe(
+        'RenamePlaylist(playlist: $playlistId, "$name") failed',
+        error,
+        stackTrace,
+      );
+      throw mediaExceptionFrom(error);
+    }
+  }
+
+  @override
+  Future<void> deletePlaylist(int playlistId) async {
+    try {
+      await _channel.stub.deletePlaylist(
+        DeletePlaylistRequest(playlistId: Int64(playlistId)),
+        options: CallOptions(timeout: _commandTimeout),
+      );
+    } catch (error, stackTrace) {
+      _logger.severe('DeletePlaylist($playlistId) failed', error, stackTrace);
+      throw mediaExceptionFrom(error);
+    }
+  }
+
+  @override
+  Future<MediaPlaylist> removePlaylistEntry(int entryId) async {
+    try {
+      final playlist = await _channel.stub.removePlaylistEntry(
+        RemovePlaylistEntryRequest(entryId: Int64(entryId)),
+        options: CallOptions(timeout: _commandTimeout),
+      );
+      return _playlistFrom(playlist);
+    } catch (error, stackTrace) {
+      _logger.severe('RemovePlaylistEntry($entryId) failed', error, stackTrace);
       throw mediaExceptionFrom(error);
     }
   }

@@ -114,6 +114,15 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistAddEntryAction: 'Tilføj numre',
   AppTextKey.mediaPlaylistTrackAlreadyAdded:
       'Nummeret er allerede i playlisten',
+  AppTextKey.mediaPlaylistRenameAction: 'Omdøb playlisten',
+  AppTextKey.mediaPlaylistDeleteSemantic: 'Slet playlisten',
+  AppTextKey.mediaPlaylistDeleteConfirmTitle: 'Slet playlisten?',
+  AppTextKey.mediaPlaylistDeleteConfirmMessage:
+      '"{name}" slettes permanent. Numrene bliver i biblioteket.',
+  AppTextKey.mediaPlaylistDeleteAction: 'Slet',
+  AppTextKey.mediaPlaylistEntryRemoveSemantic: 'Fjern {title} fra playlisten',
+  AppTextKey.mediaSaveAction: 'Gem',
+  AppTextKey.mediaCancelAction: 'Annuller',
   AppTextKey.mediaPlaylistAddEntrySemantic: 'Tilføj {title} til {playlist}',
   AppTextKey.mediaBackToCollectionsSemantic: 'Tilbage til samlinger',
   AppTextKey.settingsBackToOptions: 'Tilbage til indstillinger',

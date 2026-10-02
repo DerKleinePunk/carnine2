@@ -112,6 +112,16 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistAddEntriesTitle: 'Parça ekle',
   AppTextKey.mediaPlaylistAddEntryAction: 'Parça ekle',
   AppTextKey.mediaPlaylistTrackAlreadyAdded: 'Parça zaten çalma listesinde',
+  AppTextKey.mediaPlaylistRenameAction: 'Çalma listesini yeniden adlandır',
+  AppTextKey.mediaPlaylistDeleteSemantic: 'Çalma listesini sil',
+  AppTextKey.mediaPlaylistDeleteConfirmTitle: 'Çalma listesi silinsin mi?',
+  AppTextKey.mediaPlaylistDeleteConfirmMessage:
+      '"{name}" kalıcı olarak silinecek. Parçalar kitaplıkta kalır.',
+  AppTextKey.mediaPlaylistDeleteAction: 'Sil',
+  AppTextKey.mediaPlaylistEntryRemoveSemantic:
+      '{title} parçasını çalma listesinden kaldır',
+  AppTextKey.mediaSaveAction: 'Kaydet',
+  AppTextKey.mediaCancelAction: 'İptal',
   AppTextKey.mediaPlaylistAddEntrySemantic:
       '{title} parçasını {playlist} listesine ekle',
   AppTextKey.mediaBackToCollectionsSemantic: 'Koleksiyonlara dön',

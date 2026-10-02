@@ -112,6 +112,16 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistAddEntriesTitle: 'Lägg till spår',
   AppTextKey.mediaPlaylistAddEntryAction: 'Lägg till spår',
   AppTextKey.mediaPlaylistTrackAlreadyAdded: 'Låten finns redan i spellistan',
+  AppTextKey.mediaPlaylistRenameAction: 'Byt namn på spellistan',
+  AppTextKey.mediaPlaylistDeleteSemantic: 'Ta bort spellistan',
+  AppTextKey.mediaPlaylistDeleteConfirmTitle: 'Ta bort spellistan?',
+  AppTextKey.mediaPlaylistDeleteConfirmMessage:
+      '"{name}" tas bort för gott. Låtarna finns kvar i biblioteket.',
+  AppTextKey.mediaPlaylistDeleteAction: 'Ta bort',
+  AppTextKey.mediaPlaylistEntryRemoveSemantic:
+      'Ta bort {title} från spellistan',
+  AppTextKey.mediaSaveAction: 'Spara',
+  AppTextKey.mediaCancelAction: 'Avbryt',
   AppTextKey.mediaPlaylistAddEntrySemantic: 'Lägg till {title} i {playlist}',
   AppTextKey.mediaBackToCollectionsSemantic: 'Tillbaka till samlingar',
   AppTextKey.settingsBackToOptions: 'Tillbaka till alternativ',

@@ -114,6 +114,16 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistAddEntriesTitle: 'Añadir pistas',
   AppTextKey.mediaPlaylistAddEntryAction: 'Añadir pistas',
   AppTextKey.mediaPlaylistTrackAlreadyAdded: 'La pista ya está en la playlist',
+  AppTextKey.mediaPlaylistRenameAction: 'Renombrar playlist',
+  AppTextKey.mediaPlaylistDeleteSemantic: 'Eliminar playlist',
+  AppTextKey.mediaPlaylistDeleteConfirmTitle: '¿Eliminar playlist?',
+  AppTextKey.mediaPlaylistDeleteConfirmMessage:
+      '"{name}" se eliminará definitivamente. Las pistas siguen en la '
+      'biblioteca.',
+  AppTextKey.mediaPlaylistDeleteAction: 'Eliminar',
+  AppTextKey.mediaPlaylistEntryRemoveSemantic: 'Quitar {title} de la playlist',
+  AppTextKey.mediaSaveAction: 'Guardar',
+  AppTextKey.mediaCancelAction: 'Cancelar',
   AppTextKey.mediaPlaylistAddEntrySemantic: 'Añadir {title} a {playlist}',
   AppTextKey.mediaBackToCollectionsSemantic: 'Volver a colecciones',
   AppTextKey.settingsBackToOptions: 'Volver a opciones',

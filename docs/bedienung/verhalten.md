@@ -104,7 +104,6 @@ Sichtbar, aber ohne Funktion:
 - Springen in der Zeitleiste des Players (dafür −30 s / +30 s)
 - **Nach Updates suchen** (#20)
 - **Karteneinstellungen** und **Darstellung** in den Optionen
-- Playlists umbenennen, löschen, Titel entfernen (#14)
 - Herunterfahren, wenn das Netzteil abschaltet: Die Kopfleiste kündigt es nur
   an (#36, siehe [Kopfleiste](README.md#kopfleiste-oben-rechts))
 

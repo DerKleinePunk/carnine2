@@ -116,6 +116,16 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistAddEntryAction: 'Ajouter des titres',
   AppTextKey.mediaPlaylistTrackAlreadyAdded:
       'Le titre est déjà dans la playlist',
+  AppTextKey.mediaPlaylistRenameAction: 'Renommer la playlist',
+  AppTextKey.mediaPlaylistDeleteSemantic: 'Supprimer la playlist',
+  AppTextKey.mediaPlaylistDeleteConfirmTitle: 'Supprimer la playlist ?',
+  AppTextKey.mediaPlaylistDeleteConfirmMessage:
+      '« {name} » sera définitivement supprimée. Les titres restent dans la '
+      'bibliothèque.',
+  AppTextKey.mediaPlaylistDeleteAction: 'Supprimer',
+  AppTextKey.mediaPlaylistEntryRemoveSemantic: 'Retirer {title} de la playlist',
+  AppTextKey.mediaSaveAction: 'Enregistrer',
+  AppTextKey.mediaCancelAction: 'Annuler',
   AppTextKey.mediaPlaylistAddEntrySemantic: 'Ajouter {title} à {playlist}',
   AppTextKey.mediaBackToCollectionsSemantic: 'Retour aux collections',
   AppTextKey.settingsBackToOptions: 'Retour aux options',

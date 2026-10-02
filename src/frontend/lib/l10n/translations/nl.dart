@@ -112,6 +112,17 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistAddEntriesTitle: 'Nummers toevoegen',
   AppTextKey.mediaPlaylistAddEntryAction: 'Nummers toevoegen',
   AppTextKey.mediaPlaylistTrackAlreadyAdded: 'Nummer staat al in de playlist',
+  AppTextKey.mediaPlaylistRenameAction: 'Playlist hernoemen',
+  AppTextKey.mediaPlaylistDeleteSemantic: 'Playlist verwijderen',
+  AppTextKey.mediaPlaylistDeleteConfirmTitle: 'Playlist verwijderen?',
+  AppTextKey.mediaPlaylistDeleteConfirmMessage:
+      '"{name}" wordt definitief verwijderd. De nummers blijven in de '
+      'bibliotheek.',
+  AppTextKey.mediaPlaylistDeleteAction: 'Verwijderen',
+  AppTextKey.mediaPlaylistEntryRemoveSemantic:
+      '{title} uit de playlist verwijderen',
+  AppTextKey.mediaSaveAction: 'Opslaan',
+  AppTextKey.mediaCancelAction: 'Annuleren',
   AppTextKey.mediaPlaylistAddEntrySemantic: '{title} toevoegen aan {playlist}',
   AppTextKey.mediaBackToCollectionsSemantic: 'Terug naar collecties',
   AppTextKey.settingsBackToOptions: 'Terug naar opties',

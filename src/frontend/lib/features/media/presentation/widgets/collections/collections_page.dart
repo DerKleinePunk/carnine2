@@ -7,6 +7,7 @@ import 'package:carnine_frontend/features/media/presentation/playlist_controller
 import 'package:carnine_frontend/features/media/presentation/widgets/collections/playlist_add_entries_page.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/collections/playlist_detail_page.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/collections/playlist_pane.dart';
+import 'package:carnine_frontend/features/media/presentation/widgets/collections/playlist_rename_page.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/media_page_header.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/quick_action_tile.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
@@ -16,10 +17,11 @@ import 'package:flutter/material.dart';
 /// detail and add-entries as nested views. Browsing individual library
 /// tracks lives in its own `LibraryPage` now, not here.
 ///
-/// Navigation between playlist overview/detail/add-entries is driven by
-/// [PlaylistController] state directly (`openPlaylist`,
-/// `pendingAddEntriesTarget`) rather than separate widget state, so a
-/// playlist opened here stays open across a rebuild for any reason.
+/// Navigation between playlist overview/detail/add-entries/rename is driven
+/// by [PlaylistController] state directly (`openPlaylist`,
+/// `pendingAddEntriesTarget`, `renameTarget`) rather than separate widget
+/// state, so a playlist opened here stays open across a rebuild for any
+/// reason - and a playlist deleted from elsewhere closes its pages.
 class CollectionsPage extends StatelessWidget {
   const CollectionsPage({
     required this.controller,
@@ -48,6 +50,13 @@ class CollectionsPage extends StatelessWidget {
             library: library,
             playlists: playlists,
             onBack: playlists.consumePendingAddEntriesTarget,
+          );
+        }
+
+        if (playlists.renameTarget != null) {
+          return PlaylistRenamePage(
+            key: const ValueKey('media-rename'),
+            playlists: playlists,
           );
         }
 

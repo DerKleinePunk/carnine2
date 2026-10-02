@@ -133,11 +133,22 @@ Erreichbar über die Kachel **SAMMLUNGEN**.
 - Neben dem Namen steht das Cover des ersten Titels der Playlist, der eines hat.
 - **PLAYLIST STARTEN** oben rechts startet die Playlist und wechselt zum
   Player. Gesperrt, wenn die Playlist leer ist.
+- Links davon zwei Knöpfe: **Stift** = Playlist umbenennen (siehe unten),
+  **Papierkorb** = Playlist löschen. Das Löschen fragt vorher „Playlist
+  löschen?“ und lässt sich nicht rückgängig machen; die Titel bleiben in der
+  Bibliothek. Läuft die Playlist gerade, spielt der laufende Titel als
+  Einzeltitel weiter.
 - Die Einträge zeigen Titel, Interpret, Dauer; der gerade laufende ist
   eingerahmt. **Einträge sind nicht antippbar** – zu einem Titel springen geht
   über die Warteschlange im Player.
+- Das **✕** am Zeilenende nimmt den Titel aus der Playlist, **ohne
+  Rückfrage**. Der Titel bleibt in der Bibliothek und lässt sich über **Titel
+  hinzufügen** wieder aufnehmen. Wird der laufende Titel entfernt, geht der
+  Player zum folgenden Titel.
 - Titel, die nicht mehr in der Bibliothek sind, stehen rot da („Titel nicht
-  mehr in der Bibliothek“).
+  mehr in der Bibliothek“). Auch sie lassen sich mit dem ✕ entfernen.
+- Schlägt Löschen oder Entfernen fehl, steht kurz „Befehl fehlgeschlagen“ über
+  der Liste.
 - **Titel hinzufügen** unten öffnet die Auswahl.
 
 ### Titel hinzufügen
@@ -150,15 +161,28 @@ ist bereits in der Playlist“.
 
 ![Titel hinzufügen: Titel mit ✓ sind schon in der Playlist, einer mit dem Hinzufügen-Symbol noch nicht](bilder/medien-titel-hinzufuegen.png)
 
-Umbenennen, Löschen und Titel entfernen gibt es noch nicht (#14).
+### Playlist umbenennen
+
+Der Stift in der Playlist-Detailansicht öffnet dieselbe Seite wie beim Erstellen,
+mit dem Titel **PLAYLIST UMBENENNEN**. Das Feld steht schon mit dem alten Namen
+da, der Knopf darunter heißt **Speichern**.
+
+- Gespeichert wird mit **Speichern** oder mit „Fertig“ auf der
+  Bildschirmtastatur. Bei leerem Namen ist der Knopf gesperrt.
+- Die Fehlermeldungen sind dieselben wie beim Erstellen. Bleibt der Name
+  unverändert, schließt die Seite ohne Rückfrage.
+- Der Pfeil oben links bricht ab und führt zurück zur Playlist-Detailansicht.
+- Die Playlist rückt in der Liste an die Stelle, die ihr neuer Name verlangt
+  (alphabetisch).
 
 ### Playlist erstellen
 
 ![Playlist erstellen: „Roadtrip“ im Feld, Zähler 8/40, darunter die Tastatur](bilder/medien-playlist-erstellen.png)
 
 - Das Feld „Name der Playlist“ (höchstens 40 Zeichen) hat sofort den Fokus.
-- **Angelegt wird mit „Fertig“ auf der Bildschirmtastatur** – einen eigenen
-  Knopf dafür gibt es noch nicht (#31).
+- **Angelegt wird mit dem Knopf „Erstellen“** unter dem Feld (gesperrt, solange
+  der Name leer ist) oder mit „Fertig“ auf der Bildschirmtastatur. Der Knopf
+  bleibt über der geöffneten Tastatur sichtbar.
 - Fehlermeldungen: „Bitte einen Namen eingeben“, „Eine Playlist mit diesem
   Namen existiert bereits“.
 - Danach geht es direkt zu **Titel hinzufügen** für die neue Playlist.
@@ -187,4 +211,5 @@ Das Bild vom Verbindungsbanner steht unter
 |---|---|
 | Bibliothek, Sammlungen, Playlist erstellen | Player |
 | Playlist-Detail | Sammlungen |
+| Playlist umbenennen | Playlist-Detail |
 | Titel hinzufügen | vorherige Ansicht (Detail oder Sammlungen) |
