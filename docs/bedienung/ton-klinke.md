@@ -13,7 +13,9 @@ unten kommt der Ton aus der **3,5-mm-Klinke am Raspberry Pi**. An der Software
 **Wer das Image selbst baut**, braucht die Schritte unten nicht: Mit
 `-t audio_output:jack` beim Bauen ist die Klinke gleich die erste Soundkarte
 (#64, siehe [resources/debos/README.md](../../resources/debos/README.md)).
-Die Schritte unten sind für ein fertiges Image, das auf HDMI steht.
+Die Schritte unten sind für ein fertiges Image, das auf HDMI steht. Die
+fertigen Images `…-waveshare-jack` und, seit 0.11.0, `…-waveshare-7c` stehen
+schon auf der Klinke ([Welche Variante?](image-schreiben.md#welche-variante)).
 
 ## Was man braucht
 
@@ -84,7 +86,7 @@ nicht, weil sie dann nicht in die Datei gelangt, die der Pi beim Start lädt
 
 ## Das EDID des Displays
 
-Das Image ist auf das Waveshare **7H** eingestellt: Der Pi liest die Kennung
+Die Images `hdmi` und `jack` sind auf das Waveshare **7H** eingestellt: Der Pi liest die Kennung
 (EDID) des Displays nicht, sondern nimmt eine gespeicherte des 7H, auch wenn
 ein 7C dranhängt. Für den Ton über die Klinke spielt das keine Rolle, für das
 Bild schon: Das **7C** läuft mit seiner eigenen Kennung, ohne die Vorgabe

@@ -92,8 +92,9 @@ open("waveshare-1024x600.bin", "wb").write(bytes(e))
 
 `config.txt` keeps `dtoverlay=vc4-kms-v3d`; the `hdmi_force_hotplug`,
 `hdmi_group`, `hdmi_mode` and `hdmi_cvt` lines are dropped. When the image is
-built with `-t display:waveshare-1024x600` (the default is `auto`),
-`cmdline.txt` gets:
+built with `-t display:waveshare-1024x600` (the default is `auto`) and
+`-t edid:7h` (the default; `none` leaves the line out, see
+[Waveshare 7C](#waveshare-7c)), `cmdline.txt` gets:
 
 ```
 drm.edid_firmware=HDMI-A-1:edid/waveshare-7h-260929.bin
@@ -244,9 +245,10 @@ What follows from the EDID:
 with the `drm.edid_firmware` entry removed from `cmdline.txt` the panel
 runs on its own EDID, sound works after switching to the jack
 ([Ton über die Klinke](bedienung/ton-klinke.md)), and the USB camera works
-too. So the 7C needs **no EDID override**, only the jack. An image variant
-without the override and with `audio_output:jack` for the 7C is planned; until
-it exists, remove the entry by hand as in step 2 above and keep it removed.
+too. So the 7C needs **no EDID override**, only the jack. Since 0.11.0 there is
+an image for it, `…-waveshare-7c`, built with `-t edid:none` and
+`-t audio_output:jack` (c924575). With an older image remove the entry by hand
+as in step 2 above and keep it removed.
 
 Not captured yet: `/sys/class/drm/card*-HDMI-A-1/modes`, `fb0` and `dmesg`
 from that Pi (see "Verification after boot").
