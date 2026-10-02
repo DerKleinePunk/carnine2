@@ -17,4 +17,10 @@ if [ "$1" = "configure" ] && [ -d /etc/carnine/config.d ] && getent group carnin
     chmod 0770 /etc/carnine/config.d
 fi
 
+# The backend drives the switches of the "Technik" page over /dev/i2c-*,
+# which the image gives the i2c group; older images left carnine out.
+if [ "$1" = "configure" ] && getent group i2c >/dev/null && id carnine >/dev/null 2>&1; then
+    adduser --quiet carnine i2c
+fi
+
 #DEBHELPER#

@@ -359,6 +359,8 @@ actions:
       adduser carnine render
       adduser carnine video
       adduser carnine input
+      # The "Technik" page drives its switches over I2C (ControlService).
+      adduser carnine i2c
 
       install -d -o carnine -g carnine -m 0750 /var/lib/carnine
       install -d -o carnine -g carnine -m 0750 /var/lib/carnine/media
