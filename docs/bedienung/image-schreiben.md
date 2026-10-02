@@ -26,7 +26,7 @@ Festplatte.
 |---|---|
 | `carnine-v0.11.0-waveshare-hdmi.img.gz` | das Image, gepackt |
 | `carnine-v0.11.0-waveshare-hdmi.img.bmap` | Blockkarte für `bmaptool` (unter Windows nicht nötig) |
-| `SHA256SUMS` | Prüfsummen aller Dateien |
+| `carnine-v0.11.0-waveshare-hdmi.SHA256SUMS` | Prüfsummen der beiden Dateien oben |
 
 ### Welche Variante?
 
@@ -76,16 +76,16 @@ selben Ordner.
 Get-FileHash -Algorithm SHA256 .\carnine-v0.11.0-waveshare-hdmi.img.gz
 ```
 
-Die ausgegebene Zahl muss mit der Zeile in `SHA256SUMS` übereinstimmen
+Die ausgegebene Zahl muss mit der Zeile in `….SHA256SUMS` übereinstimmen
 (PowerShell schreibt sie in Großbuchstaben, das ist egal).
 
 **Linux:**
 
 ```bash
-sha256sum -c --ignore-missing SHA256SUMS
+sha256sum -c carnine-v0.11.0-waveshare-hdmi.SHA256SUMS
 ```
 
-Jede vorhandene Datei muss `OK` melden.
+Beide Dateien müssen `OK` melden.
 
 ## Windows: Rufus
 
