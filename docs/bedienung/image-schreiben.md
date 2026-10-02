@@ -32,11 +32,35 @@ Festplatte.
 
 | Variante | Ton | für |
 |---|---|---|
-| `…-waveshare-hdmi` | über HDMI zum Display | Displays **mit** Lautsprecher, z. B. Waveshare 7H |
-| `…-waveshare-jack` | aus der 3,5-mm-Klinke des Pi | Displays **ohne** Lautsprecher, z. B. Waveshare 7C ([Ton über die Klinke](ton-klinke.md)) |
+| `…-waveshare-hdmi` | über HDMI zum Display | Waveshare **7H** (hat Lautsprecher) |
+| `…-waveshare-jack` | aus der 3,5-mm-Klinke des Pi | Waveshare **7H**, Ton lieber über eigene Boxen ([Ton über die Klinke](ton-klinke.md)) |
+| `…-waveshare-jack` **+ ein Handgriff** | aus der Klinke | Waveshare **7C** (ohne Lautsprecher), siehe [unten](#waveshare-7c) |
 
 Im Zweifel `hdmi`. Umstellen geht später auch noch, siehe
 [Ton über die Klinke](ton-klinke.md).
+
+### Waveshare 7C
+
+Beide Images sind auf das **7H** eingestellt: Sie geben dem Display die
+Kennung (EDID) des 7H vor. Am 7C flackerte das Bild damit. Es braucht diese
+Vorgabe nicht und läuft mit seiner eigenen Kennung, der Ton kommt aus der
+Klinke (geprüft an einem 7C, 02.10.2026). Ein eigenes Image für das 7C ist
+geplant. Bis dahin:
+
+1. Das `…-waveshare-jack`-Image wie unten beschrieben auf die Karte schreiben.
+2. Die Karte noch einmal in den PC stecken. Die kleine Partition
+   **FIRMWARE** lässt sich auch unter Windows öffnen. Die Frage nach dem
+   Formatieren der anderen Partition: **Abbrechen**.
+3. Dort `cmdline.txt` mit einem Texteditor öffnen. Die Datei ist **eine
+   einzige Zeile**. Darin genau dieses Stück löschen, mit dem Leerzeichen davor:
+   ```
+    drm.edid_firmware=HDMI-A-1:edid/waveshare-7h-260929.bin
+   ```
+   Sonst nichts ändern, keinen Zeilenumbruch einfügen. Speichern, Karte
+   auswerfen.
+
+Die Hintergründe stehen in
+[22 – Waveshare Display, „Waveshare 7C“](../22-waveshare-display-1024x600.md#waveshare-7c).
 
 ## Prüfsumme kontrollieren
 

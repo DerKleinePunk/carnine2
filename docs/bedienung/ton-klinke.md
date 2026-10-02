@@ -86,9 +86,10 @@ nicht, weil sie dann nicht in die Datei gelangt, die der Pi beim Start lädt
 
 Das Image ist auf das Waveshare **7H** eingestellt: Der Pi liest die Kennung
 (EDID) des Displays nicht, sondern nimmt eine gespeicherte des 7H, auch wenn
-ein 7C dranhängt. Für den Ton über die Klinke spielt das keine Rolle. Für ein
-sauberes Bild und künftige Images brauchen wir aber die Kennung weiterer
-Displays. Wie man sie ausliest, mit Sicherung und Rückweg (auch wenn das Bild
+ein 7C dranhängt. Für den Ton über die Klinke spielt das keine Rolle, für das
+Bild schon: Das **7C** läuft mit seiner eigenen Kennung, ohne die Vorgabe
+(siehe [Image auf die SD-Karte schreiben, „Waveshare 7C“](image-schreiben.md#waveshare-7c)).
+Für weitere Displays brauchen wir deren Kennung. Wie man sie ausliest, mit Sicherung und Rückweg (auch wenn das Bild
 schwarz bleibt), steht in
 [22 – Waveshare Display, „Reading a panel's own EDID“](../22-waveshare-display-1024x600.md#reading-a-panels-own-edid).
 Die Datei bitte an Michael schicken.
@@ -97,4 +98,5 @@ Den Ausgang in der Oberfläche wählen zu können, ist geplant (#48).
 
 *Geprüft:* genau nach dieser Seite auf einem **Pi 3** (carnine-pc, 29.09.):
 danach 0 Headphones, 1 vc4hdmi, der Ton lief auf Karte 0, zurück auf HDMI ging
-ebenso. Vorher schon auf einem Pi 4. Am Waveshare 7C ist es noch nicht geprüft.
+ebenso. Vorher schon auf einem Pi 4. Am Waveshare 7C ging der Ton über die
+Klinke ebenfalls (Tester, 02.10.).
