@@ -29,6 +29,38 @@ pub struct Config {
     /// Optional: without a hash the factory default exit password applies.
     #[serde(default)]
     pub exit_password: ExitPasswordConfig,
+    /// Switches and sliders of the "Technik" page (ControlService). Checked
+    /// by the controls module, which skips a broken entry instead of
+    /// keeping the backend from starting.
+    #[serde(default)]
+    pub controls: Vec<ControlConfig>,
+}
+
+/// One `[[controls]]` entry. Kept as plain strings and options here; see
+/// `controls::Control::from_config` for what is accepted.
+#[derive(Debug, Clone, Default, Deserialize, serde::Serialize)]
+pub struct ControlConfig {
+    pub id: String,
+    pub name: String,
+    /// "switch" or "slider".
+    #[serde(rename = "type")]
+    pub kind: String,
+    /// "mcp23017" or "demo" (keeps what is set, for WSL and tests).
+    #[serde(default)]
+    pub chip: String,
+    /// I2C bus device, /dev/i2c-1 unless given.
+    #[serde(default)]
+    pub bus: Option<PathBuf>,
+    /// 7-bit I2C address, 0x20 unless given.
+    #[serde(default)]
+    pub address: Option<u16>,
+    /// MCP23017: 0-7 = GPA0-7, 8-15 = GPB0-7.
+    #[serde(default)]
+    pub pin: Option<u8>,
+    /// Bring back the last value at start-up. Unset: sliders do, switches
+    /// start off.
+    #[serde(default)]
+    pub restore: Option<bool>,
 }
 
 /// The password "Beenden" asks for (#51), as an Argon2id hash only. The
@@ -595,6 +627,8 @@ mod tests {
         let (config, path) =
             Config::load_with_env(|_| None).expect("repository config should load");
         assert!(path.ends_with("resources/config/carnine.toml"));
+        // No controls unless a drop-in names them.
+        assert!(config.controls.is_empty());
         // The image ships the factory exit password, as a hash only (#51).
         let exit_hash = config.exit_password.hash.as_deref().unwrap();
         assert_eq!(exit_hash, crate::exit_password::DEFAULT_HASH);

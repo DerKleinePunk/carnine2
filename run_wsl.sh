@@ -170,6 +170,25 @@ replay_loop = true
 valhalla_url = "http://127.0.0.1:$VALHALLA_PORT"
 map_region = "hessen"
 names_database = "$NAMES_DATABASE"
+
+# The "Technik" page without hardware: the demo chip keeps what is set.
+[[controls]]
+id = "interior_light"
+name = "Innenlicht"
+type = "switch"
+chip = "demo"
+
+[[controls]]
+id = "work_light"
+name = "Arbeitslicht"
+type = "switch"
+chip = "demo"
+
+[[controls]]
+id = "fan"
+name = "Lüfter"
+type = "slider"
+chip = "demo"
 EOF
 
 BACKEND_PID=""

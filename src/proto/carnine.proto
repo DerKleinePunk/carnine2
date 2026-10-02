@@ -649,3 +649,68 @@ message CameraDevice {
 message ListCameraDevicesResponse {
   repeated CameraDevice devices = 1;
 }
+
+// Switches and sliders on the "Technik" page, driven over I2C. What an id
+// means in hardware (chip, address, pin) lives only in the backend
+// configuration ([[controls]]); the UI only knows what this service tells
+// it. Without hardware (WSL) the "demo" chip stands in and simply keeps
+// what is set.
+service ControlService {
+  // Every configured control, in the order the configuration lists them.
+  // Empty when none is configured: the page then has nothing to operate.
+  rpc GetControls (Empty) returns (ControlList);
+  // Starts with the state of every control, then pushes one ControlState
+  // per change - also one made by another client or by the backend itself
+  // (the chip went missing or came back).
+  rpc StreamControlStates (Empty) returns (stream ControlState);
+  // Sets one control and answers with the state that now applies.
+  // NOT_FOUND for an unknown id, INVALID_ARGUMENT for a value that does not
+  // fit the type (a level for a switch, a level outside min..max),
+  // UNAVAILABLE when the chip does not answer.
+  rpc SetControlState (SetControlStateRequest) returns (ControlState);
+}
+
+enum ControlType {
+  CONTROL_TYPE_UNSPECIFIED = 0;
+  // On / off.
+  CONTROL_TYPE_SWITCH = 1;
+  // A level between min and max.
+  CONTROL_TYPE_SLIDER = 2;
+}
+
+message Control {
+  // Stable identifier from the configuration, e.g. "interior_light".
+  string id = 1;
+  // What the user named it in the configuration, e.g. "Innenlicht". Shown
+  // as it is, never translated.
+  string name = 2;
+  ControlType type = 3;
+  // Sliders only: the range of level, 0 to 100.
+  uint32 min = 4;
+  uint32 max = 5;
+}
+
+message ControlList {
+  repeated Control controls = 1;
+}
+
+message ControlState {
+  string id = 1;
+  oneof value {
+    // SWITCH.
+    bool on = 2;
+    // SLIDER, min..max.
+    uint32 level = 3;
+  }
+  // False while the chip behind this control does not answer; the UI shows
+  // the control greyed out. The value is the last one that was set.
+  bool available = 4;
+}
+
+message SetControlStateRequest {
+  string id = 1;
+  oneof value {
+    bool on = 2;
+    uint32 level = 3;
+  }
+}

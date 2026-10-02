@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use anyhow::{Context, Result};
 use rusqlite::{params, Connection, OptionalExtension};
 
-const CURRENT_SCHEMA_VERSION: i64 = 10;
+const CURRENT_SCHEMA_VERSION: i64 = 11;
 
 pub struct Database {
     connection: Connection,
@@ -26,6 +26,10 @@ pub struct MediaRecord {
 }
 
 /// Camera settings as stored: the norm by its configuration name ("ntsc").
+/// Last value of each control of the "Technik" page, by id: whether a
+/// switch was on, the level of a slider.
+pub type SavedControlStates = std::collections::HashMap<String, (Option<bool>, Option<u32>)>;
+
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct SavedCameraSettings {
     pub device: Option<String>,
@@ -267,6 +271,18 @@ impl Database {
             self.connection.execute_batch(
                 "ALTER TABLE camera_settings ADD COLUMN width INTEGER;
                 INSERT INTO schema_migrations (version) VALUES (10);",
+            )?;
+        }
+        if version < 11 {
+            // Last value of each switch and slider of the "Technik" page, by
+            // the id from [[controls]], for the ones that restore it.
+            self.connection.execute_batch(
+                "CREATE TABLE IF NOT EXISTS control_state (
+                    id TEXT PRIMARY KEY,
+                    switch_on INTEGER,
+                    level INTEGER
+                );
+                INSERT INTO schema_migrations (version) VALUES (11);",
             )?;
         }
         if version > CURRENT_SCHEMA_VERSION {
@@ -660,6 +676,37 @@ impl Database {
                 input = COALESCE(excluded.input, input),
                 width = COALESCE(excluded.width, width)",
             params![settings.device, settings.norm, settings.input, settings.width],
+        )?;
+        Ok(())
+    }
+
+    /// Last saved value of every control, by id.
+    pub fn load_control_states(&self) -> Result<SavedControlStates> {
+        let mut statement = self
+            .connection
+            .prepare("SELECT id, switch_on, level FROM control_state")?;
+        let rows = statement.query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                (
+                    row.get::<_, Option<bool>>(1)?,
+                    row.get::<_, Option<u32>>(2)?,
+                ),
+            ))
+        })?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
+    pub fn save_control_state(
+        &self,
+        id: &str,
+        switch_on: Option<bool>,
+        level: Option<u32>,
+    ) -> Result<()> {
+        self.connection.execute(
+            "INSERT INTO control_state (id, switch_on, level) VALUES (?1, ?2, ?3)
+             ON CONFLICT(id) DO UPDATE SET switch_on = excluded.switch_on, level = excluded.level",
+            params![id, switch_on, level],
         )?;
         Ok(())
     }
@@ -1367,6 +1414,48 @@ mod tests {
     }
 
     #[test]
+    fn schema_11_adds_the_control_states() {
+        let path = std::env::temp_dir().join(format!(
+            "carnine-database-schema11-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&path);
+        let database = Database::open(&path).expect("database should open");
+        database
+            .save_camera_settings(&SavedCameraSettings {
+                width: Some(720),
+                ..SavedCameraSettings::default()
+            })
+            .unwrap();
+        // Back to schema 10, as 0.10.0 left it.
+        database
+            .connection
+            .execute_batch(
+                "DROP TABLE control_state;
+                 DELETE FROM schema_migrations WHERE version >= 11;",
+            )
+            .unwrap();
+        drop(database);
+
+        let database = Database::open(&path).expect("schema 10 should migrate");
+
+        assert_eq!(database.schema_version().unwrap(), CURRENT_SCHEMA_VERSION);
+        assert_eq!(database.load_camera_settings().unwrap().width, Some(720));
+        assert!(database.load_control_states().unwrap().is_empty());
+        database
+            .save_control_state("light", Some(true), None)
+            .unwrap();
+        database.save_control_state("fan", None, Some(40)).unwrap();
+        database
+            .save_control_state("light", Some(false), None)
+            .unwrap();
+        let states = database.load_control_states().unwrap();
+        assert_eq!(states["light"], (Some(false), None));
+        assert_eq!(states["fan"], (None, Some(40)));
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
     fn schema_10_adds_the_width_and_keeps_the_camera_settings() {
         let path = std::env::temp_dir().join(format!(
             "carnine-database-schema10-{}.sqlite3",
@@ -1387,7 +1476,7 @@ mod tests {
             .connection
             .execute_batch(
                 "ALTER TABLE camera_settings DROP COLUMN width;
-                 DELETE FROM schema_migrations WHERE version = 10;",
+                 DELETE FROM schema_migrations WHERE version >= 10;",
             )
             .unwrap();
         drop(database);

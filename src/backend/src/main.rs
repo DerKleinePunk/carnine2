@@ -31,6 +31,7 @@ mod audio_source;
 mod audio_volume;
 mod camera;
 mod config;
+mod controls;
 mod cpal_audio_engine;
 mod database;
 mod exit_password;
@@ -1498,6 +1499,7 @@ fn configuration_from_proto(configuration: &Configuration) -> Result<config::Con
         power_supply: config::PowerSupplyConfig::default(),
         camera: config::CameraConfig::default(),
         exit_password: config::ExitPasswordConfig::default(),
+        controls: Vec::new(),
     };
     configuration.validate()?;
     Ok(configuration)
@@ -1679,6 +1681,24 @@ async fn main() -> Result<()> {
             thermal_root: PathBuf::from(system_metrics::THERMAL_ROOT),
         },
     );
+    // Switches and sliders of the "Technik" page; a chip that does not answer
+    // at start-up or later is tried again every five seconds.
+    let control_hub = Arc::new(controls::ControlHub::new(
+        &configuration.controls,
+        controls::linux_bus_opener(),
+        Some(configuration.media.database_path.clone()),
+    ));
+    {
+        let control_hub = Arc::clone(&control_hub);
+        tokio::spawn(async move {
+            let mut ticks = tokio::time::interval(Duration::from_secs(5));
+            loop {
+                ticks.tick().await;
+                let control_hub = Arc::clone(&control_hub);
+                let _ = tokio::task::spawn_blocking(move || control_hub.retry_unavailable()).await;
+            }
+        });
+    }
     let system_service = SystemServiceImpl::new(
         Arc::clone(&system_metrics),
         configuration.media.database_path.clone(),
@@ -1747,6 +1767,9 @@ async fn main() -> Result<()> {
         .add_service(
             carnine::navigation_service_server::NavigationServiceServer::new(navigation_service),
         )
+        .add_service(carnine::control_service_server::ControlServiceServer::new(
+            controls::ControlServiceImpl::new(Arc::clone(&control_hub)),
+        ))
         .add_service(carnine::camera_service_server::CameraServiceServer::new(
             camera::CameraServiceImpl::new(
                 configuration.media.database_path.clone(),
@@ -1929,6 +1952,7 @@ mod tests {
             power_supply: config::PowerSupplyConfig::default(),
             camera: config::CameraConfig::default(),
             exit_password: config::ExitPasswordConfig::default(),
+            controls: Vec::new(),
         }
     }
 

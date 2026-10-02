@@ -15,16 +15,17 @@ pub mod carnine {
 
 use carnine::{
     audio_service_client::AudioServiceClient, camera_service_client::CameraServiceClient,
-    get_cover_art_request::Target as CoverArtTarget, media_service_client::MediaServiceClient,
-    navigation_service_client::NavigationServiceClient, system_service_client::SystemServiceClient,
-    AddPlaylistEntryRequest, CameraNorm, CameraSettings, ComputeRouteRequest,
-    CreatePlaylistRequest, Empty, ExitPasswordRequest, FixState, GetCoverArtRequest,
-    GetLocationNameRequest, GetPlaylistRequest, GetReplayRouteRequest, ImportMusicVolumeRequest,
-    LatLon, LibraryEventType, NavigationStatus, PlayPlaylistRequest, PlayQueueEntryRequest,
-    PlayRequest, PositionFix, PositionSourceKind, PowerSupplyState, PowerSupplyStatus, RepeatMode,
-    RescanMediaRequest, Route, SearchMediaRequest, SearchPlacesRequest, SeekRequest,
-    SetExitPasswordRequest, SetRepeatModeRequest, SetShuffleModeRequest, SetTrackRecordingRequest,
-    SetVolumeRequest, SystemMetrics, ThermalStatus, UiState,
+    control_service_client::ControlServiceClient, get_cover_art_request::Target as CoverArtTarget,
+    media_service_client::MediaServiceClient, navigation_service_client::NavigationServiceClient,
+    system_service_client::SystemServiceClient, AddPlaylistEntryRequest, CameraNorm,
+    CameraSettings, ComputeRouteRequest, CreatePlaylistRequest, Empty, ExitPasswordRequest,
+    FixState, GetCoverArtRequest, GetLocationNameRequest, GetPlaylistRequest,
+    GetReplayRouteRequest, ImportMusicVolumeRequest, LatLon, LibraryEventType, NavigationStatus,
+    PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PositionFix, PositionSourceKind,
+    PowerSupplyState, PowerSupplyStatus, RepeatMode, RescanMediaRequest, Route, SearchMediaRequest,
+    SearchPlacesRequest, SeekRequest, SetExitPasswordRequest, SetRepeatModeRequest,
+    SetShuffleModeRequest, SetTrackRecordingRequest, SetVolumeRequest, SystemMetrics,
+    ThermalStatus, UiState,
 };
 
 #[tokio::main]
@@ -98,6 +99,9 @@ async fn main() -> Result<()> {
         "camera-settings" => get_camera_settings(&endpoint).await?,
         "save-camera-settings" => save_camera_settings(&endpoint).await?,
         "camera-devices" => list_camera_devices(&endpoint).await?,
+        "controls" => list_controls(&endpoint).await?,
+        "control-states" => stream_control_states(&endpoint).await?,
+        "set-control" => set_control(&endpoint).await?,
         unknown => bail!("unknown command: {unknown}"),
     }
     Ok(())
@@ -757,6 +761,70 @@ async fn get_thermal_status(endpoint: &str) -> Result<()> {
 
 /// Prints the current status plus as many changes as requested (default 5),
 /// e.g. while the CPU heats up past the warn threshold and cools down again.
+/// `controls`: the switches and sliders of the "Technik" page.
+async fn list_controls(endpoint: &str) -> Result<()> {
+    let mut client = ControlServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let list = client.get_controls(Empty {}).await?.into_inner();
+    if list.controls.is_empty() {
+        println!("no controls configured");
+    }
+    for control in list.controls {
+        println!(
+            "id={} type={:?} name={:?} min={} max={}",
+            control.id,
+            control.r#type(),
+            control.name,
+            control.min,
+            control.max
+        );
+    }
+    Ok(())
+}
+
+fn print_control_state(state: &carnine::ControlState) {
+    let value = match state.value {
+        Some(carnine::control_state::Value::On(on)) => format!("on={on}"),
+        Some(carnine::control_state::Value::Level(level)) => format!("level={level}"),
+        None => "value=-".to_string(),
+    };
+    println!("id={} {value} available={}", state.id, state.available);
+}
+
+/// `control-states [count]`: every state, then the changes.
+async fn stream_control_states(endpoint: &str) -> Result<()> {
+    let count = event_count(10)?;
+    let mut client = ControlServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let mut stream = client.stream_control_states(Empty {}).await?.into_inner();
+    read_events(&mut stream, count, |state| print_control_state(&state)).await
+}
+
+/// `set-control <id> on|off|<0-100>`.
+async fn set_control(endpoint: &str) -> Result<()> {
+    let id = env::args()
+        .nth(3)
+        .context("set-control needs an id and on, off or a level 0-100")?;
+    let value = match env::args().nth(4).as_deref() {
+        Some("on") => carnine::set_control_state_request::Value::On(true),
+        Some("off") => carnine::set_control_state_request::Value::On(false),
+        Some(level) => carnine::set_control_state_request::Value::Level(
+            level
+                .parse()
+                .with_context(|| format!("{level} is neither on, off nor a level 0-100"))?,
+        ),
+        None => bail!("set-control needs on, off or a level 0-100"),
+    };
+    let mut client = ControlServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let state = client
+        .set_control_state(carnine::SetControlStateRequest {
+            id,
+            value: Some(value),
+        })
+        .await?
+        .into_inner();
+    print_control_state(&state);
+    Ok(())
+}
+
 async fn stream_thermal_status(endpoint: &str) -> Result<()> {
     let count = event_count(5)?;
     let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;

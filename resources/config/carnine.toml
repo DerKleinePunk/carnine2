@@ -111,3 +111,20 @@ warm_metrics_interval_seconds = 5
 # Without a hash, or with one that cannot be read, the factory default applies.
 [exit_password]
 hash = "$argon2id$v=19$m=19456,t=2,p=1$Y2FybmluZS1leGl0LXB3$O+DjYmFGfVSWu+fkiM29V8Fv5Dy6eIQzW2q1WDqQXk0"
+
+# Switches and sliders of the "Technik" page (ControlService; CLI: controls,
+# control-states, set-control). One [[controls]] entry each, best in a drop-in
+# such as /etc/carnine/config.d/40-controls.toml. Name every control after
+# what hangs on it - the UI shows the name as it is. type is "switch" or
+# "slider" (0-100); chip is "mcp23017" (switches only; bus /dev/i2c-1 and
+# address 0x20 unless given, pin 0-7 = GPA0-7, 8-15 = GPB0-7) or "demo"
+# (keeps what is set, for trying without hardware). restore = true brings the
+# last value back at start-up; unset, sliders do and switches start off. A
+# broken entry is skipped with an error in the log.
+# [[controls]]
+# id = "interior_light"
+# name = "Innenlicht"
+# type = "switch"
+# chip = "mcp23017"
+# address = 0x20
+# pin = 0
