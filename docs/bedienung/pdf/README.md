@@ -52,21 +52,8 @@ The build fails when
   (a new page has to be added there, in the order of the README's contents),
 * a link inside the guide has no target (e.g. a renamed heading).
 
-## In CI (later)
+## In CI
 
-A job on `ubuntu-24.04` needs no more than:
-
-```yaml
-user-guide-pdf:
-  runs-on: ubuntu-24.04
-  steps:
-    - uses: actions/checkout@v7
-      with:
-        fetch-depth: 0   # git describe needs the tags
-    - run: sudo apt-get update && sudo apt-get install -y pandoc weasyprint fonts-dejavu-core
-    - run: docs/bedienung/pdf/build.sh
-    - uses: actions/upload-artifact@v7
-      with:
-        name: bedienungsanleitung
-        path: build/bedienungsanleitung.pdf
-```
+The job `user-guide` in `.github/workflows/ci.yml` installs the tools with
+apt, runs shellcheck and `build.sh` on every push and pull request, and keeps
+the PDF for 30 days as the artifact `bedienungsanleitung` of the run.
