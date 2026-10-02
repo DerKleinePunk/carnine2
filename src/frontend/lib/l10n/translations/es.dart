@@ -22,13 +22,13 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
   AppTextKey.dashboardContentFor: 'Contenido del panel para {section}',
   AppTextKey.grpcStatus: 'Estado gRPC: {status}',
   AppTextKey.statusNotConnected: 'Sin conexión',
-  AppTextKey.statusConnecting: 'Conectando...',
+  AppTextKey.statusConnecting: 'Conectando …',
   AppTextKey.statusConnected: 'Conectado - {count} datos recibidos',
   AppTextKey.statusError: 'Error',
   AppTextKey.grpcConnectionErrorTitle: 'Error de conexión',
   AppTextKey.grpcConnectionErrorMessage:
-      'No se pudo conectar con el backend. Inténtalo de nuevo o '
-      'consulta los registros de diagnóstico.',
+      'No se pudo conectar con el backend. Inténtelo de nuevo o consulte los '
+      'registros de diagnóstico.',
   AppTextKey.testGrpc: 'Probar gRPC',
   AppTextKey.connecting: 'Conectando',
   AppTextKey.canDataLine: 'Sensor: {sensor}, valor: {value}, hora: {time}',
@@ -66,7 +66,7 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
   AppTextKey.mediaFeatureUnavailableHint: 'aún no disponible',
   AppTextKey.mediaQueueEmpty: 'La cola está vacía',
   AppTextKey.mediaNoAdjacentTrack: 'No hay otra pista en la cola',
-  AppTextKey.mediaLoading: 'Cargando...',
+  AppTextKey.mediaLoading: 'Cargando …',
   AppTextKey.mediaRetry: 'Reintentar',
   AppTextKey.mediaOfflineTitle: 'Sin conexión',
   AppTextKey.mediaOfflineDescription:
@@ -81,18 +81,19 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchSemantic: 'Buscar en la biblioteca',
   AppTextKey.mediaSearchClearSemantic: 'Borrar búsqueda',
   AppTextKey.mediaLibraryEmpty:
-      'La biblioteca está vacía. Inicia un reescaneo para importar '
-      'contenido multimedia.',
+      'La biblioteca está vacía. Inicie un reescaneo para importar contenido '
+      'multimedia.',
   AppTextKey.mediaSearchNoResults: 'No hay resultados para esta búsqueda',
   AppTextKey.mediaRescanAction: 'Reescanear',
   AppTextKey.mediaRescanSemantic: 'Reescanear biblioteca',
   AppTextKey.mediaUsbImportBanner:
-      'USB "{label}" detectado - ¿importar {count} pista(s)?',
+      'USB "{label}" detectado - ¿importar pistas ({count})?',
   AppTextKey.mediaUsbImportAction: 'Importar',
-  AppTextKey.mediaUsbImportSemantic: 'Importar {count} pista(s) de {label}',
+  AppTextKey.mediaUsbImportSemantic: 'Importar pistas ({count}) de {label}',
   AppTextKey.mediaToolsMissingBanner:
-      'Falta ffmpeg: las pistas se importan sin artista, duración ni carátula. Instala ffmpeg y vuelve a escanear.',
-  AppTextKey.mediaScanRunning: 'Escaneo en curso...',
+      'Falta ffmpeg: las pistas se importan sin artista, duración ni '
+      'carátula. Instale ffmpeg y vuelva a escanear.',
+  AppTextKey.mediaScanRunning: 'Escaneo en curso …',
   AppTextKey.mediaScanProgressLine:
       '{processed} procesados, {imported} importados',
   AppTextKey.mediaScanFailed: 'Error en el escaneo',
@@ -107,7 +108,7 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistDetailEmpty: 'Esta playlist aún no tiene pistas',
   AppTextKey.mediaPlaylistEntryUnknown: 'Pista ya no está en la biblioteca',
   AppTextKey.mediaPlaylistNameHint: 'Nombre de la playlist',
-  AppTextKey.mediaPlaylistNameRequired: 'Introduce un nombre',
+  AppTextKey.mediaPlaylistNameRequired: 'Introduzca un nombre',
   AppTextKey.mediaPlaylistExistsError: 'Ya existe una playlist con este nombre',
   AppTextKey.mediaPlaylistCreateAction: 'Crear playlist',
   AppTextKey.mediaPlaylistAddEntriesTitle: 'Añadir pistas',

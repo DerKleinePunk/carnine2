@@ -22,7 +22,7 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.dashboardContentFor: 'Panelinnehåll för {section}',
   AppTextKey.grpcStatus: 'gRPC-status: {status}',
   AppTextKey.statusNotConnected: 'Inte ansluten',
-  AppTextKey.statusConnecting: 'Ansluter...',
+  AppTextKey.statusConnecting: 'Ansluter …',
   AppTextKey.statusConnected: 'Ansluten - {count} datapunkter mottagna',
   AppTextKey.statusError: 'Fel',
   AppTextKey.grpcConnectionErrorTitle: 'Anslutningsfel',
@@ -65,7 +65,7 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.mediaFeatureUnavailableHint: 'inte tillgängligt än',
   AppTextKey.mediaQueueEmpty: 'Kön är tom',
   AppTextKey.mediaNoAdjacentTrack: 'Inget annat spår i kön',
-  AppTextKey.mediaLoading: 'Läser in...',
+  AppTextKey.mediaLoading: 'Läser in …',
   AppTextKey.mediaRetry: 'Försök igen',
   AppTextKey.mediaOfflineTitle: 'Ingen anslutning',
   AppTextKey.mediaOfflineDescription:
@@ -89,7 +89,7 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.mediaUsbImportSemantic: 'Importera {count} låt(ar) från {label}',
   AppTextKey.mediaToolsMissingBanner:
       'ffmpeg saknas: låtar läses in utan artist, längd och omslag. Installera ffmpeg och skanna sedan igen.',
-  AppTextKey.mediaScanRunning: 'Skannar...',
+  AppTextKey.mediaScanRunning: 'Skannar …',
   AppTextKey.mediaScanProgressLine:
       '{processed} bearbetade, {imported} importerade',
   AppTextKey.mediaScanFailed: 'Skanningen misslyckades',

@@ -112,13 +112,13 @@ void main() {
 
     expect(find.byType(GridView), findsOneWidget);
     expect(find.text('Deutsch'), findsWidgets);
-    expect(find.text('English'), findsOneWidget);
+    expect(find.text('Englisch'), findsOneWidget);
 
     expect(find.text('Dänisch'), findsOneWidget);
     expect(find.text('Französisch'), findsOneWidget);
     expect(find.text('Niederländisch'), findsOneWidget);
     expect(find.text('Polnisch'), findsOneWidget);
-    await tester.tap(find.text('English'));
+    await tester.tap(find.text('Englisch'));
     await tester.pumpAndSettle();
 
     expect(find.text('Language'), findsWidgets);

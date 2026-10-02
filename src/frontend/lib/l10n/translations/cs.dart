@@ -22,7 +22,7 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.dashboardContentFor: 'Obsah panelu pro {section}',
   AppTextKey.grpcStatus: 'Stav gRPC: {status}',
   AppTextKey.statusNotConnected: 'Nepřipojeno',
-  AppTextKey.statusConnecting: 'Připojování...',
+  AppTextKey.statusConnecting: 'Připojování …',
   AppTextKey.statusConnected: 'Připojeno - přijato {count} datových bodů',
   AppTextKey.statusError: 'Chyba',
   AppTextKey.grpcConnectionErrorTitle: 'Chyba připojení',
@@ -66,7 +66,7 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.mediaFeatureUnavailableHint: 'zatím není k dispozici',
   AppTextKey.mediaQueueEmpty: 'Fronta je prázdná',
   AppTextKey.mediaNoAdjacentTrack: 'Ve frontě není žádná další skladba',
-  AppTextKey.mediaLoading: 'Načítání...',
+  AppTextKey.mediaLoading: 'Načítání …',
   AppTextKey.mediaRetry: 'Zkusit znovu',
   AppTextKey.mediaOfflineTitle: 'Bez připojení',
   AppTextKey.mediaOfflineDescription:
@@ -86,12 +86,13 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.mediaRescanAction: 'Skenovat znovu',
   AppTextKey.mediaRescanSemantic: 'Znovu skenovat knihovnu',
   AppTextKey.mediaUsbImportBanner:
-      'Nalezen USB disk "{label}" - importovat {count} skladeb?',
+      'Nalezen USB disk "{label}" - importovat skladby (počet: {count})?',
   AppTextKey.mediaUsbImportAction: 'Importovat',
-  AppTextKey.mediaUsbImportSemantic: 'Importovat {count} skladeb z {label}',
+  AppTextKey.mediaUsbImportSemantic:
+      'Importovat skladby (počet: {count}) z {label}',
   AppTextKey.mediaToolsMissingBanner:
       'Chybí ffmpeg: skladby se importují bez interpreta, délky a obalu. Nainstalujte ffmpeg a poté skenujte znovu.',
-  AppTextKey.mediaScanRunning: 'Probíhá skenování...',
+  AppTextKey.mediaScanRunning: 'Probíhá skenování …',
   AppTextKey.mediaScanProgressLine:
       'Zpracováno {processed}, importováno {imported}',
   AppTextKey.mediaScanFailed: 'Skenování se nezdařilo',

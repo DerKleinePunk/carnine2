@@ -22,7 +22,7 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.dashboardContentFor: 'Dashboard-inhoud voor {section}',
   AppTextKey.grpcStatus: 'gRPC-status: {status}',
   AppTextKey.statusNotConnected: 'Niet verbonden',
-  AppTextKey.statusConnecting: 'Verbinding maken...',
+  AppTextKey.statusConnecting: 'Verbinding maken …',
   AppTextKey.statusConnected: 'Verbonden - {count} datapunten ontvangen',
   AppTextKey.statusError: 'Fout',
   AppTextKey.grpcConnectionErrorTitle: 'Verbindingsfout',
@@ -42,7 +42,7 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.mediaForward30Semantic: '30 seconden vooruitspoelen',
   AppTextKey.mediaQueueExpandSemantic: 'Wachtrij tonen',
   AppTextKey.mediaQueueCollapseSemantic: 'Wachtrij verbergen',
-  AppTextKey.mediaShuffleSemantic: 'Shuffle',
+  AppTextKey.mediaShuffleSemantic: 'Willekeurig afspelen',
   AppTextKey.mediaRepeatSemantic: 'Herhalen',
   AppTextKey.mediaRepeatOffSemantic: 'Herhalen: uit',
   AppTextKey.mediaRepeatQueueSemantic: 'Herhalen: playlist',
@@ -65,7 +65,7 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.mediaFeatureUnavailableHint: 'nog niet beschikbaar',
   AppTextKey.mediaQueueEmpty: 'Wachtrij is leeg',
   AppTextKey.mediaNoAdjacentTrack: 'Geen ander nummer in de wachtrij',
-  AppTextKey.mediaLoading: 'Laden...',
+  AppTextKey.mediaLoading: 'Laden …',
   AppTextKey.mediaRetry: 'Opnieuw proberen',
   AppTextKey.mediaOfflineTitle: 'Geen verbinding',
   AppTextKey.mediaOfflineDescription:
@@ -82,7 +82,7 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.mediaLibraryEmpty:
       'De bibliotheek is leeg. Start een rescan om media te importeren.',
   AppTextKey.mediaSearchNoResults: 'Geen resultaten voor deze zoekopdracht',
-  AppTextKey.mediaRescanAction: 'Rescan',
+  AppTextKey.mediaRescanAction: 'Opnieuw scannen',
   AppTextKey.mediaRescanSemantic: 'Bibliotheek opnieuw scannen',
   AppTextKey.mediaUsbImportBanner:
       'USB-stick "{label}" gevonden - {count} nummer(s) overnemen?',
@@ -90,7 +90,7 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.mediaUsbImportSemantic: '{count} nummer(s) van {label} overnemen',
   AppTextKey.mediaToolsMissingBanner:
       'ffmpeg ontbreekt: nummers worden zonder artiest, duur en hoes ingelezen. Installeer ffmpeg en scan daarna opnieuw.',
-  AppTextKey.mediaScanRunning: 'Scannen...',
+  AppTextKey.mediaScanRunning: 'Scannen …',
   AppTextKey.mediaScanProgressLine:
       '{processed} verwerkt, {imported} geïmporteerd',
   AppTextKey.mediaScanFailed: 'Scan mislukt',

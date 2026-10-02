@@ -14,7 +14,7 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.navCameraSemantic: 'Kamera cofania',
   AppTextKey.navControlsSemantic: 'Funkcje pomocnicze i oświetlenie',
   AppTextKey.navSettingsSemantic: 'Ustawienia',
-  AppTextKey.emergency: 'ALARM',
+  AppTextKey.emergency: 'AWARIA',
   AppTextKey.showFrontendLogs: 'Pokaż logi frontendu',
   AppTextKey.frontendLogs: 'Logi frontendu',
   AppTextKey.noLogEntriesYet: 'Brak wpisów dziennika',
@@ -22,13 +22,13 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.dashboardContentFor: 'Zawartość panelu dla {section}',
   AppTextKey.grpcStatus: 'Status gRPC: {status}',
   AppTextKey.statusNotConnected: 'Nie połączono',
-  AppTextKey.statusConnecting: 'Łączenie...',
+  AppTextKey.statusConnecting: 'Łączenie …',
   AppTextKey.statusConnected: 'Połączono - odebrano {count} punktów danych',
   AppTextKey.statusError: 'Błąd',
   AppTextKey.grpcConnectionErrorTitle: 'Błąd połączenia',
   AppTextKey.grpcConnectionErrorMessage:
-      'Nie udało się połączyć z backendem. Spróbuj ponownie lub '
-      'sprawdź dzienniki diagnostyczne.',
+      'Nie udało się połączyć z backendem. Proszę spróbować ponownie lub '
+      'sprawdzić dzienniki diagnostyczne.',
   AppTextKey.testGrpc: 'Testuj gRPC',
   AppTextKey.connecting: 'Łączenie',
   AppTextKey.canDataLine: 'Czujnik: {sensor}, wartość: {value}, czas: {time}',
@@ -66,7 +66,7 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.mediaFeatureUnavailableHint: 'jeszcze niedostępne',
   AppTextKey.mediaQueueEmpty: 'Kolejka jest pusta',
   AppTextKey.mediaNoAdjacentTrack: 'Brak kolejnego utworu w kolejce',
-  AppTextKey.mediaLoading: 'Wczytywanie...',
+  AppTextKey.mediaLoading: 'Wczytywanie …',
   AppTextKey.mediaRetry: 'Spróbuj ponownie',
   AppTextKey.mediaOfflineTitle: 'Brak połączenia',
   AppTextKey.mediaOfflineDescription:
@@ -81,7 +81,7 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchSemantic: 'Przeszukaj bibliotekę',
   AppTextKey.mediaSearchClearSemantic: 'Wyczyść wyszukiwanie',
   AppTextKey.mediaLibraryEmpty:
-      'Biblioteka jest pusta. Rozpocznij skanowanie, aby zaimportować '
+      'Biblioteka jest pusta. Proszę rozpocząć skanowanie, aby zaimportować '
       'multimedia.',
   AppTextKey.mediaSearchNoResults: 'Brak wyników dla tego wyszukiwania',
   AppTextKey.mediaRescanAction: 'Skanuj ponownie',
@@ -91,8 +91,9 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.mediaUsbImportAction: 'Importuj',
   AppTextKey.mediaUsbImportSemantic: 'Zaimportuj {count} utwór(y) z {label}',
   AppTextKey.mediaToolsMissingBanner:
-      'Brak ffmpeg: utwory są importowane bez wykonawcy, czasu trwania i okładki. Zainstaluj ffmpeg, a potem skanuj ponownie.',
-  AppTextKey.mediaScanRunning: 'Skanowanie...',
+      'Brak ffmpeg: utwory są importowane bez wykonawcy, czasu trwania i '
+      'okładki. Proszę zainstalować ffmpeg, a potem ponownie skanować.',
+  AppTextKey.mediaScanRunning: 'Skanowanie …',
   AppTextKey.mediaScanProgressLine:
       'Przetworzono {processed}, zaimportowano {imported}',
   AppTextKey.mediaScanFailed: 'Skanowanie nie powiodło się',
@@ -108,13 +109,12 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistEntryUnknown:
       'Utwór nie znajduje się już w bibliotece',
   AppTextKey.mediaPlaylistNameHint: 'Nazwa playlisty',
-  AppTextKey.mediaPlaylistNameRequired: 'Podaj nazwę',
+  AppTextKey.mediaPlaylistNameRequired: 'Proszę podać nazwę',
   AppTextKey.mediaPlaylistExistsError: 'Playlista o tej nazwie już istnieje',
   AppTextKey.mediaPlaylistCreateAction: 'Utwórz playlistę',
   AppTextKey.mediaPlaylistAddEntriesTitle: 'Dodaj utwory',
   AppTextKey.mediaPlaylistAddEntryAction: 'Dodaj utwory',
-  AppTextKey.mediaPlaylistTrackAlreadyAdded:
-      'Utwór jest już na liście odtwarzania',
+  AppTextKey.mediaPlaylistTrackAlreadyAdded: 'Utwór jest już na playliście',
   AppTextKey.mediaPlaylistAddEntrySemantic: 'Dodaj {title} do {playlist}',
   AppTextKey.mediaBackToCollectionsSemantic: 'Powrót do kolekcji',
   AppTextKey.settingsBackToOptions: 'Wróć do opcji',
@@ -176,7 +176,7 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.keyboardBackspaceSemantic: 'Usuń znak',
   AppTextKey.keyboardSpaceSemantic: 'Spacja',
   AppTextKey.keyboardDiacriticOptionsSemantic: 'Więcej opcji dla {letter}',
-  AppTextKey.mapsSearchPlaceholder: 'Wprowadź cel podróży',
+  AppTextKey.mapsSearchPlaceholder: 'Cel podróży',
   AppTextKey.mapsNextTurnLabel: 'Następny zakręt',
   AppTextKey.mapsArrivalLabel: 'Przyjazd',
   AppTextKey.mapsArrivalTomorrowLabel: 'Przyjazd jutro',
@@ -210,10 +210,11 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.powerSupplyNotResponding: 'Zasilacz nie odpowiada',
   AppTextKey.thermalWarningTitle: 'Urządzenie przegrzane',
   AppTextKey.thermalWarningMessage:
-      'Procesor ma {temperature} °C. Pozwól urządzeniu ostygnąć i sprawdź wentylację.',
+      'Procesor ma {temperature} °C. Proszę pozwolić urządzeniu ostygnąć i '
+      'sprawdzić wentylację.',
   AppTextKey.thermalWarningConfirm: 'Rozumiem',
   AppTextKey.audioOutputMissing:
-      'Brak wyjścia audio – sprawdź wyjście dźwięku (HDMI lub jack)',
+      'Brak wyjścia audio – proszę sprawdzić wyjście dźwięku (HDMI lub jack)',
   AppTextKey.cameraConnecting: 'Łączenie z kamerą …',
   AppTextKey.cameraNoSignal: 'Brak sygnału kamery',
   AppTextKey.cameraMissing: 'Kamera nie jest podłączona',

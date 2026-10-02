@@ -19,7 +19,7 @@ Vier Kacheln; der Pfeil oben links in jeder Unterseite führt zurück zur
 ![Sprache: oben die aktive Sprache, darunter die Sprachen als Kacheln mit Flagge](bilder/optionen-sprache.png)
 
 - Oben die aktive Sprache mit Flagge, darunter alle 15 Sprachen (Chinesisch,
-  Dänisch, Deutsch, English, Französisch, Italienisch, Japanisch,
+  Dänisch, Deutsch, Englisch, Französisch, Italienisch, Japanisch,
   Niederländisch, Polnisch, Portugiesisch, Schwedisch, Spanisch, Tschechisch,
   Türkisch, Ungarisch).
 - Antippen stellt sofort um, ohne Neustart. Die Liste ist nach dem Namen in der

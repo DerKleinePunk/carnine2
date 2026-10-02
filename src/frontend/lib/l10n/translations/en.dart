@@ -22,7 +22,7 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.dashboardContentFor: 'Dashboard content for {section}',
   AppTextKey.grpcStatus: 'gRPC Status: {status}',
   AppTextKey.statusNotConnected: 'Not connected',
-  AppTextKey.statusConnecting: 'Connecting...',
+  AppTextKey.statusConnecting: 'Connecting …',
   AppTextKey.statusConnected: 'Connected - received {count} data points',
   AppTextKey.statusError: 'Error',
   AppTextKey.grpcConnectionErrorTitle: 'Connection Error',
@@ -65,7 +65,7 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.mediaFeatureUnavailableHint: 'not yet available',
   AppTextKey.mediaQueueEmpty: 'Queue is empty',
   AppTextKey.mediaNoAdjacentTrack: 'No adjacent track in the queue',
-  AppTextKey.mediaLoading: 'Loading...',
+  AppTextKey.mediaLoading: 'Loading …',
   AppTextKey.mediaRetry: 'Retry',
   AppTextKey.mediaOfflineTitle: 'No connection',
   AppTextKey.mediaOfflineDescription:
@@ -89,7 +89,7 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.mediaUsbImportSemantic: 'Import {count} track(s) from {label}',
   AppTextKey.mediaToolsMissingBanner:
       'ffmpeg is missing: tracks are imported without artist, duration and cover. Install ffmpeg, then rescan.',
-  AppTextKey.mediaScanRunning: 'Scan running...',
+  AppTextKey.mediaScanRunning: 'Scan running …',
   AppTextKey.mediaScanProgressLine:
       '{processed} processed, {imported} imported',
   AppTextKey.mediaScanFailed: 'Scan failed',

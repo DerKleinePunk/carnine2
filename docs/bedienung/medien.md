@@ -78,7 +78,7 @@ oben links führt zurück zum Player.
   Tastendruck. Gefunden wird auch über den Dateipfad (z. B. Albumordner). Das
   × leert das Feld.
 - **RESCAN** (↻ neben dem Suchfeld): liest den Musikordner neu ein;
-  während eines Scans grau. Eine Statuszeile zeigt „Scan läuft...“ bzw.
+  während eines Scans grau. Eine Statuszeile zeigt „Scan läuft …“ bzw.
   „x verarbeitet, y importiert“ oder „Scan fehlgeschlagen“.
   Ein Scan liest nur neue und geänderte Dateien (erkannt an Größe und
   Änderungszeit). Der erste Scan nach dem Update auf 0.9.0 liest einmal alles

@@ -22,7 +22,7 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.dashboardContentFor: 'Dashboard-Inhalt für {section}',
   AppTextKey.grpcStatus: 'gRPC-Status: {status}',
   AppTextKey.statusNotConnected: 'Nicht verbunden',
-  AppTextKey.statusConnecting: 'Verbindung wird aufgebaut...',
+  AppTextKey.statusConnecting: 'Verbindung wird aufgebaut …',
   AppTextKey.statusConnected: 'Verbunden - {count} Datenpunkte empfangen',
   AppTextKey.statusError: 'Fehler',
   AppTextKey.grpcConnectionErrorTitle: 'Verbindungsfehler',
@@ -65,7 +65,7 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.mediaFeatureUnavailableHint: 'noch nicht verfügbar',
   AppTextKey.mediaQueueEmpty: 'Warteschlange ist leer',
   AppTextKey.mediaNoAdjacentTrack: 'Kein weiterer Titel in der Warteschlange',
-  AppTextKey.mediaLoading: 'Wird geladen...',
+  AppTextKey.mediaLoading: 'Wird geladen …',
   AppTextKey.mediaRetry: 'Erneut versuchen',
   AppTextKey.mediaOfflineTitle: 'Keine Verbindung',
   AppTextKey.mediaOfflineDescription:
@@ -83,7 +83,7 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchSemantic: 'Bibliothek durchsuchen',
   AppTextKey.mediaSearchClearSemantic: 'Suche zurücksetzen',
   AppTextKey.mediaLibraryEmpty:
-      'Die Bibliothek ist leer. Starte einen Rescan, um Medien zu '
+      'Die Bibliothek ist leer. Starten Sie einen Rescan, um Medien zu '
       'importieren.',
   AppTextKey.mediaSearchNoResults: 'Keine Treffer für diese Suche',
   AppTextKey.mediaRescanAction: 'Rescan',
@@ -94,7 +94,7 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.mediaUsbImportSemantic: '{count} Titel von {label} übernehmen',
   AppTextKey.mediaToolsMissingBanner:
       'ffmpeg fehlt: Titel werden ohne Interpret, Dauer und Cover eingelesen. Bitte ffmpeg installieren und danach neu einlesen.',
-  AppTextKey.mediaScanRunning: 'Scan läuft...',
+  AppTextKey.mediaScanRunning: 'Scan läuft …',
   AppTextKey.mediaScanProgressLine:
       '{processed} verarbeitet, {imported} importiert',
   AppTextKey.mediaScanFailed: 'Scan fehlgeschlagen',
@@ -155,7 +155,7 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.settingsMockDescription:
       'Temporärer Einstellungsbereich für globale Frontend-Optionen.',
   AppTextKey.languageGerman: 'Deutsch',
-  AppTextKey.languageEnglish: 'English',
+  AppTextKey.languageEnglish: 'Englisch',
   AppTextKey.languageFrench: 'Französisch',
   AppTextKey.languageSpanish: 'Spanisch',
   AppTextKey.languageItalian: 'Italienisch',

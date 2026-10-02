@@ -22,7 +22,7 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.dashboardContentFor: '{section} için panel içeriği',
   AppTextKey.grpcStatus: 'gRPC durumu: {status}',
   AppTextKey.statusNotConnected: 'Bağlı değil',
-  AppTextKey.statusConnecting: 'Bağlanıyor...',
+  AppTextKey.statusConnecting: 'Bağlanıyor …',
   AppTextKey.statusConnected: 'Bağlandı - {count} veri noktası alındı',
   AppTextKey.statusError: 'Hata',
   AppTextKey.grpcConnectionErrorTitle: 'Bağlantı Hatası',
@@ -65,7 +65,7 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.mediaFeatureUnavailableHint: 'henüz kullanılamıyor',
   AppTextKey.mediaQueueEmpty: 'Sıra boş',
   AppTextKey.mediaNoAdjacentTrack: 'Sırada başka parça yok',
-  AppTextKey.mediaLoading: 'Yükleniyor...',
+  AppTextKey.mediaLoading: 'Yükleniyor …',
   AppTextKey.mediaRetry: 'Tekrar dene',
   AppTextKey.mediaOfflineTitle: 'Bağlantı yok',
   AppTextKey.mediaOfflineDescription:
@@ -80,8 +80,7 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchSemantic: 'Kitaplıkta ara',
   AppTextKey.mediaSearchClearSemantic: 'Aramayı temizle',
   AppTextKey.mediaLibraryEmpty:
-      'Kitaplık boş. Medyaları içe aktarmak için yeniden tarama '
-      'başlat.',
+      'Kitaplık boş. Medyaları içe aktarmak için yeniden tarama başlatın.',
   AppTextKey.mediaSearchNoResults: 'Bu arama için sonuç yok',
   AppTextKey.mediaRescanAction: 'Yeniden tara',
   AppTextKey.mediaRescanSemantic: 'Kitaplığı yeniden tara',
@@ -92,7 +91,7 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
       '{label} konumundan {count} parça içe aktar',
   AppTextKey.mediaToolsMissingBanner:
       'ffmpeg eksik: parçalar sanatçı, süre ve kapak olmadan içe aktarılıyor. ffmpeg kurun, ardından yeniden tarayın.',
-  AppTextKey.mediaScanRunning: 'Taranıyor...',
+  AppTextKey.mediaScanRunning: 'Taranıyor …',
   AppTextKey.mediaScanProgressLine:
       '{processed} işlendi, {imported} içe aktarıldı',
   AppTextKey.mediaScanFailed: 'Tarama başarısız oldu',

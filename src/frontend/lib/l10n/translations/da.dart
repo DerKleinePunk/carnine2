@@ -22,7 +22,7 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.dashboardContentFor: 'Dashboardindhold for {section}',
   AppTextKey.grpcStatus: 'gRPC-status: {status}',
   AppTextKey.statusNotConnected: 'Ikke forbundet',
-  AppTextKey.statusConnecting: 'Opretter forbindelse...',
+  AppTextKey.statusConnecting: 'Opretter forbindelse …',
   AppTextKey.statusConnected: 'Forbundet - {count} datapunkter modtaget',
   AppTextKey.statusError: 'Fejl',
   AppTextKey.grpcConnectionErrorTitle: 'Forbindelsesfejl',
@@ -65,7 +65,7 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.mediaFeatureUnavailableHint: 'ikke tilgængelig endnu',
   AppTextKey.mediaQueueEmpty: 'Køen er tom',
   AppTextKey.mediaNoAdjacentTrack: 'Intet andet nummer i køen',
-  AppTextKey.mediaLoading: 'Indlæser...',
+  AppTextKey.mediaLoading: 'Indlæser …',
   AppTextKey.mediaRetry: 'Prøv igen',
   AppTextKey.mediaOfflineTitle: 'Ingen forbindelse',
   AppTextKey.mediaOfflineDescription:
@@ -91,7 +91,7 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
       'Importer {count} nummer/numre fra {label}',
   AppTextKey.mediaToolsMissingBanner:
       'ffmpeg mangler: numre indlæses uden kunstner, varighed og cover. Installer ffmpeg, og scan derefter igen.',
-  AppTextKey.mediaScanRunning: 'Scanner...',
+  AppTextKey.mediaScanRunning: 'Scanner …',
   AppTextKey.mediaScanProgressLine:
       '{processed} behandlet, {imported} importeret',
   AppTextKey.mediaScanFailed: 'Scanning mislykkedes',

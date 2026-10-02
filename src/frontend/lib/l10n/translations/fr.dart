@@ -22,7 +22,7 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.dashboardContentFor: 'Contenu du tableau de bord pour {section}',
   AppTextKey.grpcStatus: 'Statut gRPC : {status}',
   AppTextKey.statusNotConnected: 'Non connecté',
-  AppTextKey.statusConnecting: 'Connexion en cours...',
+  AppTextKey.statusConnecting: 'Connexion en cours …',
   AppTextKey.statusConnected: 'Connecté - {count} points reçus',
   AppTextKey.statusError: 'Erreur',
   AppTextKey.grpcConnectionErrorTitle: 'Erreur de connexion',
@@ -67,7 +67,7 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.mediaFeatureUnavailableHint: 'pas encore disponible',
   AppTextKey.mediaQueueEmpty: 'La file d\'attente est vide',
   AppTextKey.mediaNoAdjacentTrack: 'Aucun autre titre dans la file d\'attente',
-  AppTextKey.mediaLoading: 'Chargement...',
+  AppTextKey.mediaLoading: 'Chargement …',
   AppTextKey.mediaRetry: 'Réessayer',
   AppTextKey.mediaOfflineTitle: 'Aucune connexion',
   AppTextKey.mediaOfflineDescription:
@@ -93,7 +93,7 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.mediaUsbImportSemantic: 'Importer {count} titre(s) depuis {label}',
   AppTextKey.mediaToolsMissingBanner:
       'ffmpeg est manquant : les titres sont importés sans artiste, durée ni pochette. Installez ffmpeg, puis relancez l’analyse.',
-  AppTextKey.mediaScanRunning: 'Analyse en cours...',
+  AppTextKey.mediaScanRunning: 'Analyse en cours …',
   AppTextKey.mediaScanProgressLine: '{processed} analysés, {imported} importés',
   AppTextKey.mediaScanFailed: 'Échec de l\'analyse',
   AppTextKey.mediaUnavailableBadge: 'INDISPONIBLE',
