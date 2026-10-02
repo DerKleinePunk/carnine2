@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:carnine_frontend/core/platform/grpc_endpoint.dart';
 import 'package:carnine_frontend/lib/carnine.pbgrpc.dart';
 import 'package:grpc/grpc.dart';
@@ -26,9 +28,27 @@ class NavigationChannel {
     return _stub ??= NavigationServiceClient(channel);
   }
 
+  /// The old channel is terminated without waiting, as in `MediaChannel`:
+  /// after the backend went away, `shutdown()` - and with it the whole
+  /// reconnect - could hang on the dead channel (#44). Its calls are dead
+  /// anyway.
   Future<void> reconnect() async {
     _logger.info('Rebuilding navigation gRPC channel');
-    await shutdown();
+    final channel = _channel;
+    _channel = null;
+    _stub = null;
+    if (channel == null) {
+      return;
+    }
+    unawaited(
+      channel.terminate().catchError((Object error, StackTrace stackTrace) {
+        _logger.warning(
+          'Error terminating navigation channel',
+          error,
+          stackTrace,
+        );
+      }),
+    );
   }
 
   Future<void> shutdown() async {
