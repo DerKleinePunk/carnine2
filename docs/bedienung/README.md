@@ -20,8 +20,10 @@ dieser Seiten in denselben Commit.
    passiert, was noch Platzhalter ist, Dauertest einrichten
 8. [Ton über die Klinke](ton-klinke.md) – für Displays ohne Lautsprecher
    (z. B. Waveshare 7C)
-9. [Nach der Installation](nach-der-installation.md) – Standardpasswort und
-   Gerätenamen ändern, WLAN einrichten, Kartendaten installieren
+9. [Image auf die SD-Karte schreiben](image-schreiben.md) – unter Windows
+   mit Rufus, unter Linux mit `bmaptool`, welche Variante, erster Start
+10. [Nach der Installation](nach-der-installation.md) – Standardpasswort und
+    Gerätenamen ändern, WLAN einrichten, Kartendaten installieren
 
 ## Die häufigsten Abläufe
 

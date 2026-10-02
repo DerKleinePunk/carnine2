@@ -25,6 +25,7 @@ pages=(
   tastatur.md
   verhalten.md
   ton-klinke.md
+  image-schreiben.md
   nach-der-installation.md
 )
 
