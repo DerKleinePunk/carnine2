@@ -252,4 +252,8 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: 'Geen camerasignaal',
   AppTextKey.cameraMissing: 'Camera niet aangesloten',
   AppTextKey.cameraError: 'Camerastoring',
+  AppTextKey.controlsEmpty: 'Geen bediening ingesteld',
+  AppTextKey.controlsStateOn: 'Aan',
+  AppTextKey.controlsStateOff: 'Uit',
+  AppTextKey.controlsUnavailable: 'Niet bereikbaar',
 };

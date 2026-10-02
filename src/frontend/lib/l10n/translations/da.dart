@@ -256,4 +256,8 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: 'Intet kamerasignal',
   AppTextKey.cameraMissing: 'Kamera ikke tilsluttet',
   AppTextKey.cameraError: 'Kamerafejl',
+  AppTextKey.controlsEmpty: 'Ingen betjening opsat',
+  AppTextKey.controlsStateOn: 'Til',
+  AppTextKey.controlsStateOff: 'Fra',
+  AppTextKey.controlsUnavailable: 'Ikke tilgængelig',
 };

@@ -100,7 +100,7 @@ Sichtbar, aber ohne Funktion:
 
 - **NOTFALL** im Seitenmenü (#34)
 - Symbole Mobilfunk, Akku, Sonne in der Kopfleiste (#34)
-- Seiten **Start** und **Technik** (nur Entwickler-Test)
+- Seite **Start** (nur Entwickler-Test)
 - Springen in der Zeitleiste des Players (dafür −30 s / +30 s)
 - **Nach Updates suchen** (#20)
 - **Karteneinstellungen** und der Reiter **Darstellung** in den Optionen

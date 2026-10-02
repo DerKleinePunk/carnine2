@@ -259,4 +259,8 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: 'Nincs kamerajel',
   AppTextKey.cameraMissing: 'A kamera nincs csatlakoztatva',
   AppTextKey.cameraError: 'Kamerahiba',
+  AppTextKey.controlsEmpty: 'Nincs beállított vezérlés',
+  AppTextKey.controlsStateOn: 'Be',
+  AppTextKey.controlsStateOff: 'Ki',
+  AppTextKey.controlsUnavailable: 'Nem elérhető',
 };

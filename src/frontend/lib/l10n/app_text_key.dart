@@ -230,4 +230,8 @@ enum AppTextKey {
   cameraNoSignal,
   cameraMissing,
   cameraError,
+  controlsEmpty,
+  controlsStateOn,
+  controlsStateOff,
+  controlsUnavailable,
 }

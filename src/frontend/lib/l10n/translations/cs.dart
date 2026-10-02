@@ -254,4 +254,8 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: 'Žádný signál kamery',
   AppTextKey.cameraMissing: 'Kamera není připojena',
   AppTextKey.cameraError: 'Porucha kamery',
+  AppTextKey.controlsEmpty: 'Žádné ovládání není nastaveno',
+  AppTextKey.controlsStateOn: 'Zapnuto',
+  AppTextKey.controlsStateOff: 'Vypnuto',
+  AppTextKey.controlsUnavailable: 'Nedostupné',
 };

@@ -260,4 +260,8 @@ const Map<AppTextKey, String> itTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: 'Nessun segnale della telecamera',
   AppTextKey.cameraMissing: 'Telecamera non collegata',
   AppTextKey.cameraError: 'Guasto della telecamera',
+  AppTextKey.controlsEmpty: 'Nessun comando configurato',
+  AppTextKey.controlsStateOn: 'Acceso',
+  AppTextKey.controlsStateOff: 'Spento',
+  AppTextKey.controlsUnavailable: 'Non raggiungibile',
 };

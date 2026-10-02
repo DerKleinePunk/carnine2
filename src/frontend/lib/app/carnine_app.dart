@@ -1,4 +1,5 @@
 import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart';
+import 'package:carnine_frontend/features/controls/data/controls_repository.dart';
 import 'package:carnine_frontend/app/app_theme.dart';
 import 'package:carnine_frontend/app/language_persistence.dart';
 import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_controller.dart';
@@ -16,13 +17,21 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 /// The widget owns global Material configuration only. Feature navigation and
 /// screen state live below this layer so the application bootstrap stays small.
 class CarnineApp extends StatefulWidget {
-  const CarnineApp({this.uiStateStore, this.cameraSettingsStore, super.key});
+  const CarnineApp({
+    this.uiStateStore,
+    this.cameraSettingsStore,
+    this.controlsRepository,
+    super.key,
+  });
 
   /// Keeps the page shown last across restarts; tests leave it out.
   final UiStateStore? uiStateStore;
 
   /// Where the camera page gets its settings; tests leave it out.
   final CameraSettingsStore? cameraSettingsStore;
+
+  /// Where the Technik page gets its controls from; tests leave it out.
+  final ControlsRepository? controlsRepository;
 
   @override
   State<CarnineApp> createState() => _CarnineAppState();
@@ -93,6 +102,7 @@ class _CarnineAppState extends State<CarnineApp> {
             languageController: _languageController,
             uiStateStore: widget.uiStateStore,
             cameraSettingsStore: widget.cameraSettingsStore,
+            controlsRepository: widget.controlsRepository,
           ),
         );
       },

@@ -230,4 +230,8 @@ const Map<AppTextKey, String> zhTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: '没有摄像头信号',
   AppTextKey.cameraMissing: '摄像头未连接',
   AppTextKey.cameraError: '摄像头故障',
+  AppTextKey.controlsEmpty: '尚未设置控制项',
+  AppTextKey.controlsStateOn: '开',
+  AppTextKey.controlsStateOff: '关',
+  AppTextKey.controlsUnavailable: '无法连接',
 };

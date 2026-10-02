@@ -261,4 +261,8 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: 'Aucun signal de caméra',
   AppTextKey.cameraMissing: 'Caméra non branchée',
   AppTextKey.cameraError: 'Défaut de caméra',
+  AppTextKey.controlsEmpty: 'Aucune commande configurée',
+  AppTextKey.controlsStateOn: 'Activé',
+  AppTextKey.controlsStateOff: 'Désactivé',
+  AppTextKey.controlsUnavailable: 'Injoignable',
 };

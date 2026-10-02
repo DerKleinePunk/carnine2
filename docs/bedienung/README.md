@@ -13,16 +13,17 @@ dieser Seiten in denselben Commit.
 2. [Medien](medien.md) – Player, Warteschlange, Bibliothek, Playlists, USB-Import
 3. [Karten](karte.md) – Zielsuche, Route, Navigationsmodus, Standort
 4. [Kamera](kamera.md) – Rückfahrkamera, Hinweise, Einstellungen
-5. [Optionen](optionen.md) – Darstellung & Sprache, Geräte, Logs, Neustart, Beenden
-6. [Bildschirmtastatur](tastatur.md)
-7. [Verhalten über Neustarts und ohne Backend](verhalten.md) – was gespeichert
+5. [Technik](technik.md) – Schalter und Regler, Hinweise, Einrichten
+6. [Optionen](optionen.md) – Darstellung & Sprache, Geräte, Logs, Neustart, Beenden
+7. [Bildschirmtastatur](tastatur.md)
+8. [Verhalten über Neustarts und ohne Backend](verhalten.md) – was gespeichert
    wird, was bei Verbindungsverlust, ohne Tonausgang und bei Überhitzung
    passiert, was noch Platzhalter ist, Dauertest einrichten
-8. [Ton über die Klinke](ton-klinke.md) – für Displays ohne Lautsprecher
+9. [Ton über die Klinke](ton-klinke.md) – für Displays ohne Lautsprecher
    (z. B. Waveshare 7C)
-9. [Image auf die SD-Karte schreiben](image-schreiben.md) – unter Windows
-   mit Rufus, unter Linux mit `bmaptool`, welche Variante, erster Start
-10. [Nach der Installation](nach-der-installation.md) – Standardpasswort und
+10. [Image auf die SD-Karte schreiben](image-schreiben.md) – unter Windows
+    mit Rufus, unter Linux mit `bmaptool`, welche Variante, erster Start
+11. [Nach der Installation](nach-der-installation.md) – Standardpasswort und
     Gerätenamen ändern, WLAN einrichten, Kartendaten installieren
 
 ## Die häufigsten Abläufe
@@ -57,7 +58,7 @@ Oben das Logo „CarNine / V8-ACTIVE“ (ohne Funktion), darunter die Seiten:
 | **Karten** | [Offline-Karte mit Navigation](karte.md) |
 | **Medien** | [Musik-Player](medien.md) |
 | **Kamera** | [Bild der Rückfahrkamera](kamera.md) (bis 0.9.5 „Klima“, Platzhalter) |
-| **Technik** | Platzhalter |
+| **Technik** | [Schalter und Regler](technik.md) (bis 0.10.x Platzhalter) |
 | **Optionen** | [Einstellungen](optionen.md) |
 
 - Antippen wechselt die Seite. Der aktive Punkt leuchtet in der Primärfarbe,
@@ -98,7 +99,7 @@ bis zu 2 Minuten lang immer wieder nach und springt dann auf die gemerkte
 Seite. Wählt man in der Zeit selbst eine Seite, bleibt es bei dieser. Kommt
 das Backend nicht, bleibt sie ohne Meldung auf **Start** (#52, ab 0.9.0).
 
-### Start, Technik
+### Start
 
 Entwickler-Platzhalter: Text „Dashboard-Inhalt für …“, der gRPC-Status und der
 Knopf **gRPC testen**. Der fragt einen CAN-Wert (`engine_temp`) beim Backend ab

@@ -21,6 +21,7 @@ pages=(
   medien.md
   karte.md
   kamera.md
+  technik.md
   optionen.md
   tastatur.md
   verhalten.md
