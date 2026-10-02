@@ -26,6 +26,18 @@ pub struct Config {
     /// saves overrides them (CameraService).
     #[serde(default)]
     pub camera: CameraConfig,
+    /// Optional: without a hash the factory default exit password applies.
+    #[serde(default)]
+    pub exit_password: ExitPasswordConfig,
+}
+
+/// The password "Beenden" asks for (#51), as an Argon2id hash only. The
+/// image ships the factory default; SetExitPassword writes a changed one
+/// into the drop-in `30-exit-password.toml`.
+#[derive(Debug, Clone, Default, Deserialize, serde::Serialize)]
+pub struct ExitPasswordConfig {
+    #[serde(default)]
+    pub hash: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
@@ -583,6 +595,10 @@ mod tests {
         let (config, path) =
             Config::load_with_env(|_| None).expect("repository config should load");
         assert!(path.ends_with("resources/config/carnine.toml"));
+        // The image ships the factory exit password, as a hash only (#51).
+        let exit_hash = config.exit_password.hash.as_deref().unwrap();
+        assert_eq!(exit_hash, crate::exit_password::DEFAULT_HASH);
+        assert!(crate::exit_password::verify(exit_hash, "4321"));
         assert_eq!(
             config.server.socket_path,
             std::path::PathBuf::from("/run/carnine/carnine.sock")

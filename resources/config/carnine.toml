@@ -103,3 +103,11 @@ warm_metrics_interval_seconds = 5
 # norm = "ntsc"
 # input = 0
 # width = 360
+
+# The password "Beenden" in the options asks for (#51), as an Argon2id hash
+# only; this one is the factory default. SystemService.SetExitPassword (CLI:
+# set-exit-password) writes a changed one to
+# /etc/carnine/config.d/30-exit-password.toml, which survives a deployment.
+# Without a hash, or with one that cannot be read, the factory default applies.
+[exit_password]
+hash = "$argon2id$v=19$m=19456,t=2,p=1$Y2FybmluZS1leGl0LXB3$O+DjYmFGfVSWu+fkiM29V8Fv5Dy6eIQzW2q1WDqQXk0"

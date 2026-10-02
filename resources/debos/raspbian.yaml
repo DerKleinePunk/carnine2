@@ -404,7 +404,8 @@ actions:
       chown root:carnine /etc/carnine/config.toml
       chmod 0660 /etc/carnine/config.toml
       chown -R root:carnine /etc/carnine/config.d
-      chmod 0750 /etc/carnine/config.d
+      # 0770: the backend writes a changed exit password there (#51).
+      chmod 0770 /etc/carnine/config.d
       chmod 0640 /etc/carnine/config.d/*.toml
 
   - action: install-deb

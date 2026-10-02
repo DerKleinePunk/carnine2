@@ -71,6 +71,29 @@ service SystemService {
   // the resume state. Unknown values are the UI's to ignore.
   rpc GetUiState (Empty) returns (UiState);
   rpc SaveUiState (UiState) returns (CommandResponse);
+  // The password "Beenden" in the options asks for (#51). The backend keeps
+  // only an Argon2id hash: the factory default from the configuration, a
+  // changed one in /etc/carnine/config.d/30-exit-password.toml. Verify
+  // answers valid = false for a wrong password; it is not an error.
+  rpc VerifyExitPassword (ExitPasswordRequest) returns (ExitPasswordCheck);
+  // Needs the current password. PERMISSION_DENIED when it is wrong,
+  // INVALID_ARGUMENT when the new one breaks the rules (4 to 64 characters,
+  // no control characters), INTERNAL when it cannot be stored. The new
+  // password counts at once and survives restarts and deployments.
+  rpc SetExitPassword (SetExitPasswordRequest) returns (CommandResponse);
+}
+
+message ExitPasswordRequest {
+  string password = 1;
+}
+
+message ExitPasswordCheck {
+  bool valid = 1;
+}
+
+message SetExitPasswordRequest {
+  string current_password = 1;
+  string new_password = 2;
 }
 
 message UiState {

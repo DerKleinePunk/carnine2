@@ -18,13 +18,13 @@ use carnine::{
     get_cover_art_request::Target as CoverArtTarget, media_service_client::MediaServiceClient,
     navigation_service_client::NavigationServiceClient, system_service_client::SystemServiceClient,
     AddPlaylistEntryRequest, CameraNorm, CameraSettings, ComputeRouteRequest,
-    CreatePlaylistRequest, Empty, FixState, GetCoverArtRequest, GetLocationNameRequest,
-    GetPlaylistRequest, GetReplayRouteRequest, ImportMusicVolumeRequest, LatLon, LibraryEventType,
-    NavigationStatus, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PositionFix,
-    PositionSourceKind, PowerSupplyState, PowerSupplyStatus, RepeatMode, RescanMediaRequest, Route,
-    SearchMediaRequest, SearchPlacesRequest, SeekRequest, SetRepeatModeRequest,
-    SetShuffleModeRequest, SetTrackRecordingRequest, SetVolumeRequest, SystemMetrics,
-    ThermalStatus, UiState,
+    CreatePlaylistRequest, Empty, ExitPasswordRequest, FixState, GetCoverArtRequest,
+    GetLocationNameRequest, GetPlaylistRequest, GetReplayRouteRequest, ImportMusicVolumeRequest,
+    LatLon, LibraryEventType, NavigationStatus, PlayPlaylistRequest, PlayQueueEntryRequest,
+    PlayRequest, PositionFix, PositionSourceKind, PowerSupplyState, PowerSupplyStatus, RepeatMode,
+    RescanMediaRequest, Route, SearchMediaRequest, SearchPlacesRequest, SeekRequest,
+    SetExitPasswordRequest, SetRepeatModeRequest, SetShuffleModeRequest, SetTrackRecordingRequest,
+    SetVolumeRequest, SystemMetrics, ThermalStatus, UiState,
 };
 
 #[tokio::main]
@@ -86,6 +86,8 @@ async fn main() -> Result<()> {
         "ui-state" => get_ui_state(&endpoint).await?,
         "save-ui-state" => save_ui_state(&endpoint).await?,
         "save-language" => save_language(&endpoint).await?,
+        "verify-exit-password" => verify_exit_password(&endpoint).await?,
+        "set-exit-password" => set_exit_password(&endpoint).await?,
         "nav-status" => get_navigation_status(&endpoint).await?,
         "positions" => stream_positions(&endpoint).await?,
         "places" => search_places(&endpoint).await?,
@@ -444,6 +446,49 @@ async fn save_ui_state(endpoint: &str) -> Result<()> {
         .save_ui_state(UiState {
             last_page: Some(last_page),
             language: None,
+        })
+        .await?
+        .into_inner();
+    println!("{}: {}", response.success, response.message);
+    Ok(())
+}
+
+/// Argument `index`, or else the next line on stdin, so that a password need
+/// not end up in the shell history.
+fn argument_or_stdin(index: usize, what: &str) -> Result<String> {
+    if let Some(value) = env::args().nth(index) {
+        return Ok(value);
+    }
+    eprintln!("{what}:");
+    let mut line = String::new();
+    std::io::stdin()
+        .read_line(&mut line)
+        .with_context(|| format!("failed to read the {what}"))?;
+    Ok(line.trim_end_matches(['\r', '\n']).to_string())
+}
+
+/// `verify-exit-password [password]` (#51): prints valid=true/false.
+async fn verify_exit_password(endpoint: &str) -> Result<()> {
+    let password = argument_or_stdin(3, "password")?;
+    let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let response = client
+        .verify_exit_password(ExitPasswordRequest { password })
+        .await?
+        .into_inner();
+    println!("valid={}", response.valid);
+    Ok(())
+}
+
+/// `set-exit-password [current] [new]` (#51); missing ones are read from
+/// stdin, one per line.
+async fn set_exit_password(endpoint: &str) -> Result<()> {
+    let current_password = argument_or_stdin(3, "current password")?;
+    let new_password = argument_or_stdin(4, "new password")?;
+    let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let response = client
+        .set_exit_password(SetExitPasswordRequest {
+            current_password,
+            new_password,
         })
         .await?
         .into_inner();

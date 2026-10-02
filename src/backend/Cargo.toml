@@ -79,6 +79,7 @@ prost = "0.14"
 ringbuf = "0.4"
 ffmpeg-next = { version = "8", optional = true }
 rand = "0.8"
+argon2 = "0.5"
 
 [dev-dependencies]
 # test-util gives the metrics sampler tests a paused clock, so they cover the

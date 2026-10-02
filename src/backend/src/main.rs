@@ -33,6 +33,7 @@ mod camera;
 mod config;
 mod cpal_audio_engine;
 mod database;
+mod exit_password;
 mod media_player;
 mod navigation;
 mod power_supply;
@@ -52,13 +53,14 @@ use carnine::{
     media_service_server::{MediaService, MediaServiceServer},
     AddPlaylistEntryRequest, AudioEvent, AudioEventType, CanData, CanDataRequest, CanDataResponse,
     CommandResponse, Configuration, ConfigurationResponse, CreatePlaylistRequest, Empty,
-    GetCoverArtRequest, GetCoverArtResponse, GetPlaylistRequest, ImportMusicVolumeRequest,
-    LibraryEvent, LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest,
-    PlayQueueEntryRequest, PlayRequest, PlayerEvent, PlayerEventType, PlayerState, Playlist,
-    PlaylistEntry, PowerSupplyState, PowerSupplyStatus, RepeatMode, RescanMediaRequest,
-    SearchMediaRequest, SearchMediaResponse, SeekRequest, ServiceVersion, SetRepeatModeRequest,
-    SetShuffleModeRequest, SetVolumeRequest, SystemMetrics, ThermalStatus, UiState,
-    UpdateConfigurationRequest, VolumeResponse,
+    ExitPasswordCheck, ExitPasswordRequest, GetCoverArtRequest, GetCoverArtResponse,
+    GetPlaylistRequest, ImportMusicVolumeRequest, LibraryEvent, LibraryEventType,
+    ListPlaylistsResponse, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PlayerEvent,
+    PlayerEventType, PlayerState, Playlist, PlaylistEntry, PowerSupplyState, PowerSupplyStatus,
+    RepeatMode, RescanMediaRequest, SearchMediaRequest, SearchMediaResponse, SeekRequest,
+    ServiceVersion, SetExitPasswordRequest, SetRepeatModeRequest, SetShuffleModeRequest,
+    SetVolumeRequest, SystemMetrics, ThermalStatus, UiState, UpdateConfigurationRequest,
+    VolumeResponse,
 };
 
 #[derive(Debug, Default)]
@@ -66,6 +68,7 @@ pub struct SystemServiceImpl {
     metrics: Arc<system_metrics::SystemMetricsHandle>,
     database_path: PathBuf,
     power_supply: power_supply::PowerSupplyHub,
+    exit_password: Arc<exit_password::Store>,
 }
 
 /// Page names are identifiers like "maps"; anything longer is not one.
@@ -86,7 +89,15 @@ impl SystemServiceImpl {
             metrics,
             database_path,
             power_supply,
+            exit_password: Arc::default(),
         }
+    }
+
+    /// The exit password from the configuration and where a changed one
+    /// goes; without it the factory default applies and cannot be changed.
+    pub fn with_exit_password(mut self, store: exit_password::Store) -> Self {
+        self.exit_password = Arc::new(store);
+        self
     }
 }
 
@@ -221,6 +232,55 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
             last_page: Some(last_page),
             language: Some(language),
         }))
+    }
+
+    async fn verify_exit_password(
+        &self,
+        request: Request<ExitPasswordRequest>,
+    ) -> Result<Response<ExitPasswordCheck>, Status> {
+        let password = request.into_inner().password;
+        let store = Arc::clone(&self.exit_password);
+        // Argon2 is meant to be slow; keep it off the async workers.
+        let valid = tokio::task::spawn_blocking(move || store.verify(&password))
+            .await
+            .map_err(|error| Status::internal(error.to_string()))?;
+        info!(valid, "exit password checked");
+        Ok(Response::new(ExitPasswordCheck { valid }))
+    }
+
+    async fn set_exit_password(
+        &self,
+        request: Request<SetExitPasswordRequest>,
+    ) -> Result<Response<CommandResponse>, Status> {
+        let SetExitPasswordRequest {
+            current_password,
+            new_password,
+        } = request.into_inner();
+        let store = Arc::clone(&self.exit_password);
+        let result =
+            tokio::task::spawn_blocking(move || store.change(&current_password, &new_password))
+                .await
+                .map_err(|error| Status::internal(error.to_string()))?;
+        match result {
+            Ok(()) => {
+                info!("exit password changed");
+                Ok(Response::new(CommandResponse {
+                    success: true,
+                    message: "exit password changed".to_owned(),
+                }))
+            }
+            Err(exit_password::ChangeError::WrongPassword) => {
+                warn!("exit password change refused: wrong current password");
+                Err(Status::permission_denied("the current password is wrong"))
+            }
+            Err(exit_password::ChangeError::Rejected(rejection)) => {
+                Err(Status::invalid_argument(rejection.message()))
+            }
+            Err(exit_password::ChangeError::Storage(error)) => {
+                error!(error = %error, "storing the exit password failed");
+                Err(Status::internal(error.to_string()))
+            }
+        }
     }
 
     async fn save_ui_state(
@@ -1437,6 +1497,7 @@ fn configuration_from_proto(configuration: &Configuration) -> Result<config::Con
         navigation: config::NavigationConfig::default(),
         power_supply: config::PowerSupplyConfig::default(),
         camera: config::CameraConfig::default(),
+        exit_password: config::ExitPasswordConfig::default(),
     };
     configuration.validate()?;
     Ok(configuration)
@@ -1622,7 +1683,11 @@ async fn main() -> Result<()> {
         Arc::clone(&system_metrics),
         configuration.media.database_path.clone(),
         power_supply_hub.clone(),
-    );
+    )
+    .with_exit_password(exit_password::Store::new(
+        configuration.exit_password.hash.as_deref(),
+        Some(configuration_path.with_extension("d")),
+    ));
     let media_service = MediaServiceImpl::new_runtime(
         configuration.media.database_path.clone(),
         configuration.media.folders.clone(),
@@ -1751,9 +1816,10 @@ mod tests {
         audio_service_server::AudioService, config_service_server::ConfigService,
         get_cover_art_request::Target as CoverArtTarget, media_service_server::MediaService,
         system_service_server::SystemService, AddPlaylistEntryRequest, AudioEventType,
-        CreatePlaylistRequest, Empty, GetCoverArtRequest, GetPlaylistRequest, LibraryEventType,
-        PlayerEventType, RepeatMode, RescanMediaRequest, SeekRequest, SetRepeatModeRequest,
-        SetShuffleModeRequest, SystemMetrics, ThermalStatus, UiState,
+        CreatePlaylistRequest, Empty, ExitPasswordRequest, GetCoverArtRequest, GetPlaylistRequest,
+        LibraryEventType, PlayerEventType, RepeatMode, RescanMediaRequest, SeekRequest,
+        SetExitPasswordRequest, SetRepeatModeRequest, SetShuffleModeRequest, SystemMetrics,
+        ThermalStatus, UiState,
     };
     use crate::config;
     use crate::database;
@@ -1862,6 +1928,7 @@ mod tests {
             navigation: config::NavigationConfig::default(),
             power_supply: config::PowerSupplyConfig::default(),
             camera: config::CameraConfig::default(),
+            exit_password: config::ExitPasswordConfig::default(),
         }
     }
 
@@ -1944,6 +2011,85 @@ mod tests {
         assert_eq!(restored.last_page(), "media");
         assert_eq!(restored.language(), "en");
         let _ = std::fs::remove_file(database_path);
+    }
+
+    async fn check(service: &SystemServiceImpl, password: &str) -> bool {
+        let request = Request::new(ExitPasswordRequest {
+            password: password.to_string(),
+        });
+        SystemService::verify_exit_password(service, request)
+            .await
+            .expect("checking never fails")
+            .into_inner()
+            .valid
+    }
+
+    #[tokio::test]
+    async fn system_service_checks_and_changes_the_exit_password() {
+        // A configuration with its drop-in directory, as /etc/carnine has it.
+        let directory =
+            std::env::temp_dir().join(format!("carnine-exit-password-rpc-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&directory);
+        let config_path = directory.join("config.toml");
+        std::fs::create_dir_all(config_path.with_extension("d")).unwrap();
+        let service_for = |hash: Option<&str>| {
+            SystemServiceImpl::new(
+                Arc::new(system_metrics::SystemMetricsHandle::new()),
+                PathBuf::new(),
+                crate::power_supply::PowerSupplyHub::new(false),
+            )
+            .with_exit_password(crate::exit_password::Store::new(
+                hash,
+                Some(config_path.with_extension("d")),
+            ))
+        };
+        let service = service_for(None);
+        let change = |current: &str, new: &str| {
+            SystemService::set_exit_password(
+                &service,
+                Request::new(SetExitPasswordRequest {
+                    current_password: current.to_string(),
+                    new_password: new.to_string(),
+                }),
+            )
+        };
+
+        assert!(check(&service, "4321").await);
+        assert!(!check(&service, "1234").await);
+
+        let wrong = change("1234", "neues-pw")
+            .await
+            .expect_err("a wrong current password is refused");
+        assert_eq!(wrong.code(), tonic::Code::PermissionDenied);
+        let short = change("4321", "12")
+            .await
+            .expect_err("a too short password is refused");
+        assert_eq!(short.code(), tonic::Code::InvalidArgument);
+        assert!(check(&service, "4321").await);
+
+        assert!(
+            change("4321", "neues-pw")
+                .await
+                .expect("the change should work")
+                .into_inner()
+                .success
+        );
+        assert!(check(&service, "neues-pw").await);
+        assert!(!check(&service, "4321").await);
+
+        // After a restart the backend reads the drop-in like any other.
+        std::fs::write(&config_path, "").unwrap();
+        let table = std::fs::read_to_string(
+            config_path
+                .with_extension("d")
+                .join(crate::exit_password::DROP_IN_NAME),
+        )
+        .unwrap();
+        let stored: toml::Table = toml::from_str(&table).unwrap();
+        let restarted = service_for(stored["exit_password"]["hash"].as_str());
+        assert!(check(&restarted, "neues-pw").await);
+        assert!(!check(&restarted, "4321").await);
+        std::fs::remove_dir_all(&directory).unwrap();
     }
 
     #[tokio::test]

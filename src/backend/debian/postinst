@@ -9,4 +9,12 @@ if [ "$1" = "configure" ] && command -v udevadm >/dev/null 2>&1; then
     udevadm trigger --subsystem-match=tty --action=add 2>/dev/null || true
 fi
 
+# SetExitPassword (#51) writes its drop-in into /etc/carnine/config.d, so the
+# carnine group must be able to write there. Older images made the
+# directory 0750.
+if [ "$1" = "configure" ] && [ -d /etc/carnine/config.d ] && getent group carnine >/dev/null; then
+    chgrp carnine /etc/carnine/config.d
+    chmod 0770 /etc/carnine/config.d
+fi
+
 #DEBHELPER#
