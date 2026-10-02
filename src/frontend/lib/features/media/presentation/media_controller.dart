@@ -69,6 +69,9 @@ class MediaController extends ChangeNotifier {
     this.library = library;
     this.playlists = playlists;
     this.audio = audio;
+    // The player stream opens before the library loads, so a paused track
+    // can arrive before the library knows it (#81).
+    this.library.addListener(this.player.resolveTrackFromLibrary);
   }
 
   static const _initialReconnectDelay = Duration(milliseconds: 500);
@@ -119,6 +122,7 @@ class MediaController extends ChangeNotifier {
   void dispose() {
     _reconnectTimer?.cancel();
     _heartbeat?.stop();
+    library.removeListener(player.resolveTrackFromLibrary);
     player.dispose();
     library.dispose();
     playlists.dispose();

@@ -69,6 +69,11 @@ class PlayerController extends ChangeNotifier {
   final Map<int, Uint8List?> _coverArtCache = {};
   int? _coverArtTrackId;
 
+  /// The playlist whose entries were restored before the library knew all
+  /// their tracks; [resolveTrackFromLibrary] fetches it again (#81).
+  int? _incompletePlaylistId;
+  bool _resolvingFromLibrary = false;
+
   StreamSubscription<PlayerEventUpdate>? _subscription;
   Timer? _ticker;
 
@@ -427,6 +432,35 @@ class PlayerController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Names the current track and fills its playlist once the library knows
+  /// them. The snapshot of a paused track can arrive before the library has
+  /// loaded, and nothing else follows that would resolve it later (#81).
+  void resolveTrackFromLibrary() => unawaited(_resolveFromLibrary());
+
+  Future<void> _resolveFromLibrary() async {
+    final playlistId = _incompletePlaylistId;
+    if (_resolvingFromLibrary ||
+        _mediaPath.isEmpty ||
+        (playlistId == null && _currentTrack?.path == _mediaPath)) {
+      return;
+    }
+    _resolvingFromLibrary = true;
+    try {
+      if (playlistId != null) {
+        await _restorePlaylistIfNeeded(playlistId);
+      }
+      final track = _resolveTrack(_mediaPath);
+      if (identical(track, _currentTrack) && playlistId == null) {
+        return;
+      }
+      _currentTrack = track;
+      unawaited(_ensureCoverArtLoaded(track));
+      notifyListeners();
+    } finally {
+      _resolvingFromLibrary = false;
+    }
+  }
+
   /// Keeps [_shufflePosition] tracking the backend's own shuffle bag walk
   /// (see the field doc). Resets to 0 exactly when the backend would
   /// re-pin its shuffle order to the current track - shuffle just turned on,
@@ -486,7 +520,9 @@ class PlayerController extends ChangeNotifier {
   }
 
   Future<void> _restorePlaylistIfNeeded(int? playlistId) async {
-    if (playlistId == null || _queue.playlistId == playlistId) {
+    if (playlistId == null ||
+        (_queue.playlistId == playlistId &&
+            _incompletePlaylistId != playlistId)) {
       return;
     }
     try {
@@ -495,6 +531,11 @@ class PlayerController extends ChangeNotifier {
           .map((entry) => entry.track)
           .whereType<MediaLibraryTrack>()
           .toList();
+      // Entries name their tracks from the library cache, which may not be
+      // loaded yet right after start-up (#81).
+      _incompletePlaylistId = tracks.length < playlist.entries.length
+          ? playlist.id
+          : null;
       _queue = MediaQueue(
         origin: MediaQueueOrigin.playlist,
         playlistId: playlist.id,
