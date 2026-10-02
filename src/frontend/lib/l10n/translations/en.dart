@@ -5,7 +5,7 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.navHome: 'Home',
   AppTextKey.navMaps: 'Maps',
   AppTextKey.navMedia: 'Media',
-  AppTextKey.navCamera: 'Cam',
+  AppTextKey.navCamera: 'Camera',
   AppTextKey.navControls: 'Controls',
   AppTextKey.navSettings: 'Settings',
   AppTextKey.navHomeSemantic: 'Home dashboard',

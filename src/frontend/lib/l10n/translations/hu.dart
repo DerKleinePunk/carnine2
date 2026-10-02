@@ -5,7 +5,7 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.navHome: 'Kezdőlap',
   AppTextKey.navMaps: 'Térképek',
   AppTextKey.navMedia: 'Média',
-  AppTextKey.navCamera: 'Cam',
+  AppTextKey.navCamera: 'Kamera',
   AppTextKey.navControls: 'Vezérlés',
   AppTextKey.navSettings: 'Opciók',
   AppTextKey.navHomeSemantic: 'Kezdőlap irányítópult',

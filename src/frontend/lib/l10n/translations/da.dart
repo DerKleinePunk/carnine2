@@ -5,7 +5,7 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.navHome: 'Hjem',
   AppTextKey.navMaps: 'Kort',
   AppTextKey.navMedia: 'Medier',
-  AppTextKey.navCamera: 'Cam',
+  AppTextKey.navCamera: 'Kamera',
   AppTextKey.navControls: 'Betjening',
   AppTextKey.navSettings: 'Indstillinger',
   AppTextKey.navHomeSemantic: 'Hjemmedashboard',

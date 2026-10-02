@@ -18,6 +18,30 @@ Lieber eine gezielte Rückfrage stellen, als eine falsche Annahme umzusetzen, di
 
 Carnine (CarPC) ist ein selbstgebautes In-Vehicle-Infotainment-System auf einem Raspberry Pi 4. Das Flutter-Frontend läuft als Linux-Fenster auf einem Touchscreen im Fahrzeug und ist **reine Präsentationsschicht**: UI-Widgets (Navigation, Media Player, Telemetrie, Einstellungen, Rückfahrkamera) + State Management + gRPC-Client. Sämtliche Business-Logik, Datenhaltung und CAN-Bus-Kommunikation liegt im Rust-Backend, nicht im Frontend (`docs/05-building-block.md`, ADR-013 in `docs/09-architecture-decisions.md`). Kommunikation läuft in Produktion ausschließlich über gRPC via lokalen Unix-Domain-Socket (ADR-002); Transport-Wahl sitzt zentral in `lib/core/platform/grpc_endpoint.dart`. Für lokale Entwicklung, wenn Flutter und Backend nicht denselben Kernel-/Socket-Namespace teilen (z. B. Flutter als natives Windows-Debug-Target gegen ein Backend in WSL2), gibt es einen expliziten, per Env-Var aktivierten TCP-Loopback-Fallback (`docs/07-deployment.md` §7.4) – das ändert nichts am Sicherheitsmodell in Produktion.
 
+## Arbeitsumfang
+
+Gearbeitet wird **nur am Frontend** (`src/frontend/`). Am Backend (`src/backend/`, `src/proto/`) werden keine Änderungen gemacht. Die Bedienungsanleitung (`docs/bedienung/`) wird mitgepflegt, wenn sich die Bedienung ändert.
+
+## Test-Pi (echtes Gerät)
+
+Merker für die Arbeit am echten Raspberry Pi, Stand 2026-10-02:
+
+| | |
+|---|---|
+| Gerät | Raspberry Pi 4 Model B, Debian 13 (trixie), per LAN im Heimnetz |
+| Hostname | `carnine-pc-843d` (mDNS `carnine-pc-843d.local`, zuletzt 192.168.178.48) |
+| Zugang | Benutzer `pi`, Passwort `raspberry` (Image-Standard, noch nicht geändert; bei Änderung hier nachtragen) |
+| SSH | `ssh carnine-pi` ohne Passwort. Alias in `~/.ssh/config`, eigener Schlüssel `~/.ssh/id_ed25519_carnine_pi`, öffentlicher Teil auf dem Pi installiert |
+| sudo | fragt nach dem Passwort: `echo raspberry \| sudo -S -p "" <befehl>` |
+| Dienste | `carnine-backend`, `carnine-frontend` (systemd), Logs mit `sudo journalctl -u carnine-frontend -b` |
+| Stand | Image 0.10.0 (`0.10.0+git20261001165750.562f528`), Ton über die Klinke (`/etc/modprobe.d/carnine-audio.conf`: `slots=snd_bcm2835,vc4,vc4`, seit 2026-10-02), kein EDID-Override, das Display meldet sein eigenes EDID (128 Byte, ohne Audio) |
+
+- Das EDID des Displays liegt als Datei unter `E:\Studio-Projekte\CarNine2\edid\edid-panel-carnine-pc-843d.bin` (nicht im Repo).
+- Frontend auf den Pi bringen: `build_pi.sh` und `deploy_pi.sh pi@carnine-pc-843d` laufen in WSL (Debian, Benutzer `Daoniyella`). Die Toolchain ist dort seit 2026-10-02 eingerichtet: apt-Pakete, Rust-Ziel `aarch64-unknown-linux-gnu`, `cargo-deb`, Dart-SDK (`~/dart-sdk`), `emb` 0.3.6, `protoc-gen-dart`, emb-Workspace `~/develop/emb-workspace` (Flutter 3.47.5, ivi-homescreen `92c2353a`, Arm-Toolchain und Sysroot geholt), ALSA-Sysroot unter `build/sysroots/carnine-pi-arm64`. Umgebung laden: `. ~/.carnine-env.sh`. Aufruf aus WSL: `cd /mnt/e/Studio-Projekte/CarNine2/carnine2 && . ~/.carnine-env.sh && ./build_pi.sh`.
+- **Offen (Stand 2026-10-02): der Frontend-Build läuft noch nicht durch.** (1) Der gepinnte Commit `3114ff6…` von `video_grabber` existiert im Upstream nicht mehr (Historie dort am 2026-10-02 umgeschrieben), `pub get` scheitert. Ein Test mit Pin auf `6e2768c` kam weiter, der Pin wurde wieder zurückgenommen. (2) `emb` 0.3.6 bricht mit „bundle lib/: unexpected file libsqlite3.so“ ab; das Bundle auf dem Pi enthält die Datei aber. Beides mit Michael klären, bevor `pubspec.*` oder emb angefasst werden.
+- Das Backend-Paket baut in WSL durch (`resources/debos/carnine-backend.deb`). `deploy_pi.sh` installiert Frontend **und** Backend-Paket und schreibt `config.toml` (die Repo-Config ist identisch mit der auf dem Pi).
+- Vor dem ersten Ausprobieren von Frontend-Änderungen auf dem Pi nach dem Weg fragen, nicht raten.
+
 ## Relevante Rahmenbedingungen aus docs/ (arc42)
 
 ### Hardware & Umgebung (`docs/02-constraints.md`)

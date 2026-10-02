@@ -179,6 +179,13 @@ first. The display must be on **HDMI 0** (on the Pi 4 the port next to USB-C),
 the only connector the override and the path below refer to; the Pi 3 has only
 this one.
 
+If `grep drm.edid_firmware /proc/cmdline` prints nothing, there is no override
+and sysfs already shows the panel: skip steps 1, 2, 3 and 5 and go straight to
+step 4. Copy the files to the PC with
+`scp pi@<name>.local:edid-panel.bin .` (also `edid-panel-dmesg.txt`); the user
+guide ([Ton über die Klinke](bedienung/ton-klinke.md)) lists the same steps in
+German.
+
 1. Keep a copy of the command line:
    `sudo cp /boot/firmware/cmdline.txt /boot/firmware/cmdline.txt.bak`
 2. In `/boot/firmware/cmdline.txt` (a single line) delete the whole
