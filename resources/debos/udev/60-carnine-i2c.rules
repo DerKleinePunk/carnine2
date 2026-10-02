@@ -1,0 +1,3 @@
+# /dev/i2c-* for the i2c group, as raspberrypi-sys-mods does it on Raspberry
+# Pi OS (this image does not install it). The kernel creates them root-only.
+SUBSYSTEM=="i2c-dev", GROUP="i2c", MODE="0660"

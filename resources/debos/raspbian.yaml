@@ -223,6 +223,9 @@ actions:
       sed -i '/^[[:space:]]*#\?[[:space:]]*dtparam=i2c_arm=/d' /boot/firmware/config.txt
       sed -i '/^[[:space:]]*#\?[[:space:]]*disable_splash=/d' /boot/firmware/config.txt
       printf '%s\n' 'dtparam=i2c_arm=on' 'disable_splash=1' >> /boot/firmware/config.txt
+      # i2c_arm only brings up the bus; /dev/i2c-1 for i2cdetect and user
+      # space needs i2c-dev, which Raspberry Pi OS loads in raspi-config.
+      printf '%s\n' i2c-dev > /etc/modules-load.d/carnine-i2c.conf
 
   - action: run
     description: Serial line and halt signal for the vehicle power supply
@@ -340,6 +343,8 @@ actions:
       adduser pi sudo
       adduser pi audio
       adduser pi video
+      addgroup --system i2c
+      adduser pi i2c
       echo pi:{{ $rootpassword }} | chpasswd
       {{ if $ssh_public_key -}}
       install -d -o pi -g pi -m 0700 /home/pi/.ssh
@@ -367,6 +372,12 @@ actions:
     origin: recipe
     source: udev/60-carnine-videocore.rules
     destination: /etc/udev/rules.d/60-carnine-videocore.rules
+
+  - action: overlay
+    description: Let the i2c group use the I2C buses
+    origin: recipe
+    source: udev/60-carnine-i2c.rules
+    destination: /etc/udev/rules.d/60-carnine-i2c.rules
 
   - action: overlay
     description: Install SSH host key generator
