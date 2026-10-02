@@ -149,7 +149,11 @@ Die Prüfung macht `carnine-password-check.service` als root beim Start und
 nach jeder Änderung an `/etc/shadow` (`carnine-password-check.path`), die
 Meldung kommt aus `/etc/profile.d/carnine-password.sh`. Nach `passwd` ist sie
 ohne Neustart weg. Tests: `sh tests/carnine-password-test.sh`. Passwort und
-Namen am Gerät ändern: `docs/bedienung/nach-der-installation.md`.
+Namen am Gerät ändern: `docs/bedienung/nach-der-installation.md`. `pi` ist
+in den Gruppen `sudo`, `audio` und `video`. Über `video` geht `vcgencmd`
+(z. B. `get_throttled`) ohne sudo, die udev-Regel
+`udev/60-carnine-videocore.rules` gibt `/dev/vcio`, `/dev/vcio_gencmd` und
+`/dev/vchiq` dafür frei, nicht aber `vcio_crypto` und `vcio_provisioning`.
 
 Für ein Gerät mit dem Kfz-Netzteil AuPrV1_1 kommt `-t power_supply:auprv1`
 dazu. Dann trägt das Rezept `dtoverlay=gpio-poweroff,active_low=1,gpiopin=5`

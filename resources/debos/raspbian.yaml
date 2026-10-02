@@ -339,6 +339,7 @@ actions:
       adduser --gecos "Raspberry Pi User" --disabled-password --shell /bin/bash pi
       adduser pi sudo
       adduser pi audio
+      adduser pi video
       echo pi:{{ $rootpassword }} | chpasswd
       {{ if $ssh_public_key -}}
       install -d -o pi -g pi -m 0700 /home/pi/.ssh
@@ -360,6 +361,12 @@ actions:
       install -d -o root -g carnine -m 0770 /etc/carnine
 
       install -d -o root -g root -m 0755 /usr/share/plymouth/themes/pix
+
+  - action: overlay
+    description: Let the video group use vcgencmd without sudo
+    origin: recipe
+    source: udev/60-carnine-videocore.rules
+    destination: /etc/udev/rules.d/60-carnine-videocore.rules
 
   - action: overlay
     description: Install SSH host key generator

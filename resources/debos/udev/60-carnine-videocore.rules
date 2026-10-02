@@ -1,0 +1,6 @@
+# vcgencmd talks to the firmware through /dev/vcio_gencmd (older tools use
+# /dev/vcio or vchiq). The kernel creates them root-only; Raspberry Pi OS
+# opens them to the video group in raspberrypi-sys-mods, which this image does
+# not install. vcio_crypto and vcio_provisioning (OTP keys, firmware signing)
+# stay root-only: the service user carnine is in video too.
+KERNEL=="vcio|vcio_gencmd|vchiq", GROUP="video", MODE="0660"
