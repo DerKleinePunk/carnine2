@@ -250,6 +250,11 @@ an image for it, `…-waveshare-7c`, built with `-t edid:none` and
 `-t audio_output:jack` (c924575). With an older image remove the entry by hand
 as in step 2 above and keep it removed.
 
+The 7C image does not suit a 7H: checked on jeep-pi (7H) on 2026-10-02, the
+kernel took the 7H's cloned EDID, offered 1920x1080 and many other modes but
+no 1024x600, and the frontend ran at 1920x1080, which "The problem" above
+explains.
+
 Not captured yet: `/sys/class/drm/card*-HDMI-A-1/modes`, `fb0` and `dmesg`
 from that Pi (see "Verification after boot").
 

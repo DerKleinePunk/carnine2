@@ -39,6 +39,11 @@ Festplatte.
 Im Zweifel `hdmi`. Umstellen geht später auch noch, siehe
 [Ton über die Klinke](ton-klinke.md).
 
+**Das `7c`-Image nicht an ein 7H.** Ohne die Vorgabe meldet sich das 7H mit
+seiner geklonten Kennung, in der 1024 × 600 fehlt. Der Pi wählt dann
+1920 × 1080, und das Bild passt nicht (geprüft am 7H, 02.10.2026).
+Umgekehrt flackert das 7C mit `hdmi` und `jack`, siehe unten.
+
 ### Waveshare 7C
 
 Die Images `hdmi` und `jack` sind auf das **7H** eingestellt: Sie geben dem
