@@ -80,9 +80,29 @@ if [[ -n "$missing" ]]; then
   exit 1
 fi
 
+# Every picture must be there. The pictures are in Git LFS; a checkout
+# without LFS leaves small text pointers, and WeasyPrint would only log them.
+while read -r src; do
+  if [[ ! -f "$guide/$src" ]]; then
+    echo "error: picture $src is missing" >&2
+    exit 1
+  fi
+  if head -c 40 "$guide/$src" | grep -q "git-lfs"; then
+    echo "error: $src is a Git LFS pointer, run 'git lfs pull' (in CI: checkout with lfs: true)" >&2
+    exit 1
+  fi
+done < <(grep -o '<img src="[^"]*"' "$work/guide.html" | sed 's/^<img src="//; s/"$//' | sort -u)
+
 mkdir -p "$(dirname "$out")"
-# Base URL is the guide's folder, so that bilder/... resolves.
+# Base URL is the guide's folder, so that bilder/... resolves. WeasyPrint does
+# not fail on a broken picture or stylesheet, it logs ERROR - so the build does.
+status=0
 weasyprint --base-url "$guide/" --stylesheet "$here/guide.css" \
-  "$work/guide.html" "$out"
+  "$work/guide.html" "$out" 2> "$work/weasyprint.log" || status=$?
+cat "$work/weasyprint.log" >&2
+if [[ $status -ne 0 ]] || grep -q "ERROR" "$work/weasyprint.log"; then
+  echo "error: WeasyPrint reported errors (see above)" >&2
+  exit 1
+fi
 
 echo "$out"

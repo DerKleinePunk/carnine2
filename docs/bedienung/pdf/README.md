@@ -50,10 +50,13 @@ The build fails when
 
 * a page in `docs/bedienung/` is missing from the page list in `build.sh`
   (a new page has to be added there, in the order of the README's contents),
-* a link inside the guide has no target (e.g. a renamed heading).
+* a link inside the guide has no target (e.g. a renamed heading),
+* a picture is missing or only a Git LFS pointer (checkout without LFS:
+  `git lfs pull`), or WeasyPrint logs any other ERROR.
 
 ## In CI
 
-The job `user-guide` in `.github/workflows/ci.yml` installs the tools with
+The job `user-guide` in `.github/workflows/ci.yml` checks out with LFS (for
+the pictures), installs the tools with
 apt, runs shellcheck and `build.sh` on every push and pull request, and keeps
 the PDF for 30 days as the artifact `bedienungsanleitung` of the run.
