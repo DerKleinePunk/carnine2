@@ -205,6 +205,52 @@ error anywhere. Such a panel needs the sound on the Pi's jack, see
 [Ton über die Klinke](bedienung/ton-klinke.md) in the user guide and "Audio
 output" in [07 – Deployment](07-deployment.md#audio-output).
 
+## Waveshare 7C
+
+A tester's Waveshare 7C (no speakers) was read out with the steps above on
+2026-10-02 (`edid-panel-carnine-pc-843d.bin`, 128 bytes, sha256
+`727d3e18…7c35`). Its own EDID is quite different from the 7H's:
+
+| | 7C (own EDID) | 7H (`waveshare-7h-260929.bin`) |
+|---|---|---|
+| Size | 128 bytes, **no extension block** | 256 bytes, CEA extension |
+| Vendor, product | `ADA`, 0x0004, year 2007 | `LEN`, `LEN L1950wD`, year 2011 (cloned) |
+| Audio | none announced (no CEA block) | HDMI audio announced |
+| Pixel clock | 49.00 MHz | 50.25 MHz |
+| Horizontal | 1024 + 48 + 96, total 1312 | 1024 + 44 + 88, total 1344 |
+| Vertical | 600 + 3 + 10, total 624 | 600 + 3 + 6, total 625 |
+| Refresh | 59.85 Hz | 59.82 Hz |
+| Sync polarity | −h −v | −h +v |
+| Image size | 154 x 86 mm | 154 x 86 mm |
+| Name, range descriptors | none (three empty descriptors) | name, range limits, serial |
+
+What follows from the EDID:
+
+- **The timings are usable as they are.** All horizontal values are even
+  (`hsync_start` 1072, `hsync_end` 1168, `htotal` 1312), so the vc4 driver's
+  odd-timing check that rejected the 7H's cloned EDID does not apply. The 7C
+  should run at 1024x600 with no `drm.edid_firmware` at all.
+- **No HDMI audio.** Without a CEA block the Pi treats the panel as a DVI
+  sink and announces no audio, which matches a panel without speakers.
+  Sound belongs on the jack ([Ton über die Klinke](bedienung/ton-klinke.md),
+  or the `waveshare-jack` image).
+- **The image currently forces the 7H's timings on the 7C.** With
+  `display:waveshare-1024x600` it sends 50.25 MHz and a total of 1344 x 625
+  instead of the 7C's own 49 MHz and 1312 x 624, and the opposite vertical
+  sync polarity. The tester reports a flickering picture on the 7C; whether
+  these timings are the cause is open.
+
+**Checked on the tester's Pi with the 7C (2026-10-02, reported by Michael):**
+with the `drm.edid_firmware` entry removed from `cmdline.txt` the panel
+runs on its own EDID, sound works after switching to the jack
+([Ton über die Klinke](bedienung/ton-klinke.md)), and the USB camera works
+too. So the 7C needs **no EDID override**, only the jack. An image variant
+without the override and with `audio_output:jack` for the 7C is planned; until
+it exists, remove the entry by hand as in step 2 above and keep it removed.
+
+Not captured yet: `/sys/class/drm/card*-HDMI-A-1/modes`, `fb0` and `dmesg`
+from that Pi (see "Verification after boot").
+
 ## Touch input
 
 The touch controller needs no configuration. On the test unit it enumerates
