@@ -18,14 +18,14 @@ use carnine::{
     control_service_client::ControlServiceClient, get_cover_art_request::Target as CoverArtTarget,
     media_service_client::MediaServiceClient, navigation_service_client::NavigationServiceClient,
     system_service_client::SystemServiceClient, AddPlaylistEntryRequest, CameraNorm,
-    CameraSettings, ComputeRouteRequest, CreatePlaylistRequest, Empty, ExitPasswordRequest,
-    FixState, GetCoverArtRequest, GetLocationNameRequest, GetPlaylistRequest,
+    CameraSettings, ComputeRouteRequest, CreatePlaylistRequest, DeletePlaylistRequest, Empty,
+    ExitPasswordRequest, FixState, GetCoverArtRequest, GetLocationNameRequest, GetPlaylistRequest,
     GetReplayRouteRequest, ImportMusicVolumeRequest, LatLon, LibraryEventType, NavigationStatus,
     PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PositionFix, PositionSourceKind,
-    PowerSupplyState, PowerSupplyStatus, RepeatMode, RescanMediaRequest, Route, SearchMediaRequest,
-    SearchPlacesRequest, SeekRequest, SetExitPasswordRequest, SetRepeatModeRequest,
-    SetShuffleModeRequest, SetTrackRecordingRequest, SetVolumeRequest, SystemMetrics,
-    ThermalStatus, UiState,
+    PowerSupplyState, PowerSupplyStatus, RemovePlaylistEntryRequest, RenamePlaylistRequest,
+    RepeatMode, RescanMediaRequest, Route, SearchMediaRequest, SearchPlacesRequest, SeekRequest,
+    SetExitPasswordRequest, SetRepeatModeRequest, SetShuffleModeRequest, SetTrackRecordingRequest,
+    SetVolumeRequest, SystemMetrics, ThermalStatus, UiState,
 };
 
 #[tokio::main]
@@ -75,6 +75,9 @@ async fn main() -> Result<()> {
         "list-playlists" => list_playlists(&mut client).await?,
         "add-playlist-entry" => add_playlist_entry(&mut client).await?,
         "get-playlist" => get_playlist(&mut client).await?,
+        "rename-playlist" => rename_playlist(&mut client).await?,
+        "delete-playlist" => delete_playlist(&mut client).await?,
+        "remove-playlist-entry" => remove_playlist_entry(&mut client).await?,
         "cover-art" => get_cover_art(&mut client).await?,
         "repeat" => set_repeat_mode(&mut client).await?,
         "shuffle" => set_shuffle_mode(&mut client).await?,
@@ -218,17 +221,62 @@ async fn get_playlist(client: &mut MediaServiceClient<Channel>) -> Result<()> {
         .get_playlist(GetPlaylistRequest { playlist_id })
         .await?
         .into_inner();
+    print_playlist(&playlist);
+    Ok(())
+}
+
+async fn rename_playlist(client: &mut MediaServiceClient<Channel>) -> Result<()> {
+    let playlist_id = env::args()
+        .nth(3)
+        .context("rename-playlist requires a playlist id")?
+        .parse::<u64>()?;
+    let name = env::args()
+        .nth(4)
+        .context("rename-playlist requires a new name")?;
+    let playlist = client
+        .rename_playlist(RenamePlaylistRequest { playlist_id, name })
+        .await?
+        .into_inner();
+    println!("playlist id={} name={}", playlist.id, playlist.name);
+    Ok(())
+}
+
+async fn delete_playlist(client: &mut MediaServiceClient<Channel>) -> Result<()> {
+    let playlist_id = env::args()
+        .nth(3)
+        .context("delete-playlist requires a playlist id")?
+        .parse::<u64>()?;
+    client
+        .delete_playlist(DeletePlaylistRequest { playlist_id })
+        .await?;
+    println!("playlist id={playlist_id} deleted");
+    Ok(())
+}
+
+async fn remove_playlist_entry(client: &mut MediaServiceClient<Channel>) -> Result<()> {
+    let entry_id = env::args()
+        .nth(3)
+        .context("remove-playlist-entry requires an entry id")?
+        .parse::<u64>()?;
+    let playlist = client
+        .remove_playlist_entry(RemovePlaylistEntryRequest { entry_id })
+        .await?
+        .into_inner();
+    print_playlist(&playlist);
+    Ok(())
+}
+
+fn print_playlist(playlist: &carnine::Playlist) {
     println!(
         "playlist id={} name={} has_cover_art={}",
         playlist.id, playlist.name, playlist.has_cover_art
     );
-    for entry in playlist.entries {
+    for entry in &playlist.entries {
         println!(
             "  entry id={} media_id={} position={}",
             entry.id, entry.media_id, entry.position
         );
     }
-    Ok(())
 }
 
 async fn get_cover_art(client: &mut MediaServiceClient<Channel>) -> Result<()> {

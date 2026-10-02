@@ -475,6 +475,208 @@ impl MediaPlayer {
         Ok("playlist loaded".to_string())
     }
 
+    /// The playlist `playlist_id` was deleted (#14). If it is the one
+    /// loaded, the current track stays as a loose track - a queue of one -
+    /// so the music does not stop; what came after it went with the playlist.
+    pub fn forget_playlist(&self, playlist_id: i64) {
+        if self.playlist_id() != Some(playlist_id) {
+            return;
+        }
+        let current_path = self.current_queue_path();
+        {
+            let mut queue = self
+                .queue
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            *queue = current_path.into_iter().collect();
+            *self
+                .queue_index
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner()) =
+                (!queue.is_empty()).then_some(0);
+        }
+        self.queue_entry_ids
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clear();
+        *self
+            .playlist_id
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
+        self.reshuffle_from_current();
+        self.publish(PlayerEventType::PlayerSnapshot, "playlist deleted");
+    }
+
+    /// The playlist entry `entry_id` was removed (#14). If it is in the
+    /// loaded playlist, the queue follows, so its indexes keep matching the
+    /// playlist's positions. For the current track the player goes on to the
+    /// one that followed it - playing if it played, paused at the start
+    /// otherwise - and stops when none follows.
+    pub fn remove_playlist_entry(&self, entry_id: i64) -> Result<()> {
+        let removed = {
+            let mut entry_ids = self
+                .queue_entry_ids
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            let Some(removed) = entry_ids.iter().position(|id| *id == entry_id) else {
+                return Ok(());
+            };
+            entry_ids.remove(removed);
+            removed
+        };
+        let queue_len = {
+            let mut queue = self
+                .queue
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            queue.remove(removed);
+            queue.len()
+        };
+        let current = *self
+            .queue_index
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        // Where the removed track stood in the shuffle order; the one after
+        // it moves into that place.
+        let shuffle_slot = self.drop_from_shuffle_order(removed);
+        match current {
+            Some(current) if current == removed => {
+                let following = if self.shuffle_enabled() {
+                    self.following_shuffled_index(shuffle_slot)
+                } else if removed < queue_len {
+                    Some(removed)
+                } else {
+                    (self.repeat_mode() == RepeatMode::RepeatQueue && queue_len > 0).then_some(0)
+                };
+                self.go_on_after_removed(following)
+            }
+            Some(current) if current > removed => {
+                *self
+                    .queue_index
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(current - 1);
+                self.publish(PlayerEventType::PlayerSnapshot, "queue entry removed");
+                Ok(())
+            }
+            _ => {
+                self.publish(PlayerEventType::PlayerSnapshot, "queue entry removed");
+                Ok(())
+            }
+        }
+    }
+
+    fn current_queue_path(&self) -> Option<String> {
+        let index = (*self
+            .queue_index
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()))?;
+        self.queue
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .get(index)
+            .cloned()
+    }
+
+    /// Takes queue index `removed` out of the shuffle order and renumbers the
+    /// rest. Returns the slot it held, if it was in the order.
+    fn drop_from_shuffle_order(&self, removed: usize) -> Option<usize> {
+        let mut order = self
+            .shuffle_order
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let slot = order.iter().position(|index| *index == removed);
+        if let Some(slot) = slot {
+            order.remove(slot);
+            let mut position = self
+                .shuffle_position
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            if slot < *position {
+                *position -= 1;
+            }
+        }
+        for index in order.iter_mut() {
+            if *index > removed {
+                *index -= 1;
+            }
+        }
+        slot
+    }
+
+    /// The track that follows in the shuffle order once the current one, at
+    /// `slot`, is gone; at the end a new round for repeat=queue.
+    fn following_shuffled_index(&self, slot: Option<usize>) -> Option<usize> {
+        let queue_len = self
+            .queue
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .len();
+        if queue_len == 0 {
+            return None;
+        }
+        let mut order = self
+            .shuffle_order
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut position = self
+            .shuffle_position
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let slot = slot.unwrap_or(*position);
+        if slot < order.len() {
+            *position = slot;
+            return order.get(slot).copied();
+        }
+        if self.repeat_mode() != RepeatMode::RepeatQueue {
+            return None;
+        }
+        *order = shuffled_order(queue_len, None);
+        *position = 0;
+        order.first().copied()
+    }
+
+    fn go_on_after_removed(&self, following: Option<usize>) -> Result<()> {
+        let was_playing = self.state() == "playing";
+        self.stop_active_playback()?;
+        match following {
+            Some(index) if was_playing => self.start_at_index(index).map(|_| ()),
+            Some(index) => {
+                let path = self
+                    .queue
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner())
+                    .get(index)
+                    .cloned();
+                *self
+                    .queue_index
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(index);
+                *self
+                    .media_path
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner()) = path;
+                self.publish(PlayerEventType::PlayerTrackChanged, "queue entry removed");
+                Ok(())
+            }
+            None => {
+                *self
+                    .queue_index
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
+                *self
+                    .media_path
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
+                *self
+                    .state
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner()) = PlaybackState::Stopped;
+                self.publish(PlayerEventType::PlayerStopped, "queue entry removed");
+                Ok(())
+            }
+        }
+    }
+
     /// Brings back a loose track that played last (#68), the way
     /// [`Self::play_playlist`] brings back a playlist: paused at
     /// `position_ms`, at the start for `start-last-title`, playing for
@@ -1789,5 +1991,141 @@ mod tests {
             .execute("previous", "")
             .expect("previous should wrap to the last track with repeat=queue");
         assert_eq!(player.media_path(), "/music/b.mp3");
+    }
+
+    /// Playlist 7 with `tracks` entries 11, 12, ... on /music/t0.mp3, ...,
+    /// loaded at entry `at` - playing for auto-play, paused for restore_paused.
+    fn playlist_at(tracks: i64, at: i64, resume_mode: &str) -> (MediaPlayer, StartLog) {
+        let (player, _, starts) = player_with_start_log();
+        player
+            .play_playlist(
+                7,
+                (0..tracks)
+                    .map(|track| (11 + track, format!("/music/t{track}.mp3")))
+                    .collect(),
+                Some(at),
+                0,
+                resume_mode,
+            )
+            .expect("playlist should load");
+        (player, starts)
+    }
+
+    #[test]
+    fn deleting_the_loaded_playlist_keeps_the_current_track_as_a_loose_one() {
+        let (player, starts) = playlist_at(3, 12, "auto-play");
+        let mut events = player.subscribe_events();
+
+        player.forget_playlist(8);
+        assert_eq!(
+            player.playlist_id(),
+            Some(7),
+            "another playlist was deleted"
+        );
+
+        player.forget_playlist(7);
+        assert_eq!(player.playlist_id(), None);
+        assert_eq!(player.playlist_entry_id(), None);
+        assert_eq!(player.loose_track_path().as_deref(), Some("/music/t1.mp3"));
+        assert_eq!(player.state(), "playing");
+        assert_eq!(starts.lock().unwrap().len(), 1, "the music goes on");
+        assert!(
+            player.execute("next", "").is_err(),
+            "what came after went with the playlist"
+        );
+        let event = events.try_recv().expect("the change is published");
+        assert_eq!(event.state.unwrap().playlist_id, 0);
+    }
+
+    #[test]
+    fn removing_another_entry_keeps_the_current_track_and_its_neighbours() {
+        let (player, starts) = playlist_at(4, 13, "auto-play");
+
+        player.remove_playlist_entry(11).expect("an earlier entry");
+        assert_eq!(player.playlist_entry_id(), Some(13));
+        assert_eq!(player.media_path(), "/music/t2.mp3");
+        player.remove_playlist_entry(99).expect("not in the queue");
+        assert_eq!(starts.lock().unwrap().len(), 1, "nothing restarted");
+
+        player
+            .execute("queue-entry", "0")
+            .expect("indexes follow the playlist");
+        assert_eq!(last_start(&starts).0, "/music/t1.mp3");
+        player.remove_playlist_entry(13).expect("a later entry");
+        player.execute("next", "").expect("t3 follows now");
+        assert_eq!(last_start(&starts).0, "/music/t3.mp3");
+        assert_eq!(player.playlist_entry_id(), Some(14));
+    }
+
+    #[test]
+    fn removing_the_playing_track_goes_on_with_the_following_one() {
+        let (player, starts) = playlist_at(3, 12, "auto-play");
+
+        player.remove_playlist_entry(12).expect("the current entry");
+
+        assert_eq!(last_start(&starts), ("/music/t2.mp3".to_string(), 0));
+        assert_eq!(player.state(), "playing");
+        assert_eq!(player.playlist_entry_id(), Some(13));
+        assert_eq!(player.playlist_id(), Some(7));
+    }
+
+    #[test]
+    fn removing_the_paused_track_shows_the_following_one_paused() {
+        let (player, starts) = playlist_at(3, 11, "restore_paused");
+
+        player.remove_playlist_entry(11).expect("the current entry");
+
+        assert!(starts.lock().unwrap().is_empty(), "nothing starts to play");
+        assert_eq!(player.state(), "paused");
+        assert_eq!(player.media_path(), "/music/t1.mp3");
+        assert_eq!(player.position_ms(), 0);
+        assert_eq!(player.playlist_entry_id(), Some(12));
+    }
+
+    #[test]
+    fn removing_the_last_playing_track_stops_unless_the_queue_repeats() {
+        let (player, _) = playlist_at(3, 13, "auto-play");
+        player.remove_playlist_entry(13).expect("the current entry");
+        assert_eq!(player.state(), "stopped");
+        assert_eq!(player.playlist_entry_id(), None);
+        assert_eq!(player.media_path(), "");
+        assert_eq!(player.playlist_id(), Some(7), "the playlist stays loaded");
+
+        let (player, starts) = playlist_at(3, 13, "auto-play");
+        player.set_repeat_mode(RepeatMode::RepeatQueue);
+        player.remove_playlist_entry(13).expect("the current entry");
+        assert_eq!(last_start(&starts).0, "/music/t0.mp3");
+        assert_eq!(player.state(), "playing");
+    }
+
+    #[test]
+    fn removing_the_only_track_stops_the_player() {
+        let (player, _) = playlist_at(1, 11, "auto-play");
+        player.remove_playlist_entry(11).expect("the current entry");
+        assert_eq!(player.state(), "stopped");
+        assert_eq!(player.playlist_entry_id(), None);
+        assert!(player.execute("next", "").is_err());
+    }
+
+    #[test]
+    fn removing_the_playing_track_while_shuffling_takes_the_shuffled_next() {
+        let (player, starts) = playlist_at(5, 11, "auto-play");
+        player.set_shuffle_mode(true);
+        let order = player.shuffle_order.lock().unwrap().clone();
+        assert_eq!(order[0], 0, "the current track leads the order");
+        let path = |index: usize| format!("/music/t{index}.mp3");
+
+        player.remove_playlist_entry(11).expect("the current entry");
+
+        assert_eq!(last_start(&starts).0, path(order[1]));
+        player.execute("next", "").expect("the round goes on");
+        assert_eq!(last_start(&starts).0, path(order[2]));
+        player.execute("next", "").expect("the round goes on");
+        player.execute("next", "").expect("the round goes on");
+        assert_eq!(last_start(&starts).0, path(order[4]));
+        assert!(
+            player.execute("next", "").is_err(),
+            "four tracks left, all played once"
+        );
     }
 }
