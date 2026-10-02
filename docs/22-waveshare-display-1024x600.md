@@ -224,7 +224,7 @@ A tester's Waveshare 7C (no speakers) was read out with the steps above on
 | Image size | 154 x 86 mm | 154 x 86 mm |
 | Name, range descriptors | none (three empty descriptors) | name, range limits, serial |
 
-What follows from the EDID alone (not yet checked on a 7C):
+What follows from the EDID:
 
 - **The timings are usable as they are.** All horizontal values are even
   (`hsync_start` 1072, `hsync_end` 1168, `htotal` 1312), so the vc4 driver's
@@ -240,11 +240,16 @@ What follows from the EDID alone (not yet checked on a 7C):
   sync polarity. The tester reports a flickering picture on the 7C; whether
   these timings are the cause is open.
 
-Still to check on a 7C: whether the picture is sharp and steady with its own
-EDID (override removed), and with the 7H override for comparison;
-`/sys/class/drm/card*-HDMI-A-1/modes`, `fb0` and `dmesg` as under
-"Verification after boot". The dmesg capture of step 4 did not come with the
-EDID file.
+**Checked on the tester's Pi with the 7C (2026-10-02, reported by Michael):**
+with the `drm.edid_firmware` entry removed from `cmdline.txt` the panel
+runs on its own EDID, sound works after switching to the jack
+([Ton über die Klinke](bedienung/ton-klinke.md)), and the USB camera works
+too. So the 7C needs **no EDID override**, only the jack. An image variant
+without the override and with `audio_output:jack` for the 7C is planned; until
+it exists, remove the entry by hand as in step 2 above and keep it removed.
+
+Not captured yet: `/sys/class/drm/card*-HDMI-A-1/modes`, `fb0` and `dmesg`
+from that Pi (see "Verification after boot").
 
 ## Touch input
 
