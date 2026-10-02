@@ -24,9 +24,9 @@ Festplatte.
 
 | Datei | Inhalt |
 |---|---|
-| `carnine-v0.10.0-waveshare-hdmi.img.gz` | das Image, gepackt |
-| `carnine-v0.10.0-waveshare-hdmi.img.bmap` | Blockkarte für `bmaptool` (unter Windows nicht nötig) |
-| `SHA256SUMS` | Prüfsummen aller Dateien |
+| `carnine-v0.11.0-waveshare-hdmi.img.gz` | das Image, gepackt |
+| `carnine-v0.11.0-waveshare-hdmi.img.bmap` | Blockkarte für `bmaptool` (unter Windows nicht nötig) |
+| `carnine-v0.11.0-waveshare-hdmi.SHA256SUMS` | Prüfsummen der beiden Dateien oben |
 
 ### Welche Variante?
 
@@ -34,18 +34,26 @@ Festplatte.
 |---|---|---|
 | `…-waveshare-hdmi` | über HDMI zum Display | Waveshare **7H** (hat Lautsprecher) |
 | `…-waveshare-jack` | aus der 3,5-mm-Klinke des Pi | Waveshare **7H**, Ton lieber über eigene Boxen ([Ton über die Klinke](ton-klinke.md)) |
-| `…-waveshare-jack` **+ ein Handgriff** | aus der Klinke | Waveshare **7C** (ohne Lautsprecher), siehe [unten](#waveshare-7c) |
+| `…-waveshare-7c` | aus der Klinke | Waveshare **7C** (ohne Lautsprecher), siehe [unten](#waveshare-7c) |
 
 Im Zweifel `hdmi`. Umstellen geht später auch noch, siehe
 [Ton über die Klinke](ton-klinke.md).
 
+**Das `7c`-Image nicht an ein 7H.** Ohne die Vorgabe meldet sich das 7H mit
+seiner geklonten Kennung, in der 1024 × 600 fehlt. Der Pi wählt dann
+1920 × 1080, und das Bild passt nicht (geprüft am 7H, 02.10.2026).
+Umgekehrt flackert das 7C mit `hdmi` und `jack`, siehe unten.
+
 ### Waveshare 7C
 
-Beide Images sind auf das **7H** eingestellt: Sie geben dem Display die
-Kennung (EDID) des 7H vor. Am 7C flackerte das Bild damit. Es braucht diese
-Vorgabe nicht und läuft mit seiner eigenen Kennung, der Ton kommt aus der
-Klinke (geprüft an einem 7C, 02.10.2026). Ein eigenes Image für das 7C ist
-geplant. Bis dahin:
+Die Images `hdmi` und `jack` sind auf das **7H** eingestellt: Sie geben dem
+Display die Kennung (EDID) des 7H vor. Am 7C flackerte das Bild damit. Das 7C
+braucht diese Vorgabe nicht und läuft mit seiner eigenen Kennung, der Ton kommt
+aus der Klinke (geprüft an einem 7C, 02.10.2026). Dafür gibt es seit 0.11.0 das
+Image **`…-waveshare-7c`**: ohne Vorgabe, Ton aus der Klinke. Es wird wie die
+anderen geschrieben, mehr ist nicht zu tun.
+
+**Mit einem älteren Image (bis 0.10.0)** gibt es kein 7C-Image. Dann:
 
 1. Das `…-waveshare-jack`-Image wie unten beschrieben auf die Karte schreiben.
 2. Die Karte noch einmal in den PC stecken. Die kleine Partition
@@ -70,19 +78,19 @@ selben Ordner.
 **Windows** (PowerShell, im Ordner mit den Dateien):
 
 ```powershell
-Get-FileHash -Algorithm SHA256 .\carnine-v0.10.0-waveshare-hdmi.img.gz
+Get-FileHash -Algorithm SHA256 .\carnine-v0.11.0-waveshare-hdmi.img.gz
 ```
 
-Die ausgegebene Zahl muss mit der Zeile in `SHA256SUMS` übereinstimmen
+Die ausgegebene Zahl muss mit der Zeile in `….SHA256SUMS` übereinstimmen
 (PowerShell schreibt sie in Großbuchstaben, das ist egal).
 
 **Linux:**
 
 ```bash
-sha256sum -c --ignore-missing SHA256SUMS
+sha256sum -c carnine-v0.11.0-waveshare-hdmi.SHA256SUMS
 ```
 
-Jede vorhandene Datei muss `OK` melden.
+Beide Dateien müssen `OK` melden.
 
 ## Windows: Rufus
 
@@ -140,7 +148,7 @@ sudo umount /dev/sdX?*
 **3. Schreiben.** `bmaptool` findet die `.bmap` neben dem Image selbst:
 
 ```bash
-sudo bmaptool copy carnine-v0.10.0-waveshare-hdmi.img.gz /dev/sdX
+sudo bmaptool copy carnine-v0.11.0-waveshare-hdmi.img.gz /dev/sdX
 ```
 
 Fertig ist es, wenn `synchronizing '/dev/sdX'` und die Zeit erscheinen. Dann
@@ -151,7 +159,7 @@ kann die Karte heraus.
 Geht überall, schreibt aber die vollen 3 GB und prüft nichts:
 
 ```bash
-gunzip -c carnine-v0.10.0-waveshare-hdmi.img.gz | sudo dd of=/dev/sdX bs=4M conv=fsync status=progress
+gunzip -c carnine-v0.11.0-waveshare-hdmi.img.gz | sudo dd of=/dev/sdX bs=4M conv=fsync status=progress
 ```
 
 Bei `dd` ist ein falscher Gerätename besonders schnell fatal: Es fragt nicht
