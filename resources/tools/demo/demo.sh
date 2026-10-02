@@ -27,7 +27,9 @@
 set -euo pipefail
 
 PI=${CARNINE_DEMO_PI:-pi@192.168.2.51}
-PORT=${CARNINE_DEMO_PORT:-50061}
+# 50061 sits in a port range Windows reserves for WSL (since October 2026 the
+# bind fails there); 39461 is free.
+PORT=${CARNINE_DEMO_PORT:-39461}
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../../.." && pwd)
 BACKEND_DIR=$ROOT/src/backend
@@ -50,11 +52,26 @@ FRANKFURT_LON=8.682090640068054
 
 log() { printf '%s %s\n' "$(date +%T)" "$*"; }
 
+# One tunnel per run of this script, behind its own control socket, so it can
+# be closed again when the script ends; a forward that cannot bind is an
+# error instead of a client waiting forever.
+TUNNEL_SOCKET=${XDG_RUNTIME_DIR:-/tmp}/carnine-demo-$$.ssh
+
 tunnel() {
-  if ! ss -ltn | grep -q "127.0.0.1:$PORT "; then
-    ssh -f -N -L "127.0.0.1:$PORT:/run/carnine/carnine.sock" "$PI"
+  [[ -S $TUNNEL_SOCKET ]] && return
+  ssh -f -N -M -S "$TUNNEL_SOCKET" -o ExitOnForwardFailure=yes \
+    -L "127.0.0.1:$PORT:/run/carnine/carnine.sock" "$PI" || {
+    echo "tunnel to the backend failed (port $PORT taken? set CARNINE_DEMO_PORT)" >&2
+    exit 1
+  }
+}
+
+close_tunnel() {
+  if [[ -S $TUNNEL_SOCKET ]]; then
+    ssh -S "$TUNNEL_SOCKET" -O exit "$PI" 2>/dev/null || true
   fi
 }
+trap close_tunnel EXIT
 
 client() {
   [[ -x $CLIENT ]] || (cd "$BACKEND_DIR" && cargo build -q --example media_grpc_client)

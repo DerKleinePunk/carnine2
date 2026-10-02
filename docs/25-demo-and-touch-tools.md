@@ -110,8 +110,10 @@ for the camera.
   feeds it one gesture per line on stdin. `touchplay` answers `ok` when a
   gesture has finished, so the next line waits for it.
 - **Player and settings:** these go over gRPC. The runner opens an SSH tunnel
-  from `127.0.0.1:50061` to the backend socket `/run/carnine/carnine.sock` and
-  uses `media_grpc_client`, building it if needed. This needs the test
+  from `127.0.0.1:39461` to the backend socket `/run/carnine/carnine.sock` and
+  uses `media_grpc_client`, building it if needed. The tunnel belongs to that
+  run and closes when `demo.sh` ends; a port that cannot be bound stops it
+  with a message (set `CARNINE_DEMO_PORT`). This needs the test
   access from docs/07 ("Backend Connectivity and Debugging": socket mode
   `0660`, runtime directory `0750`, `pi` in the group `carnine`), which
   carnine-pc has; a fresh image does not.
