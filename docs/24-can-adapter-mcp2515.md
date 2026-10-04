@@ -52,6 +52,7 @@ These pins do not collide with what carnine2 already uses:
 
 - uart5 to the power supply on GPIO 12/13 (pins 32/33),
 - `gpio-poweroff` on GPIO 5 (pin 29),
+- the CPU fan on pins 4 (5 V) and 6 (GND) on both test units,
 - I2C on GPIO 2/3 (`dtparam=i2c_arm=on` in the image); keep it free,
 - GPIO 0/1 are reserved for a HAT ID EEPROM.
 
