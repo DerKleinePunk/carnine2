@@ -174,7 +174,8 @@ connecting. As Michael described it on 2026-09-27:
 
 **Open, not measured:** Rel2 carries the whole current of the Pi 4 through
 USB-C, Rel1 that of the display's USB hub and the HDMI splitter. The Pi 4's
-recommended supply delivers 3 A. Whether the current through each relay
+recommended supply delivers 3 A. On the test units Rel2 also feeds the CPU fan
+on header pins 4 and 6, which draws from the Pi's 5 V. Whether the current through each relay
 stays below 2 A has not been measured. Whether the board connects the
 relay's two contact sets in parallel is not known either. In the layout
 drawing only one set per relay (pads A1, S1, B1) has visible tracks to the
@@ -200,7 +201,7 @@ UART; uart4 is not used because GPIO 8/9 belong to SPI0, which a CAN adapter
 | RXD | GPIO 12, uart5 TXD | 32 |
 | TXD | GPIO 13, uart5 RXD | 33 |
 | Dig3 | GPIO 5, `gpio-poweroff` | 29 |
-| GND | GND | e.g. 30 or 34 |
+| GND | GND | 30 (34 works too; 6 is taken by the CPU fan) |
 
 RXD and TXD on the supply are taken as its own receive and transmit line,
 so they cross over to the Pi's TX and RX (checked on the device). If
