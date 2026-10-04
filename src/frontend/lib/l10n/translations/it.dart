@@ -22,13 +22,13 @@ const Map<AppTextKey, String> itTranslations = <AppTextKey, String>{
   AppTextKey.dashboardContentFor: 'Contenuto dashboard per {section}',
   AppTextKey.grpcStatus: 'Stato gRPC: {status}',
   AppTextKey.statusNotConnected: 'Non connesso',
-  AppTextKey.statusConnecting: 'Connessione...',
+  AppTextKey.statusConnecting: 'Connessione …',
   AppTextKey.statusConnected: 'Connesso - {count} dati ricevuti',
   AppTextKey.statusError: 'Errore',
   AppTextKey.grpcConnectionErrorTitle: 'Errore di connessione',
   AppTextKey.grpcConnectionErrorMessage:
-      'Connessione al backend non riuscita. Riprova oppure controlla '
-      'i log di diagnostica.',
+      'Connessione al backend non riuscita. Riprovi oppure controlli i log di '
+      'diagnostica.',
   AppTextKey.testGrpc: 'Test gRPC',
   AppTextKey.connecting: 'Connessione',
   AppTextKey.canDataLine: 'Sensore: {sensor}, valore: {value}, ora: {time}',
@@ -66,7 +66,7 @@ const Map<AppTextKey, String> itTranslations = <AppTextKey, String>{
   AppTextKey.mediaFeatureUnavailableHint: 'non ancora disponibile',
   AppTextKey.mediaQueueEmpty: 'La coda è vuota',
   AppTextKey.mediaNoAdjacentTrack: 'Nessun\'altra traccia in coda',
-  AppTextKey.mediaLoading: 'Caricamento...',
+  AppTextKey.mediaLoading: 'Caricamento …',
   AppTextKey.mediaRetry: 'Riprova',
   AppTextKey.mediaOfflineTitle: 'Nessuna connessione',
   AppTextKey.mediaOfflineDescription:
@@ -81,8 +81,8 @@ const Map<AppTextKey, String> itTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchSemantic: 'Cerca nella libreria',
   AppTextKey.mediaSearchClearSemantic: 'Cancella ricerca',
   AppTextKey.mediaLibraryEmpty:
-      'La libreria è vuota. Avvia una scansione per importare i '
-      'contenuti multimediali.',
+      'La libreria è vuota. Avvii una scansione per importare i contenuti '
+      'multimediali.',
   AppTextKey.mediaSearchNoResults: 'Nessun risultato per questa ricerca',
   AppTextKey.mediaRescanAction: 'Riscansiona',
   AppTextKey.mediaRescanSemantic: 'Riscansiona la libreria',
@@ -91,8 +91,9 @@ const Map<AppTextKey, String> itTranslations = <AppTextKey, String>{
   AppTextKey.mediaUsbImportAction: 'Importa',
   AppTextKey.mediaUsbImportSemantic: 'Importa {count} brano/i da {label}',
   AppTextKey.mediaToolsMissingBanner:
-      'ffmpeg mancante: i brani vengono importati senza artista, durata e copertina. Installa ffmpeg, poi riscansiona.',
-  AppTextKey.mediaScanRunning: 'Scansione in corso...',
+      'ffmpeg mancante: i brani vengono importati senza artista, durata e '
+      'copertina. Installi ffmpeg, poi riscansioni.',
+  AppTextKey.mediaScanRunning: 'Scansione in corso …',
   AppTextKey.mediaScanProgressLine:
       '{processed} elaborati, {imported} importati',
   AppTextKey.mediaScanFailed: 'Scansione non riuscita',
@@ -107,25 +108,65 @@ const Map<AppTextKey, String> itTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistDetailEmpty: 'Questa playlist non ha ancora tracce',
   AppTextKey.mediaPlaylistEntryUnknown: 'Traccia non più nella libreria',
   AppTextKey.mediaPlaylistNameHint: 'Nome della playlist',
-  AppTextKey.mediaPlaylistNameRequired: 'Inserisci un nome',
+  AppTextKey.mediaPlaylistNameRequired: 'Inserisca un nome',
   AppTextKey.mediaPlaylistExistsError:
       'Esiste già una playlist con questo nome',
   AppTextKey.mediaPlaylistCreateAction: 'Crea playlist',
   AppTextKey.mediaPlaylistAddEntriesTitle: 'Aggiungi tracce',
   AppTextKey.mediaPlaylistAddEntryAction: 'Aggiungi tracce',
   AppTextKey.mediaPlaylistTrackAlreadyAdded: 'Il brano è già nella playlist',
+  AppTextKey.mediaPlaylistRenameAction: 'Rinomina playlist',
+  AppTextKey.mediaPlaylistDeleteSemantic: 'Elimina playlist',
+  AppTextKey.mediaPlaylistDeleteConfirmTitle: 'Eliminare la playlist?',
+  AppTextKey.mediaPlaylistDeleteConfirmMessage:
+      '"{name}" verrà eliminata definitivamente. I brani restano nella '
+      'libreria.',
+  AppTextKey.mediaPlaylistDeleteAction: 'Elimina',
+  AppTextKey.mediaPlaylistEntryRemoveSemantic: 'Rimuovi {title} dalla playlist',
+  AppTextKey.mediaSaveAction: 'Salva',
+  AppTextKey.mediaCancelAction: 'Annulla',
   AppTextKey.mediaPlaylistAddEntrySemantic: 'Aggiungi {title} a {playlist}',
   AppTextKey.mediaBackToCollectionsSemantic: 'Torna alle raccolte',
   AppTextKey.settingsBackToOptions: 'Torna alle opzioni',
   AppTextKey.settingsLanguageTitle: 'Lingua',
-  AppTextKey.settingsLanguageSubtitle: 'Scegli la lingua di visualizzazione',
-  AppTextKey.settingsLanguageSemantic: 'Apri le impostazioni lingua',
   AppTextKey.settingsDiagnosticsTitle: 'Sistema',
   AppTextKey.settingsDiagnosticsSubtitle: 'Log, riavvio e aggiornamenti',
   AppTextKey.settingsDiagnosticsSemantic: 'Apri le impostazioni di sistema',
-  AppTextKey.settingsAppearanceTitle: 'Aspetto',
-  AppTextKey.settingsAppearanceSubtitle: 'Colori e tipografia',
-  AppTextKey.settingsAppearanceSemantic: 'Apri impostazioni aspetto',
+  AppTextKey.settingsAppearanceTitle: 'Aspetto e lingua',
+  AppTextKey.settingsAppearanceSubtitle:
+      'Colori, tipografia e lingua di visualizzazione',
+  AppTextKey.settingsAppearanceSemantic: 'Apri impostazioni aspetto e lingua',
+  AppTextKey.settingsAppearanceTabTitle: 'Aspetto',
+  AppTextKey.settingsDevicesTitle: 'Dispositivi',
+  AppTextKey.settingsDevicesSubtitle:
+      'Telecamera, uscita audio e app del telefono',
+  AppTextKey.settingsDevicesSemantic: 'Apri impostazioni dispositivi',
+  AppTextKey.settingsDevicesCameraTitle: 'Telecamera',
+  AppTextKey.settingsDevicesCameraSubtitle:
+      'Dispositivo, standard video, ingresso e larghezza immagine',
+  AppTextKey.settingsDevicesAudioTitle: 'Uscita audio',
+  AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, jack o scheda audio USB',
+  AppTextKey.settingsDevicesPhoneTitle: 'App del telefono',
+  AppTextKey.settingsDevicesPhoneSubtitle:
+      'Associazione Bluetooth con codice sul telefono',
+  AppTextKey.settingsDevicesPowerTitle: 'Alimentatore',
+  AppTextKey.settingsDevicesPowerSubtitle:
+      'Quadro, tensione e modalità servizio',
+  AppTextKey.settingsBackToDevices: 'Torna ai dispositivi',
+  AppTextKey.settingsCameraDeviceLabel: 'Dispositivo',
+  AppTextKey.settingsCameraNoDevices: 'Nessuna telecamera trovata',
+  AppTextKey.settingsCameraNormLabel: 'Standard video',
+  AppTextKey.settingsCameraInputLabel: 'Ingresso',
+  AppTextKey.settingsCameraInputSVideo: 'S-Video',
+  AppTextKey.settingsCameraWidthLabel: 'Larghezza immagine',
+  AppTextKey.settingsCameraWidthHint:
+      '720 è più nitido, ma fornisce solo circa 10 fotogrammi al secondo.',
+  AppTextKey.settingsCameraAnalogOnlyNote:
+      'Standard, ingresso e larghezza valgono solo per le telecamere '
+      'analogiche con adattatore USB, non per le telecamere USB.',
+  AppTextKey.settingsCameraAppliesNote:
+      'Vale dalla prossima apertura della pagina Telecamera.',
+  AppTextKey.settingsCameraShowAction: 'Mostra l’immagine della telecamera',
   AppTextKey.settingsMapTitle: 'Impostazioni mappa',
   AppTextKey.settingsMapSubtitle: 'Vista mappa e comportamento dei percorsi',
   AppTextKey.settingsMapSemantic: 'Apri impostazioni mappa',
@@ -176,7 +217,7 @@ const Map<AppTextKey, String> itTranslations = <AppTextKey, String>{
   AppTextKey.keyboardBackspaceSemantic: 'Elimina carattere',
   AppTextKey.keyboardSpaceSemantic: 'Spazio',
   AppTextKey.keyboardDiacriticOptionsSemantic: 'Altre opzioni per {letter}',
-  AppTextKey.mapsSearchPlaceholder: 'Inserisci destinazione',
+  AppTextKey.mapsSearchPlaceholder: 'Inserisca la destinazione',
   AppTextKey.mapsNextTurnLabel: 'Prossima svolta',
   AppTextKey.mapsArrivalLabel: 'Arrivo',
   AppTextKey.mapsArrivalTomorrowLabel: 'Arrivo domani',
@@ -219,4 +260,8 @@ const Map<AppTextKey, String> itTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: 'Nessun segnale della telecamera',
   AppTextKey.cameraMissing: 'Telecamera non collegata',
   AppTextKey.cameraError: 'Guasto della telecamera',
+  AppTextKey.controlsEmpty: 'Nessun comando configurato',
+  AppTextKey.controlsStateOn: 'Acceso',
+  AppTextKey.controlsStateOff: 'Spento',
+  AppTextKey.controlsUnavailable: 'Non raggiungibile',
 };

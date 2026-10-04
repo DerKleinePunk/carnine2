@@ -22,13 +22,13 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.dashboardContentFor: 'Irányítópult-tartalom: {section}',
   AppTextKey.grpcStatus: 'gRPC állapot: {status}',
   AppTextKey.statusNotConnected: 'Nincs kapcsolat',
-  AppTextKey.statusConnecting: 'Kapcsolódás...',
+  AppTextKey.statusConnecting: 'Kapcsolódás …',
   AppTextKey.statusConnected: 'Kapcsolódva - {count} adatpont fogadva',
   AppTextKey.statusError: 'Hiba',
   AppTextKey.grpcConnectionErrorTitle: 'Kapcsolódási hiba',
   AppTextKey.grpcConnectionErrorMessage:
-      'Nem sikerült csatlakozni a háttérrendszerhez. Próbáld újra, '
-      'vagy nézd meg a diagnosztikai naplókat.',
+      'Nem sikerült csatlakozni a háttérrendszerhez. Próbálja újra, vagy '
+      'nézze meg a diagnosztikai naplókat.',
   AppTextKey.testGrpc: 'gRPC tesztelése',
   AppTextKey.connecting: 'Kapcsolódás',
   AppTextKey.canDataLine: 'Érzékelő: {sensor}, érték: {value}, idő: {time}',
@@ -65,7 +65,7 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.mediaFeatureUnavailableHint: 'még nem elérhető',
   AppTextKey.mediaQueueEmpty: 'A sor üres',
   AppTextKey.mediaNoAdjacentTrack: 'Nincs másik szám a sorban',
-  AppTextKey.mediaLoading: 'Betöltés...',
+  AppTextKey.mediaLoading: 'Betöltés …',
   AppTextKey.mediaRetry: 'Újrapróbálkozás',
   AppTextKey.mediaOfflineTitle: 'Nincs kapcsolat',
   AppTextKey.mediaOfflineDescription:
@@ -80,7 +80,7 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchSemantic: 'Könyvtár keresése',
   AppTextKey.mediaSearchClearSemantic: 'Keresés törlése',
   AppTextKey.mediaLibraryEmpty:
-      'A könyvtár üres. Indíts újraszkennelést a médiák importálásához.',
+      'A könyvtár üres. Indítson újraszkennelést a médiák importálásához.',
   AppTextKey.mediaSearchNoResults: 'Nincs találat erre a keresésre',
   AppTextKey.mediaRescanAction: 'Újraszkennelés',
   AppTextKey.mediaRescanSemantic: 'Könyvtár újraszkennelése',
@@ -89,8 +89,9 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.mediaUsbImportAction: 'Importálás',
   AppTextKey.mediaUsbImportSemantic: '{count} szám importálása innen: {label}',
   AppTextKey.mediaToolsMissingBanner:
-      'Hiányzik az ffmpeg: a számok előadó, hossz és borító nélkül kerülnek be. Telepítsd az ffmpeg-et, majd szkenneld újra.',
-  AppTextKey.mediaScanRunning: 'Szkennelés...',
+      'Hiányzik az ffmpeg: a számok előadó, hossz és borító nélkül kerülnek '
+      'be. Telepítse az ffmpeg-et, majd szkennelje újra.',
+  AppTextKey.mediaScanRunning: 'Szkennelés …',
   AppTextKey.mediaScanProgressLine:
       '{processed} feldolgozva, {imported} importálva',
   AppTextKey.mediaScanFailed: 'Sikertelen szkennelés',
@@ -106,26 +107,67 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
       'Ennek a playlistnek még nincsenek számai',
   AppTextKey.mediaPlaylistEntryUnknown: 'A szám már nincs a könyvtárban',
   AppTextKey.mediaPlaylistNameHint: 'A playlist neve',
-  AppTextKey.mediaPlaylistNameRequired: 'Adj meg egy nevet',
+  AppTextKey.mediaPlaylistNameRequired: 'Adjon meg egy nevet',
   AppTextKey.mediaPlaylistExistsError: 'Már létezik playlist ezzel a névvel',
   AppTextKey.mediaPlaylistCreateAction: 'Playlist létrehozása',
   AppTextKey.mediaPlaylistAddEntriesTitle: 'Számok hozzáadása',
   AppTextKey.mediaPlaylistAddEntryAction: 'Számok hozzáadása',
   AppTextKey.mediaPlaylistTrackAlreadyAdded:
       'A szám már szerepel a lejátszási listán',
+  AppTextKey.mediaPlaylistRenameAction: 'Playlist átnevezése',
+  AppTextKey.mediaPlaylistDeleteSemantic: 'Playlist törlése',
+  AppTextKey.mediaPlaylistDeleteConfirmTitle: 'Törli a playlistet?',
+  AppTextKey.mediaPlaylistDeleteConfirmMessage:
+      'A(z) "{name}" playlist véglegesen törlődik. A számok a könyvtárban '
+      'maradnak.',
+  AppTextKey.mediaPlaylistDeleteAction: 'Törlés',
+  AppTextKey.mediaPlaylistEntryRemoveSemantic:
+      '{title} eltávolítása a playlistből',
+  AppTextKey.mediaSaveAction: 'Mentés',
+  AppTextKey.mediaCancelAction: 'Mégse',
   AppTextKey.mediaPlaylistAddEntrySemantic:
       '{title} hozzáadása ehhez: {playlist}',
   AppTextKey.mediaBackToCollectionsSemantic: 'Vissza a gyűjteményekhez',
   AppTextKey.settingsBackToOptions: 'Vissza az opciókhoz',
   AppTextKey.settingsLanguageTitle: 'Nyelv',
-  AppTextKey.settingsLanguageSubtitle: 'Megjelenítési nyelv kiválasztása',
-  AppTextKey.settingsLanguageSemantic: 'Nyelvi beállítások megnyitása',
   AppTextKey.settingsDiagnosticsTitle: 'Rendszer',
   AppTextKey.settingsDiagnosticsSubtitle: 'Naplók, újraindítás és frissítések',
   AppTextKey.settingsDiagnosticsSemantic: 'Rendszerbeállítások megnyitása',
-  AppTextKey.settingsAppearanceTitle: 'Megjelenés',
-  AppTextKey.settingsAppearanceSubtitle: 'Színek és tipográfia',
-  AppTextKey.settingsAppearanceSemantic: 'Megjelenési beállítások megnyitása',
+  AppTextKey.settingsAppearanceTitle: 'Megjelenés és nyelv',
+  AppTextKey.settingsAppearanceSubtitle:
+      'Színek, tipográfia és megjelenítési nyelv',
+  AppTextKey.settingsAppearanceSemantic:
+      'Megjelenési és nyelvi beállítások megnyitása',
+  AppTextKey.settingsAppearanceTabTitle: 'Megjelenés',
+  AppTextKey.settingsDevicesTitle: 'Eszközök',
+  AppTextKey.settingsDevicesSubtitle:
+      'Kamera, hangkimenet és telefonos alkalmazás',
+  AppTextKey.settingsDevicesSemantic: 'Eszközbeállítások megnyitása',
+  AppTextKey.settingsDevicesCameraTitle: 'Kamera',
+  AppTextKey.settingsDevicesCameraSubtitle:
+      'Eszköz, videószabvány, bemenet és képszélesség',
+  AppTextKey.settingsDevicesAudioTitle: 'Hangkimenet',
+  AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, jack vagy USB-hangkártya',
+  AppTextKey.settingsDevicesPhoneTitle: 'Telefonos alkalmazás',
+  AppTextKey.settingsDevicesPhoneSubtitle:
+      'Bluetooth-párosítás kóddal a telefonon',
+  AppTextKey.settingsDevicesPowerTitle: 'Tápegység',
+  AppTextKey.settingsDevicesPowerSubtitle: 'Gyújtás, feszültség és szervizmód',
+  AppTextKey.settingsBackToDevices: 'Vissza az eszközökhöz',
+  AppTextKey.settingsCameraDeviceLabel: 'Eszköz',
+  AppTextKey.settingsCameraNoDevices: 'Nem található kamera',
+  AppTextKey.settingsCameraNormLabel: 'Videószabvány',
+  AppTextKey.settingsCameraInputLabel: 'Bemenet',
+  AppTextKey.settingsCameraInputSVideo: 'S-Video',
+  AppTextKey.settingsCameraWidthLabel: 'Képszélesség',
+  AppTextKey.settingsCameraWidthHint:
+      'A 720 élesebb, de csak másodpercenként körülbelül 10 képkockát ad.',
+  AppTextKey.settingsCameraAnalogOnlyNote:
+      'A szabvány, a bemenet és a szélesség csak az USB-adapteres analóg '
+      'kamerákra vonatkozik, az USB-kamerákra nem.',
+  AppTextKey.settingsCameraAppliesNote:
+      'A Kamera oldal következő megnyitásától érvényes.',
+  AppTextKey.settingsCameraShowAction: 'Kamerakép megtekintése',
   AppTextKey.settingsMapTitle: 'Térképbeállítások',
   AppTextKey.settingsMapSubtitle: 'Térképnézet és útvonalviselkedés',
   AppTextKey.settingsMapSemantic: 'Térképbeállítások megnyitása',
@@ -175,7 +217,7 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.keyboardBackspaceSemantic: 'Karakter törlése',
   AppTextKey.keyboardSpaceSemantic: 'Szóköz',
   AppTextKey.keyboardDiacriticOptionsSemantic: 'További lehetőségek: {letter}',
-  AppTextKey.mapsSearchPlaceholder: 'Add meg az úticélt',
+  AppTextKey.mapsSearchPlaceholder: 'Adja meg az úticélt',
   AppTextKey.mapsNextTurnLabel: 'Következő kanyar',
   AppTextKey.mapsArrivalLabel: 'Érkezés',
   AppTextKey.mapsArrivalTomorrowLabel: 'Érkezés holnap',
@@ -217,4 +259,8 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: 'Nincs kamerajel',
   AppTextKey.cameraMissing: 'A kamera nincs csatlakoztatva',
   AppTextKey.cameraError: 'Kamerahiba',
+  AppTextKey.controlsEmpty: 'Nincs beállított vezérlés',
+  AppTextKey.controlsStateOn: 'Be',
+  AppTextKey.controlsStateOff: 'Ki',
+  AppTextKey.controlsUnavailable: 'Nem elérhető',
 };

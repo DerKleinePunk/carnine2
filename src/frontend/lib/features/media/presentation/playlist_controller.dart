@@ -10,7 +10,8 @@ import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 
 /// Presentation controller for playlists: the overview list, one open
-/// playlist's entries, creation and adding entries.
+/// playlist's entries, creation, renaming, deleting, and adding or removing
+/// entries.
 ///
 /// `MediaService.ListPlaylists` never returns entries - only `GetPlaylist`
 /// does - so the overview must never show a track count, and opening a
@@ -42,6 +43,16 @@ class PlaylistController extends ChangeNotifier {
   bool _isCreating = false;
   AppTextKey? _createErrorKey;
 
+  MediaPlaylist? _renameTarget;
+  bool _isRenaming = false;
+  AppTextKey? _renameErrorKey;
+
+  /// A failed delete or entry removal. Shown briefly on the detail page.
+  AppTextKey? _actionErrorKey;
+  Timer? _actionErrorTimer;
+  static const _actionErrorDuration = Duration(seconds: 4);
+  final Set<int> _pendingRemoveEntryIds = {};
+
   final Set<int> _pendingAddMediaIds = {};
   final Set<int> _addedMediaIds = {};
   AppTextKey? _addEntryHintKey;
@@ -60,6 +71,13 @@ class PlaylistController extends ChangeNotifier {
   MediaViewState get detailState => _detailState;
   Uint8List? get openPlaylistCoverArt => _openPlaylistCoverArt;
   bool get isCreating => _isCreating;
+
+  /// The playlist the rename page is for, `null` while none is being renamed.
+  MediaPlaylist? get renameTarget => _renameTarget;
+  bool get isRenaming => _isRenaming;
+  AppTextKey? get renameErrorKey => _renameErrorKey;
+  AppTextKey? get actionErrorKey => _actionErrorKey;
+  Set<int> get pendingRemoveEntryIds => _pendingRemoveEntryIds;
   AppTextKey? get createErrorKey => _createErrorKey;
   Set<int> get pendingAddMediaIds => _pendingAddMediaIds;
   Set<int> get addedMediaIds => _addedMediaIds;
@@ -82,8 +100,18 @@ class PlaylistController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void dismissActionError() {
+    if (_actionErrorKey == null) {
+      return;
+    }
+    _actionErrorTimer?.cancel();
+    _actionErrorKey = null;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
+    _actionErrorTimer?.cancel();
     _addEntryHintTimer?.cancel();
     _libraryEvents?.cancel();
     super.dispose();
@@ -126,6 +154,20 @@ class PlaylistController extends ChangeNotifier {
         // view (if it's the affected playlist) has anything to refresh.
         if (_openPlaylist?.id == event.playlistId) {
           unawaited(openPlaylistById(event.playlistId));
+        }
+      case LibraryScanEventKind.playlistRenamed:
+        if (_applyRename(event.playlistId, event.playlistName)) {
+          notifyListeners();
+        }
+      case LibraryScanEventKind.playlistDeleted:
+        if (_forgetPlaylist(event.playlistId)) {
+          notifyListeners();
+        }
+      case LibraryScanEventKind.playlistEntryRemoved:
+        // Refreshed in place: `openPlaylistById` would blank the detail
+        // page, and with it send the user back to the overview.
+        if (_openPlaylist?.id == event.playlistId) {
+          unawaited(_refreshOpenPlaylist(event.playlistId));
         }
       default:
         break;
@@ -266,11 +308,15 @@ class PlaylistController extends ChangeNotifier {
   }
 
   void closePlaylist() {
+    _clearOpenPlaylist();
+    notifyListeners();
+  }
+
+  void _clearOpenPlaylist() {
     _openPlaylist = null;
     _openPlaylistCoverArt = null;
     _detailState = const MediaViewState.idle();
     _addedMediaIds.clear();
-    notifyListeners();
   }
 
   /// Returns the created playlist's id on success, `null` on failure (the
@@ -308,6 +354,226 @@ class PlaylistController extends ChangeNotifier {
     } finally {
       _isCreating = false;
       notifyListeners();
+    }
+  }
+
+  /// Opens the rename page for [playlist].
+  void startRenaming(MediaPlaylist playlist) {
+    _renameTarget = playlist;
+    _renameErrorKey = null;
+    notifyListeners();
+  }
+
+  void cancelRename() {
+    if (_renameTarget == null) {
+      return;
+    }
+    _renameTarget = null;
+    _renameErrorKey = null;
+    notifyListeners();
+  }
+
+  /// Renames [renameTarget]. Returns whether the rename page can close - on
+  /// success, or when the name did not change; on failure the reason is in
+  /// [renameErrorKey].
+  Future<bool> renamePlaylist(String name) async {
+    final target = _renameTarget;
+    if (target == null) {
+      return false;
+    }
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      _renameErrorKey = AppTextKey.mediaPlaylistNameRequired;
+      notifyListeners();
+      return false;
+    }
+    if (trimmed == target.name) {
+      cancelRename();
+      return true;
+    }
+
+    _isRenaming = true;
+    _renameErrorKey = null;
+    notifyListeners();
+
+    try {
+      final renamed = await _repository.renamePlaylist(
+        playlistId: target.id,
+        name: trimmed,
+      );
+      _applyRename(renamed.id, renamed.name);
+      _renameTarget = null;
+      return true;
+    } on MediaBackendException catch (error) {
+      _logger.warning(
+        'RenamePlaylist(${target.id}, "$trimmed") failed: ${error.message}',
+      );
+      _renameErrorKey = switch (error.kind) {
+        MediaErrorKind.alreadyExists => AppTextKey.mediaPlaylistExistsError,
+        MediaErrorKind.invalidInput => AppTextKey.mediaPlaylistNameRequired,
+        MediaErrorKind.offline => AppTextKey.mediaOfflineDescription,
+        _ => AppTextKey.mediaBackendErrorDescription,
+      };
+      if (error.kind == MediaErrorKind.offline) {
+        _onStreamFailure?.call(error);
+      }
+      return false;
+    } finally {
+      _isRenaming = false;
+      notifyListeners();
+    }
+  }
+
+  /// Deletes [playlistId] with its entries. Returns whether it is gone - an
+  /// unknown id counts, somebody else was faster.
+  Future<bool> deletePlaylist(int playlistId) async {
+    try {
+      await _repository.deletePlaylist(playlistId);
+    } on MediaBackendException catch (error) {
+      _logger.warning('DeletePlaylist($playlistId) failed: ${error.message}');
+      if (error.kind != MediaErrorKind.notFound) {
+        _failAction(error);
+        notifyListeners();
+        return false;
+      }
+    }
+    if (_forgetPlaylist(playlistId)) {
+      notifyListeners();
+    }
+    return true;
+  }
+
+  /// Takes [entry] out of the open playlist. The backend answers with the
+  /// playlist as it is now, so the page shows that rather than guessing.
+  Future<void> removeEntry(MediaPlaylistEntry entry) async {
+    if (!_pendingRemoveEntryIds.add(entry.id)) {
+      return;
+    }
+    notifyListeners();
+
+    try {
+      final playlist = await _repository.removePlaylistEntry(entry.id);
+      if (_openPlaylist?.id == playlist.id) {
+        await _showOpenPlaylist(playlist);
+      }
+    } on MediaBackendException catch (error) {
+      _logger.warning(
+        'RemovePlaylistEntry(${entry.id}) failed: ${error.message}',
+      );
+      if (error.kind == MediaErrorKind.notFound) {
+        // Already gone elsewhere - show how the playlist is now.
+        unawaited(_refreshOpenPlaylist(entry.playlistId));
+      } else {
+        _failAction(error);
+      }
+    } finally {
+      _pendingRemoveEntryIds.remove(entry.id);
+      notifyListeners();
+    }
+  }
+
+  void _failAction(MediaBackendException error) {
+    if (error.kind == MediaErrorKind.offline) {
+      _onStreamFailure?.call(error);
+      return;
+    }
+    _actionErrorKey = AppTextKey.mediaCommandFailed;
+    _actionErrorTimer?.cancel();
+    _actionErrorTimer = Timer(_actionErrorDuration, dismissActionError);
+  }
+
+  /// Gives [playlistId] its new [name] in the overview (at its sorted place)
+  /// and on the open detail page. The rename reply and the `playlistRenamed`
+  /// event both land here, so a name that is already applied changes nothing.
+  /// Returns whether anything changed.
+  bool _applyRename(int playlistId, String name) {
+    var changed = false;
+    final open = _openPlaylist;
+    if (open != null && open.id == playlistId && open.name != name) {
+      _openPlaylist = MediaPlaylist(
+        id: open.id,
+        name: name,
+        entries: open.entries,
+        hasCoverArt: open.hasCoverArt,
+      );
+      changed = true;
+    }
+    final index = _playlists.indexWhere(
+      (playlist) => playlist.id == playlistId,
+    );
+    if (index >= 0 && _playlists[index].name != name) {
+      _playlists = [..._playlists]..removeAt(index);
+      _addPlaylist(
+        MediaPlaylist(id: playlistId, name: name, entries: const []),
+      );
+      changed = true;
+    }
+    return changed;
+  }
+
+  /// Drops everything that pointed at [playlistId]: the overview row, the
+  /// open detail page, a pending rename or add-entries view. Returns whether
+  /// anything changed.
+  bool _forgetPlaylist(int playlistId) {
+    var changed = false;
+    if (_playlists.any((playlist) => playlist.id == playlistId)) {
+      _playlists = _playlists
+          .where((playlist) => playlist.id != playlistId)
+          .toList();
+      if (_playlists.isEmpty) {
+        _listState = const MediaViewState.empty(AppTextKey.mediaPlaylistsEmpty);
+      }
+      changed = true;
+    }
+    if (_openPlaylist?.id == playlistId) {
+      _clearOpenPlaylist();
+      changed = true;
+    }
+    if (_renameTarget?.id == playlistId) {
+      _renameTarget = null;
+      changed = true;
+    }
+    if (_pendingAddEntriesTarget?.id == playlistId) {
+      _pendingAddEntriesTarget = null;
+      changed = true;
+    }
+    return changed;
+  }
+
+  /// Reloads the open playlist without going through the loading state.
+  Future<void> _refreshOpenPlaylist(int playlistId) async {
+    try {
+      final playlist = await _repository.getPlaylist(playlistId);
+      if (_openPlaylist?.id == playlistId) {
+        await _showOpenPlaylist(playlist);
+      }
+    } on MediaBackendException catch (error) {
+      _logger.warning('GetPlaylist($playlistId) failed: ${error.message}');
+      if (error.kind == MediaErrorKind.offline) {
+        _onStreamFailure?.call(error);
+      }
+    }
+  }
+
+  /// Shows [playlist] as the open one. Its cover comes after the entries,
+  /// and only if the playlist still has one - removing the entry the cover
+  /// was borrowed from changes or drops it.
+  Future<void> _showOpenPlaylist(MediaPlaylist playlist) async {
+    _openPlaylist = playlist;
+    _detailState = playlist.entries.isEmpty
+        ? const MediaViewState.empty(AppTextKey.mediaPlaylistDetailEmpty)
+        : const MediaViewState.ready();
+    _seedAddedMediaIds(playlist);
+    if (!playlist.hasCoverArt) {
+      _openPlaylistCoverArt = null;
+    }
+    notifyListeners();
+    if (playlist.hasCoverArt) {
+      final art = await _repository.getPlaylistCoverArt(playlist.id);
+      if (_openPlaylist?.id == playlist.id) {
+        _openPlaylistCoverArt = art;
+        notifyListeners();
+      }
     }
   }
 

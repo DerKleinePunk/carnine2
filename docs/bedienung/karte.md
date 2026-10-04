@@ -86,7 +86,7 @@ erreichbar“ (Backend weg, rot).
 
   ![Navigationsmodus mit gedrehter Karte: Straßennamen wie „Bermuthshainer Straße“ und „Frankfurter Straße“ stehen schräg, aber keiner kopfüber](bilder/karte-mitdrehen.png)
 
-Die Fahranweisungen erscheinen in der unter [Optionen → Sprache](optionen.md)
+Die Fahranweisungen erscheinen in der unter [Optionen → Darstellung & Sprache](optionen.md#darstellung--sprache)
 gewählten Sprache.
 
 ## Wo bin ich?

@@ -1,10 +1,13 @@
 import 'package:carnine_frontend/core/logging/app_logging.dart';
 import 'package:carnine_frontend/core/logging/log_viewer_dialog.dart';
 import 'package:carnine_frontend/core/platform/app_window.dart';
+import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart';
 import 'package:carnine_frontend/features/settings/presentation/models/settings_option_item.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_controller.dart';
+import 'package:carnine_frontend/features/settings/presentation/widgets/camera_settings_page.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/exit_password_dialog.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/language_flag.dart';
+import 'package:carnine_frontend/features/settings/presentation/widgets/settings_choice_button.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
 import 'package:carnine_frontend/l10n/app_language_option.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
@@ -21,11 +24,20 @@ class SettingsContent extends StatefulWidget {
     this.logLines,
     this.onRestart,
     this.onExit,
+    this.cameraSettingsStore,
+    this.onShowCamera,
     super.key,
   });
 
   final AppLanguageController languageController;
   final SettingsController? controller;
+
+  /// Where the camera settings live. Without one (tests, no backend) the
+  /// camera row on "Geräte" stays a preview.
+  final CameraSettingsStore? cameraSettingsStore;
+
+  /// Opens the Kamera page, so a changed setting can be looked at.
+  final VoidCallback? onShowCamera;
   final ValueListenable<List<String>>? logLines;
 
   /// Overridable for tests - both default to the real [AppWindow] actions,
@@ -91,6 +103,11 @@ class _SettingsContentState extends State<SettingsContent> {
       languageController: widget.languageController,
       logLines: _logLines,
       onBack: _controller.closeSection,
+      devicePage: _controller.openDevicePage,
+      onOpenDevicePage: _controller.showDevicePage,
+      onCloseDevicePage: _controller.closeDevicePage,
+      cameraSettingsStore: widget.cameraSettingsStore,
+      onShowCamera: widget.onShowCamera,
       onOpenLogs: _openLogViewer,
       onRestart: widget.onRestart ?? AppWindow.restartApplication,
       onExit: widget.onExit ?? AppWindow.exitApplication,
@@ -122,11 +139,11 @@ const List<SettingsOptionItem> _options = <SettingsOptionItem>[
     semanticLabelKey: AppTextKey.settingsAppearanceSemantic,
   ),
   SettingsOptionItem(
-    section: SettingsSection.language,
-    icon: Icons.language,
-    titleKey: AppTextKey.settingsLanguageTitle,
-    subtitleKey: AppTextKey.settingsLanguageSubtitle,
-    semanticLabelKey: AppTextKey.settingsLanguageSemantic,
+    section: SettingsSection.devices,
+    icon: Icons.devices_other,
+    titleKey: AppTextKey.settingsDevicesTitle,
+    subtitleKey: AppTextKey.settingsDevicesSubtitle,
+    semanticLabelKey: AppTextKey.settingsDevicesSemantic,
   ),
   SettingsOptionItem(
     section: SettingsSection.diagnostics,
@@ -136,6 +153,15 @@ const List<SettingsOptionItem> _options = <SettingsOptionItem>[
     semanticLabelKey: AppTextKey.settingsDiagnosticsSemantic,
   ),
 ];
+
+/// Header of the camera page below "Geräte".
+const SettingsOptionItem _cameraPageItem = SettingsOptionItem(
+  section: SettingsSection.devices,
+  icon: Icons.videocam,
+  titleKey: AppTextKey.settingsDevicesCameraTitle,
+  subtitleKey: AppTextKey.settingsDevicesCameraSubtitle,
+  semanticLabelKey: AppTextKey.settingsDevicesCameraTitle,
+);
 
 SettingsOptionItem _optionFor(SettingsSection section) {
   return _options.firstWhere((item) => item.section == section);
@@ -331,6 +357,11 @@ class _SettingsSectionPage extends StatelessWidget {
     required this.languageController,
     required this.logLines,
     required this.onBack,
+    required this.devicePage,
+    required this.onOpenDevicePage,
+    required this.onCloseDevicePage,
+    required this.cameraSettingsStore,
+    required this.onShowCamera,
     required this.onOpenLogs,
     required this.onRestart,
     required this.onExit,
@@ -341,37 +372,64 @@ class _SettingsSectionPage extends StatelessWidget {
   final AppLanguageController languageController;
   final ValueListenable<List<String>> logLines;
   final VoidCallback onBack;
+  final SettingsDevicePage? devicePage;
+  final ValueChanged<SettingsDevicePage> onOpenDevicePage;
+  final VoidCallback onCloseDevicePage;
+  final CameraSettingsStore? cameraSettingsStore;
+  final VoidCallback? onShowCamera;
   final VoidCallback onOpenLogs;
   final VoidCallback onRestart;
   final VoidCallback onExit;
 
   @override
   Widget build(BuildContext context) {
+    final onDevicePage = devicePage != null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SettingsPageHeader(item: item, onBack: onBack),
+        _SettingsPageHeader(
+          item: onDevicePage ? _cameraPageItem : item,
+          onBack: onDevicePage ? onCloseDevicePage : onBack,
+          backLabelKey: onDevicePage
+              ? AppTextKey.settingsBackToDevices
+              : AppTextKey.settingsBackToOptions,
+        ),
         const SizedBox(height: 18),
         Expanded(child: _SettingsPageBody(child: _bodyForSection())),
       ],
     );
   }
 
+  /// The "Geräte" list, or the camera page below it. The camera row opens
+  /// only when there is a backend to keep the settings.
+  Widget _devicesBody() {
+    final store = cameraSettingsStore;
+    if (devicePage == SettingsDevicePage.camera && store != null) {
+      return CameraSettingsPage(
+        store: store,
+        onShowCamera: onShowCamera ?? () {},
+      );
+    }
+
+    return _DevicesPage(
+      onOpenCamera: store == null
+          ? null
+          : () => onOpenDevicePage(SettingsDevicePage.camera),
+    );
+  }
+
   Widget _bodyForSection() {
     return switch (item.section) {
-      SettingsSection.language => _LanguagePage(
+      SettingsSection.appearance => _AppearanceLanguagePage(
         languageController: languageController,
       ),
+      SettingsSection.devices => _devicesBody(),
       SettingsSection.diagnostics => _DiagnosticsPage(
         logLines: logLines,
         onOpenLogs: onOpenLogs,
         onRestart: onRestart,
         onExit: onExit,
-      ),
-      SettingsSection.appearance => const _PlannedPage(
-        icon: Icons.palette,
-        titleKey: AppTextKey.settingsAppearanceComingSoonTitle,
-        bodyKey: AppTextKey.settingsAppearanceComingSoonDescription,
       ),
       SettingsSection.maps => const _PlannedPage(
         icon: Icons.map,
@@ -383,10 +441,15 @@ class _SettingsSectionPage extends StatelessWidget {
 }
 
 class _SettingsPageHeader extends StatelessWidget {
-  const _SettingsPageHeader({required this.item, required this.onBack});
+  const _SettingsPageHeader({
+    required this.item,
+    required this.onBack,
+    required this.backLabelKey,
+  });
 
   final SettingsOptionItem item;
   final VoidCallback onBack;
+  final AppTextKey backLabelKey;
 
   @override
   Widget build(BuildContext context) {
@@ -395,7 +458,7 @@ class _SettingsPageHeader extends StatelessWidget {
 
     return Row(
       children: [
-        _BackButton(onBack: onBack, l10n: l10n),
+        _BackButton(onBack: onBack, l10n: l10n, labelKey: backLabelKey),
         const SizedBox(width: 16),
         Icon(item.icon, color: accentColor, size: 32),
         const SizedBox(width: 14),
@@ -408,16 +471,21 @@ class _SettingsPageHeader extends StatelessWidget {
 }
 
 class _BackButton extends StatelessWidget {
-  const _BackButton({required this.onBack, required this.l10n});
+  const _BackButton({
+    required this.onBack,
+    required this.l10n,
+    required this.labelKey,
+  });
 
   final VoidCallback onBack;
   final AppLocalizations l10n;
+  final AppTextKey labelKey;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: l10n.text(AppTextKey.settingsBackToOptions),
+      label: l10n.text(labelKey),
       child: SizedBox(
         width: 56,
         height: 56,
@@ -425,7 +493,7 @@ class _BackButton extends StatelessWidget {
           onPressed: onBack,
           icon: const Icon(Icons.arrow_back, size: 26),
           color: AppColors.primary,
-          tooltip: l10n.text(AppTextKey.settingsBackToOptions),
+          tooltip: l10n.text(labelKey),
           style: IconButton.styleFrom(
             backgroundColor: AppColors.surfaceContainerHighest,
             side: const BorderSide(color: AppColors.primary20),
@@ -489,6 +557,273 @@ class _SettingsPageBody extends StatelessWidget {
         ],
       ),
       child: Padding(padding: const EdgeInsets.all(22), child: child),
+    );
+  }
+}
+
+/// "Darstellung & Sprache": two tabs. It opens on the language, the one part
+/// that works today; the appearance tab is a placeholder for colors and
+/// typography.
+class _AppearanceLanguagePage extends StatefulWidget {
+  const _AppearanceLanguagePage({required this.languageController});
+
+  final AppLanguageController languageController;
+
+  @override
+  State<_AppearanceLanguagePage> createState() =>
+      _AppearanceLanguagePageState();
+}
+
+enum _AppearanceTab { appearance, language }
+
+class _AppearanceLanguagePageState extends State<_AppearanceLanguagePage> {
+  _AppearanceTab _tab = _AppearanceTab.language;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _AppearanceTabs(
+          selected: _tab,
+          onSelect: (tab) => setState(() => _tab = tab),
+        ),
+        const SizedBox(height: 18),
+        Expanded(
+          child: switch (_tab) {
+            _AppearanceTab.appearance => const _PlannedPage(
+              icon: Icons.palette,
+              titleKey: AppTextKey.settingsAppearanceComingSoonTitle,
+              bodyKey: AppTextKey.settingsAppearanceComingSoonDescription,
+            ),
+            _AppearanceTab.language => _LanguagePage(
+              languageController: widget.languageController,
+            ),
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _AppearanceTabs extends StatelessWidget {
+  const _AppearanceTabs({required this.selected, required this.onSelect});
+
+  final _AppearanceTab selected;
+  final ValueChanged<_AppearanceTab> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _SettingsTab(
+            icon: Icons.palette,
+            labelKey: AppTextKey.settingsAppearanceTabTitle,
+            isSelected: selected == _AppearanceTab.appearance,
+            onTap: () => onSelect(_AppearanceTab.appearance),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _SettingsTab(
+            icon: Icons.language,
+            labelKey: AppTextKey.settingsLanguageTitle,
+            isSelected: selected == _AppearanceTab.language,
+            onTap: () => onSelect(_AppearanceTab.language),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SettingsTab extends StatelessWidget {
+  const _SettingsTab({
+    required this.icon,
+    required this.labelKey,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final AppTextKey labelKey;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SettingsChoiceButton(
+      icon: icon,
+      label: AppLocalizations.of(context).text(labelKey),
+      isSelected: isSelected,
+      onTap: onTap,
+    );
+  }
+}
+
+/// One area of the "Geräte" page: camera (#79), audio output (#48), phone
+/// app (#72), power supply (#36). Only the camera has a [page] so far; the
+/// others stay a mockup until they get one.
+class _DeviceMockup {
+  const _DeviceMockup({
+    required this.icon,
+    required this.titleKey,
+    required this.subtitleKey,
+    this.page,
+  });
+
+  final IconData icon;
+  final AppTextKey titleKey;
+  final AppTextKey subtitleKey;
+  final SettingsDevicePage? page;
+}
+
+const List<_DeviceMockup> _deviceMockups = <_DeviceMockup>[
+  _DeviceMockup(
+    icon: Icons.videocam,
+    titleKey: AppTextKey.settingsDevicesCameraTitle,
+    subtitleKey: AppTextKey.settingsDevicesCameraSubtitle,
+    page: SettingsDevicePage.camera,
+  ),
+  _DeviceMockup(
+    icon: Icons.speaker,
+    titleKey: AppTextKey.settingsDevicesAudioTitle,
+    subtitleKey: AppTextKey.settingsDevicesAudioSubtitle,
+  ),
+  _DeviceMockup(
+    icon: Icons.phone_android,
+    titleKey: AppTextKey.settingsDevicesPhoneTitle,
+    subtitleKey: AppTextKey.settingsDevicesPhoneSubtitle,
+  ),
+  _DeviceMockup(
+    icon: Icons.power,
+    titleKey: AppTextKey.settingsDevicesPowerTitle,
+    subtitleKey: AppTextKey.settingsDevicesPowerSubtitle,
+  ),
+];
+
+/// "Geräte": the areas that get their settings here. A row with a page
+/// opens it; the others only show what is coming - greyed out, without an
+/// arrow, and not tappable.
+class _DevicesPage extends StatelessWidget {
+  const _DevicesPage({required this.onOpenCamera});
+
+  /// `null` without a backend that keeps the camera settings: the camera row
+  /// is then a preview like the rest.
+  final VoidCallback? onOpenCamera;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      itemCount: _deviceMockups.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final mockup = _deviceMockups[index];
+        return _DeviceRow(
+          mockup: mockup,
+          onTap: mockup.page == SettingsDevicePage.camera ? onOpenCamera : null,
+        );
+      },
+    );
+  }
+}
+
+class _DeviceRow extends StatelessWidget {
+  const _DeviceRow({required this.mockup, required this.onTap});
+
+  final _DeviceMockup mockup;
+
+  /// `null`: a preview, not tappable.
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final title = l10n.text(mockup.titleKey);
+    final subtitle = l10n.text(mockup.subtitleKey);
+    final isActive = onTap != null;
+
+    return Semantics(
+      button: isActive,
+      enabled: isActive,
+      label: '$title, $subtitle',
+      excludeSemantics: true,
+      child: Material(
+        color: AppColors.surfaceContainer,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          splashColor: AppColors.primary20,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isActive
+                    ? AppColors.primary20
+                    : AppColors.outlineVariant20,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Icon(
+                      mockup.icon,
+                      color: isActive ? AppColors.primary : AppColors.outline,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.labelLarge.copyWith(
+                            color: isActive
+                                ? AppColors.onSurface
+                                : AppColors.onSurfaceVariant,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.bodyLarge.copyWith(
+                            color: AppColors.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (isActive)
+                    const Icon(
+                      Icons.chevron_right,
+                      color: AppColors.onSurfaceVariant,
+                      size: 30,
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -948,27 +1283,27 @@ BoxDecoration _tileDecoration(SettingsSection section) {
 
 Color _accentColor(SettingsSection section) {
   return switch (section) {
-    SettingsSection.language => AppColors.primary,
-    SettingsSection.diagnostics => AppColors.primary,
     SettingsSection.appearance => AppColors.secondary,
+    SettingsSection.devices => AppColors.primary,
+    SettingsSection.diagnostics => AppColors.primary,
     SettingsSection.maps => AppColors.tertiary,
   };
 }
 
 Color _softGlowColor(SettingsSection section) {
   return switch (section) {
-    SettingsSection.language => AppColors.primary20,
-    SettingsSection.diagnostics => AppColors.primary20,
     SettingsSection.appearance => AppColors.secondary20,
+    SettingsSection.devices => AppColors.primary20,
+    SettingsSection.diagnostics => AppColors.primary20,
     SettingsSection.maps => AppColors.tertiary20,
   };
 }
 
 Color _strongGlowColor(SettingsSection section) {
   return switch (section) {
-    SettingsSection.language => AppColors.primary40,
-    SettingsSection.diagnostics => AppColors.primary40,
     SettingsSection.appearance => AppColors.secondary40,
+    SettingsSection.devices => AppColors.primary40,
+    SettingsSection.diagnostics => AppColors.primary40,
     SettingsSection.maps => AppColors.tertiary40,
   };
 }

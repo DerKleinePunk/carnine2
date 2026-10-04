@@ -22,7 +22,7 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.dashboardContentFor: 'Dashboard content for {section}',
   AppTextKey.grpcStatus: 'gRPC Status: {status}',
   AppTextKey.statusNotConnected: 'Not connected',
-  AppTextKey.statusConnecting: 'Connecting...',
+  AppTextKey.statusConnecting: 'Connecting …',
   AppTextKey.statusConnected: 'Connected - received {count} data points',
   AppTextKey.statusError: 'Error',
   AppTextKey.grpcConnectionErrorTitle: 'Connection Error',
@@ -65,7 +65,7 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.mediaFeatureUnavailableHint: 'not yet available',
   AppTextKey.mediaQueueEmpty: 'Queue is empty',
   AppTextKey.mediaNoAdjacentTrack: 'No adjacent track in the queue',
-  AppTextKey.mediaLoading: 'Loading...',
+  AppTextKey.mediaLoading: 'Loading …',
   AppTextKey.mediaRetry: 'Retry',
   AppTextKey.mediaOfflineTitle: 'No connection',
   AppTextKey.mediaOfflineDescription:
@@ -89,7 +89,7 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.mediaUsbImportSemantic: 'Import {count} track(s) from {label}',
   AppTextKey.mediaToolsMissingBanner:
       'ffmpeg is missing: tracks are imported without artist, duration and cover. Install ffmpeg, then rescan.',
-  AppTextKey.mediaScanRunning: 'Scan running...',
+  AppTextKey.mediaScanRunning: 'Scan running …',
   AppTextKey.mediaScanProgressLine:
       '{processed} processed, {imported} imported',
   AppTextKey.mediaScanFailed: 'Scan failed',
@@ -111,18 +111,57 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistAddEntriesTitle: 'Add tracks',
   AppTextKey.mediaPlaylistAddEntryAction: 'Add tracks',
   AppTextKey.mediaPlaylistTrackAlreadyAdded: 'Track is already in the playlist',
+  AppTextKey.mediaPlaylistRenameAction: 'Rename playlist',
+  AppTextKey.mediaPlaylistDeleteSemantic: 'Delete playlist',
+  AppTextKey.mediaPlaylistDeleteConfirmTitle: 'Delete playlist?',
+  AppTextKey.mediaPlaylistDeleteConfirmMessage:
+      '"{name}" will be deleted for good. The tracks stay in the library.',
+  AppTextKey.mediaPlaylistDeleteAction: 'Delete',
+  AppTextKey.mediaPlaylistEntryRemoveSemantic:
+      'Remove {title} from the playlist',
+  AppTextKey.mediaSaveAction: 'Save',
+  AppTextKey.mediaCancelAction: 'Cancel',
   AppTextKey.mediaPlaylistAddEntrySemantic: 'Add {title} to {playlist}',
   AppTextKey.mediaBackToCollectionsSemantic: 'Back to collections',
   AppTextKey.settingsBackToOptions: 'Back to options',
   AppTextKey.settingsLanguageTitle: 'Language',
-  AppTextKey.settingsLanguageSubtitle: 'Choose display language',
-  AppTextKey.settingsLanguageSemantic: 'Open language settings',
   AppTextKey.settingsDiagnosticsTitle: 'System',
   AppTextKey.settingsDiagnosticsSubtitle: 'Logs, restart and updates',
   AppTextKey.settingsDiagnosticsSemantic: 'Open system settings',
-  AppTextKey.settingsAppearanceTitle: 'Appearance',
-  AppTextKey.settingsAppearanceSubtitle: 'Colors and typography',
-  AppTextKey.settingsAppearanceSemantic: 'Open appearance settings',
+  AppTextKey.settingsAppearanceTitle: 'Appearance & language',
+  AppTextKey.settingsAppearanceSubtitle:
+      'Colors, typography and display language',
+  AppTextKey.settingsAppearanceSemantic:
+      'Open appearance and language settings',
+  AppTextKey.settingsAppearanceTabTitle: 'Appearance',
+  AppTextKey.settingsDevicesTitle: 'Devices',
+  AppTextKey.settingsDevicesSubtitle: 'Camera, audio output and phone app',
+  AppTextKey.settingsDevicesSemantic: 'Open device settings',
+  AppTextKey.settingsDevicesCameraTitle: 'Camera',
+  AppTextKey.settingsDevicesCameraSubtitle:
+      'Device, video standard, input and picture width',
+  AppTextKey.settingsDevicesAudioTitle: 'Audio output',
+  AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, jack or USB sound card',
+  AppTextKey.settingsDevicesPhoneTitle: 'Phone app',
+  AppTextKey.settingsDevicesPhoneSubtitle:
+      'Bluetooth pairing with a code on the phone',
+  AppTextKey.settingsDevicesPowerTitle: 'Power supply',
+  AppTextKey.settingsDevicesPowerSubtitle: 'Ignition, voltage and service mode',
+  AppTextKey.settingsBackToDevices: 'Back to devices',
+  AppTextKey.settingsCameraDeviceLabel: 'Device',
+  AppTextKey.settingsCameraNoDevices: 'No camera found',
+  AppTextKey.settingsCameraNormLabel: 'Video standard',
+  AppTextKey.settingsCameraInputLabel: 'Input',
+  AppTextKey.settingsCameraInputSVideo: 'S-Video',
+  AppTextKey.settingsCameraWidthLabel: 'Picture width',
+  AppTextKey.settingsCameraWidthHint:
+      '720 is sharper but delivers only about 10 frames per second.',
+  AppTextKey.settingsCameraAnalogOnlyNote:
+      'Standard, input and width apply only to analog cameras on a USB '
+      'adapter, not to USB cameras.',
+  AppTextKey.settingsCameraAppliesNote:
+      'Applies from the next time the Camera page is opened.',
+  AppTextKey.settingsCameraShowAction: 'View camera picture',
   AppTextKey.settingsMapTitle: 'Map settings',
   AppTextKey.settingsMapSubtitle: 'Map view and route behavior',
   AppTextKey.settingsMapSemantic: 'Open map settings',
@@ -214,4 +253,8 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: 'No camera signal',
   AppTextKey.cameraMissing: 'Camera not connected',
   AppTextKey.cameraError: 'Camera fault',
+  AppTextKey.controlsEmpty: 'No controls set up',
+  AppTextKey.controlsStateOn: 'On',
+  AppTextKey.controlsStateOff: 'Off',
+  AppTextKey.controlsUnavailable: 'Not reachable',
 };

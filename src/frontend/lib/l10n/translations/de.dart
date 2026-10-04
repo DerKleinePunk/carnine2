@@ -22,7 +22,7 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.dashboardContentFor: 'Dashboard-Inhalt für {section}',
   AppTextKey.grpcStatus: 'gRPC-Status: {status}',
   AppTextKey.statusNotConnected: 'Nicht verbunden',
-  AppTextKey.statusConnecting: 'Verbindung wird aufgebaut...',
+  AppTextKey.statusConnecting: 'Verbindung wird aufgebaut …',
   AppTextKey.statusConnected: 'Verbunden - {count} Datenpunkte empfangen',
   AppTextKey.statusError: 'Fehler',
   AppTextKey.grpcConnectionErrorTitle: 'Verbindungsfehler',
@@ -65,7 +65,7 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.mediaFeatureUnavailableHint: 'noch nicht verfügbar',
   AppTextKey.mediaQueueEmpty: 'Warteschlange ist leer',
   AppTextKey.mediaNoAdjacentTrack: 'Kein weiterer Titel in der Warteschlange',
-  AppTextKey.mediaLoading: 'Wird geladen...',
+  AppTextKey.mediaLoading: 'Wird geladen …',
   AppTextKey.mediaRetry: 'Erneut versuchen',
   AppTextKey.mediaOfflineTitle: 'Keine Verbindung',
   AppTextKey.mediaOfflineDescription:
@@ -83,7 +83,7 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchSemantic: 'Bibliothek durchsuchen',
   AppTextKey.mediaSearchClearSemantic: 'Suche zurücksetzen',
   AppTextKey.mediaLibraryEmpty:
-      'Die Bibliothek ist leer. Starte einen Rescan, um Medien zu '
+      'Die Bibliothek ist leer. Starten Sie einen Rescan, um Medien zu '
       'importieren.',
   AppTextKey.mediaSearchNoResults: 'Keine Treffer für diese Suche',
   AppTextKey.mediaRescanAction: 'Rescan',
@@ -94,7 +94,7 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.mediaUsbImportSemantic: '{count} Titel von {label} übernehmen',
   AppTextKey.mediaToolsMissingBanner:
       'ffmpeg fehlt: Titel werden ohne Interpret, Dauer und Cover eingelesen. Bitte ffmpeg installieren und danach neu einlesen.',
-  AppTextKey.mediaScanRunning: 'Scan läuft...',
+  AppTextKey.mediaScanRunning: 'Scan läuft …',
   AppTextKey.mediaScanProgressLine:
       '{processed} verarbeitet, {imported} importiert',
   AppTextKey.mediaScanFailed: 'Scan fehlgeschlagen',
@@ -117,18 +117,56 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistAddEntryAction: 'Titel hinzufügen',
   AppTextKey.mediaPlaylistTrackAlreadyAdded:
       'Titel ist bereits in der Playlist',
+  AppTextKey.mediaPlaylistRenameAction: 'Playlist umbenennen',
+  AppTextKey.mediaPlaylistDeleteSemantic: 'Playlist löschen',
+  AppTextKey.mediaPlaylistDeleteConfirmTitle: 'Playlist löschen?',
+  AppTextKey.mediaPlaylistDeleteConfirmMessage:
+      '„{name}“ wird endgültig gelöscht. Die Titel bleiben in der Bibliothek.',
+  AppTextKey.mediaPlaylistDeleteAction: 'Löschen',
+  AppTextKey.mediaPlaylistEntryRemoveSemantic:
+      '{title} aus der Playlist entfernen',
+  AppTextKey.mediaSaveAction: 'Speichern',
+  AppTextKey.mediaCancelAction: 'Abbrechen',
   AppTextKey.mediaPlaylistAddEntrySemantic: '{title} zu {playlist} hinzufügen',
   AppTextKey.mediaBackToCollectionsSemantic: 'Zurück zu Sammlungen',
   AppTextKey.settingsBackToOptions: 'Zurück zu Optionen',
   AppTextKey.settingsLanguageTitle: 'Sprache',
-  AppTextKey.settingsLanguageSubtitle: 'Anzeigesprache auswählen',
-  AppTextKey.settingsLanguageSemantic: 'Spracheinstellungen öffnen',
   AppTextKey.settingsDiagnosticsTitle: 'System',
   AppTextKey.settingsDiagnosticsSubtitle: 'Logs, Neustart und Updates',
   AppTextKey.settingsDiagnosticsSemantic: 'Systemeinstellungen öffnen',
-  AppTextKey.settingsAppearanceTitle: 'Darstellung',
-  AppTextKey.settingsAppearanceSubtitle: 'Farbgebung und Schriftarten',
-  AppTextKey.settingsAppearanceSemantic: 'Darstellungseinstellungen öffnen',
+  AppTextKey.settingsAppearanceTitle: 'Darstellung & Sprache',
+  AppTextKey.settingsAppearanceSubtitle: 'Farben, Schrift und Anzeigesprache',
+  AppTextKey.settingsAppearanceSemantic: 'Darstellung und Sprache öffnen',
+  AppTextKey.settingsAppearanceTabTitle: 'Darstellung',
+  AppTextKey.settingsDevicesTitle: 'Geräte',
+  AppTextKey.settingsDevicesSubtitle: 'Kamera, Ton-Ausgang und Handy-App',
+  AppTextKey.settingsDevicesSemantic: 'Geräteeinstellungen öffnen',
+  AppTextKey.settingsDevicesCameraTitle: 'Kamera',
+  AppTextKey.settingsDevicesCameraSubtitle:
+      'Gerät, Videonorm, Eingang und Bildbreite',
+  AppTextKey.settingsDevicesAudioTitle: 'Audio-Ausgang',
+  AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, Klinke oder USB-Soundkarte',
+  AppTextKey.settingsDevicesPhoneTitle: 'Handy-App',
+  AppTextKey.settingsDevicesPhoneSubtitle:
+      'Bluetooth-Kopplung mit Code am Handy',
+  AppTextKey.settingsDevicesPowerTitle: 'Netzteil',
+  AppTextKey.settingsDevicesPowerSubtitle:
+      'Zündung, Spannung und Service-Modus',
+  AppTextKey.settingsBackToDevices: 'Zurück zu Geräten',
+  AppTextKey.settingsCameraDeviceLabel: 'Gerät',
+  AppTextKey.settingsCameraNoDevices: 'Keine Kamera gefunden',
+  AppTextKey.settingsCameraNormLabel: 'Videonorm',
+  AppTextKey.settingsCameraInputLabel: 'Eingang',
+  AppTextKey.settingsCameraInputSVideo: 'S-Video',
+  AppTextKey.settingsCameraWidthLabel: 'Bildbreite',
+  AppTextKey.settingsCameraWidthHint:
+      '720 ist schärfer, liefert aber nur etwa 10 Bilder pro Sekunde.',
+  AppTextKey.settingsCameraAnalogOnlyNote:
+      'Norm, Eingang und Bildbreite gelten nur für analoge Kameras am '
+      'USB-Adapter, nicht für USB-Kameras.',
+  AppTextKey.settingsCameraAppliesNote:
+      'Gilt ab dem nächsten Öffnen der Seite Kamera.',
+  AppTextKey.settingsCameraShowAction: 'Kamerabild ansehen',
   AppTextKey.settingsMapTitle: 'Karteneinstellungen',
   AppTextKey.settingsMapSubtitle: 'Kartenansicht und Routenverhalten',
   AppTextKey.settingsMapSemantic: 'Karteneinstellungen öffnen',
@@ -155,7 +193,7 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.settingsMockDescription:
       'Temporärer Einstellungsbereich für globale Frontend-Optionen.',
   AppTextKey.languageGerman: 'Deutsch',
-  AppTextKey.languageEnglish: 'English',
+  AppTextKey.languageEnglish: 'Englisch',
   AppTextKey.languageFrench: 'Französisch',
   AppTextKey.languageSpanish: 'Spanisch',
   AppTextKey.languageItalian: 'Italienisch',
@@ -219,4 +257,8 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: 'Kein Kamerasignal',
   AppTextKey.cameraMissing: 'Kamera nicht angeschlossen',
   AppTextKey.cameraError: 'Kamera gestört',
+  AppTextKey.controlsEmpty: 'Keine Technik eingerichtet',
+  AppTextKey.controlsStateOn: 'An',
+  AppTextKey.controlsStateOff: 'Aus',
+  AppTextKey.controlsUnavailable: 'Nicht erreichbar',
 };

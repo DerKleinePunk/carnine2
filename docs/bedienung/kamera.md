@@ -60,9 +60,10 @@ nicht wandert, kann man statt `/dev/video0` den festen Namen der Kamera unter
 
 ## Einstellungen
 
-Eine Einstellungsseite in der Oberfläche gibt es noch nicht, sie kommt
-später (#79). Bis dahin gelten die Vorgaben aus dem Abschnitt `[camera]` der
-Konfiguration. Ohne Eintrag sind das diese Werte:
+Gerät, Videonorm, Eingang und Bildbreite stellt man unter
+[Optionen → Geräte → Kamera](optionen.md#kamera) ein. Ohne gespeicherte Werte
+gelten die Vorgaben aus dem Abschnitt `[camera]` der Konfiguration. Ohne Eintrag
+sind das diese Werte:
 
 ```toml
 [camera]
@@ -72,7 +73,8 @@ input = 0                # STK1160: 0–3 Composite, 4 S-Video
 width = 360              # oder 720
 ```
 
-- **Ändern:** am besten in einer eigenen Datei, z. B.
+- **Ändern in der Konfiguration** (nur für die Vorgabe, wenn in den Optionen
+  noch nichts gespeichert ist): am besten in einer eigenen Datei, z. B.
   `/etc/carnine/config.d/30-camera.toml`, nur mit den Zeilen, die anders sein
   sollen. Danach `sudo systemctl restart carnine-backend` und einmal die Seite
   Kamera verlassen und wieder öffnen. Der Neustart des Backends unterbricht die
@@ -82,8 +84,7 @@ width = 360              # oder 720
 - **Breite 720** ist schärfer, aber der STK1160 kommt damit an die Grenze von
   USB 2: Es kommen nur etwa 10 statt 30 Bilder pro Sekunde, viele davon
   unvollständig. Für eine analoge Kamera ist 360 kaum unschärfer.
-- Was die künftige Einstellungsseite speichert, liegt in der Datenbank und
-  geht den Werten aus der Konfiguration vor. Das gilt schon heute für Werte,
-  die jemand mit dem Test-Client gespeichert hat. Wirkt eine Änderung in der
-  Konfiguration nicht, liegt das meist daran
+- Was die Einstellungsseite speichert, liegt in der Datenbank und geht den
+  Werten aus der Konfiguration vor. Wirkt eine Änderung in der Konfiguration
+  nicht, liegt das meist daran
   ([docs/07](../07-deployment.md#reversing-camera)).

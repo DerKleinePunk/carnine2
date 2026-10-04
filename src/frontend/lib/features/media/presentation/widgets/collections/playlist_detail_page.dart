@@ -5,20 +5,25 @@ import 'package:carnine_frontend/features/media/domain/models/media_playlist.dar
 import 'package:carnine_frontend/features/media/presentation/format/duration_format.dart';
 import 'package:carnine_frontend/features/media/presentation/player_controller.dart';
 import 'package:carnine_frontend/features/media/presentation/playlist_controller.dart';
+import 'package:carnine_frontend/features/media/presentation/widgets/audio_event_banner.dart';
+import 'package:carnine_frontend/features/media/presentation/widgets/collections/playlist_delete_dialog.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/media_back_button.dart';
+import 'package:carnine_frontend/features/media/presentation/widgets/media_icon_button.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/media_row_tile.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/media_state_view.dart';
+import 'package:carnine_frontend/features/media/presentation/widgets/media_wide_button.dart';
 import 'package:carnine_frontend/features/media/presentation/widgets/quick_action_tile.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:carnine_frontend/styles/colors.dart';
 import 'package:carnine_frontend/styles/text_styles.dart';
 import 'package:flutter/material.dart';
 
-/// One saved playlist's entries in order. Entries are display-only, like
-/// the player's queue sidebar - there is no direct-track-selection RPC
-/// (`docs/20-media-backend-plan.md` explicitly defers it), so switching
+/// One saved playlist's entries in order. Entries cannot be played from
+/// here, like the player's queue sidebar - there is no direct-track-selection
+/// RPC (`docs/20-media-backend-plan.md` explicitly defers it), so switching
 /// tracks only ever happens through Next/Previous or restarting the
-/// playlist.
+/// playlist. What a row does offer is a cross to take its entry out; the
+/// header offers rename and delete (#89).
 class PlaylistDetailPage extends StatelessWidget {
   const PlaylistDetailPage({
     required this.playlists,
@@ -77,6 +82,23 @@ class PlaylistDetailPage extends StatelessWidget {
                       ),
                     ),
                   ),
+                  MediaIconButton(
+                    icon: Icons.edit,
+                    semanticLabel: l10n.text(
+                      AppTextKey.mediaPlaylistRenameAction,
+                    ),
+                    onPressed: () => playlists.startRenaming(playlist),
+                  ),
+                  const SizedBox(width: 8),
+                  MediaIconButton(
+                    icon: Icons.delete_outline,
+                    color: AppColors.error,
+                    semanticLabel: l10n.text(
+                      AppTextKey.mediaPlaylistDeleteSemantic,
+                    ),
+                    onPressed: () => _confirmDelete(context, playlist),
+                  ),
+                  const SizedBox(width: 8),
                   SizedBox(
                     width: 140,
                     height: 56,
@@ -95,6 +117,15 @@ class PlaylistDetailPage extends StatelessWidget {
                 ],
               ),
             ),
+            if (playlists.actionErrorKey case final errorKey?) ...[
+              const SizedBox(height: 12),
+              AudioEventBanner(
+                key: const ValueKey('playlist-action-error'),
+                messageKey: errorKey,
+                onDismiss: playlists.dismissActionError,
+                isError: true,
+              ),
+            ],
             const SizedBox(height: 12),
             Expanded(
               child: MediaStateView(
@@ -105,12 +136,19 @@ class PlaylistDetailPage extends StatelessWidget {
                   itemCount: playlist.entries.length,
                   separatorBuilder: (context, index) =>
                       const SizedBox(height: 8),
-                  itemBuilder: (context, index) => _EntryRow(
-                    entry: playlist.entries[index],
-                    isActive:
-                        player.queue.playlistId == playlist.id &&
-                        player.activeQueueIndex == index,
-                  ),
+                  itemBuilder: (context, index) {
+                    final entry = playlist.entries[index];
+                    return _EntryRow(
+                      entry: entry,
+                      isActive:
+                          player.queue.playlistId == playlist.id &&
+                          player.activeQueueIndex == index,
+                      isRemoving: playlists.pendingRemoveEntryIds.contains(
+                        entry.id,
+                      ),
+                      onRemove: () => playlists.removeEntry(entry),
+                    );
+                  },
                 ),
               ),
             ),
@@ -118,13 +156,27 @@ class PlaylistDetailPage extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               child: SizedBox(
                 width: double.infinity,
-                child: _AddEntriesButton(onTap: () => onAddEntries(playlist)),
+                child: MediaWideButton(
+                  icon: Icons.playlist_add,
+                  label: l10n.text(AppTextKey.mediaPlaylistAddEntryAction),
+                  onTap: () => onAddEntries(playlist),
+                ),
               ),
             ),
           ],
         );
       },
     );
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    MediaPlaylist playlist,
+  ) async {
+    final confirmed = await PlaylistDeleteDialog.show(context, playlist.name);
+    if (confirmed) {
+      await playlists.deletePlaylist(playlist.id);
+    }
   }
 
   Future<void> _startPlaylist(MediaPlaylist playlist) async {
@@ -140,10 +192,17 @@ class PlaylistDetailPage extends StatelessWidget {
 }
 
 class _EntryRow extends StatelessWidget {
-  const _EntryRow({required this.entry, required this.isActive});
+  const _EntryRow({
+    required this.entry,
+    required this.isActive,
+    required this.isRemoving,
+    required this.onRemove,
+  });
 
   final MediaPlaylistEntry entry;
   final bool isActive;
+  final bool isRemoving;
+  final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
@@ -151,6 +210,8 @@ class _EntryRow extends StatelessWidget {
     final track = entry.track;
 
     if (track == null) {
+      // An entry whose file is gone must be removable too, or it would stay
+      // in the playlist for good.
       return MediaRowTile(
         title: l10n.text(AppTextKey.mediaPlaylistEntryUnknown),
         subtitle: '',
@@ -158,6 +219,13 @@ class _EntryRow extends StatelessWidget {
         leadingIcon: Icons.report_gmailerrorred,
         leadingIconColor: AppColors.error,
         isEnabled: false,
+        trailing: _RemoveEntryButton(
+          label: l10n.mediaPlaylistEntryRemoveSemantic(
+            l10n.text(AppTextKey.mediaPlaylistEntryUnknown),
+          ),
+          isBusy: isRemoving,
+          onRemove: onRemove,
+        ),
       );
     }
 
@@ -167,64 +235,55 @@ class _EntryRow extends StatelessWidget {
       semanticLabel: track.title,
       isActive: isActive,
       leadingIcon: isActive ? Icons.equalizer : Icons.music_note,
-      trailing: Text(
-        formatTrackDuration(track.duration),
-        style: AppTextStyles.labelLarge.copyWith(
-          color: isActive ? AppColors.primary : AppColors.onSurfaceVariant,
-          fontSize: 10,
-        ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            formatTrackDuration(track.duration),
+            style: AppTextStyles.labelLarge.copyWith(
+              color: isActive ? AppColors.primary : AppColors.onSurfaceVariant,
+              fontSize: 10,
+            ),
+          ),
+          const SizedBox(width: 8),
+          _RemoveEntryButton(
+            label: l10n.mediaPlaylistEntryRemoveSemantic(track.title),
+            isBusy: isRemoving,
+            onRemove: onRemove,
+          ),
+        ],
       ),
     );
   }
 }
 
-class _AddEntriesButton extends StatelessWidget {
-  const _AddEntriesButton({required this.onTap});
+/// The cross at the end of an entry row. 56dp, without a frame: a frame on
+/// every row would drown the list.
+class _RemoveEntryButton extends StatelessWidget {
+  const _RemoveEntryButton({
+    required this.label,
+    required this.isBusy,
+    required this.onRemove,
+  });
 
-  final VoidCallback onTap;
+  final String label;
+  final bool isBusy;
+  final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final label = l10n.text(AppTextKey.mediaPlaylistAddEntryAction);
-
     return Semantics(
       button: true,
+      enabled: !isBusy,
       label: label,
-      child: Material(
-        color: AppColors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
-          splashColor: AppColors.primary20,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.primary20),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.playlist_add,
-                    color: AppColors.primary,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    label,
-                    style: AppTextStyles.labelLarge.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+      child: SizedBox(
+        width: 56,
+        height: 56,
+        child: IconButton(
+          onPressed: isBusy ? null : onRemove,
+          icon: const Icon(Icons.close, size: 22),
+          color: AppColors.onSurfaceVariant,
+          tooltip: label,
         ),
       ),
     );

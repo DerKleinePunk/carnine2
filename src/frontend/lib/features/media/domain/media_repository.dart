@@ -101,6 +101,23 @@ abstract class MediaRepository {
 
   Future<MediaPlaylist> createPlaylist(String name);
 
+  /// Renames [playlistId]. The reply carries no entries, like
+  /// [listPlaylists]. Fails with `alreadyExists` when another playlist has
+  /// the name, `invalidInput` for an empty name, `notFound` for an unknown id.
+  Future<MediaPlaylist> renamePlaylist({
+    required int playlistId,
+    required String name,
+  });
+
+  /// Deletes [playlistId] with all its entries. The tracks stay in the
+  /// library. Fails with `notFound` for an unknown id.
+  Future<void> deletePlaylist(int playlistId);
+
+  /// Removes one entry - its [MediaPlaylistEntry.id], not the media id, since
+  /// the same track can be in a playlist more than once - and returns the
+  /// playlist as it is now, positions closed up.
+  Future<MediaPlaylist> removePlaylistEntry(int entryId);
+
   Future<MediaPlaylistEntry> addPlaylistEntry({
     required int playlistId,
     required int mediaId,

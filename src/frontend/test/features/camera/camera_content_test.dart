@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:carnine_frontend/data/services/carnine_grpc_service.dart';
-import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart';
 import 'package:carnine_frontend/features/camera/presentation/camera_content.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:carnine_frontend/lib/carnine.pb.dart';
@@ -10,23 +9,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:video_grabber/video_grabber.dart';
 
-class FakeCameraSettingsStore implements CameraSettingsStore {
-  FakeCameraSettingsStore({this.config, this.error});
-
-  final GrabberConfig? config;
-  final Object? error;
-  Completer<void>? gate;
-
-  @override
-  Future<GrabberConfig> loadCameraSettings() async {
-    await gate?.future;
-    final failure = error;
-    if (failure != null) {
-      throw failure;
-    }
-    return config ?? const GrabberConfig();
-  }
-}
+import '../../fakes/fake_camera_settings_store.dart';
 
 /// A source that only records what happens to it.
 class FakeGrabberSource implements GrabberSource {

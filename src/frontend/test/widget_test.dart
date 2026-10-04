@@ -68,10 +68,12 @@ void main() {
     await tester.tap(find.text('Optionen'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Sprache'), findsWidgets);
+    // Four tiles; the language lives inside "Darstellung & Sprache".
+    expect(find.text('Darstellung & Sprache'), findsOneWidget);
+    expect(find.text('Geräte'), findsOneWidget);
     expect(find.text('System'), findsOneWidget);
-    expect(find.text('Darstellung'), findsOneWidget);
     expect(find.text('Karteneinstellungen'), findsOneWidget);
+    expect(find.text('Sprache'), findsNothing);
     expect(
       find.text('Touchoptimierte Fahrzeug- und Systemoptionen.'),
       findsNothing,
@@ -89,7 +91,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Optionen'), findsOneWidget);
-    expect(find.text('Darstellung'), findsOneWidget);
+    expect(find.text('Darstellung & Sprache'), findsOneWidget);
   });
 
   testWidgets('switches frontend language in settings', (
@@ -105,20 +107,21 @@ void main() {
     await tester.tap(find.text('Optionen'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Sprache'), findsWidgets);
+    expect(find.text('Darstellung & Sprache'), findsOneWidget);
 
-    await tester.tap(find.text('Sprache').first);
+    // The page opens on the language tab.
+    await tester.tap(find.text('Darstellung & Sprache'));
     await tester.pumpAndSettle();
 
     expect(find.byType(GridView), findsOneWidget);
     expect(find.text('Deutsch'), findsWidgets);
-    expect(find.text('English'), findsOneWidget);
+    expect(find.text('Englisch'), findsOneWidget);
 
+    // The tabs take some height, so the lower rows are built only once the
+    // list is scrolled - the English half of this test scrolls to them.
     expect(find.text('Dänisch'), findsOneWidget);
     expect(find.text('Französisch'), findsOneWidget);
-    expect(find.text('Niederländisch'), findsOneWidget);
-    expect(find.text('Polnisch'), findsOneWidget);
-    await tester.tap(find.text('English'));
+    await tester.tap(find.text('Englisch'));
     await tester.pumpAndSettle();
 
     expect(find.text('Language'), findsWidgets);

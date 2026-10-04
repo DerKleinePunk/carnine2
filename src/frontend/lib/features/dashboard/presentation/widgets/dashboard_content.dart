@@ -1,5 +1,7 @@
 import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart';
 import 'package:carnine_frontend/features/camera/presentation/camera_content.dart';
+import 'package:carnine_frontend/features/controls/data/controls_repository.dart';
+import 'package:carnine_frontend/features/controls/presentation/controls_content.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/models/dashboard_nav_item.dart';
 import 'package:carnine_frontend/features/maps/presentation/maps_content.dart';
@@ -28,6 +30,8 @@ class DashboardContent extends StatelessWidget {
     required this.mapsController,
     this.cameraSettingsStore,
     this.cameraSourceFactory,
+    this.onShowCamera,
+    this.controlsRepository,
     super.key,
   });
 
@@ -43,10 +47,20 @@ class DashboardContent extends StatelessWidget {
   final CameraSettingsStore? cameraSettingsStore;
   final GrabberSourceFactory? cameraSourceFactory;
 
+  /// Selects the Kamera page - from the camera settings, to look at a change.
+  final VoidCallback? onShowCamera;
+
+  /// Where the Technik page gets its controls from; tests leave it out.
+  final ControlsRepository? controlsRepository;
+
   @override
   Widget build(BuildContext context) {
     if (selectedItem.destination == DashboardDestination.settings) {
-      return SettingsContent(languageController: languageController);
+      return SettingsContent(
+        languageController: languageController,
+        cameraSettingsStore: cameraSettingsStore,
+        onShowCamera: onShowCamera,
+      );
     }
 
     if (selectedItem.destination == DashboardDestination.media) {
@@ -55,6 +69,11 @@ class DashboardContent extends StatelessWidget {
 
     if (selectedItem.destination == DashboardDestination.maps) {
       return MapsContent(controller: mapsController);
+    }
+
+    // Built only while the page is shown: leaving it closes the stream.
+    if (selectedItem.destination == DashboardDestination.controls) {
+      return ControlsContent(repository: controlsRepository);
     }
 
     // Built only while the page is shown: leaving it closes the camera.

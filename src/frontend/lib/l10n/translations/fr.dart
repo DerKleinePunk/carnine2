@@ -22,7 +22,7 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.dashboardContentFor: 'Contenu du tableau de bord pour {section}',
   AppTextKey.grpcStatus: 'Statut gRPC : {status}',
   AppTextKey.statusNotConnected: 'Non connecté',
-  AppTextKey.statusConnecting: 'Connexion en cours...',
+  AppTextKey.statusConnecting: 'Connexion en cours …',
   AppTextKey.statusConnected: 'Connecté - {count} points reçus',
   AppTextKey.statusError: 'Erreur',
   AppTextKey.grpcConnectionErrorTitle: 'Erreur de connexion',
@@ -67,7 +67,7 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.mediaFeatureUnavailableHint: 'pas encore disponible',
   AppTextKey.mediaQueueEmpty: 'La file d\'attente est vide',
   AppTextKey.mediaNoAdjacentTrack: 'Aucun autre titre dans la file d\'attente',
-  AppTextKey.mediaLoading: 'Chargement...',
+  AppTextKey.mediaLoading: 'Chargement …',
   AppTextKey.mediaRetry: 'Réessayer',
   AppTextKey.mediaOfflineTitle: 'Aucune connexion',
   AppTextKey.mediaOfflineDescription:
@@ -93,7 +93,7 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.mediaUsbImportSemantic: 'Importer {count} titre(s) depuis {label}',
   AppTextKey.mediaToolsMissingBanner:
       'ffmpeg est manquant : les titres sont importés sans artiste, durée ni pochette. Installez ffmpeg, puis relancez l’analyse.',
-  AppTextKey.mediaScanRunning: 'Analyse en cours...',
+  AppTextKey.mediaScanRunning: 'Analyse en cours …',
   AppTextKey.mediaScanProgressLine: '{processed} analysés, {imported} importés',
   AppTextKey.mediaScanFailed: 'Échec de l\'analyse',
   AppTextKey.mediaUnavailableBadge: 'INDISPONIBLE',
@@ -116,19 +116,58 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistAddEntryAction: 'Ajouter des titres',
   AppTextKey.mediaPlaylistTrackAlreadyAdded:
       'Le titre est déjà dans la playlist',
+  AppTextKey.mediaPlaylistRenameAction: 'Renommer la playlist',
+  AppTextKey.mediaPlaylistDeleteSemantic: 'Supprimer la playlist',
+  AppTextKey.mediaPlaylistDeleteConfirmTitle: 'Supprimer la playlist ?',
+  AppTextKey.mediaPlaylistDeleteConfirmMessage:
+      '« {name} » sera définitivement supprimée. Les titres restent dans la '
+      'bibliothèque.',
+  AppTextKey.mediaPlaylistDeleteAction: 'Supprimer',
+  AppTextKey.mediaPlaylistEntryRemoveSemantic: 'Retirer {title} de la playlist',
+  AppTextKey.mediaSaveAction: 'Enregistrer',
+  AppTextKey.mediaCancelAction: 'Annuler',
   AppTextKey.mediaPlaylistAddEntrySemantic: 'Ajouter {title} à {playlist}',
   AppTextKey.mediaBackToCollectionsSemantic: 'Retour aux collections',
   AppTextKey.settingsBackToOptions: 'Retour aux options',
   AppTextKey.settingsLanguageTitle: 'Langue',
-  AppTextKey.settingsLanguageSubtitle: 'Choisir la langue d’affichage',
-  AppTextKey.settingsLanguageSemantic: 'Ouvrir les réglages de langue',
   AppTextKey.settingsDiagnosticsTitle: 'Système',
   AppTextKey.settingsDiagnosticsSubtitle:
       'Journaux, redémarrage et mises à jour',
   AppTextKey.settingsDiagnosticsSemantic: 'Ouvrir les paramètres système',
-  AppTextKey.settingsAppearanceTitle: 'Apparence',
-  AppTextKey.settingsAppearanceSubtitle: 'Couleurs et typographie',
-  AppTextKey.settingsAppearanceSemantic: 'Ouvrir les réglages d’apparence',
+  AppTextKey.settingsAppearanceTitle: 'Apparence et langue',
+  AppTextKey.settingsAppearanceSubtitle:
+      'Couleurs, typographie et langue d’affichage',
+  AppTextKey.settingsAppearanceSemantic:
+      'Ouvrir les réglages d’apparence et de langue',
+  AppTextKey.settingsAppearanceTabTitle: 'Apparence',
+  AppTextKey.settingsDevicesTitle: 'Appareils',
+  AppTextKey.settingsDevicesSubtitle: 'Caméra, sortie audio et appli mobile',
+  AppTextKey.settingsDevicesSemantic: 'Ouvrir les réglages des appareils',
+  AppTextKey.settingsDevicesCameraTitle: 'Caméra',
+  AppTextKey.settingsDevicesCameraSubtitle:
+      'Périphérique, norme vidéo, entrée et largeur d’image',
+  AppTextKey.settingsDevicesAudioTitle: 'Sortie audio',
+  AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, prise jack ou carte son USB',
+  AppTextKey.settingsDevicesPhoneTitle: 'Appli mobile',
+  AppTextKey.settingsDevicesPhoneSubtitle:
+      'Couplage Bluetooth avec un code sur le téléphone',
+  AppTextKey.settingsDevicesPowerTitle: 'Alimentation',
+  AppTextKey.settingsDevicesPowerSubtitle: 'Contact, tension et mode service',
+  AppTextKey.settingsBackToDevices: 'Retour aux appareils',
+  AppTextKey.settingsCameraDeviceLabel: 'Périphérique',
+  AppTextKey.settingsCameraNoDevices: 'Aucune caméra trouvée',
+  AppTextKey.settingsCameraNormLabel: 'Norme vidéo',
+  AppTextKey.settingsCameraInputLabel: 'Entrée',
+  AppTextKey.settingsCameraInputSVideo: 'S-Video',
+  AppTextKey.settingsCameraWidthLabel: 'Largeur d’image',
+  AppTextKey.settingsCameraWidthHint:
+      'Le 720 est plus net, mais ne donne qu’environ 10 images par seconde.',
+  AppTextKey.settingsCameraAnalogOnlyNote:
+      'La norme, l’entrée et la largeur ne concernent que les caméras '
+      'analogiques sur adaptateur USB, pas les caméras USB.',
+  AppTextKey.settingsCameraAppliesNote:
+      'S’applique à la prochaine ouverture de la page Caméra.',
+  AppTextKey.settingsCameraShowAction: 'Voir l’image de la caméra',
   AppTextKey.settingsMapTitle: 'Réglages de carte',
   AppTextKey.settingsMapSubtitle:
       'Affichage de carte et comportement des itinéraires',
@@ -222,4 +261,8 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: 'Aucun signal de caméra',
   AppTextKey.cameraMissing: 'Caméra non branchée',
   AppTextKey.cameraError: 'Défaut de caméra',
+  AppTextKey.controlsEmpty: 'Aucune commande configurée',
+  AppTextKey.controlsStateOn: 'Activé',
+  AppTextKey.controlsStateOff: 'Désactivé',
+  AppTextKey.controlsUnavailable: 'Injoignable',
 };

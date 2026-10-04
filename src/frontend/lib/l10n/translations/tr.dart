@@ -22,7 +22,7 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.dashboardContentFor: '{section} için panel içeriği',
   AppTextKey.grpcStatus: 'gRPC durumu: {status}',
   AppTextKey.statusNotConnected: 'Bağlı değil',
-  AppTextKey.statusConnecting: 'Bağlanıyor...',
+  AppTextKey.statusConnecting: 'Bağlanıyor …',
   AppTextKey.statusConnected: 'Bağlandı - {count} veri noktası alındı',
   AppTextKey.statusError: 'Hata',
   AppTextKey.grpcConnectionErrorTitle: 'Bağlantı Hatası',
@@ -65,7 +65,7 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.mediaFeatureUnavailableHint: 'henüz kullanılamıyor',
   AppTextKey.mediaQueueEmpty: 'Sıra boş',
   AppTextKey.mediaNoAdjacentTrack: 'Sırada başka parça yok',
-  AppTextKey.mediaLoading: 'Yükleniyor...',
+  AppTextKey.mediaLoading: 'Yükleniyor …',
   AppTextKey.mediaRetry: 'Tekrar dene',
   AppTextKey.mediaOfflineTitle: 'Bağlantı yok',
   AppTextKey.mediaOfflineDescription:
@@ -80,8 +80,7 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.mediaSearchSemantic: 'Kitaplıkta ara',
   AppTextKey.mediaSearchClearSemantic: 'Aramayı temizle',
   AppTextKey.mediaLibraryEmpty:
-      'Kitaplık boş. Medyaları içe aktarmak için yeniden tarama '
-      'başlat.',
+      'Kitaplık boş. Medyaları içe aktarmak için yeniden tarama başlatın.',
   AppTextKey.mediaSearchNoResults: 'Bu arama için sonuç yok',
   AppTextKey.mediaRescanAction: 'Yeniden tara',
   AppTextKey.mediaRescanSemantic: 'Kitaplığı yeniden tara',
@@ -92,7 +91,7 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
       '{label} konumundan {count} parça içe aktar',
   AppTextKey.mediaToolsMissingBanner:
       'ffmpeg eksik: parçalar sanatçı, süre ve kapak olmadan içe aktarılıyor. ffmpeg kurun, ardından yeniden tarayın.',
-  AppTextKey.mediaScanRunning: 'Taranıyor...',
+  AppTextKey.mediaScanRunning: 'Taranıyor …',
   AppTextKey.mediaScanProgressLine:
       '{processed} işlendi, {imported} içe aktarıldı',
   AppTextKey.mediaScanFailed: 'Tarama başarısız oldu',
@@ -113,20 +112,59 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.mediaPlaylistAddEntriesTitle: 'Parça ekle',
   AppTextKey.mediaPlaylistAddEntryAction: 'Parça ekle',
   AppTextKey.mediaPlaylistTrackAlreadyAdded: 'Parça zaten çalma listesinde',
+  AppTextKey.mediaPlaylistRenameAction: 'Çalma listesini yeniden adlandır',
+  AppTextKey.mediaPlaylistDeleteSemantic: 'Çalma listesini sil',
+  AppTextKey.mediaPlaylistDeleteConfirmTitle: 'Çalma listesi silinsin mi?',
+  AppTextKey.mediaPlaylistDeleteConfirmMessage:
+      '"{name}" kalıcı olarak silinecek. Parçalar kitaplıkta kalır.',
+  AppTextKey.mediaPlaylistDeleteAction: 'Sil',
+  AppTextKey.mediaPlaylistEntryRemoveSemantic:
+      '{title} parçasını çalma listesinden kaldır',
+  AppTextKey.mediaSaveAction: 'Kaydet',
+  AppTextKey.mediaCancelAction: 'İptal',
   AppTextKey.mediaPlaylistAddEntrySemantic:
       '{title} parçasını {playlist} listesine ekle',
   AppTextKey.mediaBackToCollectionsSemantic: 'Koleksiyonlara dön',
   AppTextKey.settingsBackToOptions: 'Seçeneklere dön',
   AppTextKey.settingsLanguageTitle: 'Dil',
-  AppTextKey.settingsLanguageSubtitle: 'Görüntüleme dilini seç',
-  AppTextKey.settingsLanguageSemantic: 'Dil ayarlarını aç',
   AppTextKey.settingsDiagnosticsTitle: 'Sistem',
   AppTextKey.settingsDiagnosticsSubtitle:
       'Günlükler, yeniden başlatma ve güncellemeler',
   AppTextKey.settingsDiagnosticsSemantic: 'Sistem ayarlarını aç',
-  AppTextKey.settingsAppearanceTitle: 'Görünüm',
-  AppTextKey.settingsAppearanceSubtitle: 'Renkler ve tipografi',
-  AppTextKey.settingsAppearanceSemantic: 'Görünüm ayarlarını aç',
+  AppTextKey.settingsAppearanceTitle: 'Görünüm ve dil',
+  AppTextKey.settingsAppearanceSubtitle:
+      'Renkler, tipografi ve görüntüleme dili',
+  AppTextKey.settingsAppearanceSemantic: 'Görünüm ve dil ayarlarını aç',
+  AppTextKey.settingsAppearanceTabTitle: 'Görünüm',
+  AppTextKey.settingsDevicesTitle: 'Cihazlar',
+  AppTextKey.settingsDevicesSubtitle:
+      'Kamera, ses çıkışı ve telefon uygulaması',
+  AppTextKey.settingsDevicesSemantic: 'Cihaz ayarlarını aç',
+  AppTextKey.settingsDevicesCameraTitle: 'Kamera',
+  AppTextKey.settingsDevicesCameraSubtitle:
+      'Cihaz, video standardı, giriş ve görüntü genişliği',
+  AppTextKey.settingsDevicesAudioTitle: 'Ses çıkışı',
+  AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, jak veya USB ses kartı',
+  AppTextKey.settingsDevicesPhoneTitle: 'Telefon uygulaması',
+  AppTextKey.settingsDevicesPhoneSubtitle:
+      'Telefonda kodla Bluetooth eşleştirme',
+  AppTextKey.settingsDevicesPowerTitle: 'Güç kaynağı',
+  AppTextKey.settingsDevicesPowerSubtitle: 'Kontak, voltaj ve servis modu',
+  AppTextKey.settingsBackToDevices: 'Cihazlara dön',
+  AppTextKey.settingsCameraDeviceLabel: 'Cihaz',
+  AppTextKey.settingsCameraNoDevices: 'Kamera bulunamadı',
+  AppTextKey.settingsCameraNormLabel: 'Video standardı',
+  AppTextKey.settingsCameraInputLabel: 'Giriş',
+  AppTextKey.settingsCameraInputSVideo: 'S-Video',
+  AppTextKey.settingsCameraWidthLabel: 'Görüntü genişliği',
+  AppTextKey.settingsCameraWidthHint:
+      '720 daha keskindir ancak saniyede yalnızca yaklaşık 10 kare verir.',
+  AppTextKey.settingsCameraAnalogOnlyNote:
+      'Standart, giriş ve genişlik yalnızca USB adaptörlü analog kameralar '
+      'için geçerlidir, USB kameralar için değil.',
+  AppTextKey.settingsCameraAppliesNote:
+      'Kamera sayfası bir sonraki açılışında geçerli olur.',
+  AppTextKey.settingsCameraShowAction: 'Kamera görüntüsünü gör',
   AppTextKey.settingsMapTitle: 'Harita ayarları',
   AppTextKey.settingsMapSubtitle: 'Harita görünümü ve rota davranışı',
   AppTextKey.settingsMapSemantic: 'Harita ayarlarını aç',
@@ -217,4 +255,8 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: 'Kamera sinyali yok',
   AppTextKey.cameraMissing: 'Kamera bağlı değil',
   AppTextKey.cameraError: 'Kamera arızası',
+  AppTextKey.controlsEmpty: 'Kurulu kontrol yok',
+  AppTextKey.controlsStateOn: 'Açık',
+  AppTextKey.controlsStateOff: 'Kapalı',
+  AppTextKey.controlsUnavailable: 'Ulaşılamıyor',
 };

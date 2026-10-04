@@ -1,10 +1,12 @@
 import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart';
 import 'package:carnine_frontend/features/camera/presentation/camera_content.dart';
+import 'package:carnine_frontend/features/controls/data/controls_repository.dart';
 import 'dart:async';
 
 import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
 import 'package:carnine_frontend/features/maps/presentation/maps_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_controller.dart';
+import 'package:carnine_frontend/features/dashboard/presentation/models/dashboard_nav_item.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/power_supply_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/thermal_warning_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/carnine_top_bar.dart';
@@ -27,6 +29,7 @@ class DashboardScreen extends StatefulWidget {
     this.thermalWarningController,
     this.uiStateStore,
     this.cameraSettingsStore,
+    this.controlsRepository,
     this.cameraSourceFactory,
     super.key,
   });
@@ -44,6 +47,9 @@ class DashboardScreen extends StatefulWidget {
 
   /// Where the camera page gets its settings; without it the defaults.
   final CameraSettingsStore? cameraSettingsStore;
+
+  /// Where the Technik page gets its controls from; tests leave it out.
+  final ControlsRepository? controlsRepository;
 
   /// The camera page's picture source; the native grabber unless a test
   /// gives one.
@@ -218,6 +224,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   mapsController: _mapsController,
                   cameraSettingsStore: widget.cameraSettingsStore,
                   cameraSourceFactory: widget.cameraSourceFactory,
+                  onShowCamera: () => _controller.selectDestination(
+                    DashboardDestination.camera,
+                  ),
+                  controlsRepository: widget.controlsRepository,
                 ),
               ),
             ],

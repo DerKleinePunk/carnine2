@@ -100,11 +100,12 @@ Sichtbar, aber ohne Funktion:
 
 - **NOTFALL** im Seitenmenü (#34)
 - Symbole Mobilfunk, Akku, Sonne in der Kopfleiste (#34)
-- Seiten **Start** und **Technik** (nur Entwickler-Test)
+- Seite **Start** (nur Entwickler-Test)
 - Springen in der Zeitleiste des Players (dafür −30 s / +30 s)
 - **Nach Updates suchen** (#20)
-- **Karteneinstellungen** und **Darstellung** in den Optionen
-- Playlists umbenennen, löschen, Titel entfernen (#14)
+- **Karteneinstellungen** und der Reiter **Darstellung** in den Optionen
+- **Audio-Ausgang**, **Handy-App** und **Netzteil** auf der Seite Geräte (nur
+  eine Vorschau, nicht antippbar)
 - Herunterfahren, wenn das Netzteil abschaltet: Die Kopfleiste kündigt es nur
   an (#36, siehe [Kopfleiste](README.md#kopfleiste-oben-rechts))
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:carnine_frontend/app/carnine_app.dart';
+import 'package:carnine_frontend/features/controls/data/controls_repository.dart';
 import 'package:carnine_frontend/app/ui_readiness.dart';
 import 'package:carnine_frontend/core/logging/app_logging.dart';
 import 'package:carnine_frontend/core/platform/app_window.dart';
@@ -41,7 +42,13 @@ Future<void> main() async {
     'Frontend app started; version=$_carnineVersion build=$_carnineBuildVersion',
   );
   final backend = CarnineGrpcService();
-  runApp(CarnineApp(uiStateStore: backend, cameraSettingsStore: backend));
+  runApp(
+    CarnineApp(
+      uiStateStore: backend,
+      cameraSettingsStore: backend,
+      controlsRepository: GrpcControlsRepository(),
+    ),
+  );
 
   _scheduleUiReadyDetection();
 }
