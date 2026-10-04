@@ -42,6 +42,10 @@ alle 150 ms und beim Loslassen noch einmal, damit der Endwert sicher ankommt.
 
 ## Einrichten
 
+**Ab Werk ist nichts eingerichtet.** Ein frisch geschriebenes Image hat keinen
+Schalter und keinen Regler, die Seite zeigt dann „Keine Technik eingerichtet“.
+Was am Schaltmodul hängt, trägt man für jedes Gerät selbst ein.
+
 Jeder Schalter und Regler ist ein Eintrag `[[controls]]` in der Konfiguration
 des Backends, am besten in einer eigenen Datei, z. B.
 `/etc/carnine/config.d/40-controls.toml`:
