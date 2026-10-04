@@ -1,17 +1,21 @@
 # Bedienungsanleitung carnine2
 
+**Diese Anleitung gilt ab CarNine 0.11.0.**
+
 Für Entwickler und Tester. Beschreibt, was man auf dem Bildschirm sieht und
-was jedes Bedienelement tut – Stand **0.11.0** (2026-10-02). Die Anleitung für
-Messebesucher entsteht getrennt.
+was jedes Bedienelement tut. Die Anleitung für Messebesucher entsteht
+getrennt.
 
 Wenn sich im Frontend etwas an der Bedienung ändert, gehört die Änderung
 dieser Seiten in denselben Commit.
 
 ## Inhalt
 
-1. [Aufbau des Bildschirms](#aufbau-des-bildschirms) (diese Seite)
-2. [Medien](medien.md) – Player, Warteschlange, Bibliothek, Playlists, USB-Import
-3. [Karten](karte.md) – Zielsuche, Route, Navigationsmodus, Standort
+Die Kapitel 2 bis 6 folgen dem Seitenmenü von oben nach unten.
+
+1. [Aufbau des Bildschirms](#aufbau-des-bildschirms) und Seite Start (diese Seite)
+2. [Karten](karte.md) – Zielsuche, Route, Navigationsmodus, Standort
+3. [Medien](medien.md) – Player, Warteschlange, Bibliothek, Playlists, USB-Import
 4. [Kamera](kamera.md) – Rückfahrkamera, Hinweise, Einstellungen
 5. [Technik](technik.md) – Schalter und Regler, Hinweise, Einrichten
 6. [Optionen](optionen.md) – Darstellung & Sprache, Geräte, Logs, Neustart, Beenden
@@ -25,15 +29,17 @@ dieser Seiten in denselben Commit.
     mit Rufus, unter Linux mit `bmaptool`, welche Variante, erster Start
 11. [Nach der Installation](nach-der-installation.md) – Standardpasswort und
     Gerätenamen ändern, WLAN einrichten, Kartendaten installieren
+12. [Befehle auf dem Gerät](befehle.md) – alle Befehle, die das Image
+    mitbringt, und was von selbst läuft
 
 ## Die häufigsten Abläufe
 
-- **Musik hören:** Seitenmenü → **Medien** → Kachel **SAMMLUNGEN** → bei einer
-  Playlist auf **▶**. Einzelne Titel startet man aus der **BIBLIOTHEK**
-  ([Medien](medien.md)).
 - **Ziel ansteuern:** Seitenmenü → **Karten** → oben **Ziel eingeben**,
   Treffer antippen, dann den **Kompass-Knopf** für die Fahransicht
   ([Karten](karte.md#ziel-suchen-und-route-starten)).
+- **Musik hören:** Seitenmenü → **Medien** → Kachel **SAMMLUNGEN** → bei einer
+  Playlist auf **▶**. Einzelne Titel startet man aus der **BIBLIOTHEK**
+  ([Medien](medien.md)).
 - **Oberfläche neu starten:** **Optionen** → **System** → **Neustart**. Die Musik
   läuft dabei weiter ([Optionen](optionen.md#system)).
 
@@ -57,8 +63,8 @@ Oben das Logo „CarNine / V8-ACTIVE“ (ohne Funktion), darunter die Seiten:
 | **Start** | Platzhalter für Entwickler (siehe unten) |
 | **Karten** | [Offline-Karte mit Navigation](karte.md) |
 | **Medien** | [Musik-Player](medien.md) |
-| **Kamera** | [Bild der Rückfahrkamera](kamera.md) (bis 0.9.5 „Klima“, Platzhalter) |
-| **Technik** | [Schalter und Regler](technik.md) (bis 0.10.x Platzhalter) |
+| **Kamera** | [Bild der Rückfahrkamera](kamera.md) |
+| **Technik** | [Schalter und Regler](technik.md) |
 | **Optionen** | [Einstellungen](optionen.md) |
 
 - Antippen wechselt die Seite. Der aktive Punkt leuchtet in der Primärfarbe,
@@ -97,7 +103,7 @@ Wechsel, beim Beenden sofort. Ist das Backend beim Start noch nicht
 erreichbar, etwa weil die Oberfläche beim Einschalten schneller ist, fragt sie
 bis zu 2 Minuten lang immer wieder nach und springt dann auf die gemerkte
 Seite. Wählt man in der Zeit selbst eine Seite, bleibt es bei dieser. Kommt
-das Backend nicht, bleibt sie ohne Meldung auf **Start** (#52, ab 0.9.0).
+das Backend nicht, bleibt sie ohne Meldung auf **Start** (#52).
 
 ### Start
 

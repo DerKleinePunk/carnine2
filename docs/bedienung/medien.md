@@ -25,13 +25,13 @@ Warteschlange.
 
 | Taste | Wirkung | Hinweise |
 |---|---|---|
-| **Zufall** (⤮) | Zufallswiedergabe an/aus | an = leuchtet, mit Punkt darunter |
-| **Zurück** (⏮) | ab 3 s Spielzeit: Titel von vorn; sonst vorheriger Titel | ab 3 s immer aktiv, auch auf dem ersten Titel und bei Einzeltiteln. Darunter nur, wenn es einen vorherigen gibt: bei Wiederholung des Titels derselbe, bei Wiederholung der Playlist der letzte, bei Zufall der zuvor gespielte (#33) |
-| **−30 s** | 30 Sekunden zurück | am Titelanfang bleibt es bei 0:00 |
-| **Wiedergabe/Pause** | pausieren bzw. fortsetzen | grau, wenn kein Titel geladen ist |
-| **+30 s** | 30 Sekunden vor | nicht über das Titelende hinaus |
-| **Weiter** (⏭) | nächster Titel | am Ende der Warteschlange gesperrt, außer Wiederholung ist an |
-| **Wiederholung** (🔁) | jedes Antippen schaltet weiter: **aus → Playlist → aktueller Titel → aus** | aus = grau; Playlist = 🔁 leuchtet; aktueller Titel = 🔂 leuchtet |
+| ![Symbol Zufall](bilder/symbole/shuffle.svg) **Zufall** | Zufallswiedergabe an/aus | an = leuchtet, mit Punkt darunter |
+| ![Symbol Zurück](bilder/symbole/skip_previous.svg) **Zurück** | ab 3 s Spielzeit: Titel von vorn; sonst vorheriger Titel | ab 3 s immer aktiv, auch auf dem ersten Titel und bei Einzeltiteln. Darunter nur, wenn es einen vorherigen gibt: bei Wiederholung des Titels derselbe, bei Wiederholung der Playlist der letzte, bei Zufall der zuvor gespielte (#33) |
+| ![Symbol −30 s](bilder/symbole/replay_30.svg) **−30 s** | 30 Sekunden zurück | am Titelanfang bleibt es bei 0:00 |
+| ![Symbol Wiedergabe](bilder/symbole/play_arrow.svg) ![Symbol Pause](bilder/symbole/pause.svg) **Wiedergabe/Pause** | pausieren bzw. fortsetzen | grau, wenn kein Titel geladen ist |
+| ![Symbol +30 s](bilder/symbole/forward_30.svg) **+30 s** | 30 Sekunden vor | nicht über das Titelende hinaus |
+| ![Symbol Weiter](bilder/symbole/skip_next.svg) **Weiter** | nächster Titel | am Ende der Warteschlange gesperrt, außer Wiederholung ist an |
+| ![Symbol Wiederholung](bilder/symbole/repeat.svg) **Wiederholung** | jedes Antippen schaltet weiter: **aus → Playlist → aktueller Titel → aus** | aus = grau; Playlist = ![Symbol Wiederholung](bilder/symbole/repeat.svg) leuchtet; aktueller Titel = ![Symbol Titel wiederholen](bilder/symbole/repeat_one.svg) leuchtet |
 
 Ohne geladenen Titel sind −30 s und +30 s grau. Solange ein Befehl noch beim
 Backend in Arbeit ist, sind Zurück, −30 s, Wiedergabe/Pause, +30 s und Weiter
@@ -42,7 +42,7 @@ Zufall und Wiederholung merkt sich das Backend, auch über einen Neustart.
 
 ### Lautstärke
 
-- **Lautsprecher-Symbol:** stumm schalten; noch einmal antippen stellt den
+- **Lautsprecher-Symbol** (![Symbol Lautsprecher](bilder/symbole/volume_up.svg), stumm ![Symbol stumm](bilder/symbole/volume_off.svg)): stumm schalten; noch einmal antippen stellt den
   vorherigen Wert wieder her.
 - **Schieberegler** 0–100 mit Prozentanzeige. Bis das Backend den echten Wert
   meldet, steht dort 100 %.
@@ -50,10 +50,7 @@ Zufall und Wiederholung merkt sich das Backend, auch über einen Neustart.
   wieder her, auch 0. Gibt es keinen gespeicherten Wert, beginnt es bei 50 %
   (#47).
 - Die Prozente folgen dem Gehör: Gleiche Werte klingen über HDMI und an der
-  Klinke etwa gleich laut (#65). Beim ersten Start nach dem Update, das #65
-  enthält, rechnet das Backend den gespeicherten Wert einmal um. **Die
-  Lautstärke bleibt gleich, aber die Zahl am Regler wird kleiner**, z. B. 42
-  statt 65.
+  Klinke etwa gleich laut (#65).
 
 ### Warteschlange
 
@@ -77,15 +74,14 @@ oben links führt zurück zum Player.
   [Bildschirmtastatur](tastatur.md), sucht 300 ms nach dem letzten
   Tastendruck. Gefunden wird auch über den Dateipfad (z. B. Albumordner). Das
   × leert das Feld.
-- **RESCAN** (↻ neben dem Suchfeld): liest den Musikordner neu ein;
+- **RESCAN** (![Symbol Neu einlesen](bilder/symbole/refresh.svg) neben dem Suchfeld): liest den Musikordner neu ein;
   während eines Scans grau. Eine Statuszeile zeigt „Scan läuft …“ bzw.
   „x verarbeitet, y importiert“ oder „Scan fehlgeschlagen“.
   Ein Scan liest nur neue und geänderte Dateien (erkannt an Größe und
-  Änderungszeit). Der erste Scan nach dem Update auf 0.9.0 liest einmal alles
-  und dauert entsprechend lange. Wird das Backend während eines Scans
+  Änderungszeit). Wird das Backend während eines Scans
   beendet, bleiben alle Titel verfügbar, und der nächste Scan macht mit dem
   Rest weiter (#43).
-- **Antippen eines Titels spielt ihn als Einzeltitel** (das ▶ am Zeilenende
+- **Antippen eines Titels spielt ihn als Einzeltitel** (das ![Symbol Wiedergabe](bilder/symbole/play_arrow.svg) am Zeilenende
   zeigt das nur an, es ist kein eigener Knopf). Die Bibliothek bleibt dabei
   offen, es geht nicht automatisch zum Player.
 - Nicht abspielbare Dateien sind rot markiert („NICHT VERFÜGBAR“) und
@@ -122,9 +118,9 @@ Erreichbar über die Kachel **SAMMLUNGEN**.
 
 ![Sammlungen: Playlists mit ▶ am Zeilenende, rechts oben ＋](bilder/medien-playlists.png)
 
-- **＋** oben rechts: neue Playlist anlegen (siehe unten).
+- ![Symbol Hinzufügen](bilder/symbole/add.svg) oben rechts: neue Playlist anlegen (siehe unten).
 - **Zeile antippen:** Playlist öffnen (Detailansicht).
-- **▶ am Zeilenende:** Playlist sofort starten; die Liste bleibt offen.
+- ![Symbol Wiedergabe](bilder/symbole/play_arrow.svg) **am Zeilenende:** Playlist sofort starten; die Liste bleibt offen.
 
 ### Playlist-Detail
 
@@ -133,20 +129,20 @@ Erreichbar über die Kachel **SAMMLUNGEN**.
 - Neben dem Namen steht das Cover des ersten Titels der Playlist, der eines hat.
 - **PLAYLIST STARTEN** oben rechts startet die Playlist und wechselt zum
   Player. Gesperrt, wenn die Playlist leer ist.
-- Links davon zwei Knöpfe: **Stift** = Playlist umbenennen (siehe unten),
-  **Papierkorb** = Playlist löschen. Das Löschen fragt vorher „Playlist
+- Links davon zwei Knöpfe: ![Symbol Stift](bilder/symbole/edit.svg) **Stift** = Playlist umbenennen (siehe unten),
+  ![Symbol Papierkorb](bilder/symbole/delete_outline.svg) **Papierkorb** = Playlist löschen. Das Löschen fragt vorher „Playlist
   löschen?“ und lässt sich nicht rückgängig machen; die Titel bleiben in der
   Bibliothek. Läuft die Playlist gerade, spielt der laufende Titel als
   Einzeltitel weiter.
 - Die Einträge zeigen Titel, Interpret, Dauer; der gerade laufende ist
   eingerahmt. **Einträge sind nicht antippbar** – zu einem Titel springen geht
   über die Warteschlange im Player.
-- Das **✕** am Zeilenende nimmt den Titel aus der Playlist, **ohne
+- Das ![Symbol Entfernen](bilder/symbole/close.svg) am Zeilenende nimmt den Titel aus der Playlist, **ohne
   Rückfrage**. Der Titel bleibt in der Bibliothek und lässt sich über **Titel
   hinzufügen** wieder aufnehmen. Wird der laufende Titel entfernt, geht der
   Player zum folgenden Titel.
 - Titel, die nicht mehr in der Bibliothek sind, stehen rot da („Titel nicht
-  mehr in der Bibliothek“). Auch sie lassen sich mit dem ✕ entfernen.
+  mehr in der Bibliothek“). Auch sie lassen sich mit dem ![Symbol Entfernen](bilder/symbole/close.svg) entfernen.
 - Schlägt Löschen oder Entfernen fehl, steht kurz „Befehl fehlgeschlagen“ über
   der Liste.
 - **Titel hinzufügen** unten öffnet die Auswahl.
@@ -155,8 +151,8 @@ Erreichbar über die Kachel **SAMMLUNGEN**.
 
 Dieselbe Liste wie die Bibliothek (mit Suche und RESCAN), aber
 **Antippen fügt den Titel der Playlist hinzu**. Das Symbol rechts zeigt:
-Hinzufügen-Symbol (Liste mit ＋) = noch nicht drin, Kreisel = wird
-hinzugefügt, ✓ = drin. Ist ein Titel schon enthalten, erscheint kurz „Titel
+Hinzufügen-Symbol ![Symbol Zur Playlist hinzufügen](bilder/symbole/playlist_add.svg) = noch nicht drin, Kreisel = wird
+hinzugefügt, ![Symbol Haken](bilder/symbole/check.svg) = drin. Ist ein Titel schon enthalten, erscheint kurz „Titel
 ist bereits in der Playlist“.
 
 ![Titel hinzufügen: Titel mit ✓ sind schon in der Playlist, einer mit dem Hinzufügen-Symbol noch nicht](bilder/medien-titel-hinzufuegen.png)

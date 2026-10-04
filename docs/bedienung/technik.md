@@ -3,9 +3,8 @@
 [← Übersicht](README.md)
 
 Die Seite **Technik** schaltet Geräte im Auto: Licht, Lüfter und was sonst am
-Schaltmodul hängt. Sie ersetzt ab 0.11.0 die frühere Entwickler-Seite. Was sie
-zeigt, steht nicht in der Oberfläche, sondern in der Konfiguration des Backends
-([Einrichten](#einrichten)).
+Schaltmodul hängt. Was sie zeigt, steht nicht in der Oberfläche, sondern in
+der Konfiguration des Backends ([Einrichten](#einrichten)).
 
 - **Schalter:** Die ganze Karte antippen. Sie leuchtet in der Primärfarbe, wenn
   der Schalter **AN** ist, und zeigt **AUS**, wenn nicht.
@@ -42,6 +41,10 @@ alle 150 ms und beim Loslassen noch einmal, damit der Endwert sicher ankommt.
 | roter Streifen **Befehl fehlgeschlagen** | Ein Schalten kam nicht an. Der Streifen geht nach 4 Sekunden von selbst weg, die Karte zeigt weiter den echten Zustand. |
 
 ## Einrichten
+
+**Ab Werk ist nichts eingerichtet.** Ein frisch geschriebenes Image hat keinen
+Schalter und keinen Regler, die Seite zeigt dann „Keine Technik eingerichtet“.
+Was am Schaltmodul hängt, trägt man für jedes Gerät selbst ein.
 
 Jeder Schalter und Regler ist ein Eintrag `[[controls]]` in der Konfiguration
 des Backends, am besten in einer eigenen Datei, z. B.

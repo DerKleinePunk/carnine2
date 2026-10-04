@@ -22,9 +22,17 @@ Wie das Image auf die Karte kommt, steht unter
 | Gerätename | `carnine-pc-` und die letzten vier Stellen der Seriennummer, z. B. `carnine-pc-a869` (#62) |
 | Im Netz | über DHCP, per mDNS als `<name>.local` erreichbar |
 
-`root` hat kein Passwort und kann sich nicht anmelden. Das Passwort für
-**Optionen → Beenden** in der Oberfläche ist ein anderes, es steht fest im
-Code und lässt sich am Gerät nicht ändern (#51).
+`root` hat kein Passwort und kann sich nicht anmelden.
+
+**Es gibt zwei Passwörter**, beide sind ab Werk bekannt:
+
+| Passwort | Ab Werk | Ändern |
+|---|---|---|
+| Benutzer `pi` (Anmeldung, SSH, `sudo`) | `raspberry` | gleich nach dem ersten Start, siehe [Passwort ändern](#passwort-ändern) |
+| **Optionen → Beenden** in der Oberfläche | `4321` | geht noch nicht, es steht fest im Code (#51) |
+
+Beide gehören nach der Inbetriebnahme geändert. Für das Passwort von `pi` geht
+das heute schon; für das Beenden-Passwort, sobald die Oberfläche es kann.
 
 Solange `pi` noch das Standardpasswort hat, erscheint bei **jeder
 Anmeldung**, an der Konsole wie per SSH, diese Warnung:
@@ -36,9 +44,7 @@ Bitte jetzt mit 'passwd' ein eigenes Passwort setzen.
 ```
 
 Darunter steht derselbe Text auf Englisch. Befehle per SSH ohne Terminal
-(z. B. `deploy_pi.sh`) bleiben still. Die Warnung gibt es in Images ab der
-Version nach 0.9.5. **Bis 0.9.5 warnt nichts**, man muss selbst daran
-denken.
+(z. B. `deploy_pi.sh`) bleiben still.
 
 ## Anmelden
 
@@ -106,21 +112,6 @@ einer Fehlermeldung ab und ändert nichts.
   **einmal**, beim allerersten Start (`carnine-hostname.service`, gemerkt in
   `/var/lib/carnine/hostname-set`). Danach fasst es ihn nicht mehr an.
 
-### Ohne `carnine-rename` (bis 0.9.5)
-
-Den Befehl gibt es in Images ab der Version nach 0.9.5. Davor geht es von
-Hand:
-
-```sh
-sudo hostnamectl set-hostname jeep-carpc
-sudo sed -i 's/^127\.0\.1\.1[[:space:]].*/127.0.1.1\tjeep-carpc/' /etc/hosts
-sudo reboot
-```
-
-`hostnamectl` schreibt `/etc/hostname`, die Zeile `127.0.1.1` in `/etc/hosts`
-ändert es nicht mit, deshalb der `sed`. Ohne sie meldet `sudo` „unable to
-resolve host“.
-
 ### Fester Name im Router
 
 Hängt im Router eine feste Adresse am **Namen** (z. B. `carnine-pc`), passt
@@ -134,9 +125,8 @@ mit der alten Seriennummer. Er wird nicht neu vergeben.
 
 ## WLAN einrichten
 
-Ab Werk ist WLAN aus, das Gerät hängt nur am Kabel. Ab der Version nach 0.9.5
-richtet ein Befehl das WLAN ein (bis 0.9.5 fehlt dafür der WLAN-Client im
-Image):
+Ab Werk ist WLAN aus, das Gerät hängt nur am Kabel. Ein Befehl richtet das
+WLAN ein:
 
 ```sh
 sudo carnine-wlan
@@ -176,8 +166,8 @@ Image**, dafür sind sie zu groß. Bis sie da sind, zeigt die Kartenseite
 weitergibt, gibt auch einen **Freigabe-Link** dazu heraus (MagentaCloud oder
 eine andere Nextcloud). Der Link steht nicht im Image.
 
-Das Gerät braucht dafür Netz, ein **Netzwerkkabel** oder [WLAN](#wlan-einrichten)
-(bis 0.9.5 nur das Kabel), und eine Karte mit mindestens 16 GB, besser 32 GB. Das Paket
+Das Gerät braucht dafür Netz, ein **Netzwerkkabel** oder [WLAN](#wlan-einrichten),
+und eine Karte mit mindestens 16 GB, besser 32 GB. Das Paket
 für Hessen lädt etwa 3,8 GB und belegt entpackt etwa 7,6 GB.
 
 ```sh

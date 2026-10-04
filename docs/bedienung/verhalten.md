@@ -80,6 +80,11 @@ Stelle weiter und öffnet die Ausgabe dabei neu (#59).
 
 ![Warnung „Gerät überhitzt“ mit Temperatur und dem Knopf „Verstanden“ über der Seite Medien](bilder/hinweis-ueberhitzt.png)
 
+*Ein echter Test am Gerät: Für das Bild wurde die Warnschwelle auf 30 °C
+gesenkt. Die angezeigten 36,0 °C sind echt gemessen, deshalb steht die Warnung
+bei einer Temperatur da, die im Betrieb keine auslöst. Im Betrieb warnt
+CarNine erst ab 75 °C.*
+
 Wird die CPU **75 °C** heiß, legt sich über jede Seite die Warnung **„Gerät
 überhitzt“**: „Die CPU hat … °C. Bitte das Gerät abkühlen lassen und die
 Lüftung prüfen.“ (#70). Die Seite darunter ist abgedunkelt und gesperrt, bis

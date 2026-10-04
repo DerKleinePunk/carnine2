@@ -81,6 +81,9 @@ display panel, the audio sink and USB media. Those are verified on the test Pi.
   with the release packages and update the user guide in the same release.
   The pictures on the project website (carnine.de, "So sieht es heute aus")
   are checked and taken again at the same time.
+- Set the version in the first line of `docs/bedienung/README.md`
+  ("Diese Anleitung gilt ab CarNine …"). The user guide describes only that
+  version: no notes in the text on how earlier versions behaved.
 
 ## Reporting Bugs
 

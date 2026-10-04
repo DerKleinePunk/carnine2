@@ -14,7 +14,7 @@ unten kommt der Ton aus der **3,5-mm-Klinke am Raspberry Pi**. An der Software
 `-t audio_output:jack` beim Bauen ist die Klinke gleich die erste Soundkarte
 (#64, siehe [resources/debos/README.md](../../resources/debos/README.md)).
 Die Schritte unten sind für ein fertiges Image, das auf HDMI steht. Die
-fertigen Images `…-waveshare-jack` und, seit 0.11.0, `…-waveshare-7c` stehen
+fertigen Images `…-waveshare-jack` und `…-waveshare-7c` stehen
 schon auf der Klinke ([Welche Variante?](image-schreiben.md#welche-variante)).
 
 ## Was man braucht
