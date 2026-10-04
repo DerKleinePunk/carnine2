@@ -40,9 +40,9 @@ converter and the three relays; the labels on both can be read:
   efficiency, 2810 mA input current at full load and nominal input, and an
   input surge of 25 V for 100 ms. The old project's figures, input 9–30 V
   and output 5.15 V / 4 A, do not match the converter. The board raises
-  the converter's 5.0 V to **5.1 V** through a circuit change; Michael
-  measured 5.1 V at the output of the supplies. How that change looks is
-  not documented yet (TODO below).
+  the converter's 5.0 V to **5.1 V** with a resistor on the converter's
+  trim input ([Raising the output to 5.1 V](#raising-the-output-to-51-v));
+  Michael measured 5.1 V at the output of the supplies.
 - **Relays (3×):** Hongfa **HFD3/5-S**, printed "2A 30VDC, 0.5A 125VAC".
   According to the
   [HFD3 datasheet](http://www.hongfaamerica.com/hq/PDF/HFD3_en.pdf) that is
@@ -55,6 +55,27 @@ converter and the three relays; the labels on both can be read:
 > above 14 V while the battery charges, which is within that range, but the
 > board is **not suitable for a 24 V system**. Nothing is known about an
 > overvoltage protection on the board.
+
+### Raising the output to 5.1 V
+
+The JCM30 converters have a trim input that moves the output by up to
+±10 %. A resistor between **Trim (pin 5)** and **−Vout (pin 6)** raises the
+output ("trim up" in the
+[JCM30 datasheet](https://www.xppower.com/portals/0/pdfs/SF_JCM30.pdf),
+"External output trimming"). The pins of the converter, as the datasheet
+numbers them: 1 +Vin, 2 −Vin, 3 Remote On/Off, 4 +Vout, 5 Trim, 6 −Vout.
+
+Both AuPrV1_1 boards carry such a resistor, soldered on afterwards on the
+back of the board, behind the converter (Michael, 2026-10-04):
+
+![Back of the AuPrV1_1 board: the added resistor at the top, behind the converter](hardware/power-supply/AuPrV1_1-trim-resistor.jpg)
+
+The resistor on the boards is **120 kΩ** (colour bands brown, red, yellow;
+Michael, 2026-10-04). In the datasheet's table of trim-up resistors for the
+5 V model, 120 kΩ lies between +3 % (133.3 kΩ) and +4 % (93.4 kΩ), about
++3.3 % or 5.17 V nominal. The converter's initial set accuracy is ±1 %, and
+Michael measured 5.1 V at the output, which fits. (The table gives the same
+618 kΩ for +1 % and +2 %, so its lowest steps are not to be relied on.)
 
 ### AuPrV1_1 connections
 
@@ -185,8 +206,7 @@ unrouted airwires, so the drawings do not settle it.
 
 **TODO** (Michael is asking; not documented until answered):
 
-- whether the board has its own fuse or reverse-polarity protection;
-- document the circuit change that raises the output to 5.1 V.
+- whether the board has its own fuse or reverse-polarity protection.
 
 ### Wiring to the Pi 4
 
