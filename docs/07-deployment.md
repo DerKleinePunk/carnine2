@@ -36,7 +36,7 @@ The deployment architecture emphasizes reliability and minimal resource consumpt
     GPIO 25, see [24 – CAN Adapter (MCP2515 on SPI0)](24-can-adapter-mcp2515.md)
 - **GPS receiver** (optional, `position_source = "serial"`): any NMEA 0183
   receiver on USB or a UART, see [GPS receiver](#gps-receiver) below
-- **Reversing camera** (optional, Cam page since 0.10.0): an analogue camera
+- **Reversing camera** (optional, Kamera page since 0.10.0): an analogue camera
   on a USB grabber with the STK1160 chip, or a USB camera that delivers YUYV
   (uvcvideo); not on a hub that also carries the SSD, see
   [Reversing camera](#reversing-camera) below
@@ -355,7 +355,7 @@ produces roughly 1 MB per hour; nothing deletes old files.
 
 #### Reversing camera
 
-The Cam page (the former climate page, `DashboardDestination.camera`; a saved
+The Kamera page (the former climate page, `DashboardDestination.camera`; a saved
 page `climate` opens it) shows the picture through the `video_grabber`
 plugin, pinned in `src/frontend/pubspec.yaml`. `build_pi.sh` builds its
 `libvideo_grabber_view.so` against the same shell build as the bundle and

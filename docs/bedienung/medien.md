@@ -11,7 +11,7 @@ dem Inhalt können Hinweisbanner erscheinen, siehe [Banner](#banner).
 Links Cover, Titelangaben, Zeitleiste, Tasten und Lautstärke; rechts die
 Warteschlange.
 
-![Player: Cover, Titel „Amazing“, Titel 1 von 5, Zeitleiste, Tasten mit Wiederholung an, Lautstärke 67 %, rechts NÄCHSTE TITEL und die Kacheln BIBLIOTHEK und SAMMLUNGEN](bilder/medien-player.png)
+![Player: Cover, Titel „Amazing“, Titel 1 von 5, Zeitleiste, Tasten mit Wiederholung an, Lautstärke 61 %, rechts NÄCHSTE TITEL und die Kacheln BIBLIOTHEK und SAMMLUNGEN](bilder/medien-player.png)
 
 - **Cover:** ohne Cover ein Equalizer-Symbol.
 - **Titelangaben:** Titel, Interpret, darunter „TITEL 3 VON 19“,
@@ -116,7 +116,7 @@ werden die Cover auch bei schon bekannten Titeln neu übernommen.
 
 Erreichbar über die Kachel **SAMMLUNGEN**.
 
-![Sammlungen: Playlists mit ▶ am Zeilenende, rechts oben ＋](bilder/medien-playlists.png)
+![Sammlungen: fünf Playlists mit ▶ am Zeilenende, rechts oben +](bilder/medien-playlists.png)
 
 - ![Symbol Hinzufügen](bilder/symbole/add.svg) oben rechts: neue Playlist anlegen (siehe unten).
 - **Zeile antippen:** Playlist öffnen (Detailansicht).
@@ -124,7 +124,7 @@ Erreichbar über die Kachel **SAMMLUNGEN**.
 
 ### Playlist-Detail
 
-![Playlist „Roadtrip“ mit Cover neben dem Namen, fünf Titeln, PLAYLIST STARTEN und Titel hinzufügen](bilder/medien-playlist-detail.png)
+![Playlist „Roadtrip“ mit Cover neben dem Namen, oben Stift, Papierkorb und PLAYLIST STARTEN, fünf Titel mit ✕ am Zeilenende, unten Titel hinzufügen](bilder/medien-playlist-detail.png)
 
 - Neben dem Namen steht das Cover des ersten Titels der Playlist, der eines hat.
 - **PLAYLIST STARTEN** oben rechts startet die Playlist und wechselt zum
@@ -159,6 +159,8 @@ ist bereits in der Playlist“.
 
 ### Playlist umbenennen
 
+![Playlist umbenennen: im Feld „Roadtrip“ markiert, Zähler 8/40, darunter Speichern und die Tastatur](bilder/medien-playlist-umbenennen.png)
+
 Der Stift in der Playlist-Detailansicht öffnet dieselbe Seite wie beim Erstellen,
 mit dem Titel **PLAYLIST UMBENENNEN**. Das Feld steht schon mit dem alten Namen
 da, der Knopf darunter heißt **Speichern**.
@@ -173,7 +175,7 @@ da, der Knopf darunter heißt **Speichern**.
 
 ### Playlist erstellen
 
-![Playlist erstellen: „Roadtrip“ im Feld, Zähler 8/40, darunter die Tastatur](bilder/medien-playlist-erstellen.png)
+![Playlist erstellen: leeres Feld „Name der Playlist“, Zähler 0/40, darunter der gesperrte Knopf Erstellen und die Tastatur](bilder/medien-playlist-erstellen.png)
 
 - Das Feld „Name der Playlist“ (höchstens 40 Zeichen) hat sofort den Fokus.
 - **Angelegt wird mit dem Knopf „Erstellen“** unter dem Feld (gesperrt, solange
