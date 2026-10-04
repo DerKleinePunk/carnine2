@@ -73,8 +73,8 @@ back of the board, behind the converter (Michael, 2026-10-04):
 The resistor on the boards is **120 kΩ** (colour bands brown, red, yellow;
 Michael, 2026-10-04). In the datasheet's table of trim-up resistors for the
 5 V model, 120 kΩ lies between +3 % (133.3 kΩ) and +4 % (93.4 kΩ), about
-+3.3 % or 5.17 V nominal. The converter's initial set accuracy is ±1 %, and
-Michael measured 5.1 V at the output, which fits. (The table gives the same
++3.3 % or 5.17 V nominal. The converter's initial set accuracy is ±1 %;
+Michael measured **5.09 V** at the output (2026-10-04), which fits. (The table gives the same
 618 kΩ for +1 % and +2 %, so its lowest steps are not to be relied on.)
 
 ### AuPrV1_1 connections
