@@ -151,9 +151,12 @@ impl Control {
     }
 }
 
-/// Writes to devices on an I2C bus; the real one goes through /dev/i2c-N.
+/// Writes to and reads from devices on an I2C bus; the real one goes
+/// through /dev/i2c-N.
 pub trait I2cBus: Send {
     fn write(&mut self, address: u16, bytes: &[u8]) -> io::Result<()>;
+    /// Reads `buffer.len()` bytes starting at `register`.
+    fn read(&mut self, address: u16, register: u8, buffer: &mut [u8]) -> io::Result<()>;
 }
 
 /// Opens the bus at a path, e.g. /dev/i2c-1.
@@ -164,9 +167,8 @@ struct LinuxI2cBus {
     file: std::fs::File,
 }
 
-impl I2cBus for LinuxI2cBus {
-    fn write(&mut self, address: u16, bytes: &[u8]) -> io::Result<()> {
-        use std::io::Write;
+impl LinuxI2cBus {
+    fn select(&mut self, address: u16) -> io::Result<()> {
         use std::os::fd::AsRawFd;
         const I2C_SLAVE: libc::c_ulong = 0x0703;
         // SAFETY: plain ioctl on an open descriptor with an integer argument.
@@ -180,11 +182,34 @@ impl I2cBus for LinuxI2cBus {
         if result < 0 {
             return Err(io::Error::last_os_error());
         }
+        Ok(())
+    }
+}
+
+impl I2cBus for LinuxI2cBus {
+    fn write(&mut self, address: u16, bytes: &[u8]) -> io::Result<()> {
+        use std::io::Write;
+        self.select(address)?;
         let written = self.file.write(bytes)?;
         if written != bytes.len() {
             return Err(io::Error::new(
                 io::ErrorKind::WriteZero,
                 format!("wrote {written} of {} bytes", bytes.len()),
+            ));
+        }
+        Ok(())
+    }
+
+    /// Register pointer first, then the bytes; the MCP23017 keeps the
+    /// pointer across the stop in between.
+    fn read(&mut self, address: u16, register: u8, buffer: &mut [u8]) -> io::Result<()> {
+        use std::io::Read;
+        self.write(address, &[register])?;
+        let read = self.file.read(buffer)?;
+        if read != buffer.len() {
+            return Err(io::Error::new(
+                io::ErrorKind::UnexpectedEof,
+                format!("read {read} of {} bytes", buffer.len()),
             ));
         }
         Ok(())
@@ -300,6 +325,18 @@ impl Mcp23017 {
         let bus = self.bus(opener)?;
         bus.write(address, &[MCP23017_OLATA, latch_a, latch_b])?;
         bus.write(address, &[MCP23017_IODIRA, inputs_a, inputs_b])
+    }
+
+    /// Whether the chip still holds the directions it was given. A chip
+    /// that lost its supply or saw a reset for a moment answers again but
+    /// is back at all inputs, and writing the latch alone switches nothing.
+    fn holds_setup(&mut self, opener: &BusOpener) -> io::Result<bool> {
+        let expected = (!self.used_pins).to_le_bytes();
+        let address = self.address;
+        let mut directions = [0u8; 2];
+        self.bus(opener)?
+            .read(address, MCP23017_IODIRA, &mut directions)?;
+        Ok(directions == expected)
     }
 
     fn write_latch(&mut self, opener: &BusOpener) -> io::Result<()> {
@@ -619,12 +656,22 @@ impl ControlHub {
         }
     }
 
-    /// Tries the chips that did not answer again and puts the current
-    /// values on them; meant to run every few seconds.
+    /// Checks that the answering chips still hold their setup and sets up
+    /// again those that lost it, then tries the chips that did not answer
+    /// and puts the current values on them; meant to run every few seconds.
     pub fn retry_unavailable(&self) {
         let mut inner = self.lock();
         if inner.shutting_down {
             return;
+        }
+        let answering: Vec<ChipKey> = inner
+            .chips
+            .iter()
+            .filter(|(_, chip)| chip.available)
+            .map(|(key, _)| key.clone())
+            .collect();
+        for key in answering {
+            Self::check_setup(&mut inner, &key);
         }
         let keys: Vec<ChipKey> = inner
             .chips
@@ -632,14 +679,43 @@ impl ControlHub {
             .filter(|(_, chip)| !chip.available)
             .map(|(key, _)| key.clone())
             .collect();
-        if keys.is_empty() {
-            return;
-        }
         for key in keys {
             Self::bring_up(&mut inner, &key);
         }
         for state in Self::refresh_availability(&mut inner) {
             let _ = self.changes.send(state);
+        }
+    }
+
+    /// Reads back the directions of an answering chip: lost → set up again
+    /// (latch first, then the direction), no answer → unavailable until the
+    /// retry finds it.
+    fn check_setup(inner: &mut Inner, key: &ChipKey) {
+        let Inner {
+            chips,
+            opener,
+            reset_opener,
+            ..
+        } = inner;
+        let chip = chips.get_mut(key).expect("known chip");
+        let address = format!("{:#04x}", key.1);
+        match chip.holds_setup(opener) {
+            Ok(true) => {}
+            Ok(false) => {
+                warn!(bus = %key.0.display(), address, "MCP23017 lost its setup, setting it up again");
+                if let Err(error) = chip.initialise(opener, reset_opener) {
+                    warn!(bus = %key.0.display(), address, error = %error, "MCP23017 does not answer");
+                    chip.available = false;
+                    chip.missing_reported = true;
+                    chip.bus = None;
+                }
+            }
+            Err(error) => {
+                warn!(bus = %key.0.display(), address, error = %error, "MCP23017 does not answer");
+                chip.available = false;
+                chip.missing_reported = true;
+                chip.bus = None;
+            }
         }
     }
 }
@@ -748,11 +824,22 @@ mod tests {
     use super::*;
     use std::sync::{Arc, Mutex as StdMutex};
 
-    /// What the fake bus saw, and whether it answers.
+    /// What the fake bus saw, and whether it answers. `directions` is the
+    /// chip's IODIRA/IODIRB as the writes left them; `None` is the power-on
+    /// state, all inputs.
     #[derive(Default)]
     struct BusLog {
         writes: Vec<(u16, Vec<u8>)>,
         broken: bool,
+        directions: Option<[u8; 2]>,
+        reads: usize,
+    }
+
+    impl BusLog {
+        /// The chip lost its supply for a moment: back at all inputs.
+        fn forget_setup(&mut self) {
+            self.directions = None;
+        }
     }
 
     struct FakeBus(Arc<StdMutex<BusLog>>);
@@ -763,7 +850,21 @@ mod tests {
             if log.broken {
                 return Err(io::Error::from_raw_os_error(libc::EREMOTEIO));
             }
+            if let [MCP23017_IODIRA, a, b] = bytes {
+                log.directions = Some([*a, *b]);
+            }
             log.writes.push((address, bytes.to_vec()));
+            Ok(())
+        }
+
+        fn read(&mut self, _address: u16, register: u8, buffer: &mut [u8]) -> io::Result<()> {
+            let mut log = self.0.lock().unwrap();
+            if log.broken {
+                return Err(io::Error::from_raw_os_error(libc::EREMOTEIO));
+            }
+            assert_eq!(register, MCP23017_IODIRA, "only the directions are read");
+            log.reads += 1;
+            buffer.copy_from_slice(&log.directions.unwrap_or([0xFF, 0xFF]));
             Ok(())
         }
     }
@@ -983,6 +1084,74 @@ mod tests {
         // Back with latch and direction, not the latch alone.
         assert_eq!(tail, [MCP23017_IODIRA, MCP23017_OLATA]);
         assert!(hub.states()[0].available);
+    }
+
+    #[test]
+    fn a_chip_that_forgot_its_setup_is_set_up_again_with_the_current_values() {
+        // jeep-pi 04.10.2026: found again, then a moment without supply while
+        // plugging; it answered with IODIRA 0xff and switching did nothing.
+        let entries = vec![
+            entry("a0", "switch", "mcp23017", Some(0)),
+            entry("b1", "switch", "mcp23017", Some(9)),
+        ];
+        let log = Arc::new(StdMutex::new(BusLog::default()));
+        let hub = ControlHub::new(&entries, fake_opener(&log), no_reset(), None);
+        hub.set("a0", Value::On(true)).unwrap();
+        assert_eq!(log.lock().unwrap().directions, Some([0xFE, 0xFD]));
+
+        log.lock().unwrap().forget_setup();
+        let before = log.lock().unwrap().writes.len();
+        hub.retry_unavailable();
+
+        let log = log.lock().unwrap();
+        assert_eq!(log.directions, Some([0xFE, 0xFD]));
+        let again: Vec<&Vec<u8>> = log.writes[before..].iter().map(|(_, b)| b).collect();
+        // The switched-on output comes back on, and only then turns into an
+        // output, as at start-up.
+        assert_eq!(
+            again,
+            [
+                &vec![MCP23017_OLATA, 0x01, 0x00],
+                &vec![MCP23017_IODIRA, 0xFE, 0xFD]
+            ]
+        );
+        assert!(hub.states().iter().all(|state| state.available));
+        assert_eq!(hub.states()[0].value, Value::On(true));
+    }
+
+    #[test]
+    fn a_chip_that_holds_its_setup_is_only_read() {
+        let entries = vec![entry("a0", "switch", "mcp23017", Some(0))];
+        let log = Arc::new(StdMutex::new(BusLog::default()));
+        let hub = ControlHub::new(&entries, fake_opener(&log), no_reset(), None);
+        let before = log.lock().unwrap().writes.len();
+
+        hub.retry_unavailable();
+        hub.retry_unavailable();
+
+        let log = log.lock().unwrap();
+        assert_eq!(log.writes.len(), before);
+        assert_eq!(log.reads, 2);
+    }
+
+    #[test]
+    fn a_chip_that_stops_answering_between_switches_greys_out_and_comes_back() {
+        let entries = vec![entry("a0", "switch", "mcp23017", Some(0))];
+        let log = Arc::new(StdMutex::new(BusLog::default()));
+        let hub = ControlHub::new(&entries, fake_opener(&log), no_reset(), None);
+        let mut changes = hub.subscribe();
+
+        log.lock().unwrap().broken = true;
+        hub.retry_unavailable();
+        assert!(!hub.states()[0].available);
+        assert!(!changes.try_recv().unwrap().available);
+
+        log.lock().unwrap().broken = false;
+        log.lock().unwrap().forget_setup();
+        hub.retry_unavailable();
+        assert!(hub.states()[0].available);
+        assert!(changes.try_recv().unwrap().available);
+        assert_eq!(log.lock().unwrap().directions, Some([0xFE, 0xFF]));
     }
 
     #[test]
