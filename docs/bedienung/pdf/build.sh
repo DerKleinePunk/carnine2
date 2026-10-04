@@ -15,11 +15,12 @@ guide="$(dirname "$here")"
 root="$(git -C "$guide" rev-parse --show-toplevel)"
 out="${1:-$root/build/bedienungsanleitung.pdf}"
 
-# Chapter order, as in the table of contents of README.md.
+# Chapter order, as in the table of contents of README.md: the pages in the
+# order of the side menu, then the rest.
 pages=(
   README.md
-  medien.md
   karte.md
+  medien.md
   kamera.md
   technik.md
   optionen.md
@@ -28,6 +29,7 @@ pages=(
   ton-klinke.md
   image-schreiben.md
   nach-der-installation.md
+  befehle.md
 )
 
 # A new page must be added above, or it would be missing from the PDF.

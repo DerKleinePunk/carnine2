@@ -3,9 +3,8 @@
 [← Übersicht](README.md)
 
 Die Seite **Technik** schaltet Geräte im Auto: Licht, Lüfter und was sonst am
-Schaltmodul hängt. Sie ersetzt ab 0.11.0 die frühere Entwickler-Seite. Was sie
-zeigt, steht nicht in der Oberfläche, sondern in der Konfiguration des Backends
-([Einrichten](#einrichten)).
+Schaltmodul hängt. Was sie zeigt, steht nicht in der Oberfläche, sondern in
+der Konfiguration des Backends ([Einrichten](#einrichten)).
 
 - **Schalter:** Die ganze Karte antippen. Sie leuchtet in der Primärfarbe, wenn
   der Schalter **AN** ist, und zeigt **AUS**, wenn nicht.

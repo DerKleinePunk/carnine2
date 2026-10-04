@@ -96,7 +96,8 @@ Der Pfeil oben links führt zurück zu **Geräte**. Die Seite hat zwei Spalten:
 - **Neustart:** startet **nur die Oberfläche** neu, sofort und ohne Rückfrage.
   Auf dem Pi übernimmt systemd den Neustart; Backend und Musik laufen weiter.
 - **Beenden** – der **Wartungsmodus**: fragt nach einem Passwort und beendet
-  dann die Oberfläche. Das Passwort ist vorläufig fest im Code eingetragen
+  dann die Oberfläche. **Das Passwort ist ab Werk `4321`.** Ändern lässt es
+  sich noch nicht, es steht vorläufig fest im Code
   (`exit_password_dialog.dart`, #51). **Bestätigen** oder **Fertig** auf der
   Tastatur prüft es, bei falscher Eingabe erscheint „Falsches Passwort“.
   **Abbrechen** oder Antippen außerhalb des Dialogs bricht ab.

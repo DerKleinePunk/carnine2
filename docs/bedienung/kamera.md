@@ -2,9 +2,7 @@
 
 [← Übersicht](README.md)
 
-Die Seite **Kamera** zeigt das Bild einer Rückfahrkamera. Sie ersetzt ab 0.10.0
-die frühere Platzhalter-Seite „Klima“. War vor dem Update „Klima“ die
-zuletzt gewählte Seite, öffnet die Oberfläche danach **Kamera**.
+Die Seite **Kamera** zeigt das Bild einer Rückfahrkamera.
 
 ![Seite Kamera mit dem Bild einer analogen Rückfahrkamera am Grabber, darin die farbigen Hilfslinien der Kamera](bilder/cam-grabber.png)
 

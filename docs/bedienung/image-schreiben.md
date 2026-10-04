@@ -49,23 +49,9 @@ Umgekehrt flackert das 7C mit `hdmi` und `jack`, siehe unten.
 Die Images `hdmi` und `jack` sind auf das **7H** eingestellt: Sie geben dem
 Display die Kennung (EDID) des 7H vor. Am 7C flackerte das Bild damit. Das 7C
 braucht diese Vorgabe nicht und läuft mit seiner eigenen Kennung, der Ton kommt
-aus der Klinke (geprüft an einem 7C, 02.10.2026). Dafür gibt es seit 0.11.0 das
+aus der Klinke (geprüft an einem 7C, 02.10.2026). Dafür gibt es das
 Image **`…-waveshare-7c`**: ohne Vorgabe, Ton aus der Klinke. Es wird wie die
 anderen geschrieben, mehr ist nicht zu tun.
-
-**Mit einem älteren Image (bis 0.10.0)** gibt es kein 7C-Image. Dann:
-
-1. Das `…-waveshare-jack`-Image wie unten beschrieben auf die Karte schreiben.
-2. Die Karte noch einmal in den PC stecken. Die kleine Partition
-   **FIRMWARE** lässt sich auch unter Windows öffnen. Die Frage nach dem
-   Formatieren der anderen Partition: **Abbrechen**.
-3. Dort `cmdline.txt` mit einem Texteditor öffnen. Die Datei ist **eine
-   einzige Zeile**. Darin genau dieses Stück löschen, mit dem Leerzeichen davor:
-   ```
-    drm.edid_firmware=HDMI-A-1:edid/waveshare-7h-260929.bin
-   ```
-   Sonst nichts ändern, keinen Zeilenumbruch einfügen. Speichern, Karte
-   auswerfen.
 
 Die Hintergründe stehen in
 [22 – Waveshare Display, „Waveshare 7C“](../22-waveshare-display-1024x600.md#waveshare-7c).
@@ -176,4 +162,4 @@ Standardpasswort ändern, Gerätename, WLAN und Kartendaten.
 
 *Geprüft (02.10.2026, Image 0.10.0): Prüfsummen unter Linux und mit
 PowerShell, `bmaptool copy` (3.6) und der `dd`-Weg, beide in eine Datei statt auf eine
-Karte; sie schreiben bytegleich dasselbe. Auf jeep-pi wird seit 0.9.3 mit `dd` geschrieben.*
+Karte; sie schreiben bytegleich dasselbe. Auf jeep-pi wird mit `dd` geschrieben.*

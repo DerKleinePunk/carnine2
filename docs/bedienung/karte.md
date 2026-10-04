@@ -5,7 +5,8 @@
 Offline-Karte aus den lokal installierten Kacheln (`/var/lib/carnine/maps/`);
 Suche, Standortname und Routen kommen vom Backend (Valhalla und
 Namensdatenbank). Die Karte selbst funktioniert auch ohne Backend. Das Image
-bringt Hessen mit, carnine-pc zeigt seit 26.09.2026 ganz Deutschland.
+bringt keine Kartendaten mit. Die Karte von Hessen installiert man nach dem
+ersten Start ([Kartendaten installieren](nach-der-installation.md#kartendaten-installieren)).
 
 ![Karte ohne Route: Suchfeld oben, Knöpfe rechts, unten links der Standort](bilder/start.png)
 
@@ -23,9 +24,9 @@ installiert: [Nach der Installation](nach-der-installation.md#kartendaten-instal
 
 | Knopf | Wirkung |
 |---|---|
-| **＋** / **−** | eine Zoomstufe hinein bzw. heraus |
-| **Kompass** (◎, aus) | Navigationsmodus an: Karte folgt der eigenen Position, **Fahrtrichtung oben** – zentriert also auch wieder auf die Position. Die Beschriftung dreht mit, siehe [Während der Fahrt](#während-der-fahrt) |
-| **Navigation** (▲, an) | zurück auf **Norden oben**; die Karte folgt weiter |
+| ![Symbol Plus](bilder/symbole/add.svg) / ![Symbol Minus](bilder/symbole/remove.svg) | eine Zoomstufe hinein bzw. heraus |
+| ![Symbol Kompass](bilder/symbole/explore.svg) **Kompass** (aus) | Navigationsmodus an: Karte folgt der eigenen Position, **Fahrtrichtung oben** – zentriert also auch wieder auf die Position. Die Beschriftung dreht mit, siehe [Während der Fahrt](#während-der-fahrt) |
+| ![Symbol Navigation](bilder/symbole/navigation.svg) **Navigation** (an) | zurück auf **Norden oben**; die Karte folgt weiter |
 
 Einen eigenen „Zentrieren“-Knopf gibt es nicht; nach dem Verschieben holt der
 Kompass-Knopf die Position zurück.
@@ -82,7 +83,7 @@ erreichbar“ (Backend weg, rot).
 - **Beschriftung:** Mit der Fahrtrichtung oben dreht sich die Karte, und die
   Straßen- und Ortsnamen drehen mit. Sie stehen nie auf dem Kopf, höchstens
   etwas schräg, weil die Karte für die Beschriftung in 45°-Schritten neu
-  gezeichnet wird (seit 0.9.5, flutter_local_map #1).
+  gezeichnet wird (flutter_local_map #1).
 
   ![Navigationsmodus mit gedrehter Karte: Straßennamen wie „Bermuthshainer Straße“ und „Frankfurter Straße“ stehen schräg, aber keiner kopfüber](bilder/karte-mitdrehen.png)
 

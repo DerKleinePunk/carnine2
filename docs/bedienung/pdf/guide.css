@@ -126,6 +126,17 @@ p:has(> img) {
   break-inside: avoid;
 }
 
+/* The frontend's icons (bilder/symbole/) stand in the text, one line high */
+
+img[src*="symbole/"] {
+  display: inline;
+  height: 1.3em;
+  width: auto;
+  margin: 0;
+  border: none;
+  vertical-align: -0.3em;
+}
+
 table {
   border-collapse: collapse;
   width: 100%;
