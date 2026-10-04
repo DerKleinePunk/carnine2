@@ -23,7 +23,7 @@ Wer die Seite verlässt und wieder öffnet, landet wieder auf **Sprache**.
 
 ### Sprache
 
-![Sprache: oben die aktive Sprache, darunter die Sprachen als Kacheln mit Flagge](bilder/optionen-sprache.png)
+![Darstellung & Sprache: Reiter Darstellung und Sprache, oben die aktive Sprache, darunter die Sprachen als Kacheln mit Flagge](bilder/optionen-sprache.png)
 
 - Oben die aktive Sprache mit Flagge, darunter alle 15 Sprachen (Chinesisch,
   Dänisch, Deutsch, Englisch, Französisch, Italienisch, Japanisch,
@@ -31,12 +31,16 @@ Wer die Seite verlässt und wieder öffnet, landet wieder auf **Sprache**.
   Türkisch, Ungarisch).
 - Antippen stellt sofort um, ohne Neustart. Die Liste ist nach dem Namen in der
   aktuellen Sprache sortiert, ihre Reihenfolge ändert sich also beim Umschalten.
+  Umlaute sortiert sie dabei noch falsch ein: „Deutsch“ steht vor „Dänisch“, so
+  auch im Bild (#92).
 - Die Wahl wird gespeichert und gilt auch nach einem Neustart, ebenso für die
   Fahranweisungen der Navigation (#30). Ist das Backend beim Start noch nicht
   bereit, holt die Oberfläche die Sprache nach; wer in der Zwischenzeit selbst
   eine Sprache wählt, behält seine Wahl.
 
 ## Geräte
+
+![Geräte: Zeilen Kamera (mit Pfeil), Audio-Ausgang, Handy-App und Netzteil (ausgegraut)](bilder/optionen-geraete.png)
 
 Die Seite zeigt vier Geräte-Bereiche. Jede Zeile hat ein Symbol, einen Namen
 und eine Kurzbeschreibung. Nur **Kamera** hat eine Seite; sie hat einen Pfeil
@@ -55,6 +59,8 @@ Den Ton-Ausgang stellt man bis dahin am Gerät um
 Kamera auch nur eine Vorschau.
 
 ### Kamera
+
+![Kamera-Einstellungen: links die USB-Kamera „USB PHY 2.0: USB CAMERA“ (/dev/video0) ausgewählt, rechts Videonorm, Eingang und Bildbreite ausgegraut, unten Kamerabild ansehen](bilder/optionen-kamera.png)
 
 Der Pfeil oben links führt zurück zu **Geräte**. Die Seite hat zwei Spalten:
 

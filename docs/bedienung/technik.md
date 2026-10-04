@@ -6,6 +6,10 @@ Die Seite **Technik** schaltet Geräte im Auto: Licht, Lüfter und was sonst am
 Schaltmodul hängt. Was sie zeigt, steht nicht in der Oberfläche, sondern in
 der Konfiguration des Backends ([Einrichten](#einrichten)).
 
+![Seite Technik mit acht Schaltern: Arbeitslicht, Innenlicht, Scheinwerfer, Rundumleuchte, Kühlbox, Steckdose 12 V, Standheizung, Reserve, alle AUS](bilder/technik.png)
+
+*Die acht Relais des Testaufbaus, eingerichtet wie unter [Einrichten](#einrichten) beschrieben.*
+
 - **Schalter:** Die ganze Karte antippen. Sie leuchtet in der Primärfarbe, wenn
   der Schalter **AN** ist, und zeigt **AUS**, wenn nicht.
 - **Regler:** Den Griff ziehen. Die Karte ist so breit wie die Seite, niedriger
