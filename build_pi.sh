@@ -224,7 +224,10 @@ fi
 install -m 0644 "$VIDEO_GRABBER_BUILD/libvideo_grabber_view.so" "$FRONTEND_BUNDLE/lib/"
 
 "$FRONTEND_DIR/package-deb.sh" "$FRONTEND_BUNDLE" "$FRONTEND_PACKAGE" "$BUILD_VERSION"
-if ! dpkg-deb -c "$FRONTEND_PACKAGE" | grep -q ' \./opt/carnine/frontend/lib/libvideo_grabber_view\.so$'; then
+# The listing is read whole first: grep -q stops reading at the match,
+# dpkg-deb then dies of SIGPIPE and pipefail fails the check.
+FRONTEND_CONTENTS="$(dpkg-deb -c "$FRONTEND_PACKAGE")"
+if ! grep -q ' \./opt/carnine/frontend/lib/libvideo_grabber_view\.so$' <<< "$FRONTEND_CONTENTS"; then
   echo "[pi] ERROR: the frontend package lacks libvideo_grabber_view.so"
   exit 1
 fi
