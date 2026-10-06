@@ -29,7 +29,7 @@ dependencies:
       url: https://github.com/DerKleinePunk/flutter_local_map.git
       # Feste Marke statt master: Aenderungen an der Lib kommen erst mit
       # einem bewussten Wechsel der Marke ins Auto.
-      ref: local_map-v0.8.1
+      ref: local_map-v0.8.2
       path: packages/local_map
   # Rueckfahrkamera (USB-Grabber STK1160) als Platform View, eigenes Paket.
   # Braucht zur Laufzeit libvideo_grabber_view.so, die build_pi.sh mitbaut.
