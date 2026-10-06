@@ -49,7 +49,8 @@ const CACHE_ENTRIES: usize = 200;
 
 enum Command {
     Prepare(Vec<String>),
-    Speak(String, AnnouncementPriority),
+    /// With the moment it was asked for, to log how late it came out.
+    Speak(String, AnnouncementPriority, std::time::Instant),
 }
 
 /// The voice: takes texts to prepare and to speak, works on its own thread.
@@ -124,7 +125,7 @@ impl Voice {
     /// Speaks `text` now, from the cache when it was prepared.
     pub fn announce(&self, text: String, priority: AnnouncementPriority) {
         if self.enabled() && !text.trim().is_empty() {
-            self.send(Command::Speak(text, priority));
+            self.send(Command::Speak(text, priority, std::time::Instant::now()));
         }
     }
 
@@ -289,24 +290,34 @@ impl Worker {
             };
             match command {
                 Some(Command::Prepare(texts)) => pending = texts.into(),
-                Some(Command::Speak(text, priority)) => {
+                Some(Command::Speak(text, priority, asked)) => {
                     // Announcements that queued up while one was synthesized
                     // are out of date; only the newest is spoken.
-                    let mut newest = (text, priority);
+                    let mut newest = (text, priority, asked);
                     loop {
                         match receiver.try_recv() {
                             Ok(Command::Prepare(texts)) => pending = texts.into(),
-                            Ok(Command::Speak(text, priority)) => {
+                            Ok(Command::Speak(text, priority, asked)) => {
                                 if priority >= newest.1 {
-                                    newest = (text, priority);
+                                    newest = (text, priority, asked);
                                 }
                             }
                             Err(_) => break,
                         }
                     }
-                    let (text, priority) = newest;
+                    let (text, priority, asked) = newest;
+                    // The prepared sentences ahead of this one were for
+                    // earlier steps of the maneuver; they will not come.
+                    if let Some(index) = pending.iter().position(|queued| *queued == text) {
+                        pending.drain(..=index);
+                    }
                     if let Some(path) = self.speech_file(&text) {
                         (self.sink)(&path, priority);
+                        info!(
+                            text,
+                            late_ms = asked.elapsed().as_millis() as u64,
+                            "announcement spoken"
+                        );
                     }
                 }
                 // One text at a time, so a Speak waits for at most one.
@@ -789,6 +800,29 @@ mod tests {
             ["slow first", "newest turn"],
             "the newest turn instruction wins over older ones and the information"
         );
+    }
+
+    #[test]
+    fn a_spoken_sentence_drops_the_prepared_ones_before_it() {
+        let rig = Rig::new("drops");
+        // The first one keeps the voice busy while the rest arrives.
+        rig.voice.prepare(vec![
+            "slow 1 km".into(),
+            "400 m".into(),
+            "300 m".into(),
+            "now".into(),
+        ]);
+        thread::sleep(Duration::from_millis(100));
+        rig.voice
+            .announce("300 m".into(), AnnouncementPriority::Maneuver);
+        rig.next_played().expect("played");
+        assert_eq!(
+            rig.wait_for_calls(3),
+            ["slow 1 km", "300 m", "now"],
+            "400 m skipped"
+        );
+        thread::sleep(Duration::from_millis(200));
+        assert_eq!(rig.calls.lock().unwrap().len(), 3, "nothing else");
     }
 
     #[test]
