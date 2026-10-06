@@ -68,6 +68,27 @@ class _FakeNavigationService extends pb.NavigationServiceBase {
     ServiceCall call,
     pb.SetTrackRecordingRequest request,
   ) => throw GrpcError.unimplemented();
+  @override
+  Future<pb.Empty> prepareAnnouncements(
+    ServiceCall call,
+    pb.PrepareAnnouncementsRequest request,
+  ) => throw GrpcError.unimplemented();
+
+  @override
+  Future<pb.Empty> announce(ServiceCall call, pb.AnnounceRequest request) =>
+      throw GrpcError.unimplemented();
+
+  @override
+  Future<pb.VoiceSettings> getVoiceSettings(
+    ServiceCall call,
+    pb.Empty request,
+  ) => throw GrpcError.unimplemented();
+
+  @override
+  Future<pb.VoiceSettings> setVoiceSettings(
+    ServiceCall call,
+    pb.SetVoiceSettingsRequest request,
+  ) => throw GrpcError.unimplemented();
 }
 
 void main() {

@@ -58,6 +58,7 @@ cpal = "0.16"
 futures-util = "0.3"
 # statvfs for the disk usage in system_metrics; std exposes no free-space API.
 libc = "0.2"
+libloading = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.8"
 serde_json = "1.0"

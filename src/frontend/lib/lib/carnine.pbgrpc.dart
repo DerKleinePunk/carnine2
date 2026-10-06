@@ -1545,6 +1545,39 @@ class NavigationServiceClient extends $grpc.Client {
     return $createUnaryCall(_$setTrackRecording, request, options: options);
   }
 
+  /// Spoken turn announcements. The map library sends the texts it may speak
+  /// for the next maneuver ahead, so the backend synthesizes them in the
+  /// background; Announce then speaks one, over the music. Both answer OK and
+  /// do nothing while speech is off or no voice is installed.
+  $grpc.ResponseFuture<$0.Empty> prepareAnnouncements(
+    $0.PrepareAnnouncementsRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$prepareAnnouncements, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.Empty> announce(
+    $0.AnnounceRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$announce, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.VoiceSettings> getVoiceSettings(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getVoiceSettings, request, options: options);
+  }
+
+  /// Saved, so it survives a restart. Answers with the settings after the change.
+  $grpc.ResponseFuture<$0.VoiceSettings> setVoiceSettings(
+    $0.SetVoiceSettingsRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setVoiceSettings, request, options: options);
+  }
+
   // method descriptors
 
   static final _$getServiceVersion =
@@ -1586,6 +1619,25 @@ class NavigationServiceClient extends $grpc.Client {
           '/carnine.NavigationService/SetTrackRecording',
           ($0.SetTrackRecordingRequest value) => value.writeToBuffer(),
           $0.NavigationStatus.fromBuffer);
+  static final _$prepareAnnouncements =
+      $grpc.ClientMethod<$0.PrepareAnnouncementsRequest, $0.Empty>(
+          '/carnine.NavigationService/PrepareAnnouncements',
+          ($0.PrepareAnnouncementsRequest value) => value.writeToBuffer(),
+          $0.Empty.fromBuffer);
+  static final _$announce = $grpc.ClientMethod<$0.AnnounceRequest, $0.Empty>(
+      '/carnine.NavigationService/Announce',
+      ($0.AnnounceRequest value) => value.writeToBuffer(),
+      $0.Empty.fromBuffer);
+  static final _$getVoiceSettings =
+      $grpc.ClientMethod<$0.Empty, $0.VoiceSettings>(
+          '/carnine.NavigationService/GetVoiceSettings',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.VoiceSettings.fromBuffer);
+  static final _$setVoiceSettings =
+      $grpc.ClientMethod<$0.SetVoiceSettingsRequest, $0.VoiceSettings>(
+          '/carnine.NavigationService/SetVoiceSettings',
+          ($0.SetVoiceSettingsRequest value) => value.writeToBuffer(),
+          $0.VoiceSettings.fromBuffer);
 }
 
 @$pb.GrpcServiceName('carnine.NavigationService')
@@ -1656,6 +1708,37 @@ abstract class NavigationServiceBase extends $grpc.Service {
             ($core.List<$core.int> value) =>
                 $0.SetTrackRecordingRequest.fromBuffer(value),
             ($0.NavigationStatus value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.PrepareAnnouncementsRequest, $0.Empty>(
+        'PrepareAnnouncements',
+        prepareAnnouncements_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.PrepareAnnouncementsRequest.fromBuffer(value),
+        ($0.Empty value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.AnnounceRequest, $0.Empty>(
+        'Announce',
+        announce_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.AnnounceRequest.fromBuffer(value),
+        ($0.Empty value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.VoiceSettings>(
+        'GetVoiceSettings',
+        getVoiceSettings_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.VoiceSettings value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.SetVoiceSettingsRequest, $0.VoiceSettings>(
+            'SetVoiceSettings',
+            setVoiceSettings_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.SetVoiceSettingsRequest.fromBuffer(value),
+            ($0.VoiceSettings value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.ServiceVersion> getServiceVersion_Pre(
@@ -1723,6 +1806,38 @@ abstract class NavigationServiceBase extends $grpc.Service {
 
   $async.Future<$0.NavigationStatus> setTrackRecording(
       $grpc.ServiceCall call, $0.SetTrackRecordingRequest request);
+
+  $async.Future<$0.Empty> prepareAnnouncements_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.PrepareAnnouncementsRequest> $request) async {
+    return prepareAnnouncements($call, await $request);
+  }
+
+  $async.Future<$0.Empty> prepareAnnouncements(
+      $grpc.ServiceCall call, $0.PrepareAnnouncementsRequest request);
+
+  $async.Future<$0.Empty> announce_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.AnnounceRequest> $request) async {
+    return announce($call, await $request);
+  }
+
+  $async.Future<$0.Empty> announce(
+      $grpc.ServiceCall call, $0.AnnounceRequest request);
+
+  $async.Future<$0.VoiceSettings> getVoiceSettings_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return getVoiceSettings($call, await $request);
+  }
+
+  $async.Future<$0.VoiceSettings> getVoiceSettings(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.VoiceSettings> setVoiceSettings_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.SetVoiceSettingsRequest> $request) async {
+    return setVoiceSettings($call, await $request);
+  }
+
+  $async.Future<$0.VoiceSettings> setVoiceSettings(
+      $grpc.ServiceCall call, $0.SetVoiceSettingsRequest request);
 }
 
 /// Settings of the reversing camera (video grabber on the camera page). The

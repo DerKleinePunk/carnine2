@@ -162,6 +162,15 @@ service NavigationService {
   // works as a replay_file. FAILED_PRECONDITION without a track directory.
   // Answers with the status after the change.
   rpc SetTrackRecording (SetTrackRecordingRequest) returns (NavigationStatus);
+  // Spoken turn announcements. The map library sends the texts it may speak
+  // for the next maneuver ahead, so the backend synthesizes them in the
+  // background; Announce then speaks one, over the music. Both answer OK and
+  // do nothing while speech is off or no voice is installed.
+  rpc PrepareAnnouncements (PrepareAnnouncementsRequest) returns (Empty);
+  rpc Announce (AnnounceRequest) returns (Empty);
+  rpc GetVoiceSettings (Empty) returns (VoiceSettings);
+  // Saved, so it survives a restart. Answers with the settings after the change.
+  rpc SetVoiceSettings (SetVoiceSettingsRequest) returns (VoiceSettings);
   // Reserved for after the trade fair: StreamGuidance (progress, off-route).
 }
 
@@ -669,6 +678,37 @@ message Maneuver {
   optional string verbal_alert = 7;
   optional string verbal_pre = 8;
   optional string verbal_post = 9;
+}
+
+// A turn instruction cuts an information short; an information never
+// interrupts a turn instruction.
+enum AnnouncementPriority {
+  ANNOUNCEMENT_PRIORITY_UNSPECIFIED = 0;  // treated as MANEUVER
+  ANNOUNCEMENT_PRIORITY_MANEUVER = 1;
+  ANNOUNCEMENT_PRIORITY_INFO = 2;         // e.g. "Die Route wird neu berechnet."
+}
+
+message PrepareAnnouncementsRequest {
+  // Spoken exactly as given; Announce finds them by the same text.
+  repeated string texts = 1;
+}
+
+message AnnounceRequest {
+  string text = 1;
+  AnnouncementPriority priority = 2;
+}
+
+message VoiceSettings {
+  // A voice is installed and loaded; without one the switch does nothing.
+  bool available = 1;
+  bool enabled = 2;
+  uint32 volume_percent = 3;  // 0-100
+  string voice = 4;           // e.g. "thorsten-medium"
+}
+
+message SetVoiceSettingsRequest {
+  optional bool enabled = 1;
+  optional uint32 volume_percent = 2;  // 0-100; above is INVALID_ARGUMENT
 }
 
 message Route {

@@ -45,6 +45,7 @@ mod server_transport;
 mod size_capped_log;
 mod storage_events;
 mod system_metrics;
+mod voice;
 
 use carnine::get_cover_art_request::Target as CoverArtTarget;
 use carnine::{
@@ -1675,6 +1676,7 @@ fn configuration_from_proto(configuration: &Configuration) -> Result<config::Con
         exit_password: config::ExitPasswordConfig::default(),
         controls: Vec::new(),
         display: Default::default(),
+        voice: Default::default(),
     };
     configuration.validate()?;
     Ok(configuration)
@@ -1923,7 +1925,12 @@ async fn main() -> Result<()> {
     let navigation_service = navigation::start(
         &configuration.navigation,
         &configuration.media.database_path,
-    );
+    )
+    .with_voice(Arc::new(start_voice(
+        &configuration.voice,
+        &configuration.media.database_path,
+        Arc::clone(&media_player),
+    )));
 
     let socket_mode = configuration.server.socket_permissions()?;
     if socket_mode != config::DEFAULT_SOCKET_MODE {
@@ -2026,6 +2033,46 @@ async fn shutdown_signal() {
             .expect("install Ctrl+C handler");
         warn!("shutdown requested by Ctrl+C");
     }
+}
+
+/// Starts the voice for spoken turn announcements. Without the voice package
+/// it logs once and the announcement calls do nothing.
+fn start_voice(
+    config: &config::VoiceConfig,
+    database: &Path,
+    player: Arc<MediaPlayer>,
+) -> voice::VoiceControl {
+    let library_dir = config.library_dir.clone();
+    let voice_dir = config.voices_dir.join(&config.voice);
+    let threads = i32::try_from(config.threads).unwrap_or(1);
+    let sink_player = Arc::clone(&player);
+    let voice = voice::Voice::start(
+        Box::new(move || {
+            voice::sherpa::SherpaSynthesizer::load(&library_dir, &voice_dir, threads)
+                .map(|synthesizer| Box::new(synthesizer) as Box<dyn voice::Synthesizer>)
+        }),
+        config.cache_dir.clone(),
+        config.cpu,
+        false,
+        Box::new(move |path, priority| {
+            if let Err(error) = sink_player.play_announcement(&path.to_string_lossy(), priority) {
+                warn!(error = %format!("{error:#}"), "announcement not played");
+            }
+        }),
+    );
+    let saved = database::Database::open(database)
+        .and_then(|database| database.load_voice_settings())
+        .unwrap_or_else(|error| {
+            warn!(error = %format!("{error:#}"), "voice settings not readable, using [voice]");
+            (None, None)
+        });
+    voice::VoiceControl::new(
+        voice,
+        config,
+        saved,
+        Box::new(move |levels| player.set_announcement_levels(levels)),
+        Some(database.to_path_buf()),
+    )
 }
 
 #[cfg(test)]
@@ -2151,6 +2198,7 @@ mod tests {
             exit_password: config::ExitPasswordConfig::default(),
             controls: Vec::new(),
             display: Default::default(),
+            voice: Default::default(),
         }
     }
 

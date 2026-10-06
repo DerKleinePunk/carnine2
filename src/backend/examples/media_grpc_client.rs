@@ -17,16 +17,17 @@ use carnine::{
     audio_service_client::AudioServiceClient, camera_service_client::CameraServiceClient,
     control_service_client::ControlServiceClient, get_cover_art_request::Target as CoverArtTarget,
     media_service_client::MediaServiceClient, navigation_service_client::NavigationServiceClient,
-    system_service_client::SystemServiceClient, AddPlaylistEntryRequest, CameraNorm,
-    CameraSettings, ComputeRouteRequest, CreatePlaylistRequest, DeletePlaylistRequest,
-    DisplayBrightness, Empty, ExitPasswordRequest, FixState, GetCoverArtRequest,
-    GetLocationNameRequest, GetPlaylistRequest, GetReplayRouteRequest, ImportMusicVolumeRequest,
-    LatLon, LibraryEventType, NavigationStatus, PlayPlaylistRequest, PlayQueueEntryRequest,
-    PlayRequest, PositionFix, PositionSourceKind, PowerSupplyState, PowerSupplyStatus,
-    RemovePlaylistEntryRequest, RenamePlaylistRequest, RepeatMode, RescanMediaRequest, Route,
-    SearchMediaRequest, SearchPlacesRequest, SeekRequest, SetDisplayBrightnessRequest,
-    SetExitPasswordRequest, SetRepeatModeRequest, SetShuffleModeRequest, SetTrackRecordingRequest,
-    SetVolumeRequest, SystemMetrics, ThermalStatus, UiState,
+    system_service_client::SystemServiceClient, AddPlaylistEntryRequest, AnnounceRequest,
+    AnnouncementPriority, CameraNorm, CameraSettings, ComputeRouteRequest, CreatePlaylistRequest,
+    DeletePlaylistRequest, DisplayBrightness, Empty, ExitPasswordRequest, FixState,
+    GetCoverArtRequest, GetLocationNameRequest, GetPlaylistRequest, GetReplayRouteRequest,
+    ImportMusicVolumeRequest, LatLon, LibraryEventType, NavigationStatus, PlayPlaylistRequest,
+    PlayQueueEntryRequest, PlayRequest, PositionFix, PositionSourceKind, PowerSupplyState,
+    PowerSupplyStatus, PrepareAnnouncementsRequest, RemovePlaylistEntryRequest,
+    RenamePlaylistRequest, RepeatMode, RescanMediaRequest, Route, SearchMediaRequest,
+    SearchPlacesRequest, SeekRequest, SetDisplayBrightnessRequest, SetExitPasswordRequest,
+    SetRepeatModeRequest, SetShuffleModeRequest, SetTrackRecordingRequest, SetVoiceSettingsRequest,
+    SetVolumeRequest, SystemMetrics, ThermalStatus, UiState, VoiceSettings,
 };
 
 #[tokio::main]
@@ -102,6 +103,10 @@ async fn main() -> Result<()> {
         "route" => compute_route(&endpoint).await?,
         "replay-route" => replay_route(&endpoint).await?,
         "track-recording" => set_track_recording(&endpoint).await?,
+        "prepare-announcements" => prepare_announcements(&endpoint).await?,
+        "announce" => announce(&endpoint).await?,
+        "voice-settings" => get_voice_settings(&endpoint).await?,
+        "set-voice-settings" => set_voice_settings(&endpoint).await?,
         "camera-settings" => get_camera_settings(&endpoint).await?,
         "save-camera-settings" => save_camera_settings(&endpoint).await?,
         "camera-devices" => list_camera_devices(&endpoint).await?,
@@ -618,6 +623,81 @@ async fn set_track_recording(endpoint: &str) -> Result<()> {
     Ok(())
 }
 
+/// `prepare-announcements <text>...`: each argument is one sentence.
+async fn prepare_announcements(endpoint: &str) -> Result<()> {
+    let texts: Vec<String> = env::args().skip(3).collect();
+    if texts.is_empty() {
+        bail!("usage: media_grpc_client [endpoint] prepare-announcements <text>...");
+    }
+    let mut client = NavigationServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    client
+        .prepare_announcements(PrepareAnnouncementsRequest { texts })
+        .await?;
+    println!("prepared");
+    Ok(())
+}
+
+/// `announce <text> [info]`: speaks now; "info" gives way to turn instructions.
+async fn announce(endpoint: &str) -> Result<()> {
+    let text = env::args()
+        .nth(3)
+        .context("usage: media_grpc_client [endpoint] announce <text> [info]")?;
+    let priority = match env::args().nth(4).as_deref() {
+        None | Some("maneuver") => AnnouncementPriority::Maneuver,
+        Some("info") => AnnouncementPriority::Info,
+        Some(other) => bail!("unknown priority: {other} (expected maneuver|info)"),
+    };
+    let mut client = NavigationServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    client
+        .announce(AnnounceRequest {
+            text,
+            priority: priority as i32,
+        })
+        .await?;
+    println!("announced");
+    Ok(())
+}
+
+fn print_voice_settings(settings: &VoiceSettings) {
+    println!(
+        "available={} enabled={} volume={}% voice={}",
+        settings.available, settings.enabled, settings.volume_percent, settings.voice
+    );
+}
+
+async fn get_voice_settings(endpoint: &str) -> Result<()> {
+    let mut client = NavigationServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let settings = client.get_voice_settings(Empty {}).await?.into_inner();
+    print_voice_settings(&settings);
+    Ok(())
+}
+
+/// `set-voice-settings [on|off|-] [volume 0-100]`.
+async fn set_voice_settings(endpoint: &str) -> Result<()> {
+    let usage = "usage: media_grpc_client [endpoint] set-voice-settings [on|off|-] [volume 0-100]";
+    let enabled = match env::args().nth(3).as_deref() {
+        Some("on") => Some(true),
+        Some("off") => Some(false),
+        Some("-") | None => None,
+        Some(other) => bail!("unknown state: {other}\n{usage}"),
+    };
+    let volume_percent = env::args()
+        .nth(4)
+        .map(|value| value.parse::<u32>())
+        .transpose()
+        .context(usage)?;
+    let mut client = NavigationServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let settings = client
+        .set_voice_settings(SetVoiceSettingsRequest {
+            enabled,
+            volume_percent,
+        })
+        .await?
+        .into_inner();
+    print_voice_settings(&settings);
+    Ok(())
+}
+
 fn parse_lat_lon(value: &str) -> Result<LatLon> {
     let (latitude, longitude) = value
         .split_once(',')
@@ -695,6 +775,15 @@ fn print_route(route: &Route) {
                 format!(" ({})", maneuver.street_names.join(", "))
             }
         );
+        for (label, text) in [
+            ("alert", &maneuver.verbal_alert),
+            ("pre", &maneuver.verbal_pre),
+            ("post", &maneuver.verbal_post),
+        ] {
+            if let Some(text) = text {
+                println!("           {label:<5} \"{text}\"");
+            }
+        }
     }
 }
 

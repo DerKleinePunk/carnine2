@@ -38,6 +38,50 @@ pub struct Config {
     /// brightness in the options (SystemService).
     #[serde(default)]
     pub display: DisplayConfig,
+    /// Optional: spoken turn announcements. Without the voice package the
+    /// backend runs on silently.
+    #[serde(default)]
+    pub voice: VoiceConfig,
+}
+
+/// `[voice]`: text to speech for turn announcements (sherpa-onnx).
+#[derive(Debug, Clone, Deserialize, serde::Serialize)]
+#[serde(default)]
+pub struct VoiceConfig {
+    /// Speak at all; the options can switch it, which is then saved.
+    pub enabled: bool,
+    /// Where libsherpa-onnx-c-api.so and libonnxruntime.so are.
+    pub library_dir: PathBuf,
+    /// Folder holding one subfolder per voice.
+    pub voices_dir: PathBuf,
+    /// The voice's subfolder, "thorsten-medium" or "thorsten-low".
+    pub voice: String,
+    /// Core the synthesis runs on, away from the map; none for no pinning.
+    pub cpu: Option<usize>,
+    /// Threads of the synthesis.
+    pub threads: u32,
+    /// Synthesized speech lives here (tmpfs).
+    pub cache_dir: PathBuf,
+    /// Loudness of announcements, 0-100; the options can change it.
+    pub volume_percent: u32,
+    /// Music level while an announcement plays, 0-100.
+    pub music_under_percent: u32,
+}
+
+impl Default for VoiceConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            library_dir: PathBuf::from("/usr/lib/carnine/voice"),
+            voices_dir: PathBuf::from("/usr/share/carnine/voices"),
+            voice: "thorsten-medium".to_string(),
+            cpu: Some(3),
+            threads: 1,
+            cache_dir: PathBuf::from("/run/carnine/voice"),
+            volume_percent: 100,
+            music_under_percent: 30,
+        }
+    }
 }
 
 /// Id of the control built from `[display.backlight]`.
@@ -781,6 +825,45 @@ mod tests {
         assert_eq!(
             config.disk_metric_paths(),
             vec![std::path::PathBuf::from("/srv")]
+        );
+    }
+
+    #[test]
+    fn the_voice_defaults_and_its_example_match() {
+        let base = std::fs::read_to_string("../../resources/config/carnine.toml")
+            .expect("repository config should be readable");
+        let config: Config = toml::from_str(&base).expect("repository config parses");
+        assert_eq!(config.voice.voice, "thorsten-medium");
+        assert_eq!(config.voice.cpu, Some(3));
+        assert!(config.voice.enabled);
+
+        // The commented example, switched on, gives the same values.
+        let example: String = base
+            .lines()
+            .skip_while(|line| *line != "# [voice]")
+            .take_while(|line| line.starts_with('#'))
+            .map(|line| line.trim_start_matches('#').trim_start().to_string() + "\n")
+            .collect();
+        let config: Config = toml::from_str(&format!("{base}\n{example}")).expect("example parses");
+        let defaults = super::VoiceConfig::default();
+        assert_eq!(config.voice.voice, defaults.voice);
+        assert_eq!(config.voice.voices_dir, defaults.voices_dir);
+        assert_eq!(config.voice.library_dir, defaults.library_dir);
+        assert_eq!(config.voice.cache_dir, defaults.cache_dir);
+        assert_eq!(
+            config.voice.music_under_percent,
+            defaults.music_under_percent
+        );
+
+        let config: Config = toml::from_str(&format!(
+            "{base}\n[voice]\nvoice = \"thorsten-low\"\ncpu = 2\n"
+        ))
+        .expect("a voice section parses");
+        assert_eq!(config.voice.voice, "thorsten-low");
+        assert_eq!(config.voice.cpu, Some(2));
+        assert_eq!(
+            config.voice.volume_percent, 100,
+            "the rest keeps its default"
         );
     }
 

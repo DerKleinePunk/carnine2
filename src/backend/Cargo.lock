@@ -359,6 +359,7 @@ dependencies = [
  "hyper",
  "hyper-util",
  "libc",
+ "libloading",
  "prost",
  "rand",
  "ringbuf",

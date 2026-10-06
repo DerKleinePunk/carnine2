@@ -4825,6 +4825,9 @@ class Maneuver extends $pb.GeneratedMessage {
     $core.int? type,
     $core.int? beginShapeIndex,
     $core.Iterable<$core.String>? streetNames,
+    $core.String? verbalAlert,
+    $core.String? verbalPre,
+    $core.String? verbalPost,
   }) {
     final result = create();
     if (instruction != null) result.instruction = instruction;
@@ -4833,6 +4836,9 @@ class Maneuver extends $pb.GeneratedMessage {
     if (type != null) result.type = type;
     if (beginShapeIndex != null) result.beginShapeIndex = beginShapeIndex;
     if (streetNames != null) result.streetNames.addAll(streetNames);
+    if (verbalAlert != null) result.verbalAlert = verbalAlert;
+    if (verbalPre != null) result.verbalPre = verbalPre;
+    if (verbalPost != null) result.verbalPost = verbalPost;
     return result;
   }
 
@@ -4856,6 +4862,9 @@ class Maneuver extends $pb.GeneratedMessage {
     ..aI(5, _omitFieldNames ? '' : 'beginShapeIndex',
         fieldType: $pb.PbFieldType.OU3)
     ..pPS(6, _omitFieldNames ? '' : 'streetNames')
+    ..aOS(7, _omitFieldNames ? '' : 'verbalAlert')
+    ..aOS(8, _omitFieldNames ? '' : 'verbalPre')
+    ..aOS(9, _omitFieldNames ? '' : 'verbalPost')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -4923,6 +4932,316 @@ class Maneuver extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(6)
   $pb.PbList<$core.String> get streetNames => $_getList(5);
+
+  /// Valhalla's spoken texts in the route's language, ready for speech
+  /// output: the alert before the maneuver (verbal_transition_alert_instruction),
+  /// the one at it (verbal_pre_transition_instruction) and the one after it
+  /// (verbal_post_transition_instruction). Absent when Valhalla gives none.
+  @$pb.TagNumber(7)
+  $core.String get verbalAlert => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set verbalAlert($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasVerbalAlert() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearVerbalAlert() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get verbalPre => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set verbalPre($core.String value) => $_setString(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasVerbalPre() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearVerbalPre() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.String get verbalPost => $_getSZ(8);
+  @$pb.TagNumber(9)
+  set verbalPost($core.String value) => $_setString(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasVerbalPost() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearVerbalPost() => $_clearField(9);
+}
+
+class PrepareAnnouncementsRequest extends $pb.GeneratedMessage {
+  factory PrepareAnnouncementsRequest({
+    $core.Iterable<$core.String>? texts,
+  }) {
+    final result = create();
+    if (texts != null) result.texts.addAll(texts);
+    return result;
+  }
+
+  PrepareAnnouncementsRequest._();
+
+  factory PrepareAnnouncementsRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory PrepareAnnouncementsRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'PrepareAnnouncementsRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..pPS(1, _omitFieldNames ? '' : 'texts')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PrepareAnnouncementsRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PrepareAnnouncementsRequest copyWith(
+          void Function(PrepareAnnouncementsRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as PrepareAnnouncementsRequest))
+          as PrepareAnnouncementsRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PrepareAnnouncementsRequest create() =>
+      PrepareAnnouncementsRequest._();
+  @$core.override
+  PrepareAnnouncementsRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static PrepareAnnouncementsRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<PrepareAnnouncementsRequest>(create);
+  static PrepareAnnouncementsRequest? _defaultInstance;
+
+  /// Spoken exactly as given; Announce finds them by the same text.
+  @$pb.TagNumber(1)
+  $pb.PbList<$core.String> get texts => $_getList(0);
+}
+
+class AnnounceRequest extends $pb.GeneratedMessage {
+  factory AnnounceRequest({
+    $core.String? text,
+    AnnouncementPriority? priority,
+  }) {
+    final result = create();
+    if (text != null) result.text = text;
+    if (priority != null) result.priority = priority;
+    return result;
+  }
+
+  AnnounceRequest._();
+
+  factory AnnounceRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AnnounceRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AnnounceRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'text')
+    ..aE<AnnouncementPriority>(2, _omitFieldNames ? '' : 'priority',
+        enumValues: AnnouncementPriority.values)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AnnounceRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AnnounceRequest copyWith(void Function(AnnounceRequest) updates) =>
+      super.copyWith((message) => updates(message as AnnounceRequest))
+          as AnnounceRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AnnounceRequest create() => AnnounceRequest._();
+  @$core.override
+  AnnounceRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AnnounceRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AnnounceRequest>(create);
+  static AnnounceRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get text => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set text($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasText() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearText() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  AnnouncementPriority get priority => $_getN(1);
+  @$pb.TagNumber(2)
+  set priority(AnnouncementPriority value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasPriority() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPriority() => $_clearField(2);
+}
+
+class VoiceSettings extends $pb.GeneratedMessage {
+  factory VoiceSettings({
+    $core.bool? available,
+    $core.bool? enabled,
+    $core.int? volumePercent,
+    $core.String? voice,
+  }) {
+    final result = create();
+    if (available != null) result.available = available;
+    if (enabled != null) result.enabled = enabled;
+    if (volumePercent != null) result.volumePercent = volumePercent;
+    if (voice != null) result.voice = voice;
+    return result;
+  }
+
+  VoiceSettings._();
+
+  factory VoiceSettings.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory VoiceSettings.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'VoiceSettings',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'available')
+    ..aOB(2, _omitFieldNames ? '' : 'enabled')
+    ..aI(3, _omitFieldNames ? '' : 'volumePercent',
+        fieldType: $pb.PbFieldType.OU3)
+    ..aOS(4, _omitFieldNames ? '' : 'voice')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  VoiceSettings clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  VoiceSettings copyWith(void Function(VoiceSettings) updates) =>
+      super.copyWith((message) => updates(message as VoiceSettings))
+          as VoiceSettings;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static VoiceSettings create() => VoiceSettings._();
+  @$core.override
+  VoiceSettings createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static VoiceSettings getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<VoiceSettings>(create);
+  static VoiceSettings? _defaultInstance;
+
+  /// A voice is installed and loaded; without one the switch does nothing.
+  @$pb.TagNumber(1)
+  $core.bool get available => $_getBF(0);
+  @$pb.TagNumber(1)
+  set available($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasAvailable() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAvailable() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get enabled => $_getBF(1);
+  @$pb.TagNumber(2)
+  set enabled($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasEnabled() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearEnabled() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get volumePercent => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set volumePercent($core.int value) => $_setUnsignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasVolumePercent() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearVolumePercent() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get voice => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set voice($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasVoice() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearVoice() => $_clearField(4);
+}
+
+class SetVoiceSettingsRequest extends $pb.GeneratedMessage {
+  factory SetVoiceSettingsRequest({
+    $core.bool? enabled,
+    $core.int? volumePercent,
+  }) {
+    final result = create();
+    if (enabled != null) result.enabled = enabled;
+    if (volumePercent != null) result.volumePercent = volumePercent;
+    return result;
+  }
+
+  SetVoiceSettingsRequest._();
+
+  factory SetVoiceSettingsRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SetVoiceSettingsRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SetVoiceSettingsRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'enabled')
+    ..aI(2, _omitFieldNames ? '' : 'volumePercent',
+        fieldType: $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetVoiceSettingsRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetVoiceSettingsRequest copyWith(
+          void Function(SetVoiceSettingsRequest) updates) =>
+      super.copyWith((message) => updates(message as SetVoiceSettingsRequest))
+          as SetVoiceSettingsRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetVoiceSettingsRequest create() => SetVoiceSettingsRequest._();
+  @$core.override
+  SetVoiceSettingsRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SetVoiceSettingsRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SetVoiceSettingsRequest>(create);
+  static SetVoiceSettingsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get enabled => $_getBF(0);
+  @$pb.TagNumber(1)
+  set enabled($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasEnabled() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEnabled() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get volumePercent => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set volumePercent($core.int value) => $_setUnsignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasVolumePercent() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearVolumePercent() => $_clearField(2);
 }
 
 class Route extends $pb.GeneratedMessage {

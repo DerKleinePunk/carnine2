@@ -19,10 +19,14 @@ use super::track::TrackRecorder;
 use super::valhalla::{RouteData, RoutingError, Valhalla};
 use crate::carnine::navigation_service_server::NavigationService;
 use crate::carnine::{
-    ComputeRouteRequest, Empty, FixState, GetLocationNameRequest, GetReplayRouteRequest, LatLon,
-    LocationName, Maneuver, NavigationStatus, Place, PlaceType, PositionFix, PositionSourceKind,
-    Route, SearchPlacesRequest, SearchPlacesResponse, ServiceVersion, SetTrackRecordingRequest,
+    AnnounceRequest, AnnouncementPriority as ProtoPriority, ComputeRouteRequest, Empty, FixState,
+    GetLocationNameRequest, GetReplayRouteRequest, LatLon, LocationName, Maneuver,
+    NavigationStatus, Place, PlaceType, PositionFix, PositionSourceKind,
+    PrepareAnnouncementsRequest, Route, SearchPlacesRequest, SearchPlacesResponse, ServiceVersion,
+    SetTrackRecordingRequest, SetVoiceSettingsRequest, VoiceSettings,
 };
+use crate::media_player::AnnouncementPriority;
+use crate::voice::{VoiceControl, VoiceState};
 
 /// How long the router probe may take before it counts as unavailable. The
 /// frontend asks for the status when the map page opens, so this bounds how
@@ -52,6 +56,8 @@ pub struct NavigationServiceImpl {
     tracks: TrackRecorder,
     /// Media database that keeps the recording switch; `None` in tests.
     database: Option<PathBuf>,
+    /// Spoken turn announcements; `None` leaves the calls without effect.
+    voice: Option<Arc<VoiceControl>>,
 }
 
 impl NavigationServiceImpl {
@@ -67,7 +73,13 @@ impl NavigationServiceImpl {
             next_route_id: Arc::new(AtomicU64::new(1)),
             tracks: TrackRecorder::new(None, false),
             database: None,
+            voice: None,
         }
+    }
+
+    pub fn with_voice(mut self, voice: Arc<VoiceControl>) -> Self {
+        self.voice = Some(voice);
+        self
     }
 
     pub fn with_tracks(mut self, tracks: TrackRecorder, database: PathBuf) -> Self {
@@ -292,6 +304,60 @@ impl NavigationService for NavigationServiceImpl {
         Ok(Response::new(self.status().await))
     }
 
+    async fn prepare_announcements(
+        &self,
+        request: Request<PrepareAnnouncementsRequest>,
+    ) -> Result<Response<Empty>, Status> {
+        if let Some(voice) = &self.voice {
+            let texts: Vec<String> = request
+                .into_inner()
+                .texts
+                .into_iter()
+                .filter(|text| !text.trim().is_empty())
+                .collect();
+            voice.prepare(texts);
+        }
+        Ok(Response::new(Empty {}))
+    }
+
+    async fn announce(&self, request: Request<AnnounceRequest>) -> Result<Response<Empty>, Status> {
+        let request = request.into_inner();
+        if let Some(voice) = &self.voice {
+            let priority = match request.priority() {
+                ProtoPriority::Info => AnnouncementPriority::Info,
+                ProtoPriority::Maneuver | ProtoPriority::Unspecified => {
+                    AnnouncementPriority::Maneuver
+                }
+            };
+            voice.announce(request.text, priority);
+        }
+        Ok(Response::new(Empty {}))
+    }
+
+    async fn get_voice_settings(
+        &self,
+        _request: Request<Empty>,
+    ) -> Result<Response<VoiceSettings>, Status> {
+        Ok(Response::new(voice_settings(
+            self.voice.as_ref().map(|voice| voice.state()),
+        )))
+    }
+
+    async fn set_voice_settings(
+        &self,
+        request: Request<SetVoiceSettingsRequest>,
+    ) -> Result<Response<VoiceSettings>, Status> {
+        let request = request.into_inner();
+        let voice = self
+            .voice
+            .as_ref()
+            .ok_or_else(|| Status::failed_precondition("no speech output in this backend"))?;
+        let state = voice
+            .update(request.enabled, request.volume_percent)
+            .map_err(|error| Status::invalid_argument(error.to_string()))?;
+        Ok(Response::new(voice_settings(Some(state))))
+    }
+
     async fn set_track_recording(
         &self,
         request: Request<SetTrackRecordingRequest>,
@@ -471,6 +537,18 @@ impl NavigationService for NavigationServiceImpl {
         let stream = WatchStream::new(self.positions.subscribe())
             .filter_map(|state| async move { position_fix(&state).map(Ok) });
         Ok(Response::new(Box::pin(stream)))
+    }
+}
+
+fn voice_settings(state: Option<VoiceState>) -> VoiceSettings {
+    match state {
+        Some(state) => VoiceSettings {
+            available: state.available,
+            enabled: state.enabled,
+            volume_percent: state.volume_percent,
+            voice: state.voice,
+        },
+        None => VoiceSettings::default(),
     }
 }
 
@@ -655,6 +733,78 @@ mod tests {
 
     fn service(hub: PositionHub) -> NavigationServiceImpl {
         NavigationServiceImpl::new(hub, "http://127.0.0.1:9".to_string(), String::new())
+    }
+
+    #[tokio::test]
+    async fn without_a_voice_the_announcement_calls_do_nothing_but_answer() {
+        use crate::carnine::navigation_service_server::NavigationService;
+        let service = service(PositionHub::new(SourceKind::Serial));
+        service
+            .prepare_announcements(Request::new(PrepareAnnouncementsRequest {
+                texts: vec!["In 300 Metern rechts abbiegen.".into()],
+            }))
+            .await
+            .expect("prepare answers");
+        service
+            .announce(Request::new(AnnounceRequest {
+                text: "Jetzt rechts abbiegen.".into(),
+                priority: ProtoPriority::Maneuver as i32,
+            }))
+            .await
+            .expect("announce answers");
+        let settings = service
+            .get_voice_settings(Request::new(Empty {}))
+            .await
+            .unwrap()
+            .into_inner();
+        assert!(!settings.available && !settings.enabled);
+        let status = service
+            .set_voice_settings(Request::new(SetVoiceSettingsRequest {
+                enabled: Some(true),
+                volume_percent: None,
+            }))
+            .await
+            .expect_err("nothing to switch");
+        assert_eq!(status.code(), tonic::Code::FailedPrecondition);
+    }
+
+    #[tokio::test]
+    async fn voice_settings_go_through_the_service() {
+        use crate::carnine::navigation_service_server::NavigationService;
+        let voice = crate::voice::Voice::start(
+            Box::new(|| anyhow::bail!("no voice in tests")),
+            std::env::temp_dir().join("carnine-voice-service"),
+            None,
+            false,
+            Box::new(|_, _| {}),
+        );
+        let control = VoiceControl::new(
+            voice,
+            &crate::config::VoiceConfig::default(),
+            (None, None),
+            Box::new(|_| {}),
+            None,
+        );
+        let service = service(PositionHub::new(SourceKind::Serial)).with_voice(Arc::new(control));
+        let settings = service
+            .set_voice_settings(Request::new(SetVoiceSettingsRequest {
+                enabled: Some(false),
+                volume_percent: Some(60),
+            }))
+            .await
+            .unwrap()
+            .into_inner();
+        assert!(!settings.enabled);
+        assert_eq!(settings.volume_percent, 60);
+        assert_eq!(settings.voice, "thorsten-medium");
+        let refused = service
+            .set_voice_settings(Request::new(SetVoiceSettingsRequest {
+                enabled: None,
+                volume_percent: Some(150),
+            }))
+            .await
+            .expect_err("above 100");
+        assert_eq!(refused.code(), tonic::Code::InvalidArgument);
     }
 
     #[test]

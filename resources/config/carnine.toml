@@ -166,3 +166,22 @@ hash = "$argon2id$v=19$m=19456,t=2,p=1$Y2FybmluZS1leGl0LXB3$O+DjYmFGfVSWu+fkiM29
 # it exits. Until the backend runs, the modified display stays dark.
 # [display.backlight]
 # channel = 1
+
+# Spoken turn announcements (sherpa-onnx, offline). The package carnine-voice
+# brings the library and the voices thorsten-medium and thorsten-low; without
+# it the backend runs on silently. The map library sends the sentences
+# (NavigationService PrepareAnnouncements/Announce; CLI: announce,
+# voice-settings, set-voice-settings). The options switch it and set its
+# loudness, which is saved and wins over enabled and volume_percent here.
+# Synthesis runs on one thread pinned to core 3, away from the map. The
+# defaults:
+# [voice]
+# enabled = true
+# voice = "thorsten-medium"          # or "thorsten-low"
+# voices_dir = "/usr/share/carnine/voices"
+# library_dir = "/usr/lib/carnine/voice"
+# cpu = 3
+# threads = 1
+# cache_dir = "/run/carnine/voice"
+# volume_percent = 100
+# music_under_percent = 30           # the music's level while speaking

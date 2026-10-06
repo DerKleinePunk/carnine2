@@ -191,6 +191,22 @@ final $typed_data.Uint8List placeTypeDescriptor = $convert.base64Decode(
     'EhkKFVBMQUNFX1RZUEVfV0FURVJfTkFNRRAEEiIKHlBMQUNFX1RZUEVfVFJBTlNQT1JUQVRJT0'
     '5fTkFNRRAF');
 
+@$core.Deprecated('Use announcementPriorityDescriptor instead')
+const AnnouncementPriority$json = {
+  '1': 'AnnouncementPriority',
+  '2': [
+    {'1': 'ANNOUNCEMENT_PRIORITY_UNSPECIFIED', '2': 0},
+    {'1': 'ANNOUNCEMENT_PRIORITY_MANEUVER', '2': 1},
+    {'1': 'ANNOUNCEMENT_PRIORITY_INFO', '2': 2},
+  ],
+};
+
+/// Descriptor for `AnnouncementPriority`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List announcementPriorityDescriptor = $convert.base64Decode(
+    'ChRBbm5vdW5jZW1lbnRQcmlvcml0eRIlCiFBTk5PVU5DRU1FTlRfUFJJT1JJVFlfVU5TUEVDSU'
+    'ZJRUQQABIiCh5BTk5PVU5DRU1FTlRfUFJJT1JJVFlfTUFORVVWRVIQARIeChpBTk5PVU5DRU1F'
+    'TlRfUFJJT1JJVFlfSU5GTxAC');
+
 @$core.Deprecated('Use cameraNormDescriptor instead')
 const CameraNorm$json = {
   '1': 'CameraNorm',
@@ -1645,6 +1661,38 @@ const Maneuver$json = {
       '10': 'beginShapeIndex'
     },
     {'1': 'street_names', '3': 6, '4': 3, '5': 9, '10': 'streetNames'},
+    {
+      '1': 'verbal_alert',
+      '3': 7,
+      '4': 1,
+      '5': 9,
+      '9': 0,
+      '10': 'verbalAlert',
+      '17': true
+    },
+    {
+      '1': 'verbal_pre',
+      '3': 8,
+      '4': 1,
+      '5': 9,
+      '9': 1,
+      '10': 'verbalPre',
+      '17': true
+    },
+    {
+      '1': 'verbal_post',
+      '3': 9,
+      '4': 1,
+      '5': 9,
+      '9': 2,
+      '10': 'verbalPost',
+      '17': true
+    },
+  ],
+  '8': [
+    {'1': '_verbal_alert'},
+    {'1': '_verbal_pre'},
+    {'1': '_verbal_post'},
   ],
 };
 
@@ -1653,7 +1701,96 @@ final $typed_data.Uint8List maneuverDescriptor = $convert.base64Decode(
     'CghNYW5ldXZlchIgCgtpbnN0cnVjdGlvbhgBIAEoCVILaW5zdHJ1Y3Rpb24SIwoNbGVuZ3RoX2'
     '1ldGVycxgCIAEoAVIMbGVuZ3RoTWV0ZXJzEiEKDHRpbWVfc2Vjb25kcxgDIAEoAVILdGltZVNl'
     'Y29uZHMSEgoEdHlwZRgEIAEoDVIEdHlwZRIqChFiZWdpbl9zaGFwZV9pbmRleBgFIAEoDVIPYm'
-    'VnaW5TaGFwZUluZGV4EiEKDHN0cmVldF9uYW1lcxgGIAMoCVILc3RyZWV0TmFtZXM=');
+    'VnaW5TaGFwZUluZGV4EiEKDHN0cmVldF9uYW1lcxgGIAMoCVILc3RyZWV0TmFtZXMSJgoMdmVy'
+    'YmFsX2FsZXJ0GAcgASgJSABSC3ZlcmJhbEFsZXJ0iAEBEiIKCnZlcmJhbF9wcmUYCCABKAlIAV'
+    'IJdmVyYmFsUHJliAEBEiQKC3ZlcmJhbF9wb3N0GAkgASgJSAJSCnZlcmJhbFBvc3SIAQFCDwoN'
+    'X3ZlcmJhbF9hbGVydEINCgtfdmVyYmFsX3ByZUIOCgxfdmVyYmFsX3Bvc3Q=');
+
+@$core.Deprecated('Use prepareAnnouncementsRequestDescriptor instead')
+const PrepareAnnouncementsRequest$json = {
+  '1': 'PrepareAnnouncementsRequest',
+  '2': [
+    {'1': 'texts', '3': 1, '4': 3, '5': 9, '10': 'texts'},
+  ],
+};
+
+/// Descriptor for `PrepareAnnouncementsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List prepareAnnouncementsRequestDescriptor =
+    $convert.base64Decode(
+        'ChtQcmVwYXJlQW5ub3VuY2VtZW50c1JlcXVlc3QSFAoFdGV4dHMYASADKAlSBXRleHRz');
+
+@$core.Deprecated('Use announceRequestDescriptor instead')
+const AnnounceRequest$json = {
+  '1': 'AnnounceRequest',
+  '2': [
+    {'1': 'text', '3': 1, '4': 1, '5': 9, '10': 'text'},
+    {
+      '1': 'priority',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.carnine.AnnouncementPriority',
+      '10': 'priority'
+    },
+  ],
+};
+
+/// Descriptor for `AnnounceRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List announceRequestDescriptor = $convert.base64Decode(
+    'Cg9Bbm5vdW5jZVJlcXVlc3QSEgoEdGV4dBgBIAEoCVIEdGV4dBI5Cghwcmlvcml0eRgCIAEoDj'
+    'IdLmNhcm5pbmUuQW5ub3VuY2VtZW50UHJpb3JpdHlSCHByaW9yaXR5');
+
+@$core.Deprecated('Use voiceSettingsDescriptor instead')
+const VoiceSettings$json = {
+  '1': 'VoiceSettings',
+  '2': [
+    {'1': 'available', '3': 1, '4': 1, '5': 8, '10': 'available'},
+    {'1': 'enabled', '3': 2, '4': 1, '5': 8, '10': 'enabled'},
+    {'1': 'volume_percent', '3': 3, '4': 1, '5': 13, '10': 'volumePercent'},
+    {'1': 'voice', '3': 4, '4': 1, '5': 9, '10': 'voice'},
+  ],
+};
+
+/// Descriptor for `VoiceSettings`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List voiceSettingsDescriptor = $convert.base64Decode(
+    'Cg1Wb2ljZVNldHRpbmdzEhwKCWF2YWlsYWJsZRgBIAEoCFIJYXZhaWxhYmxlEhgKB2VuYWJsZW'
+    'QYAiABKAhSB2VuYWJsZWQSJQoOdm9sdW1lX3BlcmNlbnQYAyABKA1SDXZvbHVtZVBlcmNlbnQS'
+    'FAoFdm9pY2UYBCABKAlSBXZvaWNl');
+
+@$core.Deprecated('Use setVoiceSettingsRequestDescriptor instead')
+const SetVoiceSettingsRequest$json = {
+  '1': 'SetVoiceSettingsRequest',
+  '2': [
+    {
+      '1': 'enabled',
+      '3': 1,
+      '4': 1,
+      '5': 8,
+      '9': 0,
+      '10': 'enabled',
+      '17': true
+    },
+    {
+      '1': 'volume_percent',
+      '3': 2,
+      '4': 1,
+      '5': 13,
+      '9': 1,
+      '10': 'volumePercent',
+      '17': true
+    },
+  ],
+  '8': [
+    {'1': '_enabled'},
+    {'1': '_volume_percent'},
+  ],
+};
+
+/// Descriptor for `SetVoiceSettingsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setVoiceSettingsRequestDescriptor = $convert.base64Decode(
+    'ChdTZXRWb2ljZVNldHRpbmdzUmVxdWVzdBIdCgdlbmFibGVkGAEgASgISABSB2VuYWJsZWSIAQ'
+    'ESKgoOdm9sdW1lX3BlcmNlbnQYAiABKA1IAVINdm9sdW1lUGVyY2VudIgBAUIKCghfZW5hYmxl'
+    'ZEIRCg9fdm9sdW1lX3BlcmNlbnQ=');
 
 @$core.Deprecated('Use routeDescriptor instead')
 const Route$json = {

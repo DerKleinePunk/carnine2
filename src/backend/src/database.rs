@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use anyhow::{Context, Result};
 use rusqlite::{params, Connection, OptionalExtension};
 
-const CURRENT_SCHEMA_VERSION: i64 = 11;
+const CURRENT_SCHEMA_VERSION: i64 = 12;
 
 pub struct Database {
     connection: Connection,
@@ -141,6 +141,19 @@ impl Database {
         let database = Self { connection };
         database.migrate()?;
         Ok(database)
+    }
+
+    fn has_column(&self, table: &str, column: &str) -> Result<bool> {
+        let mut statement = self
+            .connection
+            .prepare(&format!("SELECT name FROM pragma_table_info('{table}')"))?;
+        let names = statement.query_map([], |row| row.get::<_, String>(0))?;
+        for name in names {
+            if name? == column {
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
 
     fn migrate(&self) -> Result<()> {
@@ -293,6 +306,20 @@ impl Database {
                 );
                 INSERT INTO schema_migrations (version) VALUES (11);",
             )?;
+        }
+        if version < 12 {
+            // Spoken turn announcements switched and set loud in the options;
+            // NULL means "as [voice] in the configuration says".
+            // Only the columns still missing, so it runs again safely.
+            for column in ["voice_enabled", "voice_volume"] {
+                if !self.has_column("navigation_state", column)? {
+                    self.connection.execute_batch(&format!(
+                        "ALTER TABLE navigation_state ADD COLUMN {column} INTEGER;"
+                    ))?;
+                }
+            }
+            self.connection
+                .execute_batch("INSERT INTO schema_migrations (version) VALUES (12);")?;
         }
         if version > CURRENT_SCHEMA_VERSION {
             anyhow::bail!(
@@ -816,6 +843,29 @@ impl Database {
             [enabled],
         )?;
         Ok(())
+    }
+
+    pub fn save_voice_settings(&self, enabled: bool, volume_percent: u32) -> Result<()> {
+        self.connection.execute(
+            "INSERT INTO navigation_state (id, voice_enabled, voice_volume) VALUES (1, ?1, ?2)
+             ON CONFLICT(id) DO UPDATE SET voice_enabled = excluded.voice_enabled,
+                 voice_volume = excluded.voice_volume",
+            rusqlite::params![enabled, volume_percent],
+        )?;
+        Ok(())
+    }
+
+    /// The saved announcement switch and loudness, `None` where never saved.
+    pub fn load_voice_settings(&self) -> Result<(Option<bool>, Option<u32>)> {
+        Ok(self
+            .connection
+            .query_row(
+                "SELECT voice_enabled, voice_volume FROM navigation_state WHERE id = 1",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?
+            .unwrap_or((None, None)))
     }
 
     /// Whether track recording was switched on; off when never set.
@@ -1624,6 +1674,71 @@ mod tests {
         assert!(database.load_track_recording().unwrap());
         database.save_track_recording(false).unwrap();
         assert!(!database.load_track_recording().unwrap());
+    }
+
+    #[test]
+    fn schema_12_adds_the_voice_settings_and_keeps_the_recording_switch() {
+        let path =
+            std::env::temp_dir().join(format!("carnine-schema-12-{}.sqlite3", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+        let database = Database::open(&path).expect("database should open");
+        database.save_track_recording(true).unwrap();
+        // Back to schema 11, as 0.13.0 left it.
+        database
+            .connection
+            .execute_batch(
+                "CREATE TABLE old_navigation_state (
+                     id INTEGER PRIMARY KEY CHECK (id = 1),
+                     track_recording INTEGER NOT NULL DEFAULT 0
+                 );
+                 INSERT INTO old_navigation_state SELECT id, track_recording FROM navigation_state;
+                 DROP TABLE navigation_state;
+                 ALTER TABLE old_navigation_state RENAME TO navigation_state;
+                 DELETE FROM schema_migrations WHERE version >= 12;",
+            )
+            .unwrap();
+        drop(database);
+
+        let database = Database::open(&path).expect("schema 11 should migrate");
+        assert_eq!(database.schema_version().unwrap(), CURRENT_SCHEMA_VERSION);
+        assert!(database.load_track_recording().unwrap());
+        assert_eq!(database.load_voice_settings().unwrap(), (None, None));
+        database.save_voice_settings(true, 80).unwrap();
+        assert_eq!(
+            database.load_voice_settings().unwrap(),
+            (Some(true), Some(80))
+        );
+        drop(database);
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn keeps_the_voice_settings_beside_the_track_recording_switch() {
+        let database = Database::open(":memory:").expect("database should open");
+        assert_eq!(
+            database.load_voice_settings().unwrap(),
+            (None, None),
+            "never set"
+        );
+        database.save_track_recording(true).unwrap();
+        assert_eq!(database.load_voice_settings().unwrap(), (None, None));
+
+        database.save_voice_settings(false, 70).unwrap();
+        assert_eq!(
+            database.load_voice_settings().unwrap(),
+            (Some(false), Some(70))
+        );
+        assert!(
+            database.load_track_recording().unwrap(),
+            "recording untouched"
+        );
+
+        database.save_track_recording(false).unwrap();
+        assert_eq!(
+            database.load_voice_settings().unwrap(),
+            (Some(false), Some(70)),
+            "voice untouched"
+        );
     }
 
     #[test]

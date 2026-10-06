@@ -341,6 +341,33 @@ class PlaceType extends $pb.ProtobufEnum {
   const PlaceType._(super.value, super.name);
 }
 
+/// A turn instruction cuts an information short; an information never
+/// interrupts a turn instruction.
+class AnnouncementPriority extends $pb.ProtobufEnum {
+  static const AnnouncementPriority ANNOUNCEMENT_PRIORITY_UNSPECIFIED =
+      AnnouncementPriority._(
+          0, _omitEnumNames ? '' : 'ANNOUNCEMENT_PRIORITY_UNSPECIFIED');
+  static const AnnouncementPriority ANNOUNCEMENT_PRIORITY_MANEUVER =
+      AnnouncementPriority._(
+          1, _omitEnumNames ? '' : 'ANNOUNCEMENT_PRIORITY_MANEUVER');
+  static const AnnouncementPriority ANNOUNCEMENT_PRIORITY_INFO =
+      AnnouncementPriority._(
+          2, _omitEnumNames ? '' : 'ANNOUNCEMENT_PRIORITY_INFO');
+
+  static const $core.List<AnnouncementPriority> values = <AnnouncementPriority>[
+    ANNOUNCEMENT_PRIORITY_UNSPECIFIED,
+    ANNOUNCEMENT_PRIORITY_MANEUVER,
+    ANNOUNCEMENT_PRIORITY_INFO,
+  ];
+
+  static final $core.List<AnnouncementPriority?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 2);
+  static AnnouncementPriority? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const AnnouncementPriority._(super.value, super.name);
+}
+
 /// Video norm of the camera signal.
 class CameraNorm extends $pb.ProtobufEnum {
   static const CameraNorm CAMERA_NORM_UNSPECIFIED =
