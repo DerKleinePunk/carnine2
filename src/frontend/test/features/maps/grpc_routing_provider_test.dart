@@ -186,6 +186,35 @@ void main() {
     ]);
   });
 
+  test('announcements stay silent unless the display is German', () async {
+    var language = 'en';
+    final announcer = GrpcAnnouncer(channel, language: () => language);
+    await announcer.handle(
+      const AnnouncementPrepare(['In 300 Metern Turn right.']),
+    );
+    await announcer.handle(
+      const Announcement('Turn right.', AnnouncementPriority.maneuver),
+    );
+    expect(service.prepared, isEmpty);
+    expect(service.announced, isEmpty);
+
+    language = 'de';
+    await announcer.handle(
+      const Announcement('Rechts abbiegen.', AnnouncementPriority.maneuver),
+    );
+    expect(service.announced.map((a) => a.text), ['Rechts abbiegen.']);
+  });
+
+  test('German is recognized in every spelling of the tag', () {
+    expect(GrpcAnnouncer.speaksGerman('de'), isTrue);
+    expect(GrpcAnnouncer.speaksGerman('de-DE'), isTrue);
+    expect(GrpcAnnouncer.speaksGerman('de_AT'), isTrue);
+    expect(GrpcAnnouncer.speaksGerman('DE'), isTrue);
+    expect(GrpcAnnouncer.speaksGerman('en'), isFalse);
+    expect(GrpcAnnouncer.speaksGerman('da'), isFalse);
+    expect(GrpcAnnouncer.speaksGerman(''), isFalse);
+  });
+
   test('a backend that is gone does not break the map', () async {
     await server.shutdown();
     await GrpcAnnouncer(channel).handle(

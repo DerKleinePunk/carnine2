@@ -33,7 +33,7 @@ class MapsController extends ChangeNotifier {
       positionSource: _positions,
       reverseGeocoder: GrpcReverseGeocoder(_channel),
     );
-    _announcer = GrpcAnnouncer(_channel);
+    _announcer = GrpcAnnouncer(_channel, language: () => _language());
     // One after the other, so a Prepare reaches the backend before the
     // Announce of one of its sentences.
     _announcements = map.announcements.listen((event) {

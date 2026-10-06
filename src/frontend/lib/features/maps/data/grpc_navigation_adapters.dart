@@ -224,13 +224,22 @@ class NavigationStatusClient {
 /// them (`PrepareAnnouncements`, `Announce`). Speech is a nicety: a failed
 /// call is logged and the map goes on.
 class GrpcAnnouncer {
-  GrpcAnnouncer(this._channel, {Logger? logger})
-    : _logger = logger ?? Logger('GrpcAnnouncer');
+  GrpcAnnouncer(this._channel, {LanguageTag? language, Logger? logger})
+    : _language = language ?? (() => 'de-DE'),
+      _logger = logger ?? Logger('GrpcAnnouncer');
 
   final NavigationChannel _channel;
+  final LanguageTag _language;
   final Logger _logger;
 
+  /// The voices are German, and so are the library's lead-ins ("In 300
+  /// Metern"); with another display language Valhalla's part of a sentence
+  /// would not be, so nothing is spoken then (Michael, 2026-10-06).
+  static bool speaksGerman(String languageTag) =>
+      languageTag.toLowerCase().split(RegExp('[-_]')).first == 'de';
+
   Future<void> handle(AnnouncementEvent event) async {
+    if (!speaksGerman(_language())) return;
     try {
       switch (event) {
         case AnnouncementPrepare(:final texts):
