@@ -44,9 +44,11 @@ The adapter sits on SPI0, chip select CE0, with its interrupt on
 | CE0 | GPIO 8 | 24 | CS |
 | Interrupt | GPIO 25 | 22 | INT |
 | GND | – | e.g. 20 | VSS |
+| 3.3 V (only for a module on 3.3 V, see [Levels](#levels)) | – | e.g. 17 | VDD |
 
 SPI0 pin mapping from the Raspberry Pi documentation. CE1 (GPIO 7, pin 26)
-stays free for a second device on SPI0.
+stays free for a second device on SPI0. Pin 1, the other 3.3 V pin, feeds Michael's IO board;
+pins 17 and 20 are kept free for the adapter (2026-10-06).
 
 These pins do not collide with what carnine2 already uses:
 
