@@ -144,8 +144,8 @@ for the camera.
   route of its own (`MapsController` loads `GetReplayRoute`), before anyone
   types a destination. The serial source brings no route, so the typed
   destination is the only one. Because the track is planned on the same
-  Valhalla with the same two points, the car stays on that route and the
-  backend does not reroute.
+  Valhalla with the same two points, the car stays on that route, so the
+  map library (local_map 0.7.0 and later) has no reason to reroute.
 - **Speed:** `CARNINE_DEMO_FACTOR` (default 10) is the seconds of the drive per
   second of video, `CARNINE_DEMO_HZ` (default 2) the fixes per second of video.
   Both are read by `prepare`. The speed shown stays the real one; only the
