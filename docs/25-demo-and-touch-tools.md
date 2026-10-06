@@ -56,15 +56,18 @@ home page, nothing playing, no route.
 - plans the drive from Steinau an der Straße to Frankfurt am Main on the Pi's
   own Valhalla (`demo_gps.py plan`) and installs it as
   `/var/lib/carnine/maps/demo-track.json`
-- creates the named pipe `/var/lib/carnine/maps/demo-gps.fifo` and starts the
-  demo GPS mouse on it as the systemd unit `carnine-demo-gps` (see below). It
-  stands in Steinau until the demo file says `drive`.
+- installs `demo_gps.py` as `/var/lib/carnine/maps/demo_gps.py`, creates the
+  named pipe `/var/lib/carnine/maps/demo-gps.fifo` and starts the demo GPS
+  mouse on it from there as the systemd unit `carnine-demo-gps` (see below).
+  The unit runs as `carnine`, which cannot read `/home/pi` (mode 700 on the
+  image). It stands in Steinau until the demo file says `drive`.
 - installs the drop-in `/etc/carnine/config.d/90-demo.toml`, which sets
   `navigation.position_source = "serial"` with that pipe as `serial_device`
 - restarts the backend, stops playback, saves `home` as the start page and
   restarts the frontend
 
-`restore` stops `carnine-demo-gps`, removes the drop-in and the pipe, and
+`restore` stops `carnine-demo-gps`, removes the drop-in, the pipe and
+`/var/lib/carnine/maps/demo_gps.py`, and
 restarts the backend, which then uses its own position source again (on
 carnine-pc the recorded tour from `10-navigation.toml`). The music and the
 track stay on the Pi.
