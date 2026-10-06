@@ -43,6 +43,37 @@ The deployment architecture emphasizes reliability and minimal resource consumpt
 - **Vehicle power supply** (optional): the AuPrV1_1 board switches the Pi
   with the ignition and gives it time to shut down; serial line on uart5
   (`/dev/powersupply`), see [23 – Vehicle Power Supply](23-power-supply.md)
+- **Case fan and display backlight** (optional): two hardware PWM channels,
+  GPIO 18 (pin 12) and GPIO 19 (pin 35). The image always enables both
+  (`dtoverlay=pwm-2chan,pin=18,func=2,pin2=19,func2=2`), and the backend
+  package's udev rule `61-carnine-pwm.rules` gives the `gpio` group the sysfs
+  files. The backend drives them with `chip = "pwm"` in `[[controls]]` and
+  with `[display.backlight]`; examples in `resources/config/carnine.toml`.
+  - Channel 0 is the case fan: a 5 V fan with two wires on JP10 of Michael's
+    IO board, whose fan stage switches the 5 V with the signal "Sig" from
+    GPIO 18. The duty cycle sets the speed (100 Hz by default, because the
+    stage switches slowly); `min_level` is where the fan still turns,
+    `kick_ms` gives full duty when it starts from off. It shows up as a
+    slider on the Technik page and stops when the backend exits. With
+    `boost_on_overheat = true` it runs at 100 % while the CPU overheat
+    warning is on and goes back to its own value once it clears (see
+    [06 – Runtime View](06-runtime.md)). Mind the
+    polarity at JP10: pin 1 is +5 V (red wire), pin 2 ground. The fan has
+    reverse polarity protection, so plugged in the wrong way round it simply
+    does not turn (seen on carnine-pc on 2026-10-06).
+    Tried on carnine-pc with the ebm-papst 405 FH at 100 Hz (2026-10-06),
+    in duty cycle: below 30 % its noise is not bearable, at 30 % it starts
+    from standstill by itself, and 50 % is fine. Hence `min_level = 30`, no
+    `kick_ms` needed, and 50 % duty as the everyday value. The slider's
+    levels 1–100 spread over `min_level`..100 % duty (0 is off), so with
+    `min_level = 30` the slider shows about 29 for 50 % duty and cannot go
+    below the bearable 30 %.
+  - Channel 1 is for the backlight of a display modified for it (Waveshare
+    7H: a resistor out, its pad to GPIO 19); no test unit has that yet. The
+    options set it (SystemService `GetDisplayBrightness` /
+    `SetDisplayBrightness`), it never goes below `min_percent` (10 %), and it
+    stays on when the backend exits. Until the backend runs, such a display
+    stays dark.
 - **Power Supply**:
   • USB‑C: 5 V/3 A minimum (ensure quality supply to avoid voltage sag)
   • Optional: battery backup (UPS HAT) for graceful shutdown on power loss
@@ -53,7 +84,8 @@ The deployment architecture emphasizes reliability and minimal resource consumpt
 ### System Integration
 - **Cooling**: Active cooling (fan) required for automotive environment; passive heatsink insufficient for sustained operation in vehicle.
   Both test units, carnine-pc and jeep-pi, have a CPU fan fed from header pins 4 (5 V) and 6 (GND). It runs
-  whenever the Pi has power; carnine2 does not switch it. Keep those two pins free for other wiring
+  whenever the Pi has power; carnine2 does not switch it. The case fan in the enclosure is a second fan
+  (ebm-papst 405 FH) on the IO board, speed set over PWM (see the hardware list above). Keep those two pins free for other wiring
   (pin list in [24 – CAN Adapter](24-can-adapter-mcp2515.md#pins-on-the-pi-4)).
 - **Mounting**: DIN‑rail or vehicle‑specific enclosure with vibration damping
 - **Environmental**: automotive temp range (0 °C–50 °C); mitigate electrical noise with shielded CAN harnesses

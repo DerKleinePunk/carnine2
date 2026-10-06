@@ -98,6 +98,11 @@ jemand **Verstanden** tippt.
 - Die beiden Schwellen stehen in der Backend-Konfiguration,
   `[system] cpu_temperature_warn_celsius` und `cpu_temperature_clear_celsius`.
   Ab 70 °C misst das Backend alle 5 s statt alle 30 s.
+- Ist ein Gehäuselüfter mit `boost_on_overheat = true` eingerichtet
+  (Backend-Konfiguration, `[[controls]]`), läuft er während der Warnung mit voller
+  Drehzahl. Auf der Seite Technik steht sein Regler dann auf 100 %. Unter
+  70 °C geht er auf den eingestellten Wert zurück. Wer den Regler während der
+  Warnung verstellt, legt damit den Wert für danach fest.
 
 ## Noch nicht verfügbar
 
