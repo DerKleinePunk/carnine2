@@ -29,7 +29,7 @@ dependencies:
       url: https://github.com/DerKleinePunk/flutter_local_map.git
       # Feste Marke statt master: Aenderungen an der Lib kommen erst mit
       # einem bewussten Wechsel der Marke ins Auto.
-      ref: local_map-v0.6.0
+      ref: local_map-v0.7.0
       path: packages/local_map
   # Rueckfahrkamera (USB-Grabber STK1160) als Platform View, eigenes Paket.
   # Braucht zur Laufzeit libvideo_grabber_view.so, die build_pi.sh mitbaut.
@@ -47,7 +47,7 @@ dependency_overrides:
   vector_map_tiles:
     git:
       url: https://github.com/DerKleinePunk/flutter-vector-map-tiles
-      # Fester Commit auf dem Zweig local_map_pi, passend zu local_map-v0.6.0
+      # Fester Commit auf dem Zweig local_map_pi, passend ab local_map-v0.6.0
       # (rasterLabelRotationStep).
       ref: b870db815e8c63bfed8a963f0a8250c85525ddc1
   # Seit local_map 0.6.0 Pflicht: dreht Punkt- und Strassennamen mit.
