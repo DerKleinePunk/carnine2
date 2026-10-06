@@ -45,6 +45,40 @@ pub struct MediaPlayer {
     /// Duration of the last looked-up path, so position events - one a
     /// second - do not each open the library.
     duration_cache: Mutex<Option<(String, i64)>>,
+    /// The spoken announcement playing over the music, if any.
+    announcement: Mutex<Option<ActiveAnnouncement>>,
+    /// Gain of announcements and of the music under them.
+    announcement_levels: Mutex<AnnouncementLevels>,
+}
+
+/// Which announcement wins when two meet: a turn instruction cuts an
+/// information short, an information never cuts a turn instruction.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum AnnouncementPriority {
+    Info,
+    Maneuver,
+}
+
+struct ActiveAnnouncement {
+    playback: Box<dyn Playback>,
+    priority: AnnouncementPriority,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AnnouncementLevels {
+    /// Gain of the spoken announcement, 0..1.
+    pub volume: f32,
+    /// Gain of the music while an announcement plays, 0..1.
+    pub music_under: f32,
+}
+
+impl Default for AnnouncementLevels {
+    fn default() -> Self {
+        Self {
+            volume: 1.0,
+            music_under: 0.3,
+        }
+    }
 }
 
 /// Finds a track's duration by its path; the player knows no database.
@@ -74,6 +108,97 @@ impl MediaPlayer {
             duration_lookup: Mutex::new(None),
             output_reported: Mutex::new(None),
             duration_cache: Mutex::new(None),
+            announcement: Mutex::new(None),
+            announcement_levels: Mutex::new(AnnouncementLevels::default()),
+        }
+    }
+
+    pub fn set_announcement_levels(&self, levels: AnnouncementLevels) {
+        *self
+            .announcement_levels
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = levels;
+    }
+
+    /// Plays a spoken announcement (a WAV file) over the music and lowers
+    /// the music while it lasts. A newer announcement replaces a running one
+    /// of the same or lower priority; an information that meets a running
+    /// turn instruction is dropped (false).
+    pub fn play_announcement(&self, path: &str, priority: AnnouncementPriority) -> Result<bool> {
+        let mut active = self
+            .announcement
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if active
+            .as_ref()
+            .is_some_and(|current| !current.playback.is_finished() && current.priority > priority)
+        {
+            return Ok(false);
+        }
+        if let Some(previous) = active.take() {
+            let _ = previous.playback.stop();
+        }
+        let levels = *self
+            .announcement_levels
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let playback = self.engine.start(path)?;
+        playback.set_gain(levels.volume)?;
+        *active = Some(ActiveAnnouncement { playback, priority });
+        self.set_music_gain(levels.music_under);
+        Ok(true)
+    }
+
+    /// Ends a finished announcement and brings the music back up; keeps the
+    /// music down while one still plays (a track that started meanwhile, or
+    /// one resumed, comes up at full gain). Called by the completion watcher.
+    pub fn follow_announcement(&self) {
+        let mut active = self
+            .announcement
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let Some(current) = active.as_ref() else {
+            return;
+        };
+        // A lost output takes the announcement with it; it would never
+        // report finished and the music would stay down.
+        if current.playback.is_finished() || !self.engine.output_available() {
+            if let Some(finished) = active.take() {
+                let _ = finished.playback.stop();
+            }
+            self.set_music_gain(1.0);
+        } else {
+            let music_under = self
+                .announcement_levels
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .music_under;
+            self.set_music_gain(music_under);
+        }
+    }
+
+    /// Sets the music's gain, only while it plays: a paused track sits at 0
+    /// and must stay silent.
+    fn set_music_gain(&self, gain: f32) {
+        let playing = matches!(
+            *self
+                .state
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner()),
+            PlaybackState::Playing
+        );
+        if !playing {
+            return;
+        }
+        if let Some(playback) = self
+            .playback
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .as_ref()
+        {
+            if let Err(error) = playback.set_gain(gain) {
+                tracing::warn!(%error, "setting the music level failed");
+            }
         }
     }
 
@@ -1246,6 +1371,7 @@ impl MediaPlayer {
                 interval.tick().await;
                 player.handle_output_lost();
                 player.report_output_availability();
+                player.follow_announcement();
                 if player.is_active_track_finished() {
                     let player = Arc::clone(&player);
                     let _ =
@@ -1364,6 +1490,217 @@ mod tests {
         );
         assert!(!after.contains(&(AudioEventType::AudioOutputUnavailable as i32)));
         let _ = std::fs::remove_file(track);
+    }
+
+    /// A playback that records every gain it is set to.
+    struct LevelPlayback {
+        path: String,
+        finished: Arc<AtomicBool>,
+        gains: Arc<Mutex<Vec<(String, f32)>>>,
+    }
+
+    impl Playback for LevelPlayback {
+        fn pause(&self) -> Result<()> {
+            self.gains.lock().unwrap().push((self.path.clone(), 0.0));
+            Ok(())
+        }
+        fn resume(&self) -> Result<()> {
+            self.gains.lock().unwrap().push((self.path.clone(), 1.0));
+            Ok(())
+        }
+        fn set_gain(&self, gain: f32) -> Result<()> {
+            self.gains.lock().unwrap().push((self.path.clone(), gain));
+            Ok(())
+        }
+        fn stop(self: Box<Self>) -> Result<()> {
+            self.gains.lock().unwrap().push((self.path.clone(), -1.0));
+            Ok(())
+        }
+        fn is_finished(&self) -> bool {
+            self.finished.load(Ordering::Acquire)
+        }
+    }
+
+    /// Each started path gets its own "finished" flag.
+    #[derive(Default)]
+    struct LevelEngine {
+        finished: Arc<Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
+        gains: Arc<Mutex<Vec<(String, f32)>>>,
+    }
+
+    impl AudioEngine for LevelEngine {
+        fn start(&self, input_path: &str) -> Result<Box<dyn Playback>> {
+            let finished = Arc::new(AtomicBool::new(false));
+            self.finished
+                .lock()
+                .unwrap()
+                .insert(input_path.to_string(), Arc::clone(&finished));
+            Ok(Box::new(LevelPlayback {
+                path: input_path.to_string(),
+                finished,
+                gains: Arc::clone(&self.gains),
+            }))
+        }
+    }
+
+    struct Levels {
+        player: MediaPlayer,
+        finished: Arc<Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
+        gains: Arc<Mutex<Vec<(String, f32)>>>,
+        track: String,
+    }
+
+    impl Levels {
+        fn new() -> Self {
+            let engine = LevelEngine::default();
+            let finished = Arc::clone(&engine.finished);
+            let gains = Arc::clone(&engine.gains);
+            let player = MediaPlayer::with_engine(Box::new(engine));
+            let track = std::env::temp_dir()
+                .join(format!(
+                    "carnine-levels-{}-{:?}.mp3",
+                    std::process::id(),
+                    std::thread::current().id()
+                ))
+                .to_string_lossy()
+                .into_owned();
+            std::fs::write(&track, b"").unwrap();
+            player.execute("play", &track).expect("music plays");
+            Self {
+                player,
+                finished,
+                gains,
+                track,
+            }
+        }
+
+        fn finish(&self, path: &str) {
+            self.finished.lock().unwrap()[path].store(true, Ordering::Release);
+        }
+
+        /// Gains set since the last call, as (path, gain).
+        fn take(&self) -> Vec<(String, f32)> {
+            std::mem::take(&mut *self.gains.lock().unwrap())
+        }
+    }
+
+    impl Drop for Levels {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_file(&self.track);
+        }
+    }
+
+    use super::{AnnouncementLevels, AnnouncementPriority};
+
+    #[test]
+    fn an_announcement_lowers_the_music_and_brings_it_back_when_done() {
+        let levels = Levels::new();
+        levels.player.set_announcement_levels(AnnouncementLevels {
+            volume: 0.8,
+            music_under: 0.25,
+        });
+        levels.take();
+
+        assert!(levels
+            .player
+            .play_announcement("/run/a.wav", AnnouncementPriority::Maneuver)
+            .unwrap());
+        assert_eq!(
+            levels.take(),
+            [
+                ("/run/a.wav".to_string(), 0.8),
+                (levels.track.clone(), 0.25)
+            ]
+        );
+
+        levels.player.follow_announcement();
+        assert_eq!(
+            levels.take(),
+            [(levels.track.clone(), 0.25)],
+            "still speaking: music stays down"
+        );
+
+        levels.finish("/run/a.wav");
+        levels.player.follow_announcement();
+        assert_eq!(
+            levels.take(),
+            [
+                ("/run/a.wav".to_string(), -1.0),
+                (levels.track.clone(), 1.0)
+            ]
+        );
+
+        levels.player.follow_announcement();
+        assert!(levels.take().is_empty(), "nothing left to follow");
+    }
+
+    #[test]
+    fn a_turn_instruction_cuts_an_information_short_but_not_the_other_way() {
+        let levels = Levels::new();
+        assert!(levels
+            .player
+            .play_announcement("/run/info.wav", AnnouncementPriority::Info)
+            .unwrap());
+        assert!(levels
+            .player
+            .play_announcement("/run/turn.wav", AnnouncementPriority::Maneuver)
+            .unwrap());
+        assert!(
+            levels.take().contains(&("/run/info.wav".to_string(), -1.0)),
+            "the information stopped"
+        );
+
+        assert!(
+            !levels
+                .player
+                .play_announcement("/run/info2.wav", AnnouncementPriority::Info)
+                .unwrap(),
+            "an information does not interrupt a turn instruction"
+        );
+        assert!(
+            !levels
+                .finished
+                .lock()
+                .unwrap()
+                .contains_key("/run/info2.wav"),
+            "never started"
+        );
+
+        assert!(
+            levels
+                .player
+                .play_announcement("/run/turn2.wav", AnnouncementPriority::Maneuver)
+                .unwrap(),
+            "a newer turn instruction replaces the older"
+        );
+        assert!(levels.take().contains(&("/run/turn.wav".to_string(), -1.0)));
+
+        levels.finish("/run/turn2.wav");
+        assert!(
+            levels
+                .player
+                .play_announcement("/run/info3.wav", AnnouncementPriority::Info)
+                .unwrap(),
+            "once the turn instruction is over, an information plays"
+        );
+    }
+
+    #[test]
+    fn paused_music_stays_silent_under_an_announcement() {
+        let levels = Levels::new();
+        levels.player.execute("pause", "").unwrap();
+        levels.take();
+        levels
+            .player
+            .play_announcement("/run/a.wav", AnnouncementPriority::Maneuver)
+            .unwrap();
+        levels.player.follow_announcement();
+        levels.finish("/run/a.wav");
+        levels.player.follow_announcement();
+        assert!(
+            levels.take().iter().all(|(path, _)| path != &levels.track),
+            "the paused track is never touched"
+        );
     }
 
     struct FakePlayback {

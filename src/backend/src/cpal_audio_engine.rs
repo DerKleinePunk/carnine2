@@ -241,6 +241,16 @@ impl Playback for CpalPlayback {
         Ok(())
     }
 
+    fn set_gain(&self, gain: f32) -> Result<()> {
+        self.command_sender
+            .send(MixerCommand::SetGain {
+                source_id: self.source_id,
+                gain: gain.clamp(0.0, 1.0),
+            })
+            .map_err(|_| anyhow::anyhow!("cpal mixer thread is not available"))?;
+        Ok(())
+    }
+
     fn stop(mut self: Box<Self>) -> Result<()> {
         info!(source_id = ?self.source_id, "cpal audio source stop requested");
         // Without a mixer - the stream failed and was dropped (#59) - there

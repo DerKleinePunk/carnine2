@@ -26,6 +26,12 @@ pub trait Playback: Send {
     fn resume(&self) -> Result<()>;
     fn stop(self: Box<Self>) -> Result<()>;
 
+    /// Fades the playback to `gain` (0..1), e.g. music under a spoken
+    /// announcement. An engine without levels ignores it.
+    fn set_gain(&self, _gain: f32) -> Result<()> {
+        Ok(())
+    }
+
     // True only once playback reached the track's natural end on its own,
     // never as a result of an explicit stop() — the auto-advance watcher
     // polls this to tell "track ended" apart from "user stopped it".
