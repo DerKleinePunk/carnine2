@@ -1214,7 +1214,8 @@ Variant B (Michael, 2026-10-06):
 - About 132 MB more in the image.
 - The first sentences after a route is set need seconds; the demo waits 15 s
   before driving.
-- Only German: with another UI language the sentences come out mixed (open).
+- Only German: with another UI language the navigation stays silent, since
+  Valhalla's texts would come in that language and the voice is German.
 - Without the package the backend runs silently; WSL and CI need nothing.
 
 **References:** [26 – Spoken Turn Announcements](26-turn-announcements.md),

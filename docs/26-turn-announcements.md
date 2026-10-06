@@ -2,7 +2,7 @@
 
 **Status:** on feature/backend since 2026-10-06 (backend 2e65a6f, frontend
 with local_map 0.8.3), first in the release after 0.13.0. Heard and measured
-on carnine-pc (Raspberry Pi 4, 4 GB) on 2026-10-06. Only German so far.
+on carnine-pc (Raspberry Pi 4, 4 GB) on 2026-10-06. Only with the UI in German.
 
 During navigation CarNine speaks the turn instructions: "In 300 Metern rechts
 auf Bahnhofstraße abbiegen. Dann weiter auf L 3195.", then at the turn
@@ -52,16 +52,16 @@ The rules live in local_map (`AnnouncementPolicy`, `AnnouncementTexts`):
 In an old town with turns 70 m apart three "jetzt" sentences can come within
 12 s. Valhalla already links such turns ("Dann, in 70 Metern, …").
 
-### Language: only German works
+### Language: German UI only
 
-The voices are German, and the library's lead-ins are always German
-(`MapsController` passes no `AnnouncementPolicy`, so local_map takes
-`AnnouncementTexts.german`). Valhalla's texts, however, come in the UI
-language, because the frontend asks for the route in it. With the UI set to
-another language the result is a mix, e.g. "In 300 Metern Turn right onto
-Bahnhofstraße.", spoken with German pronunciation. This is a known gap, not
-intended; whether announcements stay silent for other languages, are always
-German or get a voice of their own is still open.
+Announcements are spoken only while the UI is set to German; in any other
+language the navigation stays silent (Michael, 2026-10-06). The reason: the
+voices are German and the library's lead-ins are always German
+(`AnnouncementTexts.german`), but Valhalla's texts come in the UI language,
+because the frontend asks for the route in it. Spoken anyway, an English UI
+would give a mix such as "In 300 Metern Turn right onto Bahnhofstraße." with
+German pronunciation. An English voice with English lead-ins
+(`AnnouncementTexts.english` exists) may follow after the trade fair.
 
 ### What is prepared
 

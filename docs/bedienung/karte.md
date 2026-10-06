@@ -120,9 +120,9 @@ im Gerät selbst, Internet braucht es dafür nicht.
   höchstens einmal.
 - **Musik:** Während einer Ansage wird die Musik leiser und danach wieder
   lauter. Pausierte Musik bleibt still.
-- **Nur auf Deutsch:** Die Ansagen sind für die deutsche Oberfläche gemacht.
-  Bei einer anderen Sprache kommt heute ein Gemisch aus Deutsch und der
-  gewählten Sprache heraus.
+- **Nur auf Deutsch:** Ansagen gibt es nur, wenn die Oberfläche auf Deutsch
+  steht ([Optionen → Darstellung & Sprache](optionen.md#darstellung--sprache)).
+  In jeder anderen Sprache bleibt die Navigation stumm.
 - **Ein- und ausschalten** und die Lautstärke der Ansagen gibt es in den
   Optionen noch nicht (#110). Ab Werk sind die Ansagen an, mit voller
   Lautstärke.
