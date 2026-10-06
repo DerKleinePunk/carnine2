@@ -89,6 +89,8 @@ pub struct Control {
     pub binding: Binding,
     /// Not listed for the "Technik" page (the backlight).
     pub hidden: bool,
+    /// Goes to full while the CPU is overheated (`boost_on_overheat`).
+    pub boost: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -218,6 +220,7 @@ impl Control {
             restore: entry.restore.unwrap_or(kind == Kind::Slider),
             binding,
             hidden: entry.backlight,
+            boost: entry.boost_on_overheat.unwrap_or(false),
         })
     }
 
@@ -556,6 +559,10 @@ struct Inner {
     /// Set by [`ControlHub::shut_down`]: nothing touches a chip after it, so
     /// the retry every few seconds cannot lift the reset again.
     shutting_down: bool,
+    /// The CPU is overheated and the boosted controls run at full.
+    boosting: bool,
+    /// Own values of the boosted controls while `boosting`.
+    normal: HashMap<String, Value>,
 }
 
 /// Keeps the state of every control and drives the chips. Clients read the
@@ -702,6 +709,8 @@ impl ControlHub {
                 pwm_opener,
                 database_path,
                 shutting_down: false,
+                boosting: false,
+                normal: HashMap::new(),
             }),
             changes,
         };
@@ -915,6 +924,40 @@ impl ControlHub {
             }
         }
 
+        // While the CPU is overheated a boosted control stays at full; what
+        // is set now is its own value for afterwards.
+        if inner.boosting && control.boost {
+            inner.normal.insert(id.to_owned(), value);
+            Self::save(&inner, id, value);
+            info!(id, ?value, "control set for after the overheat boost");
+            let state = inner.states[index].clone();
+            let _ = self.changes.send(state.clone());
+            return Ok(state);
+        }
+
+        self.put_on_hardware(&mut inner, index, value)?;
+        let state = ControlState {
+            id: id.to_owned(),
+            value,
+            available: true,
+        };
+        inner.states[index] = state.clone();
+        Self::save(&inner, id, value);
+        info!(id, ?value, "control set");
+        let _ = self.changes.send(state.clone());
+        Ok(state)
+    }
+
+    /// Writes `value` of control `index` to its chip. On failure the
+    /// controls of that chip turn unavailable (and are announced).
+    fn put_on_hardware(
+        &self,
+        inner: &mut Inner,
+        index: usize,
+        value: Value,
+    ) -> Result<(), SetError> {
+        let control = inner.controls[index].clone();
+        let id = control.id.as_str();
         if let Binding::Mcp23017 {
             bus, address, pin, ..
         } = &control.binding
@@ -945,14 +988,14 @@ impl ControlHub {
                 chip.missing_reported = true;
                 chip.bus = None;
                 warn!(id, error = %error, "setting a control failed");
-                for state in Self::refresh_availability(&mut inner) {
+                for state in Self::refresh_availability(inner) {
                     let _ = self.changes.send(state);
                 }
                 return Err(SetError::Unavailable(error.to_string()));
             }
             chip.available = true;
             chip.missing_reported = false;
-            for state in Self::refresh_availability(&mut inner) {
+            for state in Self::refresh_availability(inner) {
                 if state.id != id {
                     let _ = self.changes.send(state);
                 }
@@ -961,40 +1004,78 @@ impl ControlHub {
 
         if matches!(control.binding, Binding::Pwm { .. }) {
             let previous = inner.states[index].value;
-            if let Err(error) = Self::drive_pwm(&mut inner, &control, previous, value) {
+            if let Err(error) = Self::drive_pwm(inner, &control, previous, value) {
                 warn!(id, error = %error, "setting a control failed");
-                for state in Self::refresh_availability(&mut inner) {
+                for state in Self::refresh_availability(inner) {
                     let _ = self.changes.send(state);
                 }
                 return Err(SetError::Unavailable(error.to_string()));
             }
-            for state in Self::refresh_availability(&mut inner) {
+            for state in Self::refresh_availability(inner) {
                 if state.id != id {
                     let _ = self.changes.send(state);
                 }
             }
         }
+        Ok(())
+    }
 
-        let state = ControlState {
-            id: id.to_owned(),
-            value,
-            available: true,
+    fn save(inner: &Inner, id: &str, value: Value) {
+        let Some(path) = &inner.database_path else {
+            return;
         };
-        inner.states[index] = state.clone();
-        if let Some(path) = &inner.database_path {
-            let (switch_on, level) = match value {
-                Value::On(on) => (Some(on), None),
-                Value::Level(level) => (None, Some(level)),
+        let (switch_on, level) = match value {
+            Value::On(on) => (Some(on), None),
+            Value::Level(level) => (None, Some(level)),
+        };
+        if let Err(error) = crate::database::Database::open(path)
+            .and_then(|database| database.save_control_state(id, switch_on, level))
+        {
+            warn!(id, error = %error, "saving a control state failed");
+        }
+    }
+
+    /// Follows the CPU overheat warning (#70): on, every control with
+    /// `boost_on_overheat` goes to full (on, 100 %) and keeps its own value
+    /// aside; off, each goes back to its own value. Nothing of it is saved,
+    /// so a restart during the warning starts from the own value.
+    pub fn set_overheated(&self, overheated: bool) {
+        let mut inner = self.lock();
+        if inner.shutting_down || inner.boosting == overheated {
+            return;
+        }
+        inner.boosting = overheated;
+        if overheated {
+            warn!("CPU overheated: boosting the controls with boost_on_overheat");
+        } else {
+            info!("CPU cooled down: boosted controls back to their own values");
+        }
+        for index in 0..inner.controls.len() {
+            let control = inner.controls[index].clone();
+            if !control.boost {
+                continue;
+            }
+            let target = if overheated {
+                let own = inner.states[index].value;
+                inner.normal.insert(control.id.clone(), own);
+                match control.kind {
+                    Kind::Switch => Value::On(true),
+                    Kind::Slider => Value::Level(LEVEL_MAX),
+                }
+            } else {
+                inner
+                    .normal
+                    .remove(&control.id)
+                    .unwrap_or(inner.states[index].value)
             };
-            if let Err(error) = crate::database::Database::open(path)
-                .and_then(|database| database.save_control_state(id, switch_on, level))
-            {
-                warn!(id, error = %error, "saving a control state failed");
+            // A chip that does not answer keeps the old value in the state,
+            // so its retry puts back what the state says.
+            if self.put_on_hardware(&mut inner, index, target).is_ok() {
+                inner.states[index].value = target;
+                info!(id = %control.id, value = ?target, "control follows the CPU temperature");
+                let _ = self.changes.send(inner.states[index].clone());
             }
         }
-        info!(id, ?value, "control set");
-        let _ = self.changes.send(state.clone());
-        Ok(state)
     }
 
     /// Puts every chip with a reset GPIO back into reset, which turns all
@@ -1611,6 +1692,78 @@ mod tests {
             "case_fan",
             "the backlight change is not streamed"
         );
+    }
+
+    #[test]
+    fn boosted_controls_run_full_while_overheated_and_return_to_their_own_value() {
+        let path =
+            std::env::temp_dir().join(format!("carnine-boost-{}.sqlite3", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+        let log = Arc::new(StdMutex::new(PwmLog::default()));
+        let bus = Arc::new(StdMutex::new(BusLog::default()));
+        let entries = [
+            ControlConfig {
+                boost_on_overheat: Some(true),
+                ..fan(0, 0)
+            },
+            ControlConfig {
+                boost_on_overheat: Some(true),
+                ..entry("pump", "switch", "demo", None)
+            },
+            entry("dimmer", "slider", "demo", None),
+        ];
+        let open = |log: &Arc<StdMutex<PwmLog>>| {
+            ControlHub::with_pwm(
+                &entries,
+                fake_opener(&bus),
+                no_reset(),
+                fake_pwm(log),
+                Some(path.clone()),
+            )
+        };
+        let hub = open(&log);
+        hub.set("case_fan", Value::Level(50)).unwrap();
+        hub.set("dimmer", Value::Level(20)).unwrap();
+        pwm_events(&log);
+        let mut changes = hub.subscribe();
+
+        hub.set_overheated(true);
+        hub.set_overheated(true); // no second transition
+        assert_eq!(pwm_events(&log), [(0, Some((FAN_PERIOD, FAN_PERIOD)))]);
+        let values: Vec<Value> = hub.states().into_iter().map(|s| s.value).collect();
+        assert_eq!(
+            values,
+            [Value::Level(100), Value::On(true), Value::Level(20)]
+        );
+        let announced: Vec<String> = std::iter::from_fn(|| changes.try_recv().ok())
+            .map(|state| state.id)
+            .collect();
+        assert_eq!(announced, ["case_fan", "pump"]);
+
+        // Set during the warning: own value for afterwards, the fan stays full.
+        let state = hub.set("case_fan", Value::Level(30)).unwrap();
+        assert_eq!(state.value, Value::Level(100));
+        assert!(pwm_events(&log).is_empty());
+
+        // A restart during the warning starts from the own value.
+        drop(hub);
+        let restarted_log = Arc::new(StdMutex::new(PwmLog::default()));
+        let restarted = open(&restarted_log);
+        assert_eq!(restarted.states()[0].value, Value::Level(30));
+        restarted.set_overheated(true);
+        assert_eq!(restarted.states()[0].value, Value::Level(100));
+
+        restarted.set_overheated(false);
+        assert_eq!(
+            pwm_events(&restarted_log).last(),
+            Some(&(0, Some((FAN_PERIOD, 3_000_000))))
+        );
+        let values: Vec<Value> = restarted.states().into_iter().map(|s| s.value).collect();
+        assert_eq!(
+            values,
+            [Value::Level(30), Value::On(false), Value::Level(20)]
+        );
+        let _ = std::fs::remove_file(&path);
     }
 
     #[test]

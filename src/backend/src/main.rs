@@ -1877,6 +1877,22 @@ async fn main() -> Result<()> {
             }
         });
     }
+    // Controls with boost_on_overheat (the case fan) follow the CPU overheat
+    // warning (#70): full while it is on, their own value again after.
+    {
+        let control_hub = Arc::clone(&control_hub);
+        let mut thermal = system_metrics.subscribe_thermal();
+        tokio::spawn(async move {
+            loop {
+                let overheated = thermal.borrow_and_update().overheated;
+                let hub = Arc::clone(&control_hub);
+                let _ = tokio::task::spawn_blocking(move || hub.set_overheated(overheated)).await;
+                if thermal.changed().await.is_err() {
+                    break;
+                }
+            }
+        });
+    }
     let system_service = SystemServiceImpl::new(
         Arc::clone(&system_metrics),
         configuration.media.database_path.clone(),

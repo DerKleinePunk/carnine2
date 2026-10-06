@@ -141,6 +141,10 @@ pub struct ControlConfig {
     /// fan starts; 0 unless given.
     #[serde(default)]
     pub kick_ms: Option<u64>,
+    /// Full (on, 100 %) while the CPU overheat warning is on, back to the
+    /// own value when it clears; e.g. the case fan. Off unless given.
+    #[serde(default)]
+    pub boost_on_overheat: Option<bool>,
     /// Set only for the entry built from `[display.backlight]`.
     #[serde(skip)]
     pub backlight: bool,
