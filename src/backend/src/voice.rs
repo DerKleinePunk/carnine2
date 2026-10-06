@@ -337,7 +337,7 @@ impl Worker {
         }
         let started = std::time::Instant::now();
         let speech = match self.synthesizer.synthesize(text) {
-            Ok(speech) => speech,
+            Ok(speech) => normalized(speech),
             Err(error) => {
                 warn!(text, error = %format!("{error:#}"), "speech synthesis failed");
                 return None;
@@ -368,6 +368,27 @@ impl Worker {
         }
         Some(path)
     }
+}
+
+/// Peak the speech is raised to: the Piper voices peak at about a third of
+/// full scale, too quiet over the music in the car (Michael, 2026-10-06).
+const SPEECH_PEAK: f32 = 0.9;
+/// At most this much louder, so near-silence is not blown up into noise.
+const MAX_SPEECH_GAIN: f32 = 4.0;
+
+/// Raises the speech so its loudest sample sits at [`SPEECH_PEAK`].
+fn normalized(mut speech: Speech) -> Speech {
+    let peak = speech
+        .samples
+        .iter()
+        .fold(0.0f32, |peak, sample| peak.max(sample.abs()));
+    if peak > 0.0 {
+        let gain = (SPEECH_PEAK / peak).min(MAX_SPEECH_GAIN);
+        for sample in &mut speech.samples {
+            *sample *= gain;
+        }
+    }
+    speech
 }
 
 /// Pins the calling thread to one core; logs and goes on when it fails.
@@ -933,6 +954,24 @@ mod tests {
         let state = control.update(Some(true), None).unwrap();
         assert!(state.enabled);
         assert_eq!(state.volume_percent, 55, "only what is given changes");
+    }
+
+    #[test]
+    fn quiet_speech_is_raised_to_the_peak_but_never_more_than_four_times() {
+        let speech = |samples: Vec<f32>| Speech {
+            samples,
+            sample_rate: 22_050,
+        };
+        let raised = normalized(speech(vec![0.3, -0.15, 0.0]));
+        assert!((raised.samples[0] - 0.9).abs() < 1e-6);
+        assert!((raised.samples[1] + 0.45).abs() < 1e-6);
+
+        let whisper = normalized(speech(vec![0.01, -0.02]));
+        assert!((whisper.samples[1] + 0.08).abs() < 1e-6, "capped at 4x");
+
+        let loud = normalized(speech(vec![1.2]));
+        assert!((loud.samples[0] - 0.9).abs() < 1e-6, "too loud comes down");
+        assert_eq!(normalized(speech(vec![0.0, 0.0])).samples, [0.0, 0.0]);
     }
 
     #[test]
