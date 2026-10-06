@@ -162,4 +162,5 @@ Standardpasswort ändern, Gerätename, WLAN und Kartendaten.
 
 *Geprüft (02.10.2026, Image 0.10.0): Prüfsummen unter Linux und mit
 PowerShell, `bmaptool copy` (3.6) und der `dd`-Weg, beide in eine Datei statt auf eine
-Karte; sie schreiben bytegleich dasselbe. Auf jeep-pi wird mit `dd` geschrieben.*
+Karte; sie schreiben bytegleich dasselbe. Auf jeep-pi wird mit `dd` geschrieben.
+Die Schritte mit Rufus unter Windows am 06.10.2026.*
