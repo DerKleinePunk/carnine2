@@ -93,8 +93,8 @@ Announce(text, priority) ──► in the cache? ── yes ──► play now �
   voice is loaded once at start (about 3 s) and stays in memory. The map's
   UI and raster threads keep the other three cores.
 - **Prepare:** a new list replaces the one not yet worked through. The thread
-  synthesizes one sentence at a time, so an announcement waits for at most
-  one sentence.
+  synthesizes one sentence at a time; an announcement that was not prepared
+  waits for at most the sentence in progress.
 - **Announce, prepared:** the sentence plays at once from the caller's
   thread; it does not wait for the sentence the voice thread is working on.
   The sentences before it in the prepare list are dropped (they belonged to
@@ -147,7 +147,7 @@ The package **carnine-voice** (1.13.8-1, arm64, about 132 MB as .deb) brings:
 
 The voices are "thorsten" (Piper, German, CC0). Michael listened to both and
 found both good; **thorsten-medium** is the default, thorsten-low is about
-twice as fast (see [Measurements](#measurements)). Both are in the image, so
+a third faster (see [Measurements](#measurements)). Both are in the image, so
 switching needs no download.
 
 The backend loads the library with `dlopen` at run time; it does not link
@@ -256,7 +256,7 @@ sentences, no map running.
 
 Loading a voice takes about 3 s, at most 175 MB RAM per process with the
 model. With the map running, medium on one thread needs about as long as the
-sentence lasts: 3–8 s per sentence, up to 9 s in the first minute while the map
+sentence lasts: 3–8 s per sentence, up to about 10 s in the first minute while the map
 loads.
 
 ### Pinning protects the map
@@ -266,7 +266,7 @@ case), in 15 s blocks against blocks without speech:
 
 | Speech | ui waits (mean) | raster waits (mean) | longest stop |
 |---|---|---|---|
-| off | 1.3 | 4.2 | 6 ms |
+| off | 1.3 | 4.2 | 8 ms |
 | 2 threads, not pinned | 18.9 | 16.6 | 277 ms, visible |
 | **1 thread on core 3** | 6.7 (off: 1.6) | 4.5 (off: 4.9), unchanged | 194 ms, a single peak |
 
