@@ -19,6 +19,13 @@ FLUTTER_BIN="$EMB_WORKSPACE/flutter/bin/flutter"
 # pubspec.lock, libapp.so), so it gets a copy of the frontend, not the tree.
 FRONTEND_STAGING_DIR="$ROOT_DIR/build/emb-app/carnine_frontend"
 FRONTEND_BUILD_MODE="${CARNINE_FRONTEND_BUILD_MODE:-release}"
+# Set to 1 once after a new emb version (or a changed emb call): emb then
+# re-pins emb.lock instead of stopping with "emb.lock drift". It has to be
+# this very call, a separate --fetch-only pins other inputs.
+EMB_LOCK_ARGS=()
+if [[ "${CARNINE_EMB_UPDATE_LOCK:-0}" == "1" ]]; then
+  EMB_LOCK_ARGS=(--update-lock)
+fi
 case "$FRONTEND_BUILD_MODE" in
   release|profile|debug) ;;
   *)
@@ -170,7 +177,7 @@ EMB_LOG="$LOG_DIR/pi-${TIMESTAMP}-emb.log"
   emb cross . --target "$EMB_TARGET" --build --backend "$EMB_BACKEND" \
     --app "$FRONTEND_STAGING_DIR" --mode "$FRONTEND_BUILD_MODE" \
     -D DISABLE_PLUGINS=ON \
-    -w "$EMB_WORKSPACE"
+    -w "$EMB_WORKSPACE" ${EMB_LOCK_ARGS[@]+"${EMB_LOCK_ARGS[@]}"}
 ) 2>&1 | tee "$EMB_LOG"
 
 # The bundle path carries a hash over the defines, so it is taken from emb's
