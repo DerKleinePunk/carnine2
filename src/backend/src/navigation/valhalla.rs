@@ -48,6 +48,9 @@ pub struct ManeuverData {
     pub kind: u32,
     pub begin_shape_index: u32,
     pub street_names: Vec<String>,
+    pub verbal_alert: Option<String>,
+    pub verbal_pre: Option<String>,
+    pub verbal_post: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -186,6 +189,15 @@ fn error_from_answer(status: StatusCode, answer: &Value) -> RoutingError {
     }
 }
 
+/// A spoken text from Valhalla, `None` when it is missing or blank.
+fn spoken(value: &Value) -> Option<String> {
+    value
+        .as_str()
+        .map(str::trim)
+        .filter(|text| !text.is_empty())
+        .map(str::to_string)
+}
+
 /// Reads `trip` from a `/route` or `/trace_route` answer. Legs are joined into
 /// one geometry; each leg repeats the previous leg's last point, which is
 /// dropped, and maneuver indices are shifted so they stay valid across legs.
@@ -227,6 +239,9 @@ pub fn parse_trip(answer: &Value) -> Result<RouteData, RoutingError> {
                     .flatten()
                     .filter_map(|name| name.as_str().map(str::to_string))
                     .collect(),
+                verbal_alert: spoken(&maneuver["verbal_transition_alert_instruction"]),
+                verbal_pre: spoken(&maneuver["verbal_pre_transition_instruction"]),
+                verbal_post: spoken(&maneuver["verbal_post_transition_instruction"]),
             });
         }
     }
@@ -415,7 +430,10 @@ mod tests {
                             {"instruction": "Fahren Sie Richtung Norden.", "length": 1.2, "time": 60.0,
                              "type": 1, "begin_shape_index": 0, "street_names": ["Hauptstraße"]},
                             {"instruction": "Biegen Sie rechts ab.", "length": 0.0, "time": 0.0,
-                             "type": 10, "begin_shape_index": 1}
+                             "type": 10, "begin_shape_index": 1,
+                             "verbal_transition_alert_instruction": "Rechts auf Schellengasse abbiegen.",
+                             "verbal_pre_transition_instruction": "Rechts auf Schellengasse abbiegen. Dann weiter auf B 62.",
+                             "verbal_post_transition_instruction": "  "}
                         ]
                     },
                     {
@@ -446,6 +464,22 @@ mod tests {
         assert_eq!(route.maneuvers[0].street_names, ["Hauptstraße"]);
         assert_eq!(route.maneuvers[1].kind, 10);
         assert!(route.maneuvers[1].street_names.is_empty());
+    }
+
+    #[test]
+    fn the_spoken_texts_come_along_and_blank_or_missing_ones_are_none() {
+        let route = parse_trip(&two_leg_answer()).expect("parses");
+        let turn = &route.maneuvers[1];
+        assert_eq!(
+            turn.verbal_alert.as_deref(),
+            Some("Rechts auf Schellengasse abbiegen.")
+        );
+        assert_eq!(
+            turn.verbal_pre.as_deref(),
+            Some("Rechts auf Schellengasse abbiegen. Dann weiter auf B 62.")
+        );
+        assert_eq!(turn.verbal_post, None, "blank");
+        assert_eq!(route.maneuvers[0].verbal_alert, None, "missing");
     }
 
     #[test]
@@ -522,6 +556,9 @@ mod tests {
             kind,
             begin_shape_index,
             street_names: Vec::new(),
+            verbal_alert: None,
+            verbal_pre: None,
+            verbal_post: None,
         }
     }
 

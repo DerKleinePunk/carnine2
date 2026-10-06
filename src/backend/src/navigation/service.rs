@@ -123,6 +123,9 @@ impl NavigationServiceImpl {
                     r#type: maneuver.kind,
                     begin_shape_index: maneuver.begin_shape_index,
                     street_names: maneuver.street_names,
+                    verbal_alert: maneuver.verbal_alert,
+                    verbal_pre: maneuver.verbal_pre,
+                    verbal_post: maneuver.verbal_post,
                 })
                 .collect(),
         }
@@ -652,6 +655,39 @@ mod tests {
 
     fn service(hub: PositionHub) -> NavigationServiceImpl {
         NavigationServiceImpl::new(hub, "http://127.0.0.1:9".to_string(), String::new())
+    }
+
+    #[test]
+    fn the_route_carries_the_spoken_texts_to_the_client() {
+        let data = RouteData {
+            geometry: vec![(50.0, 9.0), (50.1, 9.0)],
+            distance_meters: 1000.0,
+            duration_seconds: 60.0,
+            maneuvers: vec![crate::navigation::valhalla::ManeuverData {
+                instruction: "Biegen Sie links ab.".to_string(),
+                length_meters: 1000.0,
+                time_seconds: 60.0,
+                kind: 15,
+                begin_shape_index: 0,
+                street_names: vec!["Schellengasse".to_string()],
+                verbal_alert: Some("Links auf Schellengasse abbiegen.".to_string()),
+                verbal_pre: Some(
+                    "Links auf Schellengasse abbiegen. Dann weiter auf B 62.".to_string(),
+                ),
+                verbal_post: None,
+            }],
+        };
+        let route = service(PositionHub::new(SourceKind::Serial)).route_message(data);
+        let maneuver = &route.maneuvers[0];
+        assert_eq!(
+            maneuver.verbal_alert.as_deref(),
+            Some("Links auf Schellengasse abbiegen.")
+        );
+        assert_eq!(
+            maneuver.verbal_pre.as_deref(),
+            Some("Links auf Schellengasse abbiegen. Dann weiter auf B 62.")
+        );
+        assert!(maneuver.verbal_post.is_none());
     }
 
     #[tokio::test]

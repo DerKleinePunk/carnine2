@@ -662,6 +662,13 @@ message Maneuver {
   uint32 type = 4;               // Valhalla maneuver type, passed through
   uint32 begin_shape_index = 5;  // index into Route.geometry, continuous across legs
   repeated string street_names = 6;
+  // Valhalla's spoken texts in the route's language, ready for speech
+  // output: the alert before the maneuver (verbal_transition_alert_instruction),
+  // the one at it (verbal_pre_transition_instruction) and the one after it
+  // (verbal_post_transition_instruction). Absent when Valhalla gives none.
+  optional string verbal_alert = 7;
+  optional string verbal_pre = 8;
+  optional string verbal_post = 9;
 }
 
 message Route {
