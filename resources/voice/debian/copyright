@@ -1,0 +1,23 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: carnine-voice
+
+Files: usr/lib/carnine/voice/libsherpa-onnx-c-api.so usr/lib/carnine/voice/libsherpa-onnx-cxx-api.so
+Copyright: Xiaomi Corporation and the sherpa-onnx contributors
+Source: https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.8
+License: Apache-2.0
+
+Files: usr/lib/carnine/voice/libonnxruntime.so
+Copyright: Microsoft Corporation
+Source: https://github.com/microsoft/onnxruntime
+License: MIT
+
+Files: usr/share/carnine/voices/thorsten-medium/* usr/share/carnine/voices/thorsten-low/*
+Copyright: Thorsten Müller (voice), Piper voice models by the Piper project
+Source: https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models
+License: CC0-1.0
+ See MODEL_CARD next to each model.
+
+Files: usr/share/carnine/voices/espeak-ng-data/*
+Copyright: the eSpeak NG contributors
+Source: https://github.com/espeak-ng/espeak-ng
+License: GPL-3.0-or-later

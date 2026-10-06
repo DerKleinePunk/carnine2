@@ -30,6 +30,7 @@ resources/debos/raspbian.img.bmap
 resources/debos/carnine-backend.deb
 resources/debos/carnine-frontend.deb
 resources/debos/carnine-valhalla.deb
+resources/debos/carnine-voice.deb
 # Package SBOMs and CVE reports written by build_pi.sh (#41)
 resources/debos/carnine-*.cdx.json
 resources/debos/carnine-*.spdx.json

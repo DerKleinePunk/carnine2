@@ -58,6 +58,18 @@ resources/valhalla/package-deb.sh pi@carnine-pc resources/debos/carnine-valhalla
 Statt `user@host` geht auch ein Verzeichnis mit `valhalla_service` und
 `libprime_server.so.0*`.
 
+### Sprachansagen
+
+Das Rezept installiert außerdem `resources/debos/carnine-voice.deb`: sherpa-onnx
+1.13.8 (C-API und ONNX Runtime) und die deutschen Stimmen `thorsten-medium`
+und `thorsten-low` (CC0). Das Backend lädt sie zur Laufzeit, `[voice]` wählt
+die Stimme. Das Skript lädt die Release-Dateien einmal nach
+`build/voice-downloads/` und prüft sie gegen feste SHA-256-Werte:
+
+```sh
+resources/voice/package-deb.sh resources/debos/carnine-voice.deb
+```
+
 Außerdem legt das Rezept `/etc/carnine/config.d/10-navigation.toml` aus
 `resources/config/config.d/` ab, mit Replay-Tour, Valhalla und
 Namensdatenbank. `deploy_pi.sh` überschreibt nur `config.toml`, das Drop-in

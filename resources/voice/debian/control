@@ -1,0 +1,11 @@
+Package: carnine-voice
+Version: 1.13.8-1
+Section: sound
+Priority: optional
+Architecture: arm64
+Maintainer: Carnine Project
+Depends: libc6, libgcc-s1, libstdc++6
+Description: Offline voice for Carnine's spoken turn announcements
+ sherpa-onnx 1.13.8 (C API and ONNX Runtime) and the German Piper voices
+ thorsten-medium and thorsten-low. The backend loads them at run time;
+ [voice] in its configuration picks the voice.
