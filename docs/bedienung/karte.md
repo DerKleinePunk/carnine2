@@ -80,6 +80,19 @@ erreichbar“ (Backend weg, rot).
   Kilometer („498 km“). Das Dezimalzeichen folgt der Sprache (Englisch,
   Chinesisch, Japanisch: Punkt).
 - **ABBRECHEN** (roter Knopf rechts unten) löscht die Route.
+- **Von der Route abgekommen:** Liegt das Auto drei Positionen hintereinander
+  mehr als 50 m neben der Route oder fährt es mehr als 120° gegen sie, berechnet
+  CarNine die Route zum selben Ziel von der aktuellen Position aus neu. Die
+  neue Route beginnt möglichst in Fahrtrichtung, schickt also nicht erst zum
+  Wenden zurück; nur wo keine Straße in Fahrtrichtung passt (Sackgasse), kann
+  sie mit einer Wendung beginnen. Bis sie da ist, bleibt die alte stehen.
+  Fährt das Auto vorher von selbst zurück auf die alte Route, gilt diese
+  wieder.
+  - Höchstens alle 15 s, nach einem Fehler (z. B. Routing nicht erreichbar)
+    erst nach 30 s, dann 60 s. Im Stand und nach der Ankunft wird nicht neu
+    berechnet, im Replay nie.
+  - Einen Hinweis darauf zeigt die Abbiegekarte noch nicht (#103), die Linie
+    und die Werte unten springen einfach auf die neue Route.
 - **Beschriftung:** Mit der Fahrtrichtung oben dreht sich die Karte, und die
   Straßen- und Ortsnamen drehen mit. Sie stehen nie auf dem Kopf, höchstens
   etwas schräg, weil die Karte für die Beschriftung in 45°-Schritten neu

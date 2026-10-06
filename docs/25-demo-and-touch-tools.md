@@ -56,15 +56,18 @@ home page, nothing playing, no route.
 - plans the drive from Steinau an der Straße to Frankfurt am Main on the Pi's
   own Valhalla (`demo_gps.py plan`) and installs it as
   `/var/lib/carnine/maps/demo-track.json`
-- creates the named pipe `/var/lib/carnine/maps/demo-gps.fifo` and starts the
-  demo GPS mouse on it as the systemd unit `carnine-demo-gps` (see below). It
-  stands in Steinau until the demo file says `drive`.
+- installs `demo_gps.py` as `/var/lib/carnine/maps/demo_gps.py`, creates the
+  named pipe `/var/lib/carnine/maps/demo-gps.fifo` and starts the demo GPS
+  mouse on it from there as the systemd unit `carnine-demo-gps` (see below).
+  The unit runs as `carnine`, which cannot read `/home/pi` (mode 700 on the
+  image). It stands in Steinau until the demo file says `drive`.
 - installs the drop-in `/etc/carnine/config.d/90-demo.toml`, which sets
   `navigation.position_source = "serial"` with that pipe as `serial_device`
 - restarts the backend, stops playback, saves `home` as the start page and
   restarts the frontend
 
-`restore` stops `carnine-demo-gps`, removes the drop-in and the pipe, and
+`restore` stops `carnine-demo-gps`, removes the drop-in, the pipe and
+`/var/lib/carnine/maps/demo_gps.py`, and
 restarts the backend, which then uses its own position source again (on
 carnine-pc the recorded tour from `10-navigation.toml`). The music and the
 track stay on the Pi.
@@ -144,14 +147,47 @@ for the camera.
   route of its own (`MapsController` loads `GetReplayRoute`), before anyone
   types a destination. The serial source brings no route, so the typed
   destination is the only one. Because the track is planned on the same
-  Valhalla with the same two points, the car stays on that route and the
-  backend does not reroute.
+  Valhalla with the same two points, the car stays on that route, so the
+  map library (local_map 0.7.0 and later) has no reason to reroute.
 - **Speed:** `CARNINE_DEMO_FACTOR` (default 10) is the seconds of the drive per
   second of video, `CARNINE_DEMO_HZ` (default 2) the fixes per second of video.
   Both are read by `prepare`. The speed shown stays the real one; only the
   car moves faster.
 - `standstill-nmea.sh` is no longer used by `demo.sh`. It still writes a
   standstill log for the replay source when one is needed.
+
+### Testing the reroute
+
+Since local_map 0.7.0 the map computes the route again when the car leaves
+it (user guide, `karte.md`). The demo GPS mouse can test that on the device:
+plan a drive that takes a detour, type only the destination in the UI, and
+let the mouse drive.
+
+```bash
+# on the Pi, after demo.sh prepare; Alsfeld, a detour, Liederbach (7.1 km)
+cd /home/pi/demo
+python3 demo_gps.py plan 50.751563 9.271198 50.726997 9.246758 \
+    umweg-track.json --via 50.744158,9.287062
+sudo install -o carnine -g carnine -m 0644 umweg-track.json \
+    /var/lib/carnine/maps/demo-track.json
+sudo systemctl restart carnine-demo-gps
+```
+
+- Each `--via` becomes a Valhalla `through` location, in the order given,
+  without a stop. Choose the point off the direct route, so the drive leaves
+  the route the map shows.
+- The demo file types the destination (here "Liederbach") and taps the
+  first hit, as `frankfurt.demo` does, then `drive`. The map shows the direct route; once
+  the car turns off towards the via point, the log shows
+  `[route] Route verlassen` and `[route] Route neu berechnet (#n), x km`.
+- On carnine-pc on 2026-10-06 (Alsfeld, a detour, Liederbach; direct
+  route 4.0 km, track 7.1 km, factor 2) it rerouted three times within 40 s.
+  The third route (5.7 km) matched a route asked for by hand from that point;
+  the car then stayed on it to the destination. Valhalla answered in about
+  40 ms.
+- Tests for `plan`: `python3 -m unittest test_demo_gps.py` in
+  `resources/tools/demo/`, against a stand-in Valhalla; CI runs them in the
+  backend job.
 
 ### Known quirks
 
