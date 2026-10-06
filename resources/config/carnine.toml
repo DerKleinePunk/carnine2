@@ -140,9 +140,10 @@ hash = "$argon2id$v=19$m=19456,t=2,p=1$Y2FybmluZS1leGl0LXB3$O+DjYmFGfVSWu+fkiM29
 # the case fan at JP10 of the IO board; channel 1 is GPIO 19 (Pin 35).
 # pwm_chip is /sys/class/pwm/pwmchip0 unless given, frequency 100 Hz (the fan
 # stage switches slowly). Level 0 is off; the levels above spread over
-# min_level..100 %, so min_level is where the fan still turns. kick_ms gives
-# full duty for that long when it starts from off. The output stops when the
-# backend exits.
+# min_level..100 % duty, so min_level is the lowest bearable duty where the
+# fan still turns (with min_level 30, level 29 is about 50 % duty). kick_ms
+# gives full duty for that long when it starts from off, for a fan that does
+# not start at min_level. The output stops when the backend exits.
 # boost_on_overheat = true (any control) runs it at full (on, 100 %) while the
 # CPU overheat warning is on ([system] cpu_temperature_warn_celsius) and puts
 # its own value back once it clears (cpu_temperature_clear_celsius). A value
@@ -154,7 +155,6 @@ hash = "$argon2id$v=19$m=19456,t=2,p=1$Y2FybmluZS1leGl0LXB3$O+DjYmFGfVSWu+fkiM29
 # chip = "pwm"
 # channel = 0
 # min_level = 30
-# kick_ms = 800
 # boost_on_overheat = true
 
 # The display backlight over PWM channel 1 (GPIO 19), only for a display
