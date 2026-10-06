@@ -221,6 +221,35 @@ final $typed_data.Uint8List controlTypeDescriptor = $convert.base64Decode(
     'CgtDb250cm9sVHlwZRIcChhDT05UUk9MX1RZUEVfVU5TUEVDSUZJRUQQABIXChNDT05UUk9MX1'
     'RZUEVfU1dJVENIEAESFwoTQ09OVFJPTF9UWVBFX1NMSURFUhAC');
 
+@$core.Deprecated('Use displayBrightnessDescriptor instead')
+const DisplayBrightness$json = {
+  '1': 'DisplayBrightness',
+  '2': [
+    {'1': 'configured', '3': 1, '4': 1, '5': 8, '10': 'configured'},
+    {'1': 'available', '3': 2, '4': 1, '5': 8, '10': 'available'},
+    {'1': 'percent', '3': 3, '4': 1, '5': 13, '10': 'percent'},
+  ],
+};
+
+/// Descriptor for `DisplayBrightness`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List displayBrightnessDescriptor = $convert.base64Decode(
+    'ChFEaXNwbGF5QnJpZ2h0bmVzcxIeCgpjb25maWd1cmVkGAEgASgIUgpjb25maWd1cmVkEhwKCW'
+    'F2YWlsYWJsZRgCIAEoCFIJYXZhaWxhYmxlEhgKB3BlcmNlbnQYAyABKA1SB3BlcmNlbnQ=');
+
+@$core.Deprecated('Use setDisplayBrightnessRequestDescriptor instead')
+const SetDisplayBrightnessRequest$json = {
+  '1': 'SetDisplayBrightnessRequest',
+  '2': [
+    {'1': 'percent', '3': 1, '4': 1, '5': 13, '10': 'percent'},
+  ],
+};
+
+/// Descriptor for `SetDisplayBrightnessRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setDisplayBrightnessRequestDescriptor =
+    $convert.base64Decode(
+        'ChtTZXREaXNwbGF5QnJpZ2h0bmVzc1JlcXVlc3QSGAoHcGVyY2VudBgBIAEoDVIHcGVyY2VudA'
+        '==');
+
 @$core.Deprecated('Use exitPasswordRequestDescriptor instead')
 const ExitPasswordRequest$json = {
   '1': 'ExitPasswordRequest',

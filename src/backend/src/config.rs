@@ -34,6 +34,59 @@ pub struct Config {
     /// keeping the backend from starting.
     #[serde(default)]
     pub controls: Vec<ControlConfig>,
+    /// Optional: the display's backlight over a PWM channel, for the
+    /// brightness in the options (SystemService).
+    #[serde(default)]
+    pub display: DisplayConfig,
+}
+
+/// Id of the control built from `[display.backlight]`.
+pub const BACKLIGHT_ID: &str = "display_backlight";
+
+/// `[display]`. Only the backlight so far.
+#[derive(Debug, Clone, Default, Deserialize, serde::Serialize)]
+pub struct DisplayConfig {
+    #[serde(default)]
+    pub backlight: Option<BacklightConfig>,
+}
+
+/// `[display.backlight]`: a display modified so that a PWM channel of the
+/// Pi drives its backlight (Waveshare 7H: resistor out, pad to GPIO 19).
+#[derive(Debug, Clone, Default, Deserialize, serde::Serialize)]
+pub struct BacklightConfig {
+    /// sysfs PWM chip, /sys/class/pwm/pwmchip0 unless given.
+    #[serde(default)]
+    pub pwm_chip: Option<PathBuf>,
+    /// Channel of that chip: 1 is GPIO 19 with `dtoverlay=pwm-2chan`.
+    pub channel: u32,
+    /// Hz, 1000 unless given; Waveshare asks for more than 1 kHz.
+    #[serde(default)]
+    pub frequency: Option<u32>,
+    /// Duty cycle at the lowest setting, 10 % unless given, so the screen
+    /// never goes dark from the options.
+    #[serde(default)]
+    pub min_percent: Option<u32>,
+}
+
+impl DisplayConfig {
+    /// The backlight as a control of the controls module, hidden from the
+    /// "Technik" page and set through SystemService instead.
+    pub fn backlight_control(&self) -> Option<ControlConfig> {
+        let backlight = self.backlight.as_ref()?;
+        Some(ControlConfig {
+            id: BACKLIGHT_ID.to_owned(),
+            name: "Display".to_owned(),
+            kind: "slider".to_owned(),
+            chip: "pwm".to_owned(),
+            pwm_chip: backlight.pwm_chip.clone(),
+            channel: Some(backlight.channel),
+            frequency: Some(backlight.frequency.unwrap_or(1000)),
+            min_level: Some(backlight.min_percent.unwrap_or(10)),
+            restore: Some(true),
+            backlight: true,
+            ..ControlConfig::default()
+        })
+    }
 }
 
 /// One `[[controls]]` entry. Kept as plain strings and options here; see
@@ -45,7 +98,7 @@ pub struct ControlConfig {
     /// "switch" or "slider".
     #[serde(rename = "type")]
     pub kind: String,
-    /// "mcp23017" or "demo" (keeps what is set, for WSL and tests).
+    /// "mcp23017", "pwm" or "demo" (keeps what is set, for WSL and tests).
     #[serde(default)]
     pub chip: String,
     /// I2C bus device, /dev/i2c-1 unless given.
@@ -69,6 +122,28 @@ pub struct ControlConfig {
     /// GPIO character device of reset_gpio, /dev/gpiochip0 unless given.
     #[serde(default)]
     pub gpio_chip: Option<PathBuf>,
+    /// chip "pwm": sysfs PWM chip, /sys/class/pwm/pwmchip0 unless given.
+    #[serde(default)]
+    pub pwm_chip: Option<PathBuf>,
+    /// chip "pwm": channel of that chip; with `dtoverlay=pwm-2chan` 0 is
+    /// GPIO 18 (Pin 12) and 1 is GPIO 19 (Pin 35).
+    #[serde(default)]
+    pub channel: Option<u32>,
+    /// chip "pwm": Hz, 100 unless given (the case fan stage on the IO
+    /// board switches slowly).
+    #[serde(default)]
+    pub frequency: Option<u32>,
+    /// chip "pwm": duty cycle in percent at the lowest setting above off,
+    /// e.g. where a fan still turns; 0 unless given.
+    #[serde(default)]
+    pub min_level: Option<u32>,
+    /// chip "pwm": full duty for this long when switching on from off, so a
+    /// fan starts; 0 unless given.
+    #[serde(default)]
+    pub kick_ms: Option<u64>,
+    /// Set only for the entry built from `[display.backlight]`.
+    #[serde(skip)]
+    pub backlight: bool,
 }
 
 /// The password "Beenden" asks for (#51), as an Argon2id hash only. The
@@ -702,6 +777,36 @@ mod tests {
         assert_eq!(
             config.disk_metric_paths(),
             vec![std::path::PathBuf::from("/srv")]
+        );
+    }
+
+    #[test]
+    fn reads_the_display_backlight_and_pwm_controls() {
+        let base = std::fs::read_to_string("../../resources/config/carnine.toml")
+            .expect("repository config should be readable");
+        let config: Config = toml::from_str(&base).expect("repository config parses");
+        assert!(config.display.backlight_control().is_none());
+
+        let config: Config = toml::from_str(&format!(
+            "{base}\n[display.backlight]\nchannel = 1\n\n\
+             [[controls]]\nid = \"case_fan\"\nname = \"Lüfter\"\ntype = \"slider\"\n\
+             chip = \"pwm\"\nchannel = 0\nmin_level = 30\nkick_ms = 800\n"
+        ))
+        .expect("a backlight and a PWM control parse");
+        let backlight = config.display.backlight_control().unwrap();
+        assert_eq!(backlight.id, super::BACKLIGHT_ID);
+        assert!(backlight.backlight);
+        assert_eq!(backlight.channel, Some(1));
+        assert_eq!(backlight.frequency, Some(1000));
+        assert_eq!(backlight.min_level, Some(10));
+        let fan = config.controls.last().unwrap();
+        assert_eq!(
+            (fan.channel, fan.min_level, fan.kick_ms),
+            (Some(0), Some(30), Some(800))
+        );
+        assert!(
+            !fan.backlight,
+            "only [display.backlight] makes the backlight"
         );
     }
 

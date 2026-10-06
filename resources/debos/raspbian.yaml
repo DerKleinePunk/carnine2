@@ -256,6 +256,19 @@ actions:
         '#dtoverlay=gpio-poweroff,active_low=1,gpiopin=5' >> /boot/firmware/config.txt
       {{- end }}
 
+  - action: run
+    description: Hardware PWM for the case fan and the display backlight
+    chroot: true
+    # Beide Kanaele des PWM-Blocks PWM0: Kanal 0 auf GPIO 18 (Pin 12) taktet
+    # den Gehaeuseluefter an JP10 der IO-Platine (Sig), Kanal 1 auf GPIO 19
+    # (Pin 35) das Backlight eines dafuer umgebauten Displays. Ohne
+    # Verdrahtung bleiben sie ungenutzt. Die Klinke des Pi 4 haengt an PWM1
+    # (GPIO 40/41), nicht hier. Backend: chip "pwm" in [[controls]] und
+    # [display.backlight], Rechte ueber 61-carnine-pwm.rules.
+    command: |
+      sed -i '/^[[:space:]]*#\?[[:space:]]*dtoverlay=pwm/d' /boot/firmware/config.txt
+      printf '%s\n' 'dtoverlay=pwm-2chan,pin=18,func=2,pin2=19,func2=2' >> /boot/firmware/config.txt
+
   # Welcher Ausgang ALSA-Karte 0 wird (Backend und amixer folgen Karte 0):
   # Vorgabe HDMI0, mit -t audio_output:jack die Klinke, fuer ein Display ohne
   # Lautsprecher wie das Waveshare 7C (#64). Die Plaetze reserviert slots im

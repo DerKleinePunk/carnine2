@@ -164,6 +164,11 @@ ein, das Signal „Pi ist angehalten“ an Dig3. Ohne Netzteil darf das Overlay
 nicht aktiv sein (Kernel-BUG beim Ausschalten), deshalb steht es sonst nur
 auskommentiert in `config.txt`. Den UART für das Netzteil (`uart5`, GPIO
 12/13) schaltet das Image immer ein, siehe `docs/23-power-supply.md`.
+Ebenso immer die zwei Hardware-PWM-Kanäle
+(`dtoverlay=pwm-2chan,pin=18,func=2,pin2=19,func2=2`): GPIO 18 (Pin 12) für den
+Gehäuselüfter an der IO-Platine, GPIO 19 (Pin 35) für das Backlight eines
+umgebauten Displays. Das Backend steuert sie über `chip = "pwm"` in
+`[[controls]]` und `[display.backlight]`.
 
 Der Ton kommt ab Werk über HDMI0 (ALSA-Karte 0). Für ein Display ohne
 Lautsprecher, z. B. das Waveshare 7C, kommt `-t audio_output:jack` dazu. Dann

@@ -2,9 +2,15 @@
 //! means in hardware comes from `[[controls]]` in the configuration; the UI
 //! only sees id, name, type and state.
 //!
-//! Chips: the MCP23017 port expander (switches on its 16 pins) and "demo",
-//! which only keeps what is set - for WSL and for trying sliders without
-//! hardware. Another chip type adds a [`Binding`] variant and its driver.
+//! Chips: the MCP23017 port expander (switches on its 16 pins), "pwm" (a
+//! sysfs PWM channel of the Pi: sliders as duty cycle, e.g. the case fan)
+//! and "demo", which only keeps what is set - for WSL and for trying sliders
+//! without hardware. Another chip type adds a [`Binding`] variant and its
+//! driver.
+//!
+//! The display backlight is a "pwm" control too, built from
+//! `[display.backlight]` with the id [`BACKLIGHT_ID`]: hidden from the
+//! "Technik" page, set through SystemService for the options.
 
 use std::collections::HashMap;
 use std::io;
@@ -26,6 +32,16 @@ const DEFAULT_GPIO_CHIP: &str = "/dev/gpiochip0";
 /// same again before it is talked to.
 const RESET_SETTLE: std::time::Duration = std::time::Duration::from_millis(1);
 const DEFAULT_MCP23017_ADDRESS: u16 = 0x20;
+const DEFAULT_PWM_CHIP: &str = "/sys/class/pwm/pwmchip0";
+const DEFAULT_PWM_FREQUENCY_HZ: u32 = 100;
+/// Above this the period would be under a microsecond.
+const MAX_PWM_FREQUENCY_HZ: u32 = 1_000_000;
+const MAX_KICK: std::time::Duration = std::time::Duration::from_secs(5);
+/// How long an exported channel may take until udev has handed its files to
+/// the gpio group (61-carnine-pwm.rules).
+const PWM_EXPORT_WAIT: std::time::Duration = std::time::Duration::from_secs(2);
+
+pub use crate::config::BACKLIGHT_ID;
 
 // MCP23017 registers with IOCON.BANK = 0 (the reset state): A and B side by
 // side, so one write sets both halves.
@@ -48,6 +64,20 @@ pub enum Binding {
         /// GPIO chip and line that hold /RESET high, if the board needs it.
         reset: Option<(PathBuf, u32)>,
     },
+    Pwm {
+        chip: PathBuf,
+        channel: u32,
+        period_ns: u64,
+        /// Duty cycle in percent at the lowest level above off.
+        min_level: u32,
+        /// Full duty for this long when switching on from off.
+        kick: std::time::Duration,
+        /// Level 0 stops the output (fan); without it 0 is `min_level`
+        /// (backlight, never dark).
+        off_at_zero: bool,
+        /// Stop the output when the backend exits, like the MCP23017 reset.
+        off_on_exit: bool,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -57,6 +87,8 @@ pub struct Control {
     pub kind: Kind,
     pub restore: bool,
     pub binding: Binding,
+    /// Not listed for the "Technik" page (the backlight).
+    pub hidden: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -132,24 +164,187 @@ impl Control {
                     }),
                 }
             }
+            "pwm" => {
+                let channel = entry
+                    .channel
+                    .ok_or_else(|| format!("control {id}: a PWM control needs a channel"))?;
+                let frequency = entry.frequency.unwrap_or(DEFAULT_PWM_FREQUENCY_HZ);
+                if !(1..=MAX_PWM_FREQUENCY_HZ).contains(&frequency) {
+                    return Err(format!(
+                        "control {id}: PWM frequency {frequency} Hz is not 1-{MAX_PWM_FREQUENCY_HZ}"
+                    ));
+                }
+                let min_level = entry.min_level.unwrap_or(0);
+                if min_level > LEVEL_MAX {
+                    return Err(format!(
+                        "control {id}: min_level {min_level} is not 0-{LEVEL_MAX}"
+                    ));
+                }
+                let kick = std::time::Duration::from_millis(entry.kick_ms.unwrap_or(0));
+                if kick > MAX_KICK {
+                    return Err(format!(
+                        "control {id}: kick_ms {} is more than {}",
+                        kick.as_millis(),
+                        MAX_KICK.as_millis()
+                    ));
+                }
+                Binding::Pwm {
+                    chip: entry
+                        .pwm_chip
+                        .clone()
+                        .unwrap_or_else(|| PathBuf::from(DEFAULT_PWM_CHIP)),
+                    channel,
+                    period_ns: 1_000_000_000 / u64::from(frequency),
+                    min_level,
+                    kick,
+                    off_at_zero: !entry.backlight,
+                    off_on_exit: !entry.backlight,
+                }
+            }
             other => return Err(format!("control {id}: unknown chip {other:?}")),
         };
+        if entry.backlight && (kind != Kind::Slider || !matches!(binding, Binding::Pwm { .. })) {
+            return Err(format!("control {id}: the backlight is a PWM slider"));
+        }
+        if !entry.backlight && id == BACKLIGHT_ID {
+            return Err(format!(
+                "control {id}: the id is kept for [display.backlight]"
+            ));
+        }
         Ok(Self {
             id: id.to_owned(),
             name: entry.name.trim().to_owned(),
             kind,
             restore: entry.restore.unwrap_or(kind == Kind::Slider),
             binding,
+            hidden: entry.backlight,
         })
     }
 
+    /// The value without a saved one: off, but the backlight starts bright.
     fn off_value(&self) -> Value {
         match self.kind {
             Kind::Switch => Value::On(false),
+            Kind::Slider if self.hidden => Value::Level(LEVEL_MAX),
             Kind::Slider => Value::Level(LEVEL_MIN),
         }
     }
 }
+
+/// Duty cycle in nanoseconds for a value of a PWM control: on and level
+/// 100 are full, off and level 0 nothing (or `min_level` where 0 is not
+/// off), the levels between spread over `min_level`..100 %.
+fn pwm_duty_ns(value: Value, period_ns: u64, min_level: u32, off_at_zero: bool) -> u64 {
+    let percent = match value {
+        Value::On(true) => u64::from(LEVEL_MAX),
+        Value::On(false) => 0,
+        Value::Level(0) if off_at_zero => 0,
+        Value::Level(level) => {
+            let level = u64::from(level.min(LEVEL_MAX));
+            let min = u64::from(min_level);
+            min + (u64::from(LEVEL_MAX) - min) * level / u64::from(LEVEL_MAX)
+        }
+    };
+    period_ns * percent / u64::from(LEVEL_MAX)
+}
+
+/// One PWM channel: period and duty cycle in nanoseconds, enabled.
+pub trait PwmChannel: Send {
+    fn apply(&mut self, period_ns: u64, duty_ns: u64) -> io::Result<()>;
+    /// Stops the output (the line goes low).
+    fn disable(&mut self) -> io::Result<()>;
+}
+
+/// Opens channel N of a PWM chip, e.g. /sys/class/pwm/pwmchip0.
+pub type PwmOpener = Box<dyn Fn(&Path, u32) -> io::Result<Box<dyn PwmChannel>> + Send + Sync>;
+
+/// A channel under /sys/class/pwm/pwmchipN/pwmM.
+struct SysfsPwm {
+    dir: PathBuf,
+    period_ns: Option<u64>,
+    enabled: bool,
+}
+
+impl SysfsPwm {
+    fn write(&self, name: &str, value: impl std::fmt::Display) -> io::Result<()> {
+        let path = self.dir.join(name);
+        std::fs::write(&path, value.to_string())
+            .map_err(|error| io::Error::new(error.kind(), format!("{}: {error}", path.display())))
+    }
+}
+
+impl PwmChannel for SysfsPwm {
+    /// The duty cycle may never exceed the period, so it goes to 0 before a
+    /// new period and to its value after.
+    fn apply(&mut self, period_ns: u64, duty_ns: u64) -> io::Result<()> {
+        if self.period_ns != Some(period_ns) {
+            self.write("duty_cycle", 0)?;
+            self.write("period", period_ns)?;
+            self.period_ns = Some(period_ns);
+        }
+        self.write("duty_cycle", duty_ns.min(period_ns))?;
+        if !self.enabled {
+            self.write("enable", 1)?;
+            self.enabled = true;
+        }
+        Ok(())
+    }
+
+    fn disable(&mut self) -> io::Result<()> {
+        self.write("enable", 0)?;
+        self.enabled = false;
+        Ok(())
+    }
+}
+
+/// Exports the channel unless it is, then waits until its files can be
+/// written: udev hands them to the gpio group only after the export.
+pub fn linux_pwm_opener() -> PwmOpener {
+    Box::new(|chip, channel| {
+        let dir = chip.join(format!("pwm{channel}"));
+        if !dir.exists() {
+            std::fs::write(chip.join("export"), channel.to_string()).map_err(|error| {
+                io::Error::new(
+                    error.kind(),
+                    format!(
+                        "exporting PWM channel {channel} of {}: {error}",
+                        chip.display()
+                    ),
+                )
+            })?;
+        }
+        let started = std::time::Instant::now();
+        loop {
+            match std::fs::OpenOptions::new()
+                .write(true)
+                .open(dir.join("duty_cycle"))
+            {
+                Ok(_) => break,
+                Err(error) if started.elapsed() >= PWM_EXPORT_WAIT => {
+                    return Err(io::Error::new(
+                        error.kind(),
+                        format!("{}: {error}", dir.join("duty_cycle").display()),
+                    ))
+                }
+                Err(_) => std::thread::sleep(std::time::Duration::from_millis(20)),
+            }
+        }
+        Ok(Box::new(SysfsPwm {
+            dir,
+            period_ns: None,
+            enabled: false,
+        }) as Box<dyn PwmChannel>)
+    })
+}
+
+/// One PWM channel in use: its driver while it can be driven.
+struct PwmOutput {
+    channel: Option<Box<dyn PwmChannel>>,
+    available: bool,
+    missing_reported: bool,
+}
+
+type PwmKey = (PathBuf, u32);
 
 /// Writes to and reads from devices on an I2C bus; the real one goes
 /// through /dev/i2c-N.
@@ -353,8 +548,10 @@ struct Inner {
     controls: Vec<Control>,
     states: Vec<ControlState>,
     chips: HashMap<ChipKey, Mcp23017>,
+    pwm_outputs: HashMap<PwmKey, PwmOutput>,
     opener: BusOpener,
     reset_opener: ResetOpener,
+    pwm_opener: PwmOpener,
     database_path: Option<PathBuf>,
     /// Set by [`ControlHub::shut_down`]: nothing touches a chip after it, so
     /// the retry every few seconds cannot lift the reset again.
@@ -368,6 +565,15 @@ pub struct ControlHub {
     changes: broadcast::Sender<ControlState>,
 }
 
+impl std::fmt::Debug for ControlHub {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("ControlHub")
+            .field("states", &self.lock().states)
+            .finish_non_exhaustive()
+    }
+}
+
 impl ControlHub {
     /// Builds the controls from the configuration, skipping broken entries
     /// and duplicate ids with an error in the log, restores the saved values
@@ -377,6 +583,23 @@ impl ControlHub {
         entries: &[ControlConfig],
         opener: BusOpener,
         reset_opener: ResetOpener,
+        database_path: Option<PathBuf>,
+    ) -> Self {
+        Self::with_pwm(
+            entries,
+            opener,
+            reset_opener,
+            linux_pwm_opener(),
+            database_path,
+        )
+    }
+
+    /// [`ControlHub::new`] with its own way to open PWM channels.
+    pub fn with_pwm(
+        entries: &[ControlConfig],
+        opener: BusOpener,
+        reset_opener: ResetOpener,
+        pwm_opener: PwmOpener,
         database_path: Option<PathBuf>,
     ) -> Self {
         let mut controls: Vec<Control> = Vec::new();
@@ -451,14 +674,32 @@ impl ControlHub {
                 }
             }
         }
+        let mut pwm_outputs: HashMap<PwmKey, PwmOutput> = HashMap::new();
+        for control in &controls {
+            if let Binding::Pwm { chip, channel, .. } = &control.binding {
+                if pwm_outputs.contains_key(&(chip.clone(), *channel)) {
+                    warn!(id = %control.id, channel, "PWM channel used by two controls");
+                }
+                pwm_outputs.insert(
+                    (chip.clone(), *channel),
+                    PwmOutput {
+                        channel: None,
+                        available: false,
+                        missing_reported: false,
+                    },
+                );
+            }
+        }
         let (changes, _) = broadcast::channel(64);
         let hub = Self {
             inner: Mutex::new(Inner {
                 controls,
                 states,
                 chips,
+                pwm_outputs,
                 opener,
                 reset_opener,
+                pwm_opener,
                 database_path,
                 shutting_down: false,
             }),
@@ -470,6 +711,7 @@ impl ControlHub {
             for key in keys {
                 Self::bring_up(&mut inner, &key);
             }
+            Self::bring_up_pwm(&mut inner);
             Self::refresh_availability(&mut inner);
             info!(controls = inner.controls.len(), "controls ready");
         }
@@ -510,6 +752,93 @@ impl ControlHub {
         chip.available
     }
 
+    /// Opens the PWM channels that are not driven yet and puts the current
+    /// value on them, a fan with its start-up kick.
+    fn bring_up_pwm(inner: &mut Inner) {
+        for index in 0..inner.controls.len() {
+            let Binding::Pwm { chip, channel, .. } = &inner.controls[index].binding else {
+                continue;
+            };
+            let key = (chip.clone(), *channel);
+            if inner
+                .pwm_outputs
+                .get(&key)
+                .is_some_and(|output| output.available)
+            {
+                continue;
+            }
+            let control = inner.controls[index].clone();
+            let value = inner.states[index].value;
+            let off = control.off_value();
+            if let Err(error) = Self::drive_pwm(inner, &control, off, value) {
+                let output = inner.pwm_outputs.get_mut(&key).expect("known channel");
+                if !output.missing_reported {
+                    warn!(id = %control.id, chip = %key.0.display(), channel = key.1, error = %error, "PWM channel cannot be driven");
+                    output.missing_reported = true;
+                }
+            }
+        }
+    }
+
+    /// Puts `value` on the PWM channel of `control`, opening it first if
+    /// needed; from off to on a kick at full duty comes first. Marks the
+    /// channel available or not.
+    fn drive_pwm(
+        inner: &mut Inner,
+        control: &Control,
+        previous: Value,
+        value: Value,
+    ) -> io::Result<()> {
+        let Binding::Pwm {
+            chip,
+            channel,
+            period_ns,
+            min_level,
+            kick,
+            off_at_zero,
+            ..
+        } = &control.binding
+        else {
+            return Ok(());
+        };
+        let Inner {
+            pwm_outputs,
+            pwm_opener,
+            ..
+        } = inner;
+        let output = pwm_outputs
+            .get_mut(&(chip.clone(), *channel))
+            .expect("known channel");
+        let result = (|| {
+            if output.channel.is_none() {
+                output.channel = Some(pwm_opener(chip, *channel)?);
+            }
+            let driver = output.channel.as_mut().expect("just opened");
+            let duty = pwm_duty_ns(value, *period_ns, *min_level, *off_at_zero);
+            let was_off = !output.available
+                || pwm_duty_ns(previous, *period_ns, *min_level, *off_at_zero) == 0;
+            if duty > 0 && was_off && !kick.is_zero() {
+                driver.apply(*period_ns, *period_ns)?;
+                std::thread::sleep(*kick);
+            }
+            driver.apply(*period_ns, duty)
+        })();
+        match &result {
+            Ok(()) => {
+                if !output.available {
+                    info!(id = %control.id, chip = %chip.display(), channel, "PWM channel driven");
+                }
+                output.available = true;
+                output.missing_reported = false;
+            }
+            Err(_) => {
+                output.available = false;
+                output.channel = None;
+            }
+        }
+        result
+    }
+
     /// Sets `available` of every state from its chip; returns the states
     /// that changed.
     fn refresh_availability(inner: &mut Inner) -> Vec<ControlState> {
@@ -521,6 +850,10 @@ impl ControlHub {
                     .chips
                     .get(&(bus.clone(), *address))
                     .is_some_and(|chip| chip.available),
+                Binding::Pwm { chip, channel, .. } => inner
+                    .pwm_outputs
+                    .get(&(chip.clone(), *channel))
+                    .is_some_and(|output| output.available),
             };
             if state.available != available {
                 state.available = available;
@@ -536,6 +869,15 @@ impl ControlHub {
 
     pub fn states(&self) -> Vec<ControlState> {
         self.lock().states.clone()
+    }
+
+    /// The state of one control, `None` for an unknown id.
+    pub fn state(&self, id: &str) -> Option<ControlState> {
+        self.lock()
+            .states
+            .iter()
+            .find(|state| state.id == id)
+            .cloned()
     }
 
     /// Changes after the current states; [`ControlHub::states`] first, then
@@ -617,6 +959,22 @@ impl ControlHub {
             }
         }
 
+        if matches!(control.binding, Binding::Pwm { .. }) {
+            let previous = inner.states[index].value;
+            if let Err(error) = Self::drive_pwm(&mut inner, &control, previous, value) {
+                warn!(id, error = %error, "setting a control failed");
+                for state in Self::refresh_availability(&mut inner) {
+                    let _ = self.changes.send(state);
+                }
+                return Err(SetError::Unavailable(error.to_string()));
+            }
+            for state in Self::refresh_availability(&mut inner) {
+                if state.id != id {
+                    let _ = self.changes.send(state);
+                }
+            }
+        }
+
         let state = ControlState {
             id: id.to_owned(),
             value,
@@ -640,10 +998,36 @@ impl ControlHub {
     }
 
     /// Puts every chip with a reset GPIO back into reset, which turns all
-    /// its outputs off, before the backend exits.
+    /// its outputs off, and stops the PWM outputs that go off on exit (not
+    /// the backlight), before the backend exits.
     pub fn shut_down(&self) {
         let mut inner = self.lock();
         inner.shutting_down = true;
+        let stop: Vec<PwmKey> = inner
+            .controls
+            .iter()
+            .filter_map(|control| match &control.binding {
+                Binding::Pwm {
+                    chip,
+                    channel,
+                    off_on_exit: true,
+                    ..
+                } => Some((chip.clone(), *channel)),
+                _ => None,
+            })
+            .collect();
+        for key in stop {
+            if let Some(driver) = inner
+                .pwm_outputs
+                .get_mut(&key)
+                .and_then(|output| output.channel.as_mut())
+            {
+                match driver.disable() {
+                    Ok(()) => info!(chip = %key.0.display(), channel = key.1, "PWM output stopped"),
+                    Err(error) => warn!(error = %error, "stopping a PWM output failed"),
+                }
+            }
+        }
         for (key, chip) in inner.chips.iter_mut() {
             if let Some(reset_line) = chip.reset_line.as_mut() {
                 match reset_line.set(false) {
@@ -682,6 +1066,7 @@ impl ControlHub {
         for key in keys {
             Self::bring_up(&mut inner, &key);
         }
+        Self::bring_up_pwm(&mut inner);
         for state in Self::refresh_availability(&mut inner) {
             let _ = self.changes.send(state);
         }
@@ -756,6 +1141,7 @@ impl proto::control_service_server::ControlService for ControlServiceImpl {
             .hub
             .controls()
             .into_iter()
+            .filter(|control| !control.hidden)
             .map(|control| {
                 let (kind, min, max) = match control.kind {
                     Kind::Switch => (proto::ControlType::Switch, 0, 0),
@@ -780,13 +1166,29 @@ impl proto::control_service_server::ControlService for ControlServiceImpl {
         _request: tonic::Request<proto::Empty>,
     ) -> Result<tonic::Response<Self::StreamControlStatesStream>, tonic::Status> {
         use tokio_stream::StreamExt;
+        // The backlight belongs to the options, not to this page.
+        let hidden: std::collections::HashSet<String> = self
+            .hub
+            .controls()
+            .into_iter()
+            .filter(|control| control.hidden)
+            .map(|control| control.id)
+            .collect();
+        let shown = move |state: &ControlState| !hidden.contains(&state.id);
+        let shown_now = shown.clone();
         // Subscribe before taking the snapshot, so no change falls between.
         let changes = tokio_stream::wrappers::BroadcastStream::new(self.hub.subscribe())
-            .filter_map(|change| change.ok().map(|state| Ok(state_to_proto(&state))));
+            .filter_map(move |change| {
+                change
+                    .ok()
+                    .filter(|state| shown(state))
+                    .map(|state| Ok(state_to_proto(&state)))
+            });
         let current: Vec<_> = self
             .hub
             .states()
             .iter()
+            .filter(|state| shown_now(state))
             .map(|state| Ok(state_to_proto(state)))
             .collect();
         info!("control state stream opened");
@@ -919,6 +1321,335 @@ mod tests {
             .find(|(_, bytes)| bytes[0] == MCP23017_OLATA)
             .map(|(_, bytes)| bytes.clone())
             .expect("a latch write")
+    }
+
+    // ---- PWM ----------------------------------------------------------
+
+    /// What the fake PWM channels saw: per channel the applied (period,
+    /// duty) pairs and "off" for a disable; `broken` makes opening fail.
+    #[derive(Default)]
+    struct PwmLog {
+        events: Vec<(u32, Option<(u64, u64)>)>,
+        broken: bool,
+        opened: usize,
+    }
+
+    struct FakePwm {
+        channel: u32,
+        log: Arc<StdMutex<PwmLog>>,
+    }
+
+    impl PwmChannel for FakePwm {
+        fn apply(&mut self, period_ns: u64, duty_ns: u64) -> io::Result<()> {
+            let mut log = self.log.lock().unwrap();
+            if log.broken {
+                return Err(io::Error::from_raw_os_error(libc::ENODEV));
+            }
+            log.events.push((self.channel, Some((period_ns, duty_ns))));
+            Ok(())
+        }
+
+        fn disable(&mut self) -> io::Result<()> {
+            self.log.lock().unwrap().events.push((self.channel, None));
+            Ok(())
+        }
+    }
+
+    fn fake_pwm(log: &Arc<StdMutex<PwmLog>>) -> PwmOpener {
+        let log = Arc::clone(log);
+        Box::new(move |chip, channel| {
+            assert_eq!(chip, Path::new(DEFAULT_PWM_CHIP));
+            let mut guard = log.lock().unwrap();
+            if guard.broken {
+                return Err(io::Error::new(io::ErrorKind::NotFound, "no pwmchip0"));
+            }
+            guard.opened += 1;
+            Ok(Box::new(FakePwm {
+                channel,
+                log: Arc::clone(&log),
+            }) as Box<dyn PwmChannel>)
+        })
+    }
+
+    fn fan(min_level: u32, kick_ms: u64) -> ControlConfig {
+        ControlConfig {
+            channel: Some(0),
+            min_level: Some(min_level),
+            kick_ms: Some(kick_ms),
+            ..entry("case_fan", "slider", "pwm", None)
+        }
+    }
+
+    fn pwm_hub(entries: &[ControlConfig], log: &Arc<StdMutex<PwmLog>>) -> ControlHub {
+        let bus = Arc::new(StdMutex::new(BusLog::default()));
+        ControlHub::with_pwm(entries, fake_opener(&bus), no_reset(), fake_pwm(log), None)
+    }
+
+    fn pwm_events(log: &Arc<StdMutex<PwmLog>>) -> Vec<(u32, Option<(u64, u64)>)> {
+        std::mem::take(&mut log.lock().unwrap().events)
+    }
+
+    /// 100 Hz, the default for a control.
+    const FAN_PERIOD: u64 = 10_000_000;
+
+    #[test]
+    fn pwm_levels_spread_over_min_level_and_zero_is_off_or_min() {
+        let period = 1_000_000;
+        assert_eq!(pwm_duty_ns(Value::Level(0), period, 30, true), 0);
+        assert_eq!(pwm_duty_ns(Value::Level(100), period, 30, true), period);
+        assert_eq!(pwm_duty_ns(Value::Level(50), period, 30, true), 650_000);
+        assert_eq!(pwm_duty_ns(Value::Level(1), period, 30, true), 300_000);
+        // Without off at zero (backlight) 0 is the floor, not dark.
+        assert_eq!(pwm_duty_ns(Value::Level(0), period, 10, false), 100_000);
+        assert_eq!(pwm_duty_ns(Value::On(true), period, 30, true), period);
+        assert_eq!(pwm_duty_ns(Value::On(false), period, 30, true), 0);
+        assert_eq!(pwm_duty_ns(Value::Level(40), period, 0, true), 400_000);
+    }
+
+    #[test]
+    fn broken_pwm_entries_are_refused_with_a_reason() {
+        let cases = [
+            (entry("a", "slider", "pwm", None), "needs a channel"),
+            (
+                ControlConfig {
+                    frequency: Some(0),
+                    ..fan(0, 0)
+                },
+                "frequency",
+            ),
+            (
+                ControlConfig {
+                    frequency: Some(2_000_000),
+                    ..fan(0, 0)
+                },
+                "frequency",
+            ),
+            (fan(101, 0), "min_level"),
+            (fan(0, 6000), "kick_ms"),
+            (
+                ControlConfig {
+                    channel: Some(1),
+                    ..entry(BACKLIGHT_ID, "slider", "pwm", None)
+                },
+                "kept for [display.backlight]",
+            ),
+            (
+                ControlConfig {
+                    backlight: true,
+                    ..entry(BACKLIGHT_ID, "slider", "demo", None)
+                },
+                "PWM slider",
+            ),
+        ];
+        for (entry, reason) in cases {
+            let error = Control::from_config(&entry).expect_err(reason);
+            assert!(error.contains(reason), "{error} lacks {reason}");
+        }
+        let control = Control::from_config(&fan(30, 500)).unwrap();
+        assert_eq!(
+            control.binding,
+            Binding::Pwm {
+                chip: PathBuf::from(DEFAULT_PWM_CHIP),
+                channel: 0,
+                period_ns: FAN_PERIOD,
+                min_level: 30,
+                kick: std::time::Duration::from_millis(500),
+                off_at_zero: true,
+                off_on_exit: true,
+            }
+        );
+        assert!(!control.hidden);
+    }
+
+    #[test]
+    fn a_pwm_slider_sets_the_duty_cycle_and_a_fan_gets_its_kick_from_off() {
+        let log = Arc::new(StdMutex::new(PwmLog::default()));
+        let hub = pwm_hub(&[fan(30, 1)], &log);
+        // Starts off: no saved level.
+        assert_eq!(pwm_events(&log), [(0, Some((FAN_PERIOD, 0)))]);
+        assert!(hub.states()[0].available);
+
+        hub.set("case_fan", Value::Level(50)).unwrap();
+        assert_eq!(
+            pwm_events(&log),
+            [
+                (0, Some((FAN_PERIOD, FAN_PERIOD))),
+                (0, Some((FAN_PERIOD, 6_500_000))),
+            ],
+            "full duty first, then the level"
+        );
+        hub.set("case_fan", Value::Level(100)).unwrap();
+        assert_eq!(
+            pwm_events(&log),
+            [(0, Some((FAN_PERIOD, FAN_PERIOD)))],
+            "no kick while running"
+        );
+        hub.set("case_fan", Value::Level(0)).unwrap();
+        assert_eq!(pwm_events(&log), [(0, Some((FAN_PERIOD, 0)))]);
+    }
+
+    #[test]
+    fn a_pwm_switch_is_full_or_nothing() {
+        let log = Arc::new(StdMutex::new(PwmLog::default()));
+        let hub = pwm_hub(
+            &[ControlConfig {
+                channel: Some(0),
+                ..entry("fan", "switch", "pwm", None)
+            }],
+            &log,
+        );
+        pwm_events(&log);
+        hub.set("fan", Value::On(true)).unwrap();
+        hub.set("fan", Value::On(false)).unwrap();
+        assert_eq!(
+            pwm_events(&log),
+            [
+                (0, Some((FAN_PERIOD, FAN_PERIOD))),
+                (0, Some((FAN_PERIOD, 0)))
+            ]
+        );
+    }
+
+    #[test]
+    fn a_missing_pwm_chip_greys_out_and_comes_back_with_the_current_level() {
+        let log = Arc::new(StdMutex::new(PwmLog {
+            broken: true,
+            ..PwmLog::default()
+        }));
+        let hub = pwm_hub(&[fan(0, 0)], &log);
+        assert!(!hub.states()[0].available);
+        let error = hub.set("case_fan", Value::Level(40)).unwrap_err();
+        assert!(matches!(error, SetError::Unavailable(_)), "{error:?}");
+        assert_eq!(
+            hub.states()[0].value,
+            Value::Level(0),
+            "not taken on failure"
+        );
+
+        let mut changes = hub.subscribe();
+        log.lock().unwrap().broken = false;
+        hub.retry_unavailable();
+        assert!(hub.states()[0].available);
+        assert_eq!(changes.try_recv().unwrap().id, "case_fan");
+        assert_eq!(pwm_events(&log), [(0, Some((FAN_PERIOD, 0)))]);
+        // Once driven, the retry leaves it alone.
+        hub.retry_unavailable();
+        assert_eq!(log.lock().unwrap().opened, 1);
+    }
+
+    #[test]
+    fn the_backlight_is_hidden_starts_bright_and_never_goes_dark() {
+        let log = Arc::new(StdMutex::new(PwmLog::default()));
+        let display = crate::config::DisplayConfig {
+            backlight: Some(crate::config::BacklightConfig {
+                channel: 1,
+                ..Default::default()
+            }),
+        };
+        let entries = [fan(0, 0), display.backlight_control().unwrap()];
+        let hub = pwm_hub(&entries, &log);
+        let backlight_period = 1_000_000; // 1 kHz
+        assert_eq!(
+            pwm_events(&log),
+            [
+                (0, Some((FAN_PERIOD, 0))),
+                (1, Some((backlight_period, backlight_period)))
+            ]
+        );
+        assert_eq!(hub.state(BACKLIGHT_ID).unwrap().value, Value::Level(100));
+        hub.set(BACKLIGHT_ID, Value::Level(0)).unwrap();
+        assert_eq!(
+            pwm_events(&log),
+            [(1, Some((backlight_period, 100_000)))],
+            "0 is the 10 % floor"
+        );
+
+        // Exit: the fan stops, the backlight stays as it is.
+        hub.shut_down();
+        assert_eq!(pwm_events(&log), [(0, None)]);
+    }
+
+    #[tokio::test]
+    async fn the_technik_page_does_not_see_the_backlight() {
+        use proto::control_service_server::ControlService;
+        use tokio_stream::StreamExt;
+        let log = Arc::new(StdMutex::new(PwmLog::default()));
+        let display = crate::config::DisplayConfig {
+            backlight: Some(crate::config::BacklightConfig {
+                channel: 1,
+                ..Default::default()
+            }),
+        };
+        let hub = Arc::new(pwm_hub(
+            &[fan(0, 0), display.backlight_control().unwrap()],
+            &log,
+        ));
+        let service = ControlServiceImpl::new(Arc::clone(&hub));
+        let list = service
+            .get_controls(tonic::Request::new(proto::Empty {}))
+            .await
+            .unwrap()
+            .into_inner();
+        let ids: Vec<_> = list.controls.iter().map(|c| c.id.as_str()).collect();
+        assert_eq!(ids, ["case_fan"]);
+
+        let mut stream = service
+            .stream_control_states(tonic::Request::new(proto::Empty {}))
+            .await
+            .unwrap()
+            .into_inner();
+        assert_eq!(stream.next().await.unwrap().unwrap().id, "case_fan");
+        let hub_for_set = Arc::clone(&hub);
+        tokio::task::spawn_blocking(move || {
+            hub_for_set.set(BACKLIGHT_ID, Value::Level(50)).unwrap();
+            hub_for_set.set("case_fan", Value::Level(20)).unwrap();
+        })
+        .await
+        .unwrap();
+        assert_eq!(
+            stream.next().await.unwrap().unwrap().id,
+            "case_fan",
+            "the backlight change is not streamed"
+        );
+    }
+
+    #[test]
+    fn the_sysfs_channel_is_exported_set_in_order_and_disabled() {
+        let chip = std::env::temp_dir().join(format!("carnine-pwmchip-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&chip);
+        std::fs::create_dir_all(&chip).unwrap();
+        // A fake sysfs: writing "export" does not create pwm0 by itself, so
+        // the directory is made after the export the way the kernel would.
+        std::fs::write(chip.join("export"), "").unwrap();
+        let channel_dir = chip.join("pwm0");
+        std::fs::create_dir_all(&channel_dir).unwrap();
+        for name in ["period", "duty_cycle", "enable"] {
+            std::fs::write(channel_dir.join(name), "").unwrap();
+        }
+        let mut channel = linux_pwm_opener()(&chip, 0).expect("opens");
+        let read = |name: &str| std::fs::read_to_string(channel_dir.join(name)).unwrap();
+        channel.apply(10_000_000, 2_500_000).unwrap();
+        assert_eq!(read("period"), "10000000");
+        assert_eq!(read("duty_cycle"), "2500000");
+        assert_eq!(read("enable"), "1");
+        // A shorter period: duty to 0 first (checked by the kernel), here
+        // only the end state is visible.
+        channel.apply(1_000_000, 5_000_000).unwrap();
+        assert_eq!(read("period"), "1000000");
+        assert_eq!(read("duty_cycle"), "1000000", "never above the period");
+        channel.disable().unwrap();
+        assert_eq!(read("enable"), "0");
+
+        // A channel that is not there and does not appear: the export fails
+        // without a writable export file.
+        let error = linux_pwm_opener()(&chip.join("missing"), 3)
+            .err()
+            .expect("no chip");
+        assert!(
+            error.to_string().contains("exporting PWM channel 3"),
+            "{error}"
+        );
+        std::fs::remove_dir_all(&chip).unwrap();
     }
 
     #[test]

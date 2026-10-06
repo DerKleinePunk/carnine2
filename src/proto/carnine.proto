@@ -94,6 +94,25 @@ service SystemService {
   // no control characters), INTERNAL when it cannot be stored. The new
   // password counts at once and survives restarts and deployments.
   rpc SetExitPassword (SetExitPasswordRequest) returns (CommandResponse);
+  // Display backlight over a PWM channel (`[display.backlight]`, a display
+  // modified for it). Answers with configured = false without one. The
+  // level survives restarts; percent 0 is the dimmest the configuration
+  // allows (min_percent), never dark.
+  rpc GetDisplayBrightness (Empty) returns (DisplayBrightness);
+  // INVALID_ARGUMENT above 100, FAILED_PRECONDITION without a backlight,
+  // UNAVAILABLE when the PWM channel cannot be driven.
+  rpc SetDisplayBrightness (SetDisplayBrightnessRequest) returns (DisplayBrightness);
+}
+
+message DisplayBrightness {
+  bool configured = 1;
+  // False while the PWM channel cannot be driven (no overlay, no chip).
+  bool available = 2;
+  uint32 percent = 3;  // 0 to 100
+}
+
+message SetDisplayBrightnessRequest {
+  uint32 percent = 1;  // 0 to 100
 }
 
 message ExitPasswordRequest {

@@ -133,3 +133,31 @@ hash = "$argon2id$v=19$m=19456,t=2,p=1$Y2FybmluZS1leGl0LXB3$O+DjYmFGfVSWu+fkiM29
 # address = 0x20
 # pin = 0
 # reset_gpio = 17
+#
+# chip "pwm" drives a hardware PWM channel of the Pi through sysfs: a slider
+# sets the duty cycle, a switch full or nothing. The image enables both
+# channels (dtoverlay=pwm-2chan): channel 0 is GPIO 18 (Pin 12), the "Sig" of
+# the case fan at JP10 of the IO board; channel 1 is GPIO 19 (Pin 35).
+# pwm_chip is /sys/class/pwm/pwmchip0 unless given, frequency 100 Hz (the fan
+# stage switches slowly). Level 0 is off; the levels above spread over
+# min_level..100 %, so min_level is where the fan still turns. kick_ms gives
+# full duty for that long when it starts from off. The output stops when the
+# backend exits.
+# [[controls]]
+# id = "case_fan"
+# name = "Gehäuselüfter"
+# type = "slider"
+# chip = "pwm"
+# channel = 0
+# min_level = 30
+# kick_ms = 800
+
+# The display backlight over PWM channel 1 (GPIO 19), only for a display
+# modified for it (Waveshare 7H: a resistor out, its pad to GPIO 19). The
+# options set it (SystemService Get/SetDisplayBrightness; CLI: brightness,
+# set-brightness); it is not on the "Technik" page. frequency is 1000 Hz and
+# min_percent 10 unless given: the lowest setting is 10 % duty, never dark.
+# It starts at 100 % and keeps the last level; the backend leaves it on when
+# it exits. Until the backend runs, the modified display stays dark.
+# [display.backlight]
+# channel = 1

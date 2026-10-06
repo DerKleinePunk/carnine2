@@ -21,6 +21,142 @@ export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 export 'carnine.pbenum.dart';
 
+class DisplayBrightness extends $pb.GeneratedMessage {
+  factory DisplayBrightness({
+    $core.bool? configured,
+    $core.bool? available,
+    $core.int? percent,
+  }) {
+    final result = create();
+    if (configured != null) result.configured = configured;
+    if (available != null) result.available = available;
+    if (percent != null) result.percent = percent;
+    return result;
+  }
+
+  DisplayBrightness._();
+
+  factory DisplayBrightness.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory DisplayBrightness.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DisplayBrightness',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'configured')
+    ..aOB(2, _omitFieldNames ? '' : 'available')
+    ..aI(3, _omitFieldNames ? '' : 'percent', fieldType: $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DisplayBrightness clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DisplayBrightness copyWith(void Function(DisplayBrightness) updates) =>
+      super.copyWith((message) => updates(message as DisplayBrightness))
+          as DisplayBrightness;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DisplayBrightness create() => DisplayBrightness._();
+  @$core.override
+  DisplayBrightness createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static DisplayBrightness getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DisplayBrightness>(create);
+  static DisplayBrightness? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get configured => $_getBF(0);
+  @$pb.TagNumber(1)
+  set configured($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasConfigured() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearConfigured() => $_clearField(1);
+
+  /// False while the PWM channel cannot be driven (no overlay, no chip).
+  @$pb.TagNumber(2)
+  $core.bool get available => $_getBF(1);
+  @$pb.TagNumber(2)
+  set available($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasAvailable() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAvailable() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get percent => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set percent($core.int value) => $_setUnsignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasPercent() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearPercent() => $_clearField(3);
+}
+
+class SetDisplayBrightnessRequest extends $pb.GeneratedMessage {
+  factory SetDisplayBrightnessRequest({
+    $core.int? percent,
+  }) {
+    final result = create();
+    if (percent != null) result.percent = percent;
+    return result;
+  }
+
+  SetDisplayBrightnessRequest._();
+
+  factory SetDisplayBrightnessRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SetDisplayBrightnessRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SetDisplayBrightnessRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aI(1, _omitFieldNames ? '' : 'percent', fieldType: $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetDisplayBrightnessRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetDisplayBrightnessRequest copyWith(
+          void Function(SetDisplayBrightnessRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as SetDisplayBrightnessRequest))
+          as SetDisplayBrightnessRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetDisplayBrightnessRequest create() =>
+      SetDisplayBrightnessRequest._();
+  @$core.override
+  SetDisplayBrightnessRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SetDisplayBrightnessRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SetDisplayBrightnessRequest>(create);
+  static SetDisplayBrightnessRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get percent => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set percent($core.int value) => $_setUnsignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPercent() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPercent() => $_clearField(1);
+}
+
 class ExitPasswordRequest extends $pb.GeneratedMessage {
   factory ExitPasswordRequest({
     $core.String? password,

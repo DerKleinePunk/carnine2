@@ -1162,6 +1162,26 @@ class SystemServiceClient extends $grpc.Client {
     return $createUnaryCall(_$setExitPassword, request, options: options);
   }
 
+  /// Display backlight over a PWM channel (`[display.backlight]`, a display
+  /// modified for it). Answers with configured = false without one. The
+  /// level survives restarts; percent 0 is the dimmest the configuration
+  /// allows (min_percent), never dark.
+  $grpc.ResponseFuture<$0.DisplayBrightness> getDisplayBrightness(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getDisplayBrightness, request, options: options);
+  }
+
+  /// INVALID_ARGUMENT above 100, FAILED_PRECONDITION without a backlight,
+  /// UNAVAILABLE when the PWM channel cannot be driven.
+  $grpc.ResponseFuture<$0.DisplayBrightness> setDisplayBrightness(
+    $0.SetDisplayBrightnessRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setDisplayBrightness, request, options: options);
+  }
+
   // method descriptors
 
   static final _$reportUiReady =
@@ -1218,6 +1238,16 @@ class SystemServiceClient extends $grpc.Client {
           '/carnine.SystemService/SetExitPassword',
           ($0.SetExitPasswordRequest value) => value.writeToBuffer(),
           $0.CommandResponse.fromBuffer);
+  static final _$getDisplayBrightness =
+      $grpc.ClientMethod<$0.Empty, $0.DisplayBrightness>(
+          '/carnine.SystemService/GetDisplayBrightness',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.DisplayBrightness.fromBuffer);
+  static final _$setDisplayBrightness =
+      $grpc.ClientMethod<$0.SetDisplayBrightnessRequest, $0.DisplayBrightness>(
+          '/carnine.SystemService/SetDisplayBrightness',
+          ($0.SetDisplayBrightnessRequest value) => value.writeToBuffer(),
+          $0.DisplayBrightness.fromBuffer);
 }
 
 @$pb.GrpcServiceName('carnine.SystemService')
@@ -1306,6 +1336,22 @@ abstract class SystemServiceBase extends $grpc.Service {
             ($core.List<$core.int> value) =>
                 $0.SetExitPasswordRequest.fromBuffer(value),
             ($0.CommandResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.DisplayBrightness>(
+        'GetDisplayBrightness',
+        getDisplayBrightness_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.DisplayBrightness value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.SetDisplayBrightnessRequest,
+            $0.DisplayBrightness>(
+        'SetDisplayBrightness',
+        setDisplayBrightness_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.SetDisplayBrightnessRequest.fromBuffer(value),
+        ($0.DisplayBrightness value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.CommandResponse> reportUiReady_Pre(
@@ -1396,6 +1442,23 @@ abstract class SystemServiceBase extends $grpc.Service {
 
   $async.Future<$0.CommandResponse> setExitPassword(
       $grpc.ServiceCall call, $0.SetExitPasswordRequest request);
+
+  $async.Future<$0.DisplayBrightness> getDisplayBrightness_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return getDisplayBrightness($call, await $request);
+  }
+
+  $async.Future<$0.DisplayBrightness> getDisplayBrightness(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.DisplayBrightness> setDisplayBrightness_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.SetDisplayBrightnessRequest> $request) async {
+    return setDisplayBrightness($call, await $request);
+  }
+
+  $async.Future<$0.DisplayBrightness> setDisplayBrightness(
+      $grpc.ServiceCall call, $0.SetDisplayBrightnessRequest request);
 }
 
 /// Routing, own position and place search for the navigation page (ADR-021).

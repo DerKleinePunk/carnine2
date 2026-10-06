@@ -20,6 +20,7 @@ assets = [
 	["debian/60-carnine-gps.rules", "lib/udev/rules.d/60-carnine-gps.rules", "644"],
 	["debian/61-carnine-powersupply.rules", "lib/udev/rules.d/61-carnine-powersupply.rules", "644"],
 	["debian/60-carnine-gpio.rules", "lib/udev/rules.d/60-carnine-gpio.rules", "644"],
+	["debian/61-carnine-pwm.rules", "lib/udev/rules.d/61-carnine-pwm.rules", "644"],
 ]
 maintainer-scripts = "debian/"
 systemd-units = { enable = true, start = true }

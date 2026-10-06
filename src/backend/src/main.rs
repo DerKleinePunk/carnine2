@@ -54,15 +54,15 @@ use carnine::{
     media_service_server::{MediaService, MediaServiceServer},
     AddPlaylistEntryRequest, AudioEvent, AudioEventType, CanData, CanDataRequest, CanDataResponse,
     CommandResponse, Configuration, ConfigurationResponse, CreatePlaylistRequest,
-    DeletePlaylistRequest, Empty, ExitPasswordCheck, ExitPasswordRequest, GetCoverArtRequest,
-    GetCoverArtResponse, GetPlaylistRequest, ImportMusicVolumeRequest, LibraryEvent,
-    LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest, PlayQueueEntryRequest,
-    PlayRequest, PlayerEvent, PlayerEventType, PlayerState, Playlist, PlaylistEntry,
-    PowerSupplyState, PowerSupplyStatus, RemovePlaylistEntryRequest, RenamePlaylistRequest,
-    RepeatMode, RescanMediaRequest, SearchMediaRequest, SearchMediaResponse, SeekRequest,
-    ServiceVersion, SetExitPasswordRequest, SetRepeatModeRequest, SetShuffleModeRequest,
-    SetVolumeRequest, SystemMetrics, ThermalStatus, UiState, UpdateConfigurationRequest,
-    VolumeResponse,
+    DeletePlaylistRequest, DisplayBrightness, Empty, ExitPasswordCheck, ExitPasswordRequest,
+    GetCoverArtRequest, GetCoverArtResponse, GetPlaylistRequest, ImportMusicVolumeRequest,
+    LibraryEvent, LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest,
+    PlayQueueEntryRequest, PlayRequest, PlayerEvent, PlayerEventType, PlayerState, Playlist,
+    PlaylistEntry, PowerSupplyState, PowerSupplyStatus, RemovePlaylistEntryRequest,
+    RenamePlaylistRequest, RepeatMode, RescanMediaRequest, SearchMediaRequest, SearchMediaResponse,
+    SeekRequest, ServiceVersion, SetDisplayBrightnessRequest, SetExitPasswordRequest,
+    SetRepeatModeRequest, SetShuffleModeRequest, SetVolumeRequest, SystemMetrics, ThermalStatus,
+    UiState, UpdateConfigurationRequest, VolumeResponse,
 };
 
 #[derive(Debug, Default)]
@@ -71,6 +71,8 @@ pub struct SystemServiceImpl {
     database_path: PathBuf,
     power_supply: power_supply::PowerSupplyHub,
     exit_password: Arc<exit_password::Store>,
+    /// Holds the display backlight among its controls, if one is configured.
+    controls: Option<Arc<controls::ControlHub>>,
 }
 
 /// Page names are identifiers like "maps"; anything longer is not one.
@@ -92,6 +94,36 @@ impl SystemServiceImpl {
             database_path,
             power_supply,
             exit_password: Arc::default(),
+            controls: None,
+        }
+    }
+
+    pub fn with_controls(mut self, controls: Arc<controls::ControlHub>) -> Self {
+        self.controls = Some(controls);
+        self
+    }
+
+    fn display_brightness(&self) -> DisplayBrightness {
+        let state = self
+            .controls
+            .as_ref()
+            .and_then(|hub| hub.state(controls::BACKLIGHT_ID));
+        match state {
+            Some(state) => DisplayBrightness {
+                configured: true,
+                available: state.available,
+                percent: match state.value {
+                    controls::Value::Level(level) => level,
+                    controls::Value::On(on) => {
+                        if on {
+                            controls::LEVEL_MAX
+                        } else {
+                            0
+                        }
+                    }
+                },
+            },
+            None => DisplayBrightness::default(),
         }
     }
 
@@ -248,6 +280,40 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
             .map_err(|error| Status::internal(error.to_string()))?;
         info!(valid, "exit password checked");
         Ok(Response::new(ExitPasswordCheck { valid }))
+    }
+
+    async fn get_display_brightness(
+        &self,
+        _request: Request<Empty>,
+    ) -> Result<Response<DisplayBrightness>, Status> {
+        Ok(Response::new(self.display_brightness()))
+    }
+
+    async fn set_display_brightness(
+        &self,
+        request: Request<SetDisplayBrightnessRequest>,
+    ) -> Result<Response<DisplayBrightness>, Status> {
+        let percent = request.into_inner().percent;
+        let hub = self
+            .controls
+            .as_ref()
+            .filter(|hub| hub.state(controls::BACKLIGHT_ID).is_some())
+            .map(Arc::clone)
+            .ok_or_else(|| Status::failed_precondition("no display backlight is configured"))?;
+        // Writing sysfs blocks; keep it off the async workers.
+        let result = tokio::task::spawn_blocking(move || {
+            hub.set(controls::BACKLIGHT_ID, controls::Value::Level(percent))
+        })
+        .await
+        .map_err(|error| Status::internal(error.to_string()))?;
+        match result {
+            Ok(_) => Ok(Response::new(self.display_brightness())),
+            Err(controls::SetError::InvalidValue(reason)) => Err(Status::invalid_argument(reason)),
+            Err(controls::SetError::Unavailable(reason)) => Err(Status::unavailable(reason)),
+            Err(controls::SetError::NotFound) => Err(Status::failed_precondition(
+                "no display backlight is configured",
+            )),
+        }
     }
 
     async fn set_exit_password(
@@ -1608,6 +1674,7 @@ fn configuration_from_proto(configuration: &Configuration) -> Result<config::Con
         camera: config::CameraConfig::default(),
         exit_password: config::ExitPasswordConfig::default(),
         controls: Vec::new(),
+        display: Default::default(),
     };
     configuration.validate()?;
     Ok(configuration)
@@ -1791,8 +1858,10 @@ async fn main() -> Result<()> {
     );
     // Switches and sliders of the "Technik" page; a chip that does not answer
     // at start-up or later is tried again every five seconds.
+    let mut control_entries = configuration.controls.clone();
+    control_entries.extend(configuration.display.backlight_control());
     let control_hub = Arc::new(controls::ControlHub::new(
-        &configuration.controls,
+        &control_entries,
         controls::linux_bus_opener(),
         controls::linux_reset_opener(),
         Some(configuration.media.database_path.clone()),
@@ -1813,6 +1882,7 @@ async fn main() -> Result<()> {
         configuration.media.database_path.clone(),
         power_supply_hub.clone(),
     )
+    .with_controls(Arc::clone(&control_hub))
     .with_exit_password(exit_password::Store::new(
         configuration.exit_password.hash.as_deref(),
         Some(configuration_path.with_extension("d")),
@@ -2064,6 +2134,7 @@ mod tests {
             camera: config::CameraConfig::default(),
             exit_password: config::ExitPasswordConfig::default(),
             controls: Vec::new(),
+            display: Default::default(),
         }
     }
 
@@ -2075,6 +2146,111 @@ mod tests {
                 .expect("UI readiness should be acknowledged");
 
         assert!(response.into_inner().success);
+    }
+
+    #[tokio::test]
+    async fn system_service_reports_and_sets_the_display_brightness() {
+        let metrics = Arc::new(system_metrics::SystemMetricsHandle::new());
+        let database_path =
+            std::env::temp_dir().join(format!("carnine-brightness-{}.sqlite3", std::process::id()));
+        let _ = std::fs::remove_file(&database_path);
+        let plain = SystemServiceImpl::new(
+            Arc::clone(&metrics),
+            database_path.clone(),
+            crate::power_supply::PowerSupplyHub::new(false),
+        );
+        let none = SystemService::get_display_brightness(&plain, Request::new(Empty {}))
+            .await
+            .unwrap()
+            .into_inner();
+        assert!(!none.configured);
+        let refused = SystemService::set_display_brightness(
+            &plain,
+            Request::new(crate::SetDisplayBrightnessRequest { percent: 50 }),
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(refused.code(), tonic::Code::FailedPrecondition);
+
+        // A fake sysfs PWM chip with channel 1 already exported.
+        let chip = std::env::temp_dir().join(format!("carnine-backlight-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&chip);
+        std::fs::create_dir_all(chip.join("pwm1")).unwrap();
+        for name in ["period", "duty_cycle", "enable"] {
+            std::fs::write(chip.join("pwm1").join(name), "").unwrap();
+        }
+        let display = crate::config::DisplayConfig {
+            backlight: Some(crate::config::BacklightConfig {
+                pwm_chip: Some(chip.clone()),
+                channel: 1,
+                frequency: Some(2000),
+                min_percent: Some(20),
+            }),
+        };
+        let hub = Arc::new(crate::controls::ControlHub::new(
+            &[display.backlight_control().unwrap()],
+            crate::controls::linux_bus_opener(),
+            crate::controls::linux_reset_opener(),
+            Some(database_path.clone()),
+        ));
+        let service = SystemServiceImpl::new(
+            Arc::clone(&metrics),
+            database_path.clone(),
+            crate::power_supply::PowerSupplyHub::new(false),
+        )
+        .with_controls(Arc::clone(&hub));
+        let start = SystemService::get_display_brightness(&service, Request::new(Empty {}))
+            .await
+            .unwrap()
+            .into_inner();
+        assert_eq!(
+            (start.configured, start.available, start.percent),
+            (true, true, 100)
+        );
+        assert_eq!(
+            std::fs::read_to_string(chip.join("pwm1/duty_cycle")).unwrap(),
+            "500000"
+        );
+
+        let set = SystemService::set_display_brightness(
+            &service,
+            Request::new(crate::SetDisplayBrightnessRequest { percent: 0 }),
+        )
+        .await
+        .unwrap()
+        .into_inner();
+        assert_eq!(set.percent, 0);
+        // 0 is the 20 % floor of a 500 µs period.
+        assert_eq!(
+            std::fs::read_to_string(chip.join("pwm1/duty_cycle")).unwrap(),
+            "100000"
+        );
+        let too_high = SystemService::set_display_brightness(
+            &service,
+            Request::new(crate::SetDisplayBrightnessRequest { percent: 101 }),
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(too_high.code(), tonic::Code::InvalidArgument);
+
+        // The level survives a restart.
+        drop(service);
+        drop(hub);
+        let restarted = crate::controls::ControlHub::new(
+            &[display.backlight_control().unwrap()],
+            crate::controls::linux_bus_opener(),
+            crate::controls::linux_reset_opener(),
+            Some(database_path.clone()),
+        );
+        assert_eq!(
+            restarted
+                .state(crate::controls::BACKLIGHT_ID)
+                .unwrap()
+                .value,
+            crate::controls::Value::Level(0)
+        );
+        std::fs::remove_dir_all(&chip).unwrap();
+        let _ = std::fs::remove_file(&database_path);
     }
 
     #[tokio::test]

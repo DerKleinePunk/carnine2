@@ -18,12 +18,13 @@ use carnine::{
     control_service_client::ControlServiceClient, get_cover_art_request::Target as CoverArtTarget,
     media_service_client::MediaServiceClient, navigation_service_client::NavigationServiceClient,
     system_service_client::SystemServiceClient, AddPlaylistEntryRequest, CameraNorm,
-    CameraSettings, ComputeRouteRequest, CreatePlaylistRequest, DeletePlaylistRequest, Empty,
-    ExitPasswordRequest, FixState, GetCoverArtRequest, GetLocationNameRequest, GetPlaylistRequest,
-    GetReplayRouteRequest, ImportMusicVolumeRequest, LatLon, LibraryEventType, NavigationStatus,
-    PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PositionFix, PositionSourceKind,
-    PowerSupplyState, PowerSupplyStatus, RemovePlaylistEntryRequest, RenamePlaylistRequest,
-    RepeatMode, RescanMediaRequest, Route, SearchMediaRequest, SearchPlacesRequest, SeekRequest,
+    CameraSettings, ComputeRouteRequest, CreatePlaylistRequest, DeletePlaylistRequest,
+    DisplayBrightness, Empty, ExitPasswordRequest, FixState, GetCoverArtRequest,
+    GetLocationNameRequest, GetPlaylistRequest, GetReplayRouteRequest, ImportMusicVolumeRequest,
+    LatLon, LibraryEventType, NavigationStatus, PlayPlaylistRequest, PlayQueueEntryRequest,
+    PlayRequest, PositionFix, PositionSourceKind, PowerSupplyState, PowerSupplyStatus,
+    RemovePlaylistEntryRequest, RenamePlaylistRequest, RepeatMode, RescanMediaRequest, Route,
+    SearchMediaRequest, SearchPlacesRequest, SeekRequest, SetDisplayBrightnessRequest,
     SetExitPasswordRequest, SetRepeatModeRequest, SetShuffleModeRequest, SetTrackRecordingRequest,
     SetVolumeRequest, SystemMetrics, ThermalStatus, UiState,
 };
@@ -84,6 +85,8 @@ async fn main() -> Result<()> {
         "metrics" => get_system_metrics(&endpoint).await?,
         "metrics-stream" => stream_system_metrics(&endpoint).await?,
         "power-supply" => get_power_supply_status(&endpoint).await?,
+        "brightness" => get_display_brightness(&endpoint).await?,
+        "set-brightness" => set_display_brightness(&endpoint).await?,
         "power-supply-stream" => stream_power_supply_status(&endpoint).await?,
         "thermal" => get_thermal_status(&endpoint).await?,
         "thermal-stream" => stream_thermal_status(&endpoint).await?,
@@ -798,6 +801,36 @@ async fn stream_power_supply_status(endpoint: &str) -> Result<()> {
         print_power_supply_status(&status)
     })
     .await
+}
+
+fn print_display_brightness(brightness: &DisplayBrightness) {
+    println!(
+        "configured={} available={} percent={}",
+        brightness.configured, brightness.available, brightness.percent
+    );
+}
+
+/// `brightness`: the display backlight as the options show it.
+async fn get_display_brightness(endpoint: &str) -> Result<()> {
+    let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let brightness = client.get_display_brightness(Empty {}).await?.into_inner();
+    print_display_brightness(&brightness);
+    Ok(())
+}
+
+/// `set-brightness <0-100>`: 0 is the dimmest the configuration allows.
+async fn set_display_brightness(endpoint: &str) -> Result<()> {
+    let percent = env::args()
+        .nth(3)
+        .context("set-brightness requires a percentage 0-100")?
+        .parse::<u32>()?;
+    let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let brightness = client
+        .set_display_brightness(SetDisplayBrightnessRequest { percent })
+        .await?
+        .into_inner();
+    print_display_brightness(&brightness);
+    Ok(())
 }
 
 async fn get_thermal_status(endpoint: &str) -> Result<()> {
