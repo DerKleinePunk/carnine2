@@ -33,6 +33,7 @@ This directory contains the architecture documentation of the project, structure
 24. [23 – Vehicle Power Supply (Ignition, Shutdown, Watchdog)](23-power-supply.md)
 25. [24 – CAN Adapter (MCP2515 on SPI0)](24-can-adapter-mcp2515.md)
 26. [25 – Demo and Touch Tools](25-demo-and-touch-tools.md) – drive the Pi's UI for filming and load tests
+27. [26 – Spoken Turn Announcements](26-turn-announcements.md) – offline voice (sherpa-onnx), `[voice]`, flow and measurements
 
 ## User Guide
 
