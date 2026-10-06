@@ -63,6 +63,19 @@ would give a mix such as "In 300 Metern Turn right onto Bahnhofstraße." with
 German pronunciation. An English voice with English lead-ins
 (`AnnouncementTexts.english` exists) may follow after the trade fair.
 
+The frontend adapter (`GrpcAnnouncer`) does the check: unless the UI
+language is German (`de`, `de-DE`, `de-AT`, …) it passes neither prepare nor
+announce on, so the voice does not synthesize anything either. The library's
+`AnnouncementPolicy` is unchanged. The language is read for every event:
+
+- **German → other language** during a drive: silent from the next event on.
+- **Other language → German** during a drive: audible from the next event
+  on, but the route was calculated in the old language, so its Valhalla
+  texts stay in that language and the mix comes back until the route is
+  calculated again (new destination or recalculation). The first
+  announcement after the switch also comes a few seconds late, since nothing
+  was prepared for it. This rare case stays as it is (Michael, 2026-10-06).
+
 ### What is prepared
 
 Synthesis takes seconds (see [Measurements](#measurements)), so the library
