@@ -777,7 +777,8 @@ the steps are listed for provisioning a new build host.
    `boards/emb-public/`: `emb boards sync` then reports `No board files found
    for emb-public at v0.4.0`, and the build stops with `extends: board library
    not found` (exit 64). The source `emb-boards` points at the new folder
-   (stored in `~/.config/emb/boards.yaml`).
+   (stored in `~/.config/emb/boards.yaml`); reported as
+   [emb_cli#261](https://github.com/toyota-connected/emb_cli/issues/261).
 
    The fetch downloads the Arm GNU toolchain and a RaspiOS trixie sysroot
    (several GB, cached under `~/.cache/emb`). The build also compiles a
