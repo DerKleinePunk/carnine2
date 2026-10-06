@@ -58,5 +58,7 @@ The build fails when
 
 The job `user-guide` in `.github/workflows/ci.yml` checks out with LFS (for
 the pictures), installs the tools with
-apt, runs shellcheck and `build.sh` on every push and pull request, and keeps
-the PDF for 30 days as the artifact `bedienungsanleitung` of the run.
+apt, runs shellcheck and `build.sh`, and keeps the PDF for 30 days as the
+artifact `bedienungsanleitung` of the run. It runs only on `main` (pushes and
+a manual run there), not on other branches or pull requests; check a change
+to the guide locally with `build.sh` before it reaches `main`.

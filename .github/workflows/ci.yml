@@ -137,6 +137,9 @@ jobs:
     # docs/bedienung/pdf/README.md. The script fails on a page missing from
     # its page list and on a link inside the guide without a target, so a
     # change to the guide is checked here even if nobody reads the PDF.
+    # Only on main: the guide is released from there, and the LFS checkout of
+    # its pictures is not repeated for every branch and pull request.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
