@@ -59,7 +59,7 @@ des Backends, am besten in einer eigenen Datei, z. B.
 id = "interior_light"
 name = "Innenlicht"
 type = "switch"          # oder "slider" (0–100)
-chip = "mcp23017"        # oder "demo" zum Ausprobieren ohne Hardware
+chip = "mcp23017"        # oder "pwm" (Gehäuselüfter), "demo" zum Ausprobieren ohne Hardware
 address = 0x20
 pin = 0
 ```
@@ -74,3 +74,9 @@ Kommentar in `resources/config/carnine.toml`.
 - Ein fehlerhafter Eintrag wird übersprungen und steht im Log des Backends.
 - Ohne `restore = true` starten Schalter nach dem Einschalten **aus**, Regler
   mit ihrem letzten Wert.
+- **Gehäuselüfter** (`chip = "pwm"`, `channel = 0`, Lüfter an JP10 der
+  IO-Platine): Rechts am Regler steht die Stufe, nicht der Tastgrad. Mit
+  `min_level = 30` verteilen sich die Stufen 1–100 auf 30–100 % Tastgrad, 0 ist
+  aus. Für 50 % Tastgrad steht der Regler deshalb auf etwa **29**, und leiser
+  als 30 % lässt er sich nicht stellen. Mit `boost_on_overheat = true` läuft er
+  bei Überhitzung voll, siehe [Verhalten](verhalten.md).
