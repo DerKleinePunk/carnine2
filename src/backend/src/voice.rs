@@ -10,11 +10,12 @@
 //! the map's UI and raster threads keep the other three: measured on a Pi 4
 //! (2026-10-06), the raster thread then waits no longer than without speech.
 //! Texts announced ahead (`prepare`) are synthesized in the background and
-//! kept, so the announcement itself only plays a file.
+//! kept, so the announcement itself only plays a file - straight from the
+//! caller's thread, without waiting for a sentence being synthesized.
 
 use std::collections::{HashMap, VecDeque};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -38,7 +39,7 @@ pub trait Synthesizer: Send {
 }
 
 /// Plays a finished announcement; the backend wires it to the media player.
-pub type AnnouncementSink = Box<dyn Fn(&Path, AnnouncementPriority) + Send>;
+pub type AnnouncementSink = Box<dyn Fn(&Path, AnnouncementPriority) + Send + Sync>;
 
 /// Builds the synthesizer on the voice thread; it may take seconds (the
 /// voice model is loaded there, not on the caller's thread).
@@ -49,8 +50,51 @@ const CACHE_ENTRIES: usize = 200;
 
 enum Command {
     Prepare(Vec<String>),
-    /// With the moment it was asked for, to log how late it came out.
-    Speak(String, AnnouncementPriority, std::time::Instant),
+    /// With the moment it was asked for, to log how late it came out, and
+    /// its number among all announcements.
+    Speak(String, AnnouncementPriority, std::time::Instant, u64),
+    /// Played from the cache by the caller; drops what was prepared before it.
+    Spoken(String),
+}
+
+/// Synthesized texts and their files, oldest first.
+#[derive(Default)]
+struct Cache {
+    files: HashMap<String, PathBuf>,
+    order: VecDeque<String>,
+}
+
+/// What the caller's side and the voice thread both use.
+struct Shared {
+    cache: Mutex<Cache>,
+    sink: AnnouncementSink,
+    /// Number of the last announcement played from the cache by the caller
+    /// and its priority: one the voice thread finishes later and that is not
+    /// more urgent is out of date.
+    played_direct: Mutex<Option<(u64, AnnouncementPriority)>>,
+}
+
+impl Shared {
+    fn cached(&self, text: &str) -> Option<PathBuf> {
+        self.cache
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .files
+            .get(text)
+            .cloned()
+    }
+
+    /// Whether an announcement played directly after `number` makes it
+    /// out of date.
+    fn overtaken(&self, number: u64, priority: AnnouncementPriority) -> bool {
+        matches!(
+            *self
+                .played_direct
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner()),
+            Some((direct, direct_priority)) if direct > number && direct_priority >= priority
+        )
+    }
 }
 
 /// The voice: takes texts to prepare and to speak, works on its own thread.
@@ -59,6 +103,8 @@ pub struct Voice {
     enabled: Arc<AtomicBool>,
     /// The voice loaded; until then, or when it failed, nothing is spoken.
     loaded: Arc<AtomicBool>,
+    shared: Arc<Shared>,
+    announced: AtomicU64,
 }
 
 impl Voice {
@@ -74,6 +120,12 @@ impl Voice {
         let enabled = Arc::new(AtomicBool::new(enabled));
         let loaded = Arc::new(AtomicBool::new(false));
         let thread_loaded = Arc::clone(&loaded);
+        let shared = Arc::new(Shared {
+            cache: Mutex::new(Cache::default()),
+            sink,
+            played_direct: Mutex::new(None),
+        });
+        let thread_shared = Arc::clone(&shared);
         thread::Builder::new()
             .name("carnine-voice".to_string())
             .spawn(move || {
@@ -91,13 +143,15 @@ impl Voice {
                 };
                 thread_loaded.store(true, Ordering::Release);
                 info!("voice ready");
-                Worker::new(synthesizer, cache_dir, sink).run(receiver);
+                Worker::new(synthesizer, cache_dir, thread_shared).run(receiver);
             })
             .expect("the voice thread starts");
         Self {
             commands: Mutex::new(commands),
             enabled,
             loaded,
+            shared,
+            announced: AtomicU64::new(0),
         }
     }
 
@@ -122,10 +176,29 @@ impl Voice {
         }
     }
 
-    /// Speaks `text` now, from the cache when it was prepared.
+    /// Speaks `text` now: a prepared one plays at once, others are
+    /// synthesized first.
     pub fn announce(&self, text: String, priority: AnnouncementPriority) {
-        if self.enabled() && !text.trim().is_empty() {
-            self.send(Command::Speak(text, priority, std::time::Instant::now()));
+        if !self.enabled() || text.trim().is_empty() {
+            return;
+        }
+        let asked = std::time::Instant::now();
+        let number = self.announced.fetch_add(1, Ordering::AcqRel) + 1;
+        if let Some(path) = self.shared.cached(&text) {
+            *self
+                .shared
+                .played_direct
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some((number, priority));
+            (self.shared.sink)(&path, priority);
+            info!(
+                text,
+                late_ms = asked.elapsed().as_millis() as u64,
+                "announcement spoken"
+            );
+            self.send(Command::Spoken(text));
+        } else {
+            self.send(Command::Speak(text, priority, asked, number));
         }
     }
 
@@ -250,24 +323,27 @@ impl VoiceControl {
 struct Worker {
     synthesizer: Box<dyn Synthesizer>,
     cache_dir: PathBuf,
-    sink: AnnouncementSink,
-    cache: HashMap<String, PathBuf>,
-    /// Cached texts, oldest first.
-    order: VecDeque<String>,
+    shared: Arc<Shared>,
     next_file: u64,
 }
 
+/// The prepared sentences ahead of a spoken one were for earlier steps of
+/// the maneuver; they will not come.
+fn drop_through(pending: &mut VecDeque<String>, spoken: &str) {
+    if let Some(index) = pending.iter().position(|queued| queued == spoken) {
+        pending.drain(..=index);
+    }
+}
+
 impl Worker {
-    fn new(synthesizer: Box<dyn Synthesizer>, cache_dir: PathBuf, sink: AnnouncementSink) -> Self {
+    fn new(synthesizer: Box<dyn Synthesizer>, cache_dir: PathBuf, shared: Arc<Shared>) -> Self {
         if let Err(error) = std::fs::create_dir_all(&cache_dir) {
             warn!(dir = %cache_dir.display(), %error, "voice cache directory missing");
         }
         Self {
             synthesizer,
             cache_dir,
-            sink,
-            cache: HashMap::new(),
-            order: VecDeque::new(),
+            shared,
             next_file: 0,
         }
     }
@@ -290,29 +366,32 @@ impl Worker {
             };
             match command {
                 Some(Command::Prepare(texts)) => pending = texts.into(),
-                Some(Command::Speak(text, priority, asked)) => {
+                Some(Command::Spoken(text)) => drop_through(&mut pending, &text),
+                Some(Command::Speak(text, priority, asked, number)) => {
                     // Announcements that queued up while one was synthesized
                     // are out of date; only the newest is spoken.
-                    let mut newest = (text, priority, asked);
+                    let mut newest = (text, priority, asked, number);
                     loop {
                         match receiver.try_recv() {
                             Ok(Command::Prepare(texts)) => pending = texts.into(),
-                            Ok(Command::Speak(text, priority, asked)) => {
+                            Ok(Command::Spoken(text)) => drop_through(&mut pending, &text),
+                            Ok(Command::Speak(text, priority, asked, number)) => {
                                 if priority >= newest.1 {
-                                    newest = (text, priority, asked);
+                                    newest = (text, priority, asked, number);
                                 }
                             }
                             Err(_) => break,
                         }
                     }
-                    let (text, priority, asked) = newest;
-                    // The prepared sentences ahead of this one were for
-                    // earlier steps of the maneuver; they will not come.
-                    if let Some(index) = pending.iter().position(|queued| *queued == text) {
-                        pending.drain(..=index);
+                    let (text, priority, asked, number) = newest;
+                    drop_through(&mut pending, &text);
+                    if self.shared.overtaken(number, priority) {
+                        continue;
                     }
-                    if let Some(path) = self.speech_file(&text) {
-                        (self.sink)(&path, priority);
+                    let path = self.speech_file(&text);
+                    // A newer one may have played while this was synthesized.
+                    if let Some(path) = path.filter(|_| !self.shared.overtaken(number, priority)) {
+                        (self.shared.sink)(&path, priority);
                         info!(
                             text,
                             late_ms = asked.elapsed().as_millis() as u64,
@@ -332,8 +411,8 @@ impl Worker {
 
     /// The WAV file for `text`, synthesized now unless cached.
     fn speech_file(&mut self, text: &str) -> Option<PathBuf> {
-        if let Some(path) = self.cache.get(text) {
-            return Some(path.clone());
+        if let Some(path) = self.shared.cached(text) {
+            return Some(path);
         }
         let started = std::time::Instant::now();
         let speech = match self.synthesizer.synthesize(text) {
@@ -357,11 +436,16 @@ impl Worker {
             audio_ms = (speech.samples.len() as u64 * 1000) / u64::from(speech.sample_rate.max(1)),
             "speech ready"
         );
-        self.cache.insert(text.to_string(), path.clone());
-        self.order.push_back(text.to_string());
-        while self.order.len() > CACHE_ENTRIES {
-            if let Some(oldest) = self.order.pop_front() {
-                if let Some(old_path) = self.cache.remove(&oldest) {
+        let mut cache = self
+            .shared
+            .cache
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        cache.files.insert(text.to_string(), path.clone());
+        cache.order.push_back(text.to_string());
+        while cache.order.len() > CACHE_ENTRIES {
+            if let Some(oldest) = cache.order.pop_front() {
+                if let Some(old_path) = cache.files.remove(&oldest) {
                     let _ = std::fs::remove_file(old_path);
                 }
             }
@@ -844,6 +928,53 @@ mod tests {
         );
         thread::sleep(Duration::from_millis(200));
         assert_eq!(rig.calls.lock().unwrap().len(), 3, "nothing else");
+    }
+
+    #[test]
+    fn a_prepared_announcement_does_not_wait_for_a_sentence_being_synthesized() {
+        let rig = Rig::new("direct");
+        rig.voice.prepare(vec!["Jetzt links abbiegen.".into()]);
+        rig.wait_for_calls(1);
+        rig.voice.prepare(vec!["slow next maneuver".into()]);
+        rig.wait_for_calls(2);
+
+        // The voice thread is busy for another ~300 ms.
+        rig.voice.announce(
+            "Jetzt links abbiegen.".into(),
+            AnnouncementPriority::Maneuver,
+        );
+        let (path, _) = rig
+            .played
+            .recv_timeout(Duration::from_millis(150))
+            .expect("played at once");
+        assert!(path.is_file());
+        thread::sleep(Duration::from_millis(400));
+        assert_eq!(
+            rig.calls.lock().unwrap().as_slice(),
+            ["Jetzt links abbiegen.", "slow next maneuver"],
+            "the next maneuver is still prepared"
+        );
+    }
+
+    #[test]
+    fn an_announcement_finished_after_a_newer_one_played_is_dropped() {
+        let rig = Rig::new("overtaken");
+        rig.voice.prepare(vec!["Jetzt rechts abbiegen.".into()]);
+        rig.wait_for_calls(1);
+        rig.voice
+            .announce("slow old turn".into(), AnnouncementPriority::Maneuver);
+        rig.wait_for_calls(2);
+        rig.voice.announce(
+            "Jetzt rechts abbiegen.".into(),
+            AnnouncementPriority::Maneuver,
+        );
+
+        let (path, _) = rig.next_played().expect("the newer one plays");
+        assert!(path.is_file());
+        assert!(
+            rig.played.recv_timeout(Duration::from_millis(600)).is_err(),
+            "the older one, finished later, stays silent"
+        );
     }
 
     #[test]
