@@ -290,6 +290,21 @@ impl Worker {
             match command {
                 Some(Command::Prepare(texts)) => pending = texts.into(),
                 Some(Command::Speak(text, priority)) => {
+                    // Announcements that queued up while one was synthesized
+                    // are out of date; only the newest is spoken.
+                    let mut newest = (text, priority);
+                    loop {
+                        match receiver.try_recv() {
+                            Ok(Command::Prepare(texts)) => pending = texts.into(),
+                            Ok(Command::Speak(text, priority)) => {
+                                if priority >= newest.1 {
+                                    newest = (text, priority);
+                                }
+                            }
+                            Err(_) => break,
+                        }
+                    }
+                    let (text, priority) = newest;
                     if let Some(path) = self.speech_file(&text) {
                         (self.sink)(&path, priority);
                     }
@@ -635,7 +650,7 @@ mod tests {
     use std::sync::mpsc::RecvTimeoutError;
     use std::time::Duration;
 
-    /// Counts what it synthesizes; "fail" fails.
+    /// Counts what it synthesizes; "fail" fails, "slow" takes 300 ms.
     struct Fake {
         calls: Arc<Mutex<Vec<String>>>,
     }
@@ -643,6 +658,9 @@ mod tests {
     impl Synthesizer for Fake {
         fn synthesize(&mut self, text: &str) -> Result<Speech> {
             self.calls.lock().unwrap().push(text.to_string());
+            if text.starts_with("slow") {
+                thread::sleep(Duration::from_millis(300));
+            }
             if text == "fail" {
                 anyhow::bail!("broken voice");
             }
@@ -744,6 +762,33 @@ mod tests {
         let (_, priority) = rig.next_played().expect("played");
         assert_eq!(priority, AnnouncementPriority::Info);
         assert_eq!(rig.wait_for_calls(1), ["Die Route wird neu berechnet."]);
+    }
+
+    #[test]
+    fn announcements_that_queue_up_are_dropped_for_the_newest() {
+        let rig = Rig::new("queued");
+        rig.voice
+            .announce("slow first".into(), AnnouncementPriority::Maneuver);
+        // Sent while the first one is synthesized.
+        thread::sleep(Duration::from_millis(100));
+        rig.voice
+            .announce("old turn".into(), AnnouncementPriority::Maneuver);
+        rig.voice
+            .announce("newest turn".into(), AnnouncementPriority::Maneuver);
+        rig.voice
+            .announce("an information".into(), AnnouncementPriority::Info);
+
+        rig.next_played().expect("the first plays");
+        rig.next_played().expect("then one more");
+        assert!(
+            rig.played.recv_timeout(Duration::from_millis(300)).is_err(),
+            "no backlog"
+        );
+        assert_eq!(
+            rig.wait_for_calls(2),
+            ["slow first", "newest turn"],
+            "the newest turn instruction wins over older ones and the information"
+        );
     }
 
     #[test]
