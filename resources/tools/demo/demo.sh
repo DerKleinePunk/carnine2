@@ -38,6 +38,8 @@ REMOTE_DIR=/home/pi/demo
 MEDIA_DIR=/var/lib/carnine/media/demo
 TRACK_FILE=/var/lib/carnine/maps/demo-track.json
 GPS_PIPE=/var/lib/carnine/maps/demo-gps.fifo
+# The unit runs as carnine, which cannot read /home/pi (mode 700 on the image).
+GPS_SCRIPT=/var/lib/carnine/maps/demo_gps.py
 GPS_UNIT=carnine-demo-gps
 DROP_IN=/etc/carnine/config.d/90-demo.toml
 # Seconds of the drive per second of video, and fixes per second of video.
@@ -110,9 +112,10 @@ prepare() {
     sudo install -d -o carnine -g carnine $MEDIA_DIR \
     && sudo install -o carnine -g carnine -m 0644 $REMOTE_DIR/*.mp3 $MEDIA_DIR/ \
     && sudo install -o carnine -g carnine -m 0644 $REMOTE_DIR/demo-track.json $TRACK_FILE \
+    && sudo install -o carnine -g carnine -m 0644 $REMOTE_DIR/demo_gps.py $GPS_SCRIPT \
     && sudo rm -f $GPS_PIPE && sudo -u carnine mkfifo -m 0600 $GPS_PIPE \
     && sudo systemd-run -q --unit=$GPS_UNIT --uid=carnine --gid=carnine \
-      python3 -u $REMOTE_DIR/demo_gps.py feed $TRACK_FILE $GPS_PIPE --factor $FACTOR --hz $HZ \
+      python3 -u $GPS_SCRIPT feed $TRACK_FILE $GPS_PIPE --factor $FACTOR --hz $HZ \
     && sudo install -m 0644 $REMOTE_DIR/90-demo.toml $DROP_IN \
     && sudo systemctl restart carnine-backend"
   wait_for_backend
@@ -134,7 +137,7 @@ drive() {
 
 restore() {
   ssh "$PI" "sudo systemctl stop $GPS_UNIT 2>/dev/null; sudo systemctl reset-failed $GPS_UNIT 2>/dev/null; \
-    sudo rm -f $DROP_IN $GPS_PIPE && sudo systemctl restart carnine-backend"
+    sudo rm -f $DROP_IN $GPS_PIPE $GPS_SCRIPT && sudo systemctl restart carnine-backend"
   wait_for_backend
   client nav-status | head -3
   log "backend back on its own position source"
