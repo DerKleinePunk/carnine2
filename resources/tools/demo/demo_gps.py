@@ -5,9 +5,13 @@ With navigation.position_source = "serial" the backend reads NMEA from
 serial_device, a named pipe works too. Unlike the replay source, the map then
 loads no route of its own, so the one typed on camera is the only one.
 
-  demo_gps.py plan START_LAT START_LON DEST_LAT DEST_LON TRACK.json [--valhalla URL]
+  demo_gps.py plan START_LAT START_LON DEST_LAT DEST_LON TRACK.json
+                [--via LAT,LON]... [--valhalla URL]
       Asks Valhalla for the route the way the backend does (two locations,
       costing auto) and saves its shape and the speed of each stretch.
+      Each --via is a point the drive passes through on the way, in order,
+      without stopping. A drive with a detour leaves the route the map
+      shows and so tests the reroute.
   demo_gps.py feed TRACK.json PIPE [--factor N] [--hz N]
       Writes GGA + RMC into PIPE: standing at the start until SIGUSR1, then
       the drive, then standing at the destination. --factor N covers N seconds
@@ -64,13 +68,27 @@ def bearing(a, b):
     return (math.degrees(math.atan2(y, x)) + 360) % 360
 
 
-def plan(args):
-    body = json.dumps({
-        "locations": [{"lat": args.start_lat, "lon": args.start_lon},
+def via_point(text):
+    try:
+        lat, lon = (float(part) for part in text.split(","))
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"expected LAT,LON, got {text!r}")
+    return lat, lon
+
+
+def route_body(args):
+    # A through location is passed on the way, the route does not stop there.
+    vias = [{"lat": lat, "lon": lon, "type": "through"} for lat, lon in args.via]
+    return {
+        "locations": [{"lat": args.start_lat, "lon": args.start_lon}, *vias,
                       {"lat": args.dest_lat, "lon": args.dest_lon}],
         "costing": "auto",
         "directions_options": {"units": "kilometers"},
-    }).encode()
+    }
+
+
+def plan(args):
+    body = json.dumps(route_body(args)).encode()
     request = urllib.request.Request(args.valhalla.rstrip("/") + "/route", body,
                                      {"Content-Type": "application/json"})
     trip = json.load(urllib.request.urlopen(request, timeout=60))["trip"]
@@ -182,7 +200,7 @@ def feed(args):
             time.sleep(1)
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -190,13 +208,15 @@ def main():
     for name in ("start_lat", "start_lon", "dest_lat", "dest_lon"):
         p.add_argument(name, type=float)
     p.add_argument("track")
+    p.add_argument("--via", type=via_point, action="append", default=[],
+                   metavar="LAT,LON")
     p.add_argument("--valhalla", default="http://127.0.0.1:8002")
     f = commands.add_parser("feed")
     f.add_argument("track")
     f.add_argument("pipe")
     f.add_argument("--factor", type=float, default=1.0)
     f.add_argument("--hz", type=float, default=1.0)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     {"plan": plan, "feed": feed}[args.command](args)
 
 
