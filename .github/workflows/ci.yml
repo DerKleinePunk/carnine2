@@ -30,6 +30,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # The demo tools' own tests, a second or so. Python ships with the runner
+      # image, and a step here saves the start of a job of their own.
+      - name: Demo tool tests (Python)
+        working-directory: resources/tools/demo
+        run: python3 -m unittest -v test_demo_gps.py
+
       # protoc for tonic-prost-build, ALSA headers for cpal. The default feature set
       # does not pull in ffmpeg-next, so no FFmpeg headers are needed - but the
       # metadata and cover-art tests shell out to the ffmpeg and ffprobe
