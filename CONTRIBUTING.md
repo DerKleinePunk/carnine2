@@ -71,7 +71,11 @@ display panel, the audio sink and USB media. Those are verified on the test Pi.
 1. Update the README.md with details of changes to the interface, if applicable.
 2. Increase version numbers in any examples files and the README.md to the new version that this Pull Request would represent.
 3. Ensure all tests pass and the code builds successfully.
-4. Your PR will be reviewed by maintainers and merged once approved.
+4. If the PR changes the user guide (`docs/bedienung/`), run
+   `docs/bedienung/pdf/build.sh` before you open it. CI builds the PDF only on
+   `main`, so a page missing from the page list, a link without a target or a
+   missing picture would otherwise only show up after the merge.
+5. Your PR will be reviewed by maintainers and merged once approved.
 
 ## Release Checklist
 
