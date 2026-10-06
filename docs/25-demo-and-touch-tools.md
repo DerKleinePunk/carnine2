@@ -97,12 +97,13 @@ A demo file is plain text with one command per line. `#` starts a comment.
 | `play PATH` | `MediaService.Play` with that file (it must be in the library) |
 | `cli ARGS...` | Any `media_grpc_client` command, for example `cli seek 30000` |
 
-`frankfurt.demo`, the first demo, takes about 1.5 min: 3 s on home, the music
-page with "Here We Go Now" starting, the map page, "Frankfurt am Main" typed
-into the destination search, the first hit chosen, the route from Steinau
-(about 70 km) on screen for 5 s, then `drive`, the navigation mode switched to
-heading up, and 60 s of the drive. The whole drive takes about 5 min at
-factor 10; lengthen the last `wait` to film it to the end.
+`frankfurt.demo`, the first demo, takes a little under 2 min: 3 s on home, the
+music page with "Here We Go Now" starting, the map page, "Frankfurt am Main"
+typed into the destination search, the first hit chosen, the route from Steinau
+(about 70 km) on screen for 15 s, so the voice can prepare the first
+announcements, then `drive`, the navigation mode switched to heading up, and
+60 s of the drive. The whole drive takes about 5 min at factor 10; lengthen
+the last `wait` to film it to the end.
 
 For a new demo, copy `frankfurt.demo` and change it. Use `wait` to set the pace
 for the camera.

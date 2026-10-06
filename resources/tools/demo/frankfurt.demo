@@ -25,7 +25,7 @@ tap 560 154             # first hit
 wait 3000
 
 say Route steht
-wait 5000
+wait 15000              # the voice prepares the first announcements
 
 say Losfahren
 drive
