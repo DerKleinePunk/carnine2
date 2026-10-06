@@ -30,6 +30,9 @@ RoutingManeuver _maneuverFromProto(pb.Maneuver m) => RoutingManeuver(
   type: m.type,
   beginShapeIndex: m.beginShapeIndex,
   streetNames: List.unmodifiable(m.streetNames),
+  verbalAlert: m.hasVerbalAlert() ? m.verbalAlert : null,
+  verbalPre: m.hasVerbalPre() ? m.verbalPre : null,
+  verbalPost: m.hasVerbalPost() ? m.verbalPost : null,
 );
 
 /// `null` for fixes without a valid position (`FIX_STATE_NO_FIX`); the

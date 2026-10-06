@@ -11,6 +11,8 @@ import 'package:local_map/local_map.dart';
 /// with a two-point route.
 class _FakeNavigationService extends pb.NavigationServiceBase {
   final requests = <pb.ComputeRouteRequest>[];
+  final prepared = <List<String>>[];
+  final announced = <pb.AnnounceRequest>[];
 
   @override
   Future<pb.Route> computeRoute(
@@ -72,11 +74,19 @@ class _FakeNavigationService extends pb.NavigationServiceBase {
   Future<pb.Empty> prepareAnnouncements(
     ServiceCall call,
     pb.PrepareAnnouncementsRequest request,
-  ) => throw GrpcError.unimplemented();
+  ) async {
+    prepared.add(request.texts.toList());
+    return pb.Empty();
+  }
 
   @override
-  Future<pb.Empty> announce(ServiceCall call, pb.AnnounceRequest request) =>
-      throw GrpcError.unimplemented();
+  Future<pb.Empty> announce(
+    ServiceCall call,
+    pb.AnnounceRequest request,
+  ) async {
+    announced.add(request);
+    return pb.Empty();
+  }
 
   @override
   Future<pb.VoiceSettings> getVoiceSettings(
@@ -140,5 +150,49 @@ void main() {
     final request = service.requests.single;
     expect(request.hasOrigin(), isTrue);
     expect(request.hasOriginHeadingDegrees(), isFalse);
+  });
+
+  test('announcements reach the backend with their priority', () async {
+    final announcer = GrpcAnnouncer(channel);
+    await announcer.handle(
+      const AnnouncementPrepare([
+        'In 300 Metern rechts abbiegen.',
+        'Die Route wird neu berechnet.',
+      ]),
+    );
+    await announcer.handle(
+      const Announcement(
+        'In 300 Metern rechts abbiegen.',
+        AnnouncementPriority.maneuver,
+      ),
+    );
+    await announcer.handle(
+      const Announcement(
+        'Die Route wird neu berechnet.',
+        AnnouncementPriority.info,
+      ),
+    );
+
+    expect(service.prepared, [
+      ['In 300 Metern rechts abbiegen.', 'Die Route wird neu berechnet.'],
+    ]);
+    expect(service.announced.map((a) => a.text), [
+      'In 300 Metern rechts abbiegen.',
+      'Die Route wird neu berechnet.',
+    ]);
+    expect(service.announced.map((a) => a.priority), [
+      pb.AnnouncementPriority.ANNOUNCEMENT_PRIORITY_MANEUVER,
+      pb.AnnouncementPriority.ANNOUNCEMENT_PRIORITY_INFO,
+    ]);
+  });
+
+  test('a backend that is gone does not break the map', () async {
+    await server.shutdown();
+    await GrpcAnnouncer(channel).handle(
+      const Announcement(
+        'Jetzt links abbiegen.',
+        AnnouncementPriority.maneuver,
+      ),
+    );
   });
 }

@@ -33,6 +33,12 @@ class MapsController extends ChangeNotifier {
       positionSource: _positions,
       reverseGeocoder: GrpcReverseGeocoder(_channel),
     );
+    _announcer = GrpcAnnouncer(_channel);
+    // One after the other, so a Prepare reaches the backend before the
+    // Announce of one of its sentences.
+    _announcements = map.announcements.listen((event) {
+      _announced = _announced.then((_) => _announcer.handle(event));
+    });
     unawaited(_pollStatus());
     _statusTimer = Timer.periodic(statusInterval, (_) => _pollStatus());
   }
@@ -52,6 +58,9 @@ class MapsController extends ChangeNotifier {
   late final GrpcPlaceSearch _search;
   late final NavigationStatusClient _statusClient;
   late final LocalMapController map;
+  late final GrpcAnnouncer _announcer;
+  late final StreamSubscription<AnnouncementEvent> _announcements;
+  Future<void> _announced = Future.value();
   Timer? _statusTimer;
   bool _disposed = false;
 
@@ -184,6 +193,7 @@ class MapsController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _statusTimer?.cancel();
+    unawaited(_announcements.cancel());
     map.dispose();
     unawaited(_positions.dispose());
     unawaited(_channel.shutdown());

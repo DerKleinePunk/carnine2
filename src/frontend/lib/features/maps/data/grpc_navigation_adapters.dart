@@ -219,3 +219,41 @@ class NavigationStatusClient {
     }
   }
 }
+
+/// Hands the library's turn announcements to the backend, which speaks
+/// them (`PrepareAnnouncements`, `Announce`). Speech is a nicety: a failed
+/// call is logged and the map goes on.
+class GrpcAnnouncer {
+  GrpcAnnouncer(this._channel, {Logger? logger})
+    : _logger = logger ?? Logger('GrpcAnnouncer');
+
+  final NavigationChannel _channel;
+  final Logger _logger;
+
+  Future<void> handle(AnnouncementEvent event) async {
+    try {
+      switch (event) {
+        case AnnouncementPrepare(:final texts):
+          await _channel.stub.prepareAnnouncements(
+            pb.PrepareAnnouncementsRequest(texts: texts),
+            options: CallOptions(timeout: const Duration(seconds: 2)),
+          );
+        case Announcement(:final text, :final priority):
+          await _channel.stub.announce(
+            pb.AnnounceRequest(
+              text: text,
+              priority: switch (priority) {
+                AnnouncementPriority.maneuver =>
+                  pb.AnnouncementPriority.ANNOUNCEMENT_PRIORITY_MANEUVER,
+                AnnouncementPriority.info =>
+                  pb.AnnouncementPriority.ANNOUNCEMENT_PRIORITY_INFO,
+              },
+            ),
+            options: CallOptions(timeout: const Duration(seconds: 2)),
+          );
+      }
+    } catch (error) {
+      _logger.warning('announcement not handed to the backend: $error');
+    }
+  }
+}

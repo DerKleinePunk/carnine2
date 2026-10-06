@@ -41,6 +41,30 @@ void main() {
       expect(maneuver.type, 10);
       expect(maneuver.beginShapeIndex, 1);
       expect(maneuver.streetNames, ['Lindenallee']);
+      expect(maneuver.verbalAlert, isNull, reason: 'not sent');
+    });
+
+    test('carries the spoken texts for the announcements', () {
+      final maneuver = routeFromProto(
+        pb.Route(
+          geometry: [pb.LatLon(latitude: 50, longitude: 9)],
+          maneuvers: [
+            pb.Maneuver(
+              instruction: 'Biegen Sie rechts ab.',
+              verbalAlert: 'Rechts auf Lindenallee abbiegen.',
+              verbalPre:
+                  'Rechts auf Lindenallee abbiegen. Dann weiter auf B 62.',
+            ),
+          ],
+        ),
+      ).maneuvers.single;
+
+      expect(maneuver.verbalAlert, 'Rechts auf Lindenallee abbiegen.');
+      expect(
+        maneuver.verbalPre,
+        'Rechts auf Lindenallee abbiegen. Dann weiter auf B 62.',
+      );
+      expect(maneuver.verbalPost, isNull);
     });
   });
 
