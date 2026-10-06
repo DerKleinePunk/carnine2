@@ -54,7 +54,10 @@ The deployment architecture emphasizes reliability and minimal resource consumpt
     GPIO 18. The duty cycle sets the speed (100 Hz by default, because the
     stage switches slowly); `min_level` is where the fan still turns,
     `kick_ms` gives full duty when it starts from off. It shows up as a
-    slider on the Technik page and stops when the backend exits.
+    slider on the Technik page and stops when the backend exits. Mind the
+    polarity at JP10: pin 1 is +5 V (red wire), pin 2 ground. The fan has
+    reverse polarity protection, so plugged in the wrong way round it simply
+    does not turn (seen on carnine-pc on 2026-10-06).
   - Channel 1 is for the backlight of a display modified for it (Waveshare
     7H: a resistor out, its pad to GPIO 19); no test unit has that yet. The
     options set it (SystemService `GetDisplayBrightness` /
