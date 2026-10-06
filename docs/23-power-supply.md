@@ -92,7 +92,11 @@ Michael measured **5.09 V** at the output (2026-10-04), which fits. (The table g
   converter. A jumper connects the microcontroller's serial line either to
   the USB socket (jumper towards the socket: programming) or to the pin
   header (other side: running on the Pi). In the wrong position the Pi
-  receives the supply's output but its commands never arrive.
+  receives the supply's output but its commands never arrive. The alive
+  signal `+` does not arrive either, so the supply goes round in a circle
+  about every 71 s: `RUN`, "alive counter low", `POWEROFF`, `POWERON`,
+  `PIBOOT`, `RUN` again (carnine-pc, 2026-10-06, jumper left on programming).
+  A Pi fed through Rel2 is switched off every time.
 - **Pi power:** the Pi is fed from the supply through its USB-C socket,
   not through the 5 V pins of its GPIO header. Raspberry Pi asks for a
   5.1 V supply, and the Pi logs an undervoltage below 4.63 V (±5 %). The
