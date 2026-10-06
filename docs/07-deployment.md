@@ -632,12 +632,14 @@ The Debian packages pull in everything they need; the image installs them:
 **Flutter Frontend Cross‑Compilation**
 - [`emb_cli`](https://github.com/toyota-connected/emb_cli) from git at
   `5813fa8`, the state release builds use. **Not** `dart install emb_cli`:
-  the pub.dev release 0.3.6 (16 Aug 2026) rejects the code assets emb stages
-  itself, so `build_pi.sh` stops with
-  `bundle lib/: unexpected file "libsqlite3.so"`. The fix (`75a26f3b`,
-  27 Aug 2026) is not released yet, and `emb --version` prints `0.3.6` for
-  both, so it does not tell them apart. Once a newer release is on pub.dev,
-  `dart install emb_cli` works again.
+  the pub.dev releases reject the code assets emb stages itself.
+  With 0.3.6 (16 Aug 2026) `build_pi.sh` stops with
+  `bundle lib/: unexpected file "libsqlite3.so"`, with 0.3.7 (4 Oct 2026)
+  with `libsqlite3.so: not the engine, the app image, or a declared module
+  artifact`. 0.3.7 carries the audit fix (`75a26f3b`), but not `40d8eba`,
+  which hands the staged code assets to that audit; `5813fa8` has both
+  ([emb_cli#255](https://github.com/toyota-connected/emb_cli/issues/255)).
+  `emb --version` prints `0.3.6` for the git state.
 
   ```
   dart install 'emb_cli@{git: {url: https://github.com/toyota-connected/emb_cli, ref: 5813fa8}}'
@@ -771,6 +773,10 @@ the steps are listed for provisioning a new build host.
    (several GB, cached under `~/.cache/emb`). The build also compiles a
    host-native `wayland-cxx-scanner` and needs `sudo apt install libpugixml-dev`
    on the workstation.
+
+   After a change of the emb version, the first build stops with
+   `emb.lock drift … re-run with --update-lock`. Run the `--fetch-only`
+   command above once more with `--update-lock` added, then build again.
 
 2. **Build** with `./build_pi.sh`. It copies `src/frontend` to
    `build/emb-app/carnine_frontend` (emb writes into the app directory),
