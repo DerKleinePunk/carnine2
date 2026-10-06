@@ -90,7 +90,8 @@ impl NavigationServiceImpl {
     }
 
     pub fn with_replay_points(mut self, points: Option<Vec<(f64, f64)>>) -> Self {
-        self.replay_points = points.map(Arc::new);
+        // A tour without a single valid position has nothing to map-match.
+        self.replay_points = points.filter(|points| !points.is_empty()).map(Arc::new);
         self
     }
 
@@ -406,7 +407,7 @@ impl NavigationService for NavigationServiceImpl {
         request: Request<GetReplayRouteRequest>,
     ) -> Result<Response<Route>, Status> {
         let Some(points) = self.replay_points.clone() else {
-            return Err(Status::not_found("the position source is not a replay"));
+            return Err(Status::not_found("no replay tour with positions is loaded"));
         };
         let language = language(request.into_inner().language)?;
         // Held across the Valhalla call, so a second caller waits for the
@@ -602,6 +603,16 @@ mod tests {
             .get_replay_route(Request::new(GetReplayRouteRequest { language: None }))
             .await
             .expect_err("no replay running");
+        assert_eq!(status.code(), tonic::Code::NotFound);
+    }
+
+    #[tokio::test]
+    async fn replay_route_needs_valid_positions() {
+        let status = service(PositionHub::new(SourceKind::Replay))
+            .with_replay_points(Some(Vec::new()))
+            .get_replay_route(Request::new(GetReplayRouteRequest { language: None }))
+            .await
+            .expect_err("a tour without valid positions has no route");
         assert_eq!(status.code(), tonic::Code::NotFound);
     }
 

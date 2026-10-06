@@ -914,7 +914,9 @@ Add `NavigationService` to `carnine.proto`:
   instruction language (BCP-47, default `de-DE`).
 - `GetReplayRoute` - the route of the running NMEA replay, map-matched with
   Valhalla's `/trace_route`, so position and route on the fair stand come
-  from the same recording.
+  from the same recording. A configured replay whose tour cannot be read
+  (the image before the map data is installed) runs no source: status and
+  fixes report `POSITION_SOURCE_NONE`, not a replay the map keeps asking for.
 - `StreamPositions` - fixes at the source's rate (1 Hz), heading unsmoothed.
 - `SetTrackRecording` - switches recording of the driven track on or off
   (`[navigation] track_directory`, see docs/07 "Recording drives").
