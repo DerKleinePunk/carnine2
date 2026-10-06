@@ -26,7 +26,11 @@ class GrpcRoutingProvider implements RoutingProvider {
   NavigationFailure? lastFailure;
 
   @override
-  Future<RoutingResult> route({LatLng? start, required LatLng end}) async {
+  Future<RoutingResult> route({
+    LatLng? start,
+    required LatLng end,
+    double? startHeadingDegrees,
+  }) async {
     final request = pb.ComputeRouteRequest(
       destination: latLonToProto(end),
       language: language(),
@@ -34,6 +38,11 @@ class GrpcRoutingProvider implements RoutingProvider {
     // Without a start the backend routes from its own GPS fix (ADR-021).
     if (start != null) {
       request.origin = latLonToProto(start);
+    }
+    // The library sets the course only for a reroute from the own position
+    // while driving; Valhalla then does not send the car back to turn.
+    if (startHeadingDegrees != null) {
+      request.originHeadingDegrees = startHeadingDegrees;
     }
     try {
       final route = await _channel.stub.computeRoute(
