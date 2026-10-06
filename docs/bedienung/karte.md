@@ -103,6 +103,30 @@ erreichbar“ (Backend weg, rot).
 Die Fahranweisungen erscheinen in der unter [Optionen → Darstellung & Sprache](optionen.md#darstellung--sprache)
 gewählten Sprache.
 
+## Sprachansagen
+
+Während der Navigation sagt CarNine die Abbiegungen an, zum Beispiel
+„In 300 Metern rechts auf Bahnhofstraße abbiegen. Dann weiter auf L 3195.“
+und an der Kreuzung „Rechts auf Bahnhofstraße abbiegen.“ Die Stimme entsteht
+im Gerät selbst, Internet braucht es dafür nicht.
+
+- **Wann:** unter 80 km/h einmal 300 m vor der Abbiegung, ab 80 km/h bei
+  1 km und 400 m, dazu kurz vor der Abbiegung selbst. Vor dem Ziel „In 300
+  Metern erreichen Sie Ihr Ziel.“, am Ziel etwa „Sie haben Ihr Ziel
+  erreicht.“
+- **Neu berechnen:** Kommt das Auto von der Route ab, sagt CarNine einmal „Die
+  Route wird neu berechnet.“
+- Im Stand und neben der Route gibt es keine Ansagen. Jede Ansage kommt
+  höchstens einmal.
+- **Musik:** Während einer Ansage wird die Musik leiser und danach wieder
+  lauter. Pausierte Musik bleibt still.
+- **Nur auf Deutsch:** Die Ansagen sind für die deutsche Oberfläche gemacht.
+  Bei einer anderen Sprache kommt heute ein Gemisch aus Deutsch und der
+  gewählten Sprache heraus.
+- **Ein- und ausschalten** und die Lautstärke der Ansagen gibt es in den
+  Optionen noch nicht (#110). Ab Werk sind die Ansagen an, mit voller
+  Lautstärke.
+
 ## Wo bin ich?
 
 Ohne Route steht unten links, wo das Auto ist: **Straße, Ort (Ortsteil)**,

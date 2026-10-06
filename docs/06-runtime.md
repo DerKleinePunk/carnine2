@@ -43,6 +43,22 @@ User selects destination in Flutter UI:
 4. Calculated route is sent back via gRPC to Frontend.
 5. UI updates map display with route.
 
+### Scenario 2a: Spoken Turn Announcement
+
+While a route is being followed (details in
+[26 – Spoken Turn Announcements](26-turn-announcements.md)):
+
+1. When a maneuver becomes the next one, after a new route and when the speed
+   class changes, the map library sends the sentences that may come next.
+   The frontend passes them on with `NavigationService.PrepareAnnouncements`.
+2. The backend's voice thread (pinned to core 3) synthesizes them one by one
+   into WAV files in `/run/carnine/voice`.
+3. At a warning stage or at the turn the library sends the sentence; the
+   frontend calls `Announce(text, priority)`.
+4. A prepared sentence plays at once; any other is synthesized first. The
+   player lowers the music to `music_under_percent` while it plays and raises
+   it afterwards. A turn instruction cuts an information short.
+
 ### Scenario 3: Media Playback
 
 User starts playing audio:

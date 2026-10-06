@@ -1161,7 +1161,8 @@ wake_word = ""               # Optional wake word (e.g., "Hey Carnine")
 - Speech recognition adds CPU/memory load; must be profiled on Raspberry Pi 4
 - Privacy-friendly: all voice data stays on-device; no cloud API keys needed
 - Commands are processed in real-time without network latency
-- Future TTS integration (sherpa-onnx also supports TTS) enables full voice assistant experience
+- Future TTS integration (sherpa-onnx also supports TTS) enables full voice assistant experience;
+  TTS is in use for turn announcements since 2026-10-06 (ADR-025)
 
 **Related decisions:**
 - ADR-016 (Media Architecture) – audio manager concept, event streams
@@ -1173,6 +1174,51 @@ wake_word = ""               # Optional wake word (e.g., "Hey Carnine")
 - [sherpa-onnx GitHub](https://github.com/k2-fsa/sherpa-onnx)
 - [sherpa-onnx Rust bindings](https://github.com/k2-fsa/sherpa-onnx/tree/master/sherpa-onnx/rust)
 - Issues: #15 (Microphone/Speech Backend), #16 (Audio Manager), #17 (Command Parser), #18 (Speech UI)
+
+---
+
+## ADR-025: Spoken Turn Announcements - On-Device TTS with sherpa-onnx
+
+**Status:** Accepted, implemented (feature/backend 2e65a6f, 2026-10-06; first
+in the release after 0.13.0)
+
+**Context:**
+For the trade fair on 2026-11-06 navigation should speak its turn
+instructions, offline and in German, on the Raspberry Pi 4 that also renders
+the map. Two variants were weighed: recorded clips put together (A, low risk,
+fixed phrases only) and real speech synthesis (B, any street name, risk of
+CPU load and late sentences). A measurement on carnine-pc came first.
+
+**Decision:**
+Variant B (Michael, 2026-10-06):
+- sherpa-onnx 1.13.8 with the Piper voice "thorsten" (CC0), loaded by the
+  backend at run time (`dlopen`), packaged as `carnine-voice`.
+- Both voices, `thorsten-medium` (default) and `thorsten-low`, in the image;
+  `[voice] voice` switches.
+- One synthesis thread pinned to core 3, the voice loaded once, a cache keyed
+  by the text.
+- The map library (local_map) decides what is spoken and when and names the
+  sentences ahead (`PrepareAnnouncements`); the backend speaks
+  (`Announce`), mixes and keeps switch and loudness.
+- No second synthesis thread.
+
+**Rationale:**
+- Pinned to one core the synthesis left the map's raster thread waiting no
+  longer than without it; two unpinned threads made the UI thread wait
+  18.9 ms/s instead of 1.3, with stops up to 277 ms.
+- Preparing ahead makes the announcement itself only play a file: on the way
+  2–51 ms late, at the start under 1 s with backend 2e65a6f.
+- Two threads would be only 1.7 times as fast and cost the map a second core.
+
+**Consequences:**
+- About 132 MB more in the image.
+- The first sentences after a route is set need seconds; the demo waits 15 s
+  before driving.
+- Only German: with another UI language the sentences come out mixed (open).
+- Without the package the backend runs silently; WSL and CI need nothing.
+
+**References:** [26 – Spoken Turn Announcements](26-turn-announcements.md),
+issue #110 (switch and loudness in the options)
 
 ---
 
