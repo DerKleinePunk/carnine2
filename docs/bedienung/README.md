@@ -1,6 +1,6 @@
 # Bedienungsanleitung carnine2
 
-**Diese Anleitung gilt ab CarNine 0.12.0.**
+**Diese Anleitung gilt ab CarNine 0.13.0.**
 
 Für Entwickler und Tester. Beschreibt, was man auf dem Bildschirm sieht und
 was jedes Bedienelement tut. Die Anleitung für Messebesucher entsteht
