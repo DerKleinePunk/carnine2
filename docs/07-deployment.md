@@ -54,7 +54,10 @@ The deployment architecture emphasizes reliability and minimal resource consumpt
     GPIO 18. The duty cycle sets the speed (100 Hz by default, because the
     stage switches slowly); `min_level` is where the fan still turns,
     `kick_ms` gives full duty when it starts from off. It shows up as a
-    slider on the Technik page and stops when the backend exits. Mind the
+    slider on the Technik page and stops when the backend exits. With
+    `boost_on_overheat = true` it runs at 100 % while the CPU overheat
+    warning is on and goes back to its own value once it clears (see
+    [06 – Runtime View](06-runtime.md)). Mind the
     polarity at JP10: pin 1 is +5 V (red wire), pin 2 ground. The fan has
     reverse polarity protection, so plugged in the wrong way round it simply
     does not turn (seen on carnine-pc on 2026-10-06).

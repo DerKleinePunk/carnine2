@@ -184,6 +184,13 @@ Runs for the whole lifetime of the backend, independent of any client:
    over whatever page is open until the user confirms it; it stays away while
    the CPU is still hot and comes back only after a cool-down and a new
    overheating.
+8. Controls with `boost_on_overheat = true` in `[[controls]]` (meant for the
+   case fan) follow the same status: while the CPU is overheated they run at
+   full (on, 100 %), and the Technik page shows that. When the warning clears,
+   each gets its own value back. A value set during the warning is kept for
+   afterwards; the boost itself is never stored, so after a restart during
+   the warning the control starts with its own value and the next status
+   boosts it again.
 
 ## Diagrams
 
