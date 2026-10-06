@@ -61,10 +61,13 @@ The deployment architecture emphasizes reliability and minimal resource consumpt
     polarity at JP10: pin 1 is +5 V (red wire), pin 2 ground. The fan has
     reverse polarity protection, so plugged in the wrong way round it simply
     does not turn (seen on carnine-pc on 2026-10-06).
-    Tried on carnine-pc with the ebm-papst 405 FH at 100 Hz (2026-10-06):
-    below 30 % its noise is not bearable, at 30 % it starts from standstill
-    by itself, and 50 % is fine. Hence `min_level = 30`, no `kick_ms`
-    needed, and 50 % as the everyday value.
+    Tried on carnine-pc with the ebm-papst 405 FH at 100 Hz (2026-10-06),
+    in duty cycle: below 30 % its noise is not bearable, at 30 % it starts
+    from standstill by itself, and 50 % is fine. Hence `min_level = 30`, no
+    `kick_ms` needed, and 50 % duty as the everyday value. The slider's
+    levels 1–100 spread over `min_level`..100 % duty (0 is off), so with
+    `min_level = 30` the slider shows about 29 for 50 % duty and cannot go
+    below the bearable 30 %.
   - Channel 1 is for the backlight of a display modified for it (Waveshare
     7H: a resistor out, its pad to GPIO 19); no test unit has that yet. The
     options set it (SystemService `GetDisplayBrightness` /
