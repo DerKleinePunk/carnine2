@@ -97,6 +97,10 @@ Michael measured **5.09 V** at the output (2026-10-04), which fits. (The table g
   about every 71 s: `RUN`, "alive counter low", `POWEROFF`, `POWERON`,
   `PIBOOT`, `RUN` again (carnine-pc, 2026-10-06, jumper left on programming).
   A Pi fed through Rel2 is switched off every time.
+  In the planned enclosure Michael's IO board sits stacked on top of this
+  board (same size, the holes line up), which covers the jumper and the USB
+  socket: flashing means taking the stack apart. Accepted, since the
+  firmware is flashed rarely (Michael, 2026-10-06).
 - **Pi power:** the Pi is fed from the supply through its USB-C socket,
   not through the 5 V pins of its GPIO header. Raspberry Pi asks for a
   5.1 V supply, and the Pi logs an undervoltage below 4.63 V (±5 %). The
