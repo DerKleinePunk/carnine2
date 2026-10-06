@@ -4667,11 +4667,14 @@ class ComputeRouteRequest extends $pb.GeneratedMessage {
     LatLon? origin,
     LatLon? destination,
     $core.String? language,
+    $core.double? originHeadingDegrees,
   }) {
     final result = create();
     if (origin != null) result.origin = origin;
     if (destination != null) result.destination = destination;
     if (language != null) result.language = language;
+    if (originHeadingDegrees != null)
+      result.originHeadingDegrees = originHeadingDegrees;
     return result;
   }
 
@@ -4692,6 +4695,7 @@ class ComputeRouteRequest extends $pb.GeneratedMessage {
     ..aOM<LatLon>(2, _omitFieldNames ? '' : 'destination',
         subBuilder: LatLon.create)
     ..aOS(4, _omitFieldNames ? '' : 'language')
+    ..aD(5, _omitFieldNames ? '' : 'originHeadingDegrees')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -4743,6 +4747,19 @@ class ComputeRouteRequest extends $pb.GeneratedMessage {
   $core.bool hasLanguage() => $_has(2);
   @$pb.TagNumber(4)
   void clearLanguage() => $_clearField(4);
+
+  /// Course at the origin, 0 = north, clockwise. Valhalla then starts on a
+  /// road leaving that way (±45°) instead of sending a driver who left the
+  /// route back to turn. Unset with origin unset: the course of the
+  /// backend's own fix while it moves.
+  @$pb.TagNumber(5)
+  $core.double get originHeadingDegrees => $_getN(3);
+  @$pb.TagNumber(5)
+  set originHeadingDegrees($core.double value) => $_setDouble(3, value);
+  @$pb.TagNumber(5)
+  $core.bool hasOriginHeadingDegrees() => $_has(3);
+  @$pb.TagNumber(5)
+  void clearOriginHeadingDegrees() => $_clearField(5);
 }
 
 class GetReplayRouteRequest extends $pb.GeneratedMessage {

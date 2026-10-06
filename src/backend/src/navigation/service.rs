@@ -29,6 +29,10 @@ use crate::carnine::{
 /// long that call can hang.
 const ROUTER_PROBE_TIMEOUT: Duration = Duration::from_millis(300);
 
+/// From this speed on (5 km/h) the course of the own fix counts as the
+/// direction of travel.
+const MOVING_MPS: f64 = 1.4;
+
 /// Instruction language when the request names none.
 const DEFAULT_LANGUAGE: &str = "de-DE";
 
@@ -371,10 +375,28 @@ impl NavigationService for NavigationServiceImpl {
     ) -> Result<Response<Route>, Status> {
         let request = request.into_inner();
         let destination = coordinate(request.destination, "destination")?;
-        let origin = match request.origin {
-            Some(origin) => coordinate(Some(origin), "origin")?,
+        let heading = match request.origin_heading_degrees {
+            Some(heading) if !heading.is_finite() => {
+                return Err(Status::invalid_argument(format!(
+                    "origin heading is not a number: {heading}"
+                )))
+            }
+            Some(heading) => Some(heading.rem_euclid(360.0)),
+            None => None,
+        };
+        let (origin, heading) = match request.origin {
+            Some(origin) => (coordinate(Some(origin), "origin")?, heading),
             None => match self.positions.current().fix {
-                Some(fix) if fix.valid => (fix.latitude, fix.longitude),
+                // The own fix brings its course along while the car moves; at
+                // a standstill the course of a GPS receiver is noise.
+                Some(fix) if fix.valid => (
+                    (fix.latitude, fix.longitude),
+                    heading.or_else(|| {
+                        fix.heading_degrees
+                            .filter(|_| fix.speed_mps.unwrap_or(0.0) >= MOVING_MPS)
+                            .map(|course| course.rem_euclid(360.0))
+                    }),
+                ),
                 _ => {
                     return Err(Status::failed_precondition(
                         "no origin given and no GPS fix to start from",
@@ -383,10 +405,10 @@ impl NavigationService for NavigationServiceImpl {
             },
         };
         let language = language(request.language)?;
-        info!(?origin, ?destination, %language, "route requested");
+        info!(?origin, ?heading, ?destination, %language, "route requested");
         let data = self
             .valhalla
-            .route(origin, destination, &language)
+            .route(origin, heading, destination, &language)
             .await
             .map_err(|err| {
                 warn!(error = ?err, "route failed");
@@ -465,6 +487,119 @@ mod tests {
         }
     }
 
+    /// A Valhalla stand-in: takes one request, keeps its body and answers
+    /// 500, so the route fails but what was asked can be checked.
+    async fn capturing_valhalla() -> (String, tokio::task::JoinHandle<serde_json::Value>) {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let handle = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut request = Vec::new();
+            let mut buffer = [0u8; 4096];
+            loop {
+                let read = socket.read(&mut buffer).await.unwrap();
+                request.extend_from_slice(&buffer[..read]);
+                let text = String::from_utf8_lossy(&request);
+                if let Some(split) = text.find("\r\n\r\n") {
+                    let length = text[..split]
+                        .lines()
+                        .find_map(|line| {
+                            line.to_ascii_lowercase()
+                                .strip_prefix("content-length:")
+                                .map(|value| value.trim().parse::<usize>().unwrap())
+                        })
+                        .unwrap_or(0);
+                    if request.len() >= split + 4 + length {
+                        let body = request[split + 4..split + 4 + length].to_vec();
+                        socket
+                            .write_all(
+                                b"HTTP/1.1 500 Internal Server Error\r\ncontent-length: 0\r\n\r\n",
+                            )
+                            .await
+                            .unwrap();
+                        return serde_json::from_slice(&body).unwrap();
+                    }
+                }
+                if read == 0 {
+                    panic!("connection closed before the body");
+                }
+            }
+        });
+        (url, handle)
+    }
+
+    async fn route_request(
+        hub: PositionHub,
+        origin: Option<LatLon>,
+        heading: Option<f64>,
+    ) -> serde_json::Value {
+        let (url, handle) = capturing_valhalla().await;
+        let service = NavigationServiceImpl::new(hub, url, String::new());
+        let _ = service
+            .compute_route(Request::new(ComputeRouteRequest {
+                origin,
+                destination: Some(LatLon {
+                    latitude: 50.5,
+                    longitude: 9.4,
+                }),
+                language: None,
+                origin_heading_degrees: heading,
+            }))
+            .await;
+        handle.await.unwrap()
+    }
+
+    #[tokio::test]
+    async fn the_course_at_the_start_reaches_valhalla() {
+        let origin = Some(LatLon {
+            latitude: 50.41,
+            longitude: 9.36,
+        });
+        // Given by the client, brought into 0-360.
+        let body = route_request(PositionHub::new(SourceKind::Serial), origin, Some(-10.0)).await;
+        assert_eq!(body["locations"][0]["heading"], serde_json::json!(350.0));
+
+        // Not given, origin given: no course.
+        let body = route_request(PositionHub::new(SourceKind::Serial), origin, None).await;
+        assert!(body["locations"][0].get("heading").is_none());
+
+        // Not given, no origin: the course of the own fix while it moves.
+        let moving = PositionHub::new(SourceKind::Serial);
+        moving.publish(fix(true));
+        let body = route_request(moving, None, None).await;
+        assert_eq!(body["locations"][0]["heading"], serde_json::json!(184.0));
+
+        // ... but not at a standstill.
+        let standing = PositionHub::new(SourceKind::Serial);
+        standing.publish(Fix {
+            speed_mps: Some(0.3),
+            ..fix(true)
+        });
+        let body = route_request(standing, None, None).await;
+        assert!(body["locations"][0].get("heading").is_none());
+    }
+
+    #[tokio::test]
+    async fn a_course_that_is_not_a_number_is_refused() {
+        let status = service(PositionHub::new(SourceKind::Serial))
+            .compute_route(Request::new(ComputeRouteRequest {
+                origin: Some(LatLon {
+                    latitude: 50.41,
+                    longitude: 9.36,
+                }),
+                destination: Some(LatLon {
+                    latitude: 50.5,
+                    longitude: 9.4,
+                }),
+                language: None,
+                origin_heading_degrees: Some(f64::NAN),
+            }))
+            .await
+            .expect_err("NaN is no course");
+        assert_eq!(status.code(), tonic::Code::InvalidArgument);
+    }
+
     #[test]
     fn host_port_accepts_plain_http_only() {
         assert_eq!(
@@ -529,6 +664,7 @@ mod tests {
                     longitude: 9.27,
                 }),
                 language: None,
+                origin_heading_degrees: None,
             }))
             .await
             .expect_err("no fix yet");
@@ -545,6 +681,7 @@ mod tests {
             }),
             destination,
             language: language.map(str::to_string),
+            origin_heading_degrees: None,
         };
         for bad in [
             request(None, None),
@@ -591,6 +728,7 @@ mod tests {
                     longitude: 9.27,
                 }),
                 language: Some("en-US".to_string()),
+                origin_heading_degrees: None,
             }))
             .await
             .expect_err("nothing listens on port 9");

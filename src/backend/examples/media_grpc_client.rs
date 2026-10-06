@@ -628,23 +628,31 @@ fn parse_lat_lon(value: &str) -> Result<LatLon> {
     })
 }
 
-/// `route <to lat,lon> [from lat,lon|-] [language]`: without a start the
-/// backend routes from its current fix.
+/// `route <to lat,lon> [from lat,lon|-] [language|-] [heading]`: without a
+/// start the backend routes from its current fix; heading is the course at
+/// the start in degrees.
 async fn compute_route(endpoint: &str) -> Result<()> {
     let destination = env::args().nth(3).context(
-        "usage: media_grpc_client [endpoint] route <to lat,lon> [from lat,lon|-] [language]",
+        "usage: media_grpc_client [endpoint] route <to lat,lon> [from lat,lon|-] [language|-] [heading]",
     )?;
     let origin = env::args()
         .nth(4)
         .filter(|value| value != "-")
         .map(|value| parse_lat_lon(&value))
         .transpose()?;
+    // Course at the start in degrees, e.g. to try a reroute after a detour.
+    let origin_heading_degrees = env::args()
+        .nth(6)
+        .map(|value| value.parse::<f64>())
+        .transpose()
+        .context("heading must be degrees, e.g. 184")?;
     let mut client = NavigationServiceClient::<Channel>::connect(endpoint.to_string()).await?;
     let route = client
         .compute_route(ComputeRouteRequest {
             origin,
             destination: Some(parse_lat_lon(&destination)?),
-            language: env::args().nth(5),
+            language: env::args().nth(5).filter(|value| value != "-"),
+            origin_heading_degrees,
         })
         .await?
         .into_inner();

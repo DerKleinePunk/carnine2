@@ -89,21 +89,17 @@ impl Valhalla {
         }
     }
 
+    /// `heading` is the course at the origin in degrees (0 = north,
+    /// clockwise); Valhalla then starts on a road leaving that way.
     pub async fn route(
         &self,
         origin: (f64, f64),
+        heading: Option<f64>,
         destination: (f64, f64),
         language: &str,
     ) -> Result<RouteData, RoutingError> {
-        let body = json!({
-            "locations": [
-                {"lat": origin.0, "lon": origin.1},
-                {"lat": destination.0, "lon": destination.1},
-            ],
-            "costing": "auto",
-            "directions_options": {"units": "kilometers", "language": language},
-        });
-        self.trip("route", body).await
+        self.trip("route", route_body(origin, heading, destination, language))
+            .await
     }
 
     /// Map-matches `points` onto the road network and returns the driven way
@@ -350,9 +346,45 @@ fn next_value(bytes: &[u8], index: &mut usize) -> Option<i64> {
     })
 }
 
+/// How far the start may deviate from the given course, as Valhalla's
+/// `heading_tolerance`.
+const HEADING_TOLERANCE_DEGREES: f64 = 45.0;
+
+fn route_body(
+    origin: (f64, f64),
+    heading: Option<f64>,
+    destination: (f64, f64),
+    language: &str,
+) -> Value {
+    let mut start = json!({"lat": origin.0, "lon": origin.1});
+    if let Some(heading) = heading {
+        start["heading"] = json!(heading);
+        start["heading_tolerance"] = json!(HEADING_TOLERANCE_DEGREES);
+    }
+    json!({
+        "locations": [start, {"lat": destination.0, "lon": destination.1}],
+        "costing": "auto",
+        "directions_options": {"units": "kilometers", "language": language},
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_route_request_carries_the_course_at_the_start_only_when_given() {
+        let body = route_body((50.41, 9.36), Some(184.0), (50.5, 9.4), "de-DE");
+        let start = &body["locations"][0];
+        assert_eq!(start["heading"], json!(184.0));
+        assert_eq!(start["heading_tolerance"], json!(45.0));
+        assert!(body["locations"][1].get("heading").is_none());
+
+        let body = route_body((50.41, 9.36), None, (50.5, 9.4), "de-DE");
+        assert!(body["locations"][0].get("heading").is_none());
+        assert!(body["locations"][0].get("heading_tolerance").is_none());
+        assert_eq!(body["costing"], json!("auto"));
+    }
 
     #[test]
     fn decodes_the_reference_polyline() {
@@ -519,7 +551,9 @@ mod tests {
     #[tokio::test]
     async fn an_unreachable_router_is_unavailable() {
         let valhalla = Valhalla::new("http://127.0.0.1:9");
-        let result = valhalla.route((50.0, 9.0), (50.1, 9.1), "de-DE").await;
+        let result = valhalla
+            .route((50.0, 9.0), None, (50.1, 9.1), "de-DE")
+            .await;
         assert!(
             matches!(result, Err(RoutingError::Unavailable(_))),
             "{result:?}"

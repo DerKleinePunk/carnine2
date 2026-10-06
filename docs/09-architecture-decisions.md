@@ -926,7 +926,10 @@ status codes (`UNAVAILABLE` router down, `NOT_FOUND` no route or no replay,
 `FAILED_PRECONDITION` no origin and no fix, `INVALID_ARGUMENT` bad
 coordinates); maneuver types are Valhalla's numbering passed through;
 timestamps are GPS time, because the Pi has no RTC. Route progress, heading
-smoothing and off-route handling stay in the map library for v1;
+smoothing and off-route handling stay in the map library for v1 (since
+local_map 0.7.0 it detects leaving the route and asks `ComputeRoute` again,
+with the course at the start in `origin_heading_degrees`, so Valhalla does not
+send the driver back to turn);
 `StreamGuidance` is reserved for after the fair.
 
 For the fair the backend talks to a native `valhalla_service` on

@@ -644,6 +644,11 @@ message ComputeRouteRequest {
   LatLon destination = 2;
   reserved 3;                  // via points, after the trade fair
   optional string language = 4;  // BCP-47 for instructions; unset = "de-DE"
+  // Course at the origin, 0 = north, clockwise. Valhalla then starts on a
+  // road leaving that way (±45°) instead of sending a driver who left the
+  // route back to turn. Unset with origin unset: the course of the
+  // backend's own fix while it moves.
+  optional double origin_heading_degrees = 5;
 }
 
 message GetReplayRouteRequest {

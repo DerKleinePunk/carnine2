@@ -1577,10 +1577,20 @@ const ComputeRouteRequest$json = {
       '10': 'language',
       '17': true
     },
+    {
+      '1': 'origin_heading_degrees',
+      '3': 5,
+      '4': 1,
+      '5': 1,
+      '9': 2,
+      '10': 'originHeadingDegrees',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_origin'},
     {'1': '_language'},
+    {'1': '_origin_heading_degrees'},
   ],
   '9': [
     {'1': 3, '2': 4},
@@ -1591,8 +1601,9 @@ const ComputeRouteRequest$json = {
 final $typed_data.Uint8List computeRouteRequestDescriptor = $convert.base64Decode(
     'ChNDb21wdXRlUm91dGVSZXF1ZXN0EiwKBm9yaWdpbhgBIAEoCzIPLmNhcm5pbmUuTGF0TG9uSA'
     'BSBm9yaWdpbogBARIxCgtkZXN0aW5hdGlvbhgCIAEoCzIPLmNhcm5pbmUuTGF0TG9uUgtkZXN0'
-    'aW5hdGlvbhIfCghsYW5ndWFnZRgEIAEoCUgBUghsYW5ndWFnZYgBAUIJCgdfb3JpZ2luQgsKCV'
-    '9sYW5ndWFnZUoECAMQBA==');
+    'aW5hdGlvbhIfCghsYW5ndWFnZRgEIAEoCUgBUghsYW5ndWFnZYgBARI5ChZvcmlnaW5faGVhZG'
+    'luZ19kZWdyZWVzGAUgASgBSAJSFG9yaWdpbkhlYWRpbmdEZWdyZWVziAEBQgkKB19vcmlnaW5C'
+    'CwoJX2xhbmd1YWdlQhkKF19vcmlnaW5faGVhZGluZ19kZWdyZWVzSgQIAxAE');
 
 @$core.Deprecated('Use getReplayRouteRequestDescriptor instead')
 const GetReplayRouteRequest$json = {
