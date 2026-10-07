@@ -89,7 +89,8 @@ The list holds, in speaking order:
 3. the sentences of up to **2 following maneuvers** that start within
    **500 m** (lookahead; a stage only if the gap to the maneuver before is
    larger than 60 % of it),
-4. "Die Route wird neu berechnet." at the end.
+4. "Die Route wird neu berechnet." at the end. The backend also keeps this
+   sentence ready on its own (`fixed_texts`, see [Configuration](#configuration)).
 
 Every announcement is word for word one of the sentences prepared before
 (tested in the library), so the backend finds it in its cache by the text.
@@ -116,8 +117,12 @@ Announce(text, priority) ──► in the cache? ── yes ──► play now �
   several pile up meanwhile, only the newest is spoken. A sentence that
   finishes after a newer one has already played stays silent, so nothing
   out of date follows.
+- **Fixed sentences:** whenever the voice is on (at start, or when it is
+  switched on), the thread synthesizes the sentences of `fixed_texts` when it
+  has nothing else to do; the sentences of a route go first.
 - **Cache:** same text, same file. Up to 200 sentences as WAV in
-  `cache_dir` (tmpfs), the oldest go first.
+  `cache_dir` (tmpfs), the oldest go first. The fixed sentences are pinned:
+  they are never dropped and do not count against the 200.
 - **Loudness:** the Piper voices peak at about a third of full scale; each
   sentence is raised to a peak of 0.9, at most 4 times (+12 dB), without
   clipping. `volume_percent` scales it from there.
@@ -191,6 +196,17 @@ checks them against pinned SHA-256 values (see
 | `cache_dir` | `/run/carnine/voice` | synthesized sentences (tmpfs) |
 | `volume_percent` | `100` | loudness of the announcements, 0–100 |
 | `music_under_percent` | `30` | music level while a sentence plays, 0–100 |
+| `fixed_texts` | `["Die Route wird neu berechnet."]` | sentences kept ready for good, see below; `[]` for none |
+
+**Fixed sentences.** "Die Route wird neu berechnet." already stands at the
+end of every prepare list. It can still be missing when a new list replaces
+the old one before the voice thread gets to the end, when 200 other sentences
+have pushed it out of the cache, or when no route has been set yet.
+`fixed_texts` is the safeguard for these cases: the backend synthesizes the
+listed sentences whenever the voice is on and pins them in the cache. The
+default is the one fixed sentence the map library speaks today. Each entry
+must be word for word what the library sends (local_map 0.8.3), otherwise the
+cache does not find it. With the voice off nothing is synthesized.
 
 To switch the voice, put it in a drop-in and restart the backend:
 
@@ -322,6 +338,9 @@ between "Route steht" and "Losfahren":
 - The first sentence is synthesized when the route is set (5.8 s in the last
   run); how late it comes depends on how soon the car moves. The 15 s in
   `frankfurt.demo` cover it.
+- **Fixed sentences** (87a57ef, on carnine-pc, measured at 0 % loudness):
+  "Die Route wird neu berechnet." prepared through `fixed_texts` came 49 ms
+  late; a sentence that was not prepared, 2549 ms.
 
 ### Decisions from the measurements
 
