@@ -8,7 +8,11 @@ Namensdatenbank). Die Karte selbst funktioniert auch ohne Backend. Das Image
 bringt keine Kartendaten mit. Die Karte von Hessen installiert man nach dem
 ersten Start ([Kartendaten installieren](nach-der-installation.md#kartendaten-installieren)).
 
-![Karte ohne Route: Suchfeld oben, Knöpfe rechts, unten links der Standort](bilder/start.png)
+![Karte ohne Route: Suchfeld oben, Knöpfe rechts, darunter „© OpenStreetMap-Mitwirkende“, unten links der Standort](bilder/start.png)
+
+Rechts unten auf der Karte steht „© OpenStreetMap-Mitwirkende“. Die
+Kartendaten kommen von OpenStreetMap, und deren Lizenz verlangt diesen
+Hinweis. Während einer Route steht er über der Leiste mit Ankunft und Distanz.
 
 ## Karte bewegen
 
@@ -98,7 +102,7 @@ erreichbar“ (Backend weg, rot).
   etwas schräg, weil die Karte für die Beschriftung in 45°-Schritten neu
   gezeichnet wird (flutter_local_map #1).
 
-  ![Navigationsmodus mit gedrehter Karte: Namen wie „Bahnhofstraße“, „Kreuzstraße“ und „Alte Straße“ stehen schräg, aber keiner kopfüber](bilder/karte-mitdrehen.png)
+  ![Navigationsmodus mit gedrehter Karte: Namen wie „Bilsteinstraße“, „Hoherodskopfstraße“ und „Schwarzer Fluss“ stehen schräg, aber keiner kopfüber](bilder/karte-mitdrehen.png)
 
 Die Fahranweisungen erscheinen in der unter [Optionen → Darstellung & Sprache](optionen.md#darstellung--sprache)
 gewählten Sprache.
