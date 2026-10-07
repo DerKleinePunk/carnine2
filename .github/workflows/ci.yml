@@ -27,6 +27,9 @@ jobs:
   backend:
     name: Backend (format, clippy, tests)
     runs-on: ubuntu-24.04
+    # A hung step (e.g. apt-get on the runner, 2026-10-07) ends here, not after
+    # GitHub's 6 h; the longest job takes about 3 min.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
 
@@ -71,6 +74,7 @@ jobs:
   frontend:
     name: Frontend (analyze, tests)
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
 
@@ -101,6 +105,7 @@ jobs:
     # The first-boot scripts run on the Pi, but their logic is plain shell and
     # testable on a scratch tree - no image build needed (see the note above).
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
 
@@ -147,6 +152,7 @@ jobs:
     # to the guide is checked with build.sh locally before its pull request.
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
         with:
@@ -184,6 +190,7 @@ jobs:
     # findings go into .grype.yaml, each with its reason. The Debian packages
     # of the image are not covered here - that needs the image, not CI.
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
 
@@ -230,6 +237,7 @@ jobs:
     # Native arm64 runner, free for public repositories - no cross toolchain
     # and no QEMU. This is the architecture the Pi actually runs.
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
 
