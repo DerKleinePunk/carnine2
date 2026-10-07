@@ -66,14 +66,17 @@ pub struct VoiceConfig {
     pub volume_percent: u32,
     /// Music level while an announcement plays, 0-100.
     pub music_under_percent: u32,
-    /// Sentences that come without being prepared, synthesized once the
-    /// voice is on and kept, so they play at once. They have to match the
-    /// map library's texts word for word; an empty list synthesizes none.
+    /// Sentences kept synthesized for good, synthesized once the voice is on
+    /// and pinned in the cache, so they play at once even when the prepared
+    /// list did not reach them. They have to match the map library's texts
+    /// word for word; an empty list synthesizes none.
     pub fixed_texts: Vec<String>,
 }
 
 /// The map library's sentence when it computes the route again (local_map
-/// `AnnouncementTexts.german.rerouting`): unprepared it took 4 s on a Pi 4.
+/// `AnnouncementTexts.german.rerouting`). The library prepares it last in
+/// every list, so a newer list, a full cache or no route yet can leave it
+/// unsynthesized; then it waits for its synthesis, 1.4 s on a Pi 4.
 pub const REROUTING_TEXT: &str = "Die Route wird neu berechnet.";
 
 impl Default for VoiceConfig {

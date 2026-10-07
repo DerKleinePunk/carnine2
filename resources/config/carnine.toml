@@ -174,9 +174,10 @@ hash = "$argon2id$v=19$m=19456,t=2,p=1$Y2FybmluZS1leGl0LXB3$O+DjYmFGfVSWu+fkiM29
 # voice-settings, set-voice-settings). The options switch it and set its
 # loudness, which is saved and wins over enabled and volume_percent here.
 # Synthesis runs on one thread pinned to core 3, away from the map.
-# fixed_texts come unprepared (rerouting: 4 s on a Pi 4), so they are
-# synthesized once the voice is on and kept; word for word as the map library
-# sends them. The defaults:
+# fixed_texts are kept synthesized for good, a safeguard for sentences that
+# may be missing from the cache when needed (the library prepares the
+# rerouting sentence last); word for word as the map library sends them.
+# The defaults:
 # [voice]
 # enabled = true
 # voice = "thorsten-medium"          # or "thorsten-low"

@@ -12,9 +12,9 @@
 //! Texts announced ahead (`prepare`) are synthesized in the background and
 //! kept, so the announcement itself only plays a file - straight from the
 //! caller's thread, without waiting for a sentence being synthesized.
-//! Fixed sentences that come unprepared (`[voice] fixed_texts`, the
-//! rerouting sentence) are synthesized once the voice is on, when nothing
-//! else waits, and stay in the cache for good.
+//! Fixed sentences (`[voice] fixed_texts`, the rerouting sentence) are
+//! synthesized once the voice is on, when nothing else waits, and stay in
+//! the cache for good, whether or not a prepared list got to them.
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::{Path, PathBuf};
