@@ -776,6 +776,7 @@ mod tests {
             std::env::temp_dir().join("carnine-voice-service"),
             None,
             false,
+            Vec::new(),
             Box::new(|_, _| {}),
         );
         let control = VoiceControl::new(

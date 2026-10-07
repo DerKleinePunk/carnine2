@@ -12,8 +12,11 @@
 //! Texts announced ahead (`prepare`) are synthesized in the background and
 //! kept, so the announcement itself only plays a file - straight from the
 //! caller's thread, without waiting for a sentence being synthesized.
+//! Fixed sentences that come unprepared (`[voice] fixed_texts`, the
+//! rerouting sentence) are synthesized once the voice is on, when nothing
+//! else waits, and stay in the cache for good.
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
@@ -50,6 +53,8 @@ const CACHE_ENTRIES: usize = 200;
 
 enum Command {
     Prepare(Vec<String>),
+    /// The fixed texts, sent whenever the voice is switched on.
+    Fixed(Vec<String>),
     /// With the moment it was asked for, to log how late it came out, and
     /// its number among all announcements.
     Speak(String, AnnouncementPriority, std::time::Instant, u64),
@@ -57,11 +62,13 @@ enum Command {
     Spoken(String),
 }
 
-/// Synthesized texts and their files, oldest first.
+/// Synthesized texts and their files, oldest first. Pinned texts (the fixed
+/// ones) are never dropped and do not count against [`CACHE_ENTRIES`].
 #[derive(Default)]
 struct Cache {
     files: HashMap<String, PathBuf>,
     order: VecDeque<String>,
+    pinned: HashSet<String>,
 }
 
 /// What the caller's side and the voice thread both use.
@@ -105,15 +112,18 @@ pub struct Voice {
     loaded: Arc<AtomicBool>,
     shared: Arc<Shared>,
     announced: AtomicU64,
+    fixed_texts: Vec<String>,
 }
 
 impl Voice {
-    /// Starts the voice thread. `cpu` pins it to that core when given.
+    /// Starts the voice thread. `cpu` pins it to that core when given;
+    /// `fixed_texts` are synthesized ahead whenever the voice is on.
     pub fn start(
         factory: SynthesizerFactory,
         cache_dir: PathBuf,
         cpu: Option<usize>,
         enabled: bool,
+        fixed_texts: Vec<String>,
         sink: AnnouncementSink,
     ) -> Self {
         let (commands, receiver) = mpsc::channel();
@@ -121,7 +131,10 @@ impl Voice {
         let loaded = Arc::new(AtomicBool::new(false));
         let thread_loaded = Arc::clone(&loaded);
         let shared = Arc::new(Shared {
-            cache: Mutex::new(Cache::default()),
+            cache: Mutex::new(Cache {
+                pinned: fixed_texts.iter().cloned().collect(),
+                ..Cache::default()
+            }),
             sink,
             played_direct: Mutex::new(None),
         });
@@ -146,13 +159,18 @@ impl Voice {
                 Worker::new(synthesizer, cache_dir, thread_shared).run(receiver);
             })
             .expect("the voice thread starts");
-        Self {
+        let voice = Self {
             commands: Mutex::new(commands),
             enabled,
             loaded,
             shared,
             announced: AtomicU64::new(0),
+            fixed_texts,
+        };
+        if voice.enabled() {
+            voice.send_fixed_texts();
         }
+        voice
     }
 
     /// Whether a voice is loaded and speech can come out.
@@ -161,7 +179,16 @@ impl Voice {
     }
 
     pub fn set_enabled(&self, enabled: bool) {
-        self.enabled.store(enabled, Ordering::Release);
+        let was = self.enabled.swap(enabled, Ordering::AcqRel);
+        if enabled && !was {
+            self.send_fixed_texts();
+        }
+    }
+
+    fn send_fixed_texts(&self) {
+        if !self.fixed_texts.is_empty() {
+            self.send(Command::Fixed(self.fixed_texts.clone()));
+        }
     }
 
     pub fn enabled(&self) -> bool {
@@ -350,9 +377,11 @@ impl Worker {
 
     fn run(mut self, receiver: Receiver<Command>) {
         let mut pending: VecDeque<String> = VecDeque::new();
+        // Fixed texts come after a route's: those are needed first.
+        let mut fixed: VecDeque<String> = VecDeque::new();
         loop {
             // Waits only when there is nothing to prepare.
-            let command = if pending.is_empty() {
+            let command = if pending.is_empty() && fixed.is_empty() {
                 match receiver.recv() {
                     Ok(command) => Some(command),
                     Err(_) => return,
@@ -366,6 +395,7 @@ impl Worker {
             };
             match command {
                 Some(Command::Prepare(texts)) => pending = texts.into(),
+                Some(Command::Fixed(texts)) => fixed = texts.into(),
                 Some(Command::Spoken(text)) => drop_through(&mut pending, &text),
                 Some(Command::Speak(text, priority, asked, number)) => {
                     // Announcements that queued up while one was synthesized
@@ -374,6 +404,7 @@ impl Worker {
                     loop {
                         match receiver.try_recv() {
                             Ok(Command::Prepare(texts)) => pending = texts.into(),
+                            Ok(Command::Fixed(texts)) => fixed = texts.into(),
                             Ok(Command::Spoken(text)) => drop_through(&mut pending, &text),
                             Ok(Command::Speak(text, priority, asked, number)) => {
                                 if priority >= newest.1 {
@@ -401,7 +432,7 @@ impl Worker {
                 }
                 // One text at a time, so a Speak waits for at most one.
                 None => {
-                    if let Some(text) = pending.pop_front() {
+                    if let Some(text) = pending.pop_front().or_else(|| fixed.pop_front()) {
                         self.speech_file(&text);
                     }
                 }
@@ -442,7 +473,9 @@ impl Worker {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         cache.files.insert(text.to_string(), path.clone());
-        cache.order.push_back(text.to_string());
+        if !cache.pinned.contains(text) {
+            cache.order.push_back(text.to_string());
+        }
         while cache.order.len() > CACHE_ENTRIES {
             if let Some(oldest) = cache.order.pop_front() {
                 if let Some(old_path) = cache.files.remove(&oldest) {
@@ -796,6 +829,10 @@ mod tests {
 
     impl Rig {
         fn new(name: &str) -> Self {
+            Self::with_fixed(name, Vec::new())
+        }
+
+        fn with_fixed(name: &str, fixed_texts: Vec<String>) -> Self {
             let calls = Arc::new(Mutex::new(Vec::new()));
             let factory_calls = Arc::clone(&calls);
             let (played_sender, played) = mpsc::channel();
@@ -811,6 +848,7 @@ mod tests {
                 dir.clone(),
                 None,
                 true,
+                fixed_texts,
                 Box::new(move |path, priority| {
                     let _ = played_sender
                         .lock()
@@ -1006,6 +1044,96 @@ mod tests {
     }
 
     #[test]
+    fn a_fixed_text_is_synthesized_ahead_and_plays_at_once() {
+        let rig = Rig::with_fixed("fixed", vec!["Die Route wird neu berechnet.".into()]);
+        // Nobody prepared or announced anything yet.
+        assert_eq!(rig.wait_for_calls(1), ["Die Route wird neu berechnet."]);
+
+        rig.voice.announce(
+            "Die Route wird neu berechnet.".into(),
+            AnnouncementPriority::Info,
+        );
+        let (path, priority) = rig.next_played().expect("played");
+        assert_eq!(priority, AnnouncementPriority::Info);
+        assert!(path.is_file());
+        assert_eq!(rig.calls.lock().unwrap().len(), 1, "not synthesized again");
+    }
+
+    #[test]
+    fn a_fixed_text_is_never_pushed_out_of_the_cache() {
+        let rig = Rig::with_fixed("pinned", vec!["fest".into()]);
+        rig.wait_for_calls(1);
+        let others: Vec<String> = (0..CACHE_ENTRIES + 5)
+            .map(|n| format!("Satz {n}"))
+            .collect();
+        rig.voice.prepare(others);
+        rig.wait_for_calls(CACHE_ENTRIES + 6);
+
+        rig.voice
+            .announce("fest".into(), AnnouncementPriority::Info);
+        rig.next_played().expect("played");
+        assert_eq!(
+            rig.calls.lock().unwrap().len(),
+            CACHE_ENTRIES + 6,
+            "the fixed text was still cached"
+        );
+        assert!(
+            rig.voice.shared.cached("Satz 0").is_none(),
+            "the oldest other text was pushed out"
+        );
+    }
+
+    #[test]
+    fn a_route_is_prepared_before_the_fixed_texts() {
+        let rig = Rig::with_fixed("order", Vec::new());
+        // Keep the thread busy so both lists are waiting at once.
+        rig.voice.prepare(vec!["slow first".into()]);
+        rig.wait_for_calls(1);
+        rig.voice.send(Command::Fixed(vec!["fest".into()]));
+        rig.voice.prepare(vec!["Route 1".into(), "Route 2".into()]);
+        assert_eq!(
+            rig.wait_for_calls(4),
+            ["slow first", "Route 1", "Route 2", "fest"]
+        );
+    }
+
+    #[test]
+    fn fixed_texts_wait_until_the_voice_is_switched_on() {
+        let calls = Arc::new(Mutex::new(Vec::new()));
+        let factory_calls = Arc::clone(&calls);
+        let dir = std::env::temp_dir().join(format!("carnine-voice-off-{}", std::process::id()));
+        let voice = Voice::start(
+            Box::new(move || {
+                Ok(Box::new(Fake {
+                    calls: factory_calls,
+                }) as Box<dyn Synthesizer>)
+            }),
+            dir.clone(),
+            None,
+            false,
+            vec!["fest".into()],
+            Box::new(|_, _| {}),
+        );
+        thread::sleep(Duration::from_millis(200));
+        assert!(calls.lock().unwrap().is_empty(), "nothing while off");
+
+        voice.set_enabled(true);
+        for _ in 0..500 {
+            if !calls.lock().unwrap().is_empty() {
+                break;
+            }
+            thread::sleep(Duration::from_millis(10));
+        }
+        assert_eq!(*calls.lock().unwrap(), ["fest"]);
+        // Switching on again does not synthesize it twice.
+        voice.set_enabled(false);
+        voice.set_enabled(true);
+        thread::sleep(Duration::from_millis(200));
+        assert_eq!(*calls.lock().unwrap(), ["fest"]);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn without_a_voice_announcements_are_taken_and_dropped() {
         let (sender, played) = mpsc::channel::<PathBuf>();
         let sender = Mutex::new(sender);
@@ -1014,6 +1142,7 @@ mod tests {
             std::env::temp_dir().join("carnine-voice-none"),
             None,
             true,
+            vec!["fixed".into()],
             Box::new(move |path, _| {
                 let _ = sender.lock().unwrap().send(path.to_path_buf());
             }),
@@ -1034,6 +1163,7 @@ mod tests {
             std::env::temp_dir().join("carnine-voice-control"),
             None,
             false,
+            Vec::new(),
             Box::new(|_, _| {}),
         );
         let control = VoiceControl::new(

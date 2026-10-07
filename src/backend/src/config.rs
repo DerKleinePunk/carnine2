@@ -66,7 +66,15 @@ pub struct VoiceConfig {
     pub volume_percent: u32,
     /// Music level while an announcement plays, 0-100.
     pub music_under_percent: u32,
+    /// Sentences that come without being prepared, synthesized once the
+    /// voice is on and kept, so they play at once. They have to match the
+    /// map library's texts word for word; an empty list synthesizes none.
+    pub fixed_texts: Vec<String>,
 }
+
+/// The map library's sentence when it computes the route again (local_map
+/// `AnnouncementTexts.german.rerouting`): unprepared it took 4 s on a Pi 4.
+pub const REROUTING_TEXT: &str = "Die Route wird neu berechnet.";
 
 impl Default for VoiceConfig {
     fn default() -> Self {
@@ -80,6 +88,7 @@ impl Default for VoiceConfig {
             cache_dir: PathBuf::from("/run/carnine/voice"),
             volume_percent: 100,
             music_under_percent: 30,
+            fixed_texts: vec![REROUTING_TEXT.to_string()],
         }
     }
 }
@@ -854,6 +863,7 @@ mod tests {
             config.voice.music_under_percent,
             defaults.music_under_percent
         );
+        assert_eq!(config.voice.fixed_texts, defaults.fixed_texts);
 
         let config: Config = toml::from_str(&format!(
             "{base}\n[voice]\nvoice = \"thorsten-low\"\ncpu = 2\n"
@@ -865,6 +875,27 @@ mod tests {
             config.voice.volume_percent, 100,
             "the rest keeps its default"
         );
+    }
+
+    #[test]
+    fn the_fixed_texts_default_to_the_rerouting_sentence() {
+        let base = std::fs::read_to_string("../../resources/config/carnine.toml")
+            .expect("repository config should be readable");
+        let config: Config = toml::from_str(&base).expect("repository config parses");
+        assert_eq!(config.voice.fixed_texts, ["Die Route wird neu berechnet."]);
+
+        let config: Config = toml::from_str(&format!(
+            "{base}\n[voice]\nfixed_texts = [\"Sie haben Ihr Ziel erreicht.\", \"Achtung.\"]\n"
+        ))
+        .expect("an own list parses");
+        assert_eq!(
+            config.voice.fixed_texts,
+            ["Sie haben Ihr Ziel erreicht.", "Achtung."]
+        );
+
+        let config: Config = toml::from_str(&format!("{base}\n[voice]\nfixed_texts = []\n"))
+            .expect("an empty list parses");
+        assert!(config.voice.fixed_texts.is_empty());
     }
 
     #[test]

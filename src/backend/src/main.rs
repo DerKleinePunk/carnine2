@@ -2065,6 +2065,7 @@ fn start_voice(
         config.cache_dir.clone(),
         config.cpu,
         false,
+        config.fixed_texts.clone(),
         Box::new(move |path, priority| {
             if let Err(error) = sink_player.play_announcement(&path.to_string_lossy(), priority) {
                 warn!(error = %format!("{error:#}"), "announcement not played");
