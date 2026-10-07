@@ -45,6 +45,7 @@ mod server_transport;
 mod size_capped_log;
 mod storage_events;
 mod system_metrics;
+mod systemd_notify;
 mod voice;
 
 use carnine::get_cover_art_request::Target as CoverArtTarget;
@@ -1950,6 +1951,13 @@ async fn main() -> Result<()> {
     let incoming =
         server_transport::bind(&configuration.server.socket_path, tcp_fallback, socket_mode)
             .await?;
+    // The socket listens from here on, so the frontend, ordered after this
+    // unit, may start now (Type=notify).
+    match systemd_notify::notify(systemd_notify::READY) {
+        Ok(true) => info!("told systemd the backend is ready"),
+        Ok(false) => {}
+        Err(error) => warn!(%error, "could not tell systemd the backend is ready"),
+    }
     let (shutdown_sender, shutdown_receiver) = oneshot::channel();
     let server = Server::builder()
         .add_service(CarnineServiceServer::new(carnine_service))
@@ -1986,6 +1994,9 @@ async fn main() -> Result<()> {
     tokio::select! {
         result = &mut server => result?,
         _ = shutdown_signal() => {
+            if let Err(error) = systemd_notify::notify(systemd_notify::STOPPING) {
+                warn!(%error, "could not tell systemd the backend is stopping");
+            }
             media_service.cancel_scans();
             if let Err(error) = media_service.save_resume_state() {
                 warn!(%error, "failed to save resume state during shutdown");

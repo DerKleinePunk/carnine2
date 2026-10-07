@@ -9,7 +9,9 @@ Conflicts=shutdown.target reboot.target halt.target poweroff.target
 Before=shutdown.target reboot.target halt.target poweroff.target
 
 [Service]
-Type=simple
+# The backend sends READY=1 once its gRPC socket listens, so the frontend
+# (After=carnine-backend.service) does not start against a missing socket.
+Type=notify
 User=carnine
 Group=carnine
 # dialout: the GPS receiver on /dev/gps and the power supply on
