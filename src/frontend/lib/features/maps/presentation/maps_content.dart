@@ -22,7 +22,8 @@ class MapsContent extends StatelessWidget {
 
   final MapsController controller;
 
-  static final MapConfig _mapConfig = MapConfig(
+  @visibleForTesting
+  static final MapConfig mapConfig = MapConfig(
     minZoom: 8,
     maxZoom: 17,
     initialZoom: 13,
@@ -43,6 +44,11 @@ class MapsContent extends StatelessWidget {
     // 2026-09-30, demo drive at 15x): frames over 100 ms 0-5 instead of 0-1,
     // worst frame 98-123 ms, about 30 MB more resident.
     labelRotationStep: 45,
+    // The OpenStreetMap credit has to be readable without a tap. Bottom
+    // right, above the trip panel (its top at y 480 on the 1024x600 panel)
+    // and below the compass (Michael, 2026-10-07).
+    attributionText: MapConfig.osmAttributionGerman,
+    attributionPadding: const EdgeInsets.only(right: 8, bottom: 125),
   );
 
   static const _layerStyle = MapLayerStyle(
@@ -68,7 +74,7 @@ class MapsContent extends StatelessWidget {
           color: AppColors.surface,
           child: MapView(
             mbtilesPath: MapsController.tilesPath(),
-            config: _mapConfig,
+            config: mapConfig,
             controller: controller.map,
             layerStyle: _layerStyle,
             errorBuilder: (context, error) => _MapErrorView(error: error),
