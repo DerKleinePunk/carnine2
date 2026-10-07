@@ -8,14 +8,16 @@ set -o pipefail
 mkdir -p build-logs
 
 # Build for all
-podman run --rm -it --device /dev/kvm --mount "type=bind,source=$(pwd),destination=/work" --workdir /work --security-opt label=disable godebos/debos -t version:$(cat ../VERSION) ./debos/raspbian.yaml 2>&1 | tee "build-logs/debos-$(date +%Y%m%d-%H%M%S).log"
+podman run --rm -it --device /dev/kvm --mount "type=bind,source=$(pwd),destination=/work" --workdir /work --security-opt label=disable godebos/debos --memory=4G --scratchsize=16G -t version:$(cat ../VERSION) ./debos/raspbian.yaml 2>&1 | tee "build-logs/debos-$(date +%Y%m%d-%H%M%S).log"
 
 # Build for Waveshare
-podman run --rm -it --device /dev/kvm --mount "type=bind,source=$(pwd),destination=/work" --workdir /work --security-opt label=disable godebos/debos -t display:waveshare-1024x600 -t version:$(cat ../VERSION) -t "ssh_public_key:$(cat "$HOME/.ssh/id_ed25519.pub")" ./debos/raspbian.yaml 2>&1 | tee "build-logs/debos-$(date +%Y%m%d-%H%M%S).log"
+podman run --rm -it --device /dev/kvm --mount "type=bind,source=$(pwd),destination=/work" --workdir /work --security-opt label=disable godebos/debos --memory=4G --scratchsize=16G -t display:waveshare-1024x600 -t version:$(cat ../VERSION) -t "ssh_public_key:$(cat "$HOME/.ssh/id_ed25519.pub")" ./debos/raspbian.yaml 2>&1 | tee "build-logs/debos-$(date +%Y%m%d-%H%M%S).log"
 
 # Verify the SSH key in the resulting image
 ./debos/verify-image-ssh.sh raspbian-1024x600.img.gz "$HOME/.ssh/id_ed25519.pub"
 ```
+
+`--memory=4G --scratchsize=16G`: without them debos builds the root file system in the RAM of its build VM (2 GB by default). Since the voice package `carnine-voice` (0.14.0) that no longer fits, and the VM dies during dracut with `Couldn't start fakemachine: .../result: no such file or directory`. `--scratchsize` moves the scratch space to the disk of the Podman machine. Give the memory with a unit: `--memory=4096` means 4096 bytes.
 
 The image is created as `raspbian.img.gz`; the block map is `raspbian.img.bmap`. The complete build log is stored below `build-logs/`. Flash the image manually from Windows after verifying the selected SD card.
 
@@ -29,7 +31,7 @@ export DOCKER_HOST="unix:///mnt/wsl/podman-sockets/podman-machine-default/podman
 wget https://github.com/podman-container-tools/podman/releases/download/v6.0.2/podman-remote-static-linux_amd64.tar.gz
 
 
-podman run --rm -it --device /dev/kvm --mount "type=bind,source=$(pwd),destination=/work" --workdir /work --security-opt label=disable godebos/debos raspbian.yaml
+podman run --rm -it --device /dev/kvm --mount "type=bind,source=$(pwd),destination=/work" --workdir /work --security-opt label=disable godebos/debos --memory=4G --scratchsize=16G raspbian.yaml
 
 Vor dem Debos-Lauf muss `build_pi.sh` ausgeführt werden. Das Script baut die
 beiden ARM64-Debian-Pakete und legt sie als `resources/debos/carnine-backend.deb`
