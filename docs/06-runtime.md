@@ -9,20 +9,27 @@ The Runtime View describes the dynamic behavior of the system at runtime. It ill
 When the Pi is powered (in the car: the power supply AuPrV1_1 switches it on
 with the ignition, docs/23), systemd starts both services:
 
-1. `carnine-backend.service` (`Type=simple`) starts the backend. It opens the
+1. `carnine-backend.service` (`Type=notify`) starts the backend. It opens the
    SQLite database, opens the power supply line if `[power_supply]` is
    configured, starts the system metrics sampler, creates the media player,
    restores the volume and the saved resume state, starts the UDisks2 listener
    and the navigation service, and finally binds the Unix socket
-   (`/run/carnine/carnine.sock`, optionally also a TCP address).
+   (`/run/carnine/carnine.sock`, optionally also a TCP address). Right after
+   the socket listens, the backend sends `READY=1` to systemd (journal line
+   `told systemd the backend is ready`); only then does systemd count the
+   backend as started. On shutdown it sends `STOPPING=1`. Without
+   `NOTIFY_SOCKET` (WSL, started by hand) it sends nothing
+   (`src/backend/src/systemd_notify.rs`).
 2. `carnine-frontend.service` (`Type=notify`, after the backend and
    `plymouth-start.service`) launches ivi-homescreen with the Flutter bundle
-   and connects to the socket.
+   and connects to the socket. Because the backend reports ready only once
+   the socket listens, the frontend never starts before the socket exists.
 3. The UI waits for five rendered frames (it forces a frame every 100 ms and
    stops waiting after 5 s at the latest) and then reports `ReportUiReady` through
-   `SystemService`. While the backend still answers `UNAVAILABLE`,
-   `UiReadinessReporter` retries (250 ms, 500 ms, 1 s, then every 2 s) for up
-   to 20 s.
+   `SystemService`. If the backend answers `UNAVAILABLE` (for example while
+   it restarts on its own), `UiReadinessReporter` retries (250 ms, 500 ms,
+   1 s, then every 2 s) for up to 20 s. In a normal start the socket already
+   listens, so no retry is needed.
 4. The frontend sends `READY=1` to systemd, which completes its start.
 
 Plymouth quits on its own timing and is not ordered after the frontend
@@ -218,14 +225,15 @@ sequenceDiagram
     participant RB as Rust Backend
     participant FF as Flutter Frontend
 
-    SD->>RB: start carnine-backend.service
+    SD->>RB: start carnine-backend.service (Type=notify)
     RB->>RB: open database, power supply, metrics, media, navigation
     RB->>RB: bind /run/carnine/carnine.sock
+    RB->>SD: sd_notify READY=1 (socket listens)
     SD->>FF: start carnine-frontend.service (Type=notify)
     FF->>RB: connect via gRPC
     FF->>FF: wait for five rendered frames
     FF->>RB: SystemService.ReportUiReady()
-    RB-->>FF: ok (retried while UNAVAILABLE)
+    RB-->>FF: ok (retried only while the backend restarts)
     FF->>SD: sd_notify READY=1
 ```
 
