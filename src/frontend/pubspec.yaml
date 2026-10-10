@@ -48,8 +48,9 @@ dependency_overrides:
     git:
       url: https://github.com/DerKleinePunk/flutter-vector-map-tiles
       # Fester Commit auf dem Zweig local_map_pi, passend ab local_map-v0.6.0
-      # (rasterLabelRotationStep).
-      ref: b870db815e8c63bfed8a963f0a8250c85525ddc1
+      # (rasterLabelRotationStep); deb6ebf blendet neu geladene Kacheln beim
+      # Stufenwechsel nicht mehr aus (Flackern, 2026-10-10).
+      ref: deb6ebff19195942433574281d30368f2336cdb4
   # Seit local_map 0.6.0 Pflicht: dreht Punkt- und Strassennamen mit.
   vector_tile_renderer:
     git:
