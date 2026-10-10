@@ -640,20 +640,22 @@ The Debian packages pull in everything they need; the image installs them:
 - Standard build tools (gcc, make, pkg‑config), `rsync`, `dpkg-deb`
 
 **Flutter Frontend Cross‑Compilation**
-- [`emb_cli`](https://github.com/toyota-connected/emb_cli) **0.4.0** from
-  pub.dev (6 Oct 2026), the version release builds use:
+- [`emb_cli`](https://github.com/toyota-connected/emb_cli) **0.4.1** from
+  pub.dev (8 Oct 2026), the version release builds use:
 
   ```
-  dart install emb_cli
-  emb --version          # 0.4.0
+  dart install emb_cli@0.4.1
+  emb --version          # 0.4.1
   ```
 
   Older releases do not work: 0.3.6 and 0.3.7 reject the code assets emb
   stages itself (`libsqlite3.so`,
-  [emb_cli#255](https://github.com/toyota-connected/emb_cli/issues/255));
-  until 6 Oct 2026 the builds used emb from git at `5813fa8`. After a change
-  of the emb version build once with `CARNINE_EMB_UPDATE_LOCK=1` (see 3.3),
-  and sync the boards as 3.3 describes.
+  [emb_cli#255](https://github.com/toyota-connected/emb_cli/issues/255)),
+  and 0.4.0 finds no board files with its default source
+  ([emb_cli#261](https://github.com/toyota-connected/emb_cli/issues/261)).
+  After a change of the emb version sync the boards as 3.3 describes; if the
+  build then reports a lock drift, build once with `CARNINE_EMB_UPDATE_LOCK=1`
+  (see 3.3).
 
   It worked if the build finishes and the bundle's `lib/` holds
   `libapp.so`, `libflutter_engine.so`, `libihs_shared.so.1`,
@@ -765,8 +767,6 @@ the steps are listed for provisioning a new build host.
    mkdir -p $W/app
    git clone --recursive https://github.com/toyota-connected/ivi-homescreen.git $W/app/ivi-homescreen
    emb flutter -w $W --flutter-version 3.47.5
-   emb boards remove emb-public
-   emb boards add github toyota-connected/emb_cli -n emb-boards --path boards/emb-public --ref auto
    emb boards sync
    cd $W/app/ivi-homescreen
    git switch -c carnine 92c2353a
@@ -782,21 +782,23 @@ the steps are listed for provisioning a new build host.
    hours on 2026-09-27 under synthetic pan/zoom without a freeze. A pin older
    than 15ab00f3 brings the freeze back.
 
-   The three `emb boards` lines work around emb 0.4.0, whose default board
-   source `emb-public` looks in `boards/` while the files moved to
-   `boards/emb-public/`: `emb boards sync` then reports `No board files found
-   for emb-public at v0.4.0`, and the build stops with `extends: board library
-   not found` (exit 64). The source `emb-boards` points at the new folder
-   (stored in `~/.config/emb/boards.yaml`); reported as
-   [emb_cli#261](https://github.com/toyota-connected/emb_cli/issues/261).
+   `emb boards sync` fetches the boards from emb's default source
+   `emb-public`, matching the emb version (`emb boards list` shows
+   `installed (emb-public)` with `rpi4-trixie`). A host that still carries the
+   workaround for emb 0.4.0
+   ([emb_cli#261](https://github.com/toyota-connected/emb_cli/issues/261)), a
+   source `emb-boards` in `~/.config/emb/boards.yaml`, drops it with
+   `emb boards remove emb-boards` and runs `emb boards sync` again; emb then
+   restores `emb-public` by itself.
 
    The fetch downloads the Arm GNU toolchain and a RaspiOS trixie sysroot
    (several GB, cached under `~/.cache/emb`). The build also compiles a
    host-native `wayland-cxx-scanner` and needs `sudo apt install libpugixml-dev`
    on the workstation.
 
-   After a change of the emb version, the first build stops with
-   `emb.lock drift … re-run with --update-lock`. Build once with
+   After a change of the emb version, the first build can stop with
+   `emb.lock drift … re-run with --update-lock` (0.4.0 to 0.4.1 did not;
+   `emb.lock` still names 0.4.0). Then build once with
    `CARNINE_EMB_UPDATE_LOCK=1 ./build_pi.sh`: it adds `--update-lock` to its
    own emb call, so the lock matches exactly that call. Then build normally.
    The `--fetch-only` command above with `--update-lock` is not enough; it
