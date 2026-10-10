@@ -1787,6 +1787,16 @@ mod tests {
         starts.lock().unwrap().last().cloned().expect("a start")
     }
 
+    /// A seek lands at the target plus the few milliseconds the track
+    /// played between the start and the seek; exact on a quiet machine,
+    /// some ms later when the tests run side by side.
+    fn assert_lands_near(actual: i64, target: i64) {
+        assert!(
+            (target..target + 50).contains(&actual),
+            "landed at {actual} ms, wanted {target} ms"
+        );
+    }
+
     /// Plays until `lost` is set; then resume fails and no output is
     /// reported, like a cpal engine whose stream was dropped (#59).
     struct LosingEngine {
@@ -1894,10 +1904,9 @@ mod tests {
 
         player.execute("seek", "30000").expect("seek should work");
 
-        assert_eq!(
-            last_start(&starts),
-            ("/music/first.mp3".to_string(), 40_000)
-        );
+        let (path, landed) = last_start(&starts);
+        assert_eq!(path, "/music/first.mp3");
+        assert_lands_near(landed, 40_000);
         assert_eq!(player.state(), "playing");
         assert_eq!(player.position_ms() / 1000, 40);
         let event = events.try_recv().expect("the new position is published");
@@ -1909,7 +1918,7 @@ mod tests {
     fn seek_back_keeps_the_queue_and_stops_at_the_start() {
         let (player, starts) = playing_at(40_000);
         player.execute("seek", "-30000").expect("seek should work");
-        assert_eq!(last_start(&starts).1, 10_000);
+        assert_lands_near(last_start(&starts).1, 10_000);
 
         player.execute("seek", "-30000").expect("seek should work");
 
