@@ -7,7 +7,16 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use anyhow::{Context, Result};
 use rusqlite::{params, Connection, OptionalExtension};
 
-const CURRENT_SCHEMA_VERSION: i64 = 12;
+const CURRENT_SCHEMA_VERSION: i64 = 13;
+
+/// What the options saved for the turn announcements; `None` where never
+/// set, and then the configuration's `[voice]` value holds.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct SavedVoiceSettings {
+    pub enabled: Option<bool>,
+    pub volume_percent: Option<u32>,
+    pub music_under_percent: Option<u32>,
+}
 
 pub struct Database {
     connection: Connection,
@@ -320,6 +329,17 @@ impl Database {
             }
             self.connection
                 .execute_batch("INSERT INTO schema_migrations (version) VALUES (12);")?;
+        }
+        if version < 13 {
+            // The music's level during an announcement, set in the options;
+            // NULL means "as [voice] music_under_percent says".
+            if !self.has_column("navigation_state", "voice_music_under")? {
+                self.connection.execute_batch(
+                    "ALTER TABLE navigation_state ADD COLUMN voice_music_under INTEGER;",
+                )?;
+            }
+            self.connection
+                .execute_batch("INSERT INTO schema_migrations (version) VALUES (13);")?;
         }
         if version > CURRENT_SCHEMA_VERSION {
             anyhow::bail!(
@@ -845,27 +865,41 @@ impl Database {
         Ok(())
     }
 
-    pub fn save_voice_settings(&self, enabled: bool, volume_percent: u32) -> Result<()> {
+    pub fn save_voice_settings(
+        &self,
+        enabled: bool,
+        volume_percent: u32,
+        music_under_percent: u32,
+    ) -> Result<()> {
         self.connection.execute(
-            "INSERT INTO navigation_state (id, voice_enabled, voice_volume) VALUES (1, ?1, ?2)
+            "INSERT INTO navigation_state (id, voice_enabled, voice_volume, voice_music_under)
+             VALUES (1, ?1, ?2, ?3)
              ON CONFLICT(id) DO UPDATE SET voice_enabled = excluded.voice_enabled,
-                 voice_volume = excluded.voice_volume",
-            rusqlite::params![enabled, volume_percent],
+                 voice_volume = excluded.voice_volume,
+                 voice_music_under = excluded.voice_music_under",
+            rusqlite::params![enabled, volume_percent, music_under_percent],
         )?;
         Ok(())
     }
 
-    /// The saved announcement switch and loudness, `None` where never saved.
-    pub fn load_voice_settings(&self) -> Result<(Option<bool>, Option<u32>)> {
+    /// The saved announcement settings, `None` where never saved.
+    pub fn load_voice_settings(&self) -> Result<SavedVoiceSettings> {
         Ok(self
             .connection
             .query_row(
-                "SELECT voice_enabled, voice_volume FROM navigation_state WHERE id = 1",
+                "SELECT voice_enabled, voice_volume, voice_music_under
+                 FROM navigation_state WHERE id = 1",
                 [],
-                |row| Ok((row.get(0)?, row.get(1)?)),
+                |row| {
+                    Ok(SavedVoiceSettings {
+                        enabled: row.get(0)?,
+                        volume_percent: row.get(1)?,
+                        music_under_percent: row.get(2)?,
+                    })
+                },
             )
             .optional()?
-            .unwrap_or((None, None)))
+            .unwrap_or_default())
     }
 
     /// Whether track recording was switched on; off when never set.
@@ -1166,7 +1200,7 @@ mod tests {
     use super::{
         extract_cover_art, find_folder_cover_image, read_audio_metadata, AudioMetadata, Database,
         MediaReader, MediaRecord, RenameOutcome, ResumeState, SavedCameraSettings,
-        CURRENT_SCHEMA_VERSION,
+        SavedVoiceSettings, CURRENT_SCHEMA_VERSION,
     };
     use std::cell::{Cell, RefCell};
     use std::path::{Path, PathBuf};
@@ -1702,11 +1736,50 @@ mod tests {
         let database = Database::open(&path).expect("schema 11 should migrate");
         assert_eq!(database.schema_version().unwrap(), CURRENT_SCHEMA_VERSION);
         assert!(database.load_track_recording().unwrap());
-        assert_eq!(database.load_voice_settings().unwrap(), (None, None));
-        database.save_voice_settings(true, 80).unwrap();
         assert_eq!(
             database.load_voice_settings().unwrap(),
-            (Some(true), Some(80))
+            SavedVoiceSettings::default()
+        );
+        database.save_voice_settings(true, 80, 30).unwrap();
+        assert_eq!(
+            database.load_voice_settings().unwrap(),
+            SavedVoiceSettings {
+                enabled: Some(true),
+                volume_percent: Some(80),
+                music_under_percent: Some(30),
+            }
+        );
+        drop(database);
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn schema_13_adds_the_music_level_and_keeps_the_voice_settings() {
+        let path =
+            std::env::temp_dir().join(format!("carnine-schema-13-{}.sqlite3", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+        let database = Database::open(&path).expect("database should open");
+        database.save_voice_settings(false, 65, 40).unwrap();
+        // Back to schema 12, as 0.15.0 left it.
+        database
+            .connection
+            .execute_batch(
+                "ALTER TABLE navigation_state DROP COLUMN voice_music_under;
+                 DELETE FROM schema_migrations WHERE version >= 13;",
+            )
+            .unwrap();
+        drop(database);
+
+        let database = Database::open(&path).expect("schema 12 should migrate");
+        assert_eq!(database.schema_version().unwrap(), CURRENT_SCHEMA_VERSION);
+        assert_eq!(
+            database.load_voice_settings().unwrap(),
+            SavedVoiceSettings {
+                enabled: Some(false),
+                volume_percent: Some(65),
+                music_under_percent: None,
+            },
+            "switch and loudness kept, the music level as configured"
         );
         drop(database);
         let _ = std::fs::remove_file(&path);
@@ -1715,19 +1788,24 @@ mod tests {
     #[test]
     fn keeps_the_voice_settings_beside_the_track_recording_switch() {
         let database = Database::open(":memory:").expect("database should open");
+        let saved = SavedVoiceSettings {
+            enabled: Some(false),
+            volume_percent: Some(70),
+            music_under_percent: Some(0),
+        };
         assert_eq!(
             database.load_voice_settings().unwrap(),
-            (None, None),
+            SavedVoiceSettings::default(),
             "never set"
         );
         database.save_track_recording(true).unwrap();
-        assert_eq!(database.load_voice_settings().unwrap(), (None, None));
-
-        database.save_voice_settings(false, 70).unwrap();
         assert_eq!(
             database.load_voice_settings().unwrap(),
-            (Some(false), Some(70))
+            SavedVoiceSettings::default()
         );
+
+        database.save_voice_settings(false, 70, 0).unwrap();
+        assert_eq!(database.load_voice_settings().unwrap(), saved);
         assert!(
             database.load_track_recording().unwrap(),
             "recording untouched"
@@ -1736,7 +1814,7 @@ mod tests {
         database.save_track_recording(false).unwrap();
         assert_eq!(
             database.load_voice_settings().unwrap(),
-            (Some(false), Some(70)),
+            saved,
             "voice untouched"
         );
     }

@@ -1744,6 +1744,13 @@ const VoiceSettings$json = {
     {'1': 'enabled', '3': 2, '4': 1, '5': 8, '10': 'enabled'},
     {'1': 'volume_percent', '3': 3, '4': 1, '5': 13, '10': 'volumePercent'},
     {'1': 'voice', '3': 4, '4': 1, '5': 9, '10': 'voice'},
+    {
+      '1': 'music_under_percent',
+      '3': 5,
+      '4': 1,
+      '5': 13,
+      '10': 'musicUnderPercent'
+    },
   ],
 };
 
@@ -1751,7 +1758,8 @@ const VoiceSettings$json = {
 final $typed_data.Uint8List voiceSettingsDescriptor = $convert.base64Decode(
     'Cg1Wb2ljZVNldHRpbmdzEhwKCWF2YWlsYWJsZRgBIAEoCFIJYXZhaWxhYmxlEhgKB2VuYWJsZW'
     'QYAiABKAhSB2VuYWJsZWQSJQoOdm9sdW1lX3BlcmNlbnQYAyABKA1SDXZvbHVtZVBlcmNlbnQS'
-    'FAoFdm9pY2UYBCABKAlSBXZvaWNl');
+    'FAoFdm9pY2UYBCABKAlSBXZvaWNlEi4KE211c2ljX3VuZGVyX3BlcmNlbnQYBSABKA1SEW11c2'
+    'ljVW5kZXJQZXJjZW50');
 
 @$core.Deprecated('Use setVoiceSettingsRequestDescriptor instead')
 const SetVoiceSettingsRequest$json = {
@@ -1775,18 +1783,29 @@ const SetVoiceSettingsRequest$json = {
       '10': 'volumePercent',
       '17': true
     },
+    {
+      '1': 'music_under_percent',
+      '3': 3,
+      '4': 1,
+      '5': 13,
+      '9': 2,
+      '10': 'musicUnderPercent',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_enabled'},
     {'1': '_volume_percent'},
+    {'1': '_music_under_percent'},
   ],
 };
 
 /// Descriptor for `SetVoiceSettingsRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List setVoiceSettingsRequestDescriptor = $convert.base64Decode(
     'ChdTZXRWb2ljZVNldHRpbmdzUmVxdWVzdBIdCgdlbmFibGVkGAEgASgISABSB2VuYWJsZWSIAQ'
-    'ESKgoOdm9sdW1lX3BlcmNlbnQYAiABKA1IAVINdm9sdW1lUGVyY2VudIgBAUIKCghfZW5hYmxl'
-    'ZEIRCg9fdm9sdW1lX3BlcmNlbnQ=');
+    'ESKgoOdm9sdW1lX3BlcmNlbnQYAiABKA1IAVINdm9sdW1lUGVyY2VudIgBARIzChNtdXNpY191'
+    'bmRlcl9wZXJjZW50GAMgASgNSAJSEW11c2ljVW5kZXJQZXJjZW50iAEBQgoKCF9lbmFibGVkQh'
+    'EKD192b2x1bWVfcGVyY2VudEIWChRfbXVzaWNfdW5kZXJfcGVyY2VudA==');
 
 @$core.Deprecated('Use routeDescriptor instead')
 const Route$json = {

@@ -660,8 +660,12 @@ async fn announce(endpoint: &str) -> Result<()> {
 
 fn print_voice_settings(settings: &VoiceSettings) {
     println!(
-        "available={} enabled={} volume={}% voice={}",
-        settings.available, settings.enabled, settings.volume_percent, settings.voice
+        "available={} enabled={} volume={}% music_under={}% voice={}",
+        settings.available,
+        settings.enabled,
+        settings.volume_percent,
+        settings.music_under_percent,
+        settings.voice
     );
 }
 
@@ -672,25 +676,29 @@ async fn get_voice_settings(endpoint: &str) -> Result<()> {
     Ok(())
 }
 
-/// `set-voice-settings [on|off|-] [volume 0-100]`.
+/// `set-voice-settings [on|off|-] [volume 0-100|-] [music_under 0-100]`.
 async fn set_voice_settings(endpoint: &str) -> Result<()> {
-    let usage = "usage: media_grpc_client [endpoint] set-voice-settings [on|off|-] [volume 0-100]";
+    let usage = "usage: media_grpc_client [endpoint] set-voice-settings [on|off|-] [volume 0-100|-] [music_under 0-100]";
     let enabled = match env::args().nth(3).as_deref() {
         Some("on") => Some(true),
         Some("off") => Some(false),
         Some("-") | None => None,
         Some(other) => bail!("unknown state: {other}\n{usage}"),
     };
-    let volume_percent = env::args()
-        .nth(4)
-        .map(|value| value.parse::<u32>())
-        .transpose()
-        .context(usage)?;
+    let level = |index: usize| -> Result<Option<u32>> {
+        match env::args().nth(index).as_deref() {
+            Some("-") | None => Ok(None),
+            Some(value) => Ok(Some(value.parse::<u32>().context(usage)?)),
+        }
+    };
+    let volume_percent = level(4)?;
+    let music_under_percent = level(5)?;
     let mut client = NavigationServiceClient::<Channel>::connect(endpoint.to_string()).await?;
     let settings = client
         .set_voice_settings(SetVoiceSettingsRequest {
             enabled,
             volume_percent,
+            music_under_percent,
         })
         .await?
         .into_inner();

@@ -27,6 +27,7 @@ use anyhow::{Context, Result};
 use tracing::{info, warn};
 
 use crate::config::VoiceConfig;
+use crate::database::SavedVoiceSettings;
 use crate::media_player::{AnnouncementLevels, AnnouncementPriority};
 
 /// Synthesized speech, mono.
@@ -246,7 +247,7 @@ pub struct VoiceControl {
     voice: Voice,
     voice_name: String,
     volume_percent: AtomicU32,
-    music_under_percent: u32,
+    music_under_percent: AtomicU32,
     set_levels: LevelSetter,
     /// Media database that keeps the settings; `None` in tests.
     database: Option<PathBuf>,
@@ -258,6 +259,8 @@ pub struct VoiceState {
     pub available: bool,
     pub enabled: bool,
     pub volume_percent: u32,
+    /// The music's level while a sentence plays, 0-100.
+    pub music_under_percent: u32,
     pub voice: String,
 }
 
@@ -275,16 +278,26 @@ impl VoiceControl {
     pub fn new(
         voice: Voice,
         config: &VoiceConfig,
-        saved: (Option<bool>, Option<u32>),
+        saved: SavedVoiceSettings,
         set_levels: LevelSetter,
         database: Option<PathBuf>,
     ) -> Self {
-        voice.set_enabled(saved.0.unwrap_or(config.enabled));
+        voice.set_enabled(saved.enabled.unwrap_or(config.enabled));
         let control = Self {
             voice,
             voice_name: config.voice.clone(),
-            volume_percent: AtomicU32::new(saved.1.unwrap_or(config.volume_percent).min(100)),
-            music_under_percent: config.music_under_percent.min(100),
+            volume_percent: AtomicU32::new(
+                saved
+                    .volume_percent
+                    .unwrap_or(config.volume_percent)
+                    .min(100),
+            ),
+            music_under_percent: AtomicU32::new(
+                saved
+                    .music_under_percent
+                    .unwrap_or(config.music_under_percent)
+                    .min(100),
+            ),
             set_levels,
             database,
         };
@@ -297,18 +310,32 @@ impl VoiceControl {
             available: self.voice.available(),
             enabled: self.voice.enabled(),
             volume_percent: self.volume_percent.load(Ordering::Acquire),
+            music_under_percent: self.music_under_percent.load(Ordering::Acquire),
             voice: self.voice_name.clone(),
         }
     }
 
     /// Changes what is given, saves it and answers with the new state; a
-    /// loudness above 100 is refused.
-    pub fn update(&self, enabled: Option<bool>, volume_percent: Option<u32>) -> Result<VoiceState> {
+    /// level above 100 is refused, and then nothing changes.
+    pub fn update(
+        &self,
+        enabled: Option<bool>,
+        volume_percent: Option<u32>,
+        music_under_percent: Option<u32>,
+    ) -> Result<VoiceState> {
+        if let Some(volume) = volume_percent.filter(|volume| *volume > 100) {
+            anyhow::bail!("volume_percent {volume} is above 100");
+        }
+        if let Some(music) = music_under_percent.filter(|music| *music > 100) {
+            anyhow::bail!("music_under_percent {music} is above 100");
+        }
         if let Some(volume) = volume_percent {
-            if volume > 100 {
-                anyhow::bail!("volume_percent {volume} is above 100");
-            }
             self.volume_percent.store(volume, Ordering::Release);
+        }
+        if let Some(music) = music_under_percent {
+            self.music_under_percent.store(music, Ordering::Release);
+        }
+        if volume_percent.is_some() || music_under_percent.is_some() {
             self.apply_levels();
         }
         if let Some(enabled) = enabled {
@@ -318,12 +345,17 @@ impl VoiceControl {
         info!(
             enabled = state.enabled,
             volume_percent = state.volume_percent,
+            music_under_percent = state.music_under_percent,
             "voice settings changed"
         );
         if let Some(database) = &self.database {
             // Live already; a failed save only means the next start forgets it.
             if let Err(error) = crate::database::Database::open(database).and_then(|database| {
-                database.save_voice_settings(state.enabled, state.volume_percent)
+                database.save_voice_settings(
+                    state.enabled,
+                    state.volume_percent,
+                    state.music_under_percent,
+                )
             }) {
                 warn!(error = %format!("{error:#}"), "voice settings not saved");
             }
@@ -342,7 +374,7 @@ impl VoiceControl {
     fn apply_levels(&self) {
         (self.set_levels)(AnnouncementLevels {
             volume: self.volume_percent.load(Ordering::Acquire) as f32 / 100.0,
-            music_under: self.music_under_percent as f32 / 100.0,
+            music_under: self.music_under_percent.load(Ordering::Acquire) as f32 / 100.0,
         });
     }
 }
@@ -1154,7 +1186,7 @@ mod tests {
 
     fn voice_control(
         config: &VoiceConfig,
-        saved: (Option<bool>, Option<u32>),
+        saved: SavedVoiceSettings,
     ) -> (VoiceControl, Arc<Mutex<Vec<AnnouncementLevels>>>) {
         let levels = Arc::new(Mutex::new(Vec::new()));
         let seen = Arc::clone(&levels);
@@ -1183,7 +1215,7 @@ mod tests {
             music_under_percent: 20,
             ..VoiceConfig::default()
         };
-        let (control, levels) = voice_control(&config, (None, None));
+        let (control, levels) = voice_control(&config, SavedVoiceSettings::default());
         assert!(control.state().enabled, "on by default");
         assert_eq!(control.state().volume_percent, 90);
         assert_eq!(control.state().voice, "thorsten-medium");
@@ -1196,25 +1228,102 @@ mod tests {
             })
         );
 
-        let (control, levels) = voice_control(&config, (Some(false), Some(40)));
+        let saved = SavedVoiceSettings {
+            enabled: Some(false),
+            volume_percent: Some(40),
+            music_under_percent: Some(0),
+        };
+        let (control, levels) = voice_control(&config, saved);
         assert!(!control.state().enabled);
         assert_eq!(control.state().volume_percent, 40);
-        assert_eq!(levels.lock().unwrap().last().unwrap().volume, 0.4);
+        assert_eq!(control.state().music_under_percent, 0);
+        assert_eq!(
+            levels.lock().unwrap().last(),
+            Some(&AnnouncementLevels {
+                volume: 0.4,
+                music_under: 0.0
+            })
+        );
     }
 
     #[test]
     fn settings_change_live_and_a_loudness_above_100_is_refused() {
-        let (control, levels) = voice_control(&VoiceConfig::default(), (None, None));
-        let state = control.update(Some(false), Some(55)).unwrap();
+        let (control, levels) =
+            voice_control(&VoiceConfig::default(), SavedVoiceSettings::default());
+        assert_eq!(control.state().music_under_percent, 30, "as [voice] says");
+        let state = control.update(Some(false), Some(55), None).unwrap();
         assert!(!state.enabled);
         assert_eq!(state.volume_percent, 55);
         assert_eq!(levels.lock().unwrap().last().unwrap().volume, 0.55);
 
-        assert!(control.update(None, Some(101)).is_err());
+        assert!(control.update(None, Some(101), None).is_err());
         assert_eq!(control.state().volume_percent, 55, "unchanged");
-        let state = control.update(Some(true), None).unwrap();
+        let state = control.update(Some(true), None, None).unwrap();
         assert!(state.enabled);
         assert_eq!(state.volume_percent, 55, "only what is given changes");
+        assert_eq!(state.music_under_percent, 30, "only what is given changes");
+    }
+
+    #[test]
+    fn the_music_level_changes_live_and_above_100_nothing_changes() {
+        let (control, levels) =
+            voice_control(&VoiceConfig::default(), SavedVoiceSettings::default());
+        let state = control.update(None, None, Some(10)).unwrap();
+        assert_eq!(state.music_under_percent, 10);
+        assert_eq!(
+            levels.lock().unwrap().last(),
+            Some(&AnnouncementLevels {
+                volume: 1.0,
+                music_under: 0.1
+            })
+        );
+        let seen = levels.lock().unwrap().len();
+
+        // One value out of range refuses the whole request.
+        assert!(control.update(Some(false), Some(40), Some(101)).is_err());
+        let state = control.state();
+        assert!(state.enabled && state.volume_percent == 100 && state.music_under_percent == 10);
+        assert_eq!(levels.lock().unwrap().len(), seen, "no levels applied");
+    }
+
+    #[test]
+    fn the_options_survive_a_restart_through_the_database() {
+        let path = std::env::temp_dir().join(format!(
+            "carnine-voice-saved-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&path);
+        crate::database::Database::open(&path).expect("database should open");
+        let start = |saved| {
+            VoiceControl::new(
+                Voice::start(
+                    Box::new(|| anyhow::bail!("no voice in tests")),
+                    std::env::temp_dir().join("carnine-voice-saved"),
+                    None,
+                    false,
+                    Vec::new(),
+                    Box::new(|_, _| {}),
+                ),
+                &VoiceConfig::default(),
+                saved,
+                Box::new(|_| {}),
+                Some(path.clone()),
+            )
+        };
+        start(SavedVoiceSettings::default())
+            .update(Some(false), Some(70), Some(0))
+            .unwrap();
+
+        // The next start reads what the options saved, as main does.
+        let saved = crate::database::Database::open(&path)
+            .unwrap()
+            .load_voice_settings()
+            .unwrap();
+        let state = start(saved).state();
+        assert!(!state.enabled);
+        assert_eq!(state.volume_percent, 70);
+        assert_eq!(state.music_under_percent, 0);
+        let _ = std::fs::remove_file(&path);
     }
 
     #[test]

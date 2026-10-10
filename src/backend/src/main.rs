@@ -2074,7 +2074,7 @@ fn start_voice(
         .and_then(|database| database.load_voice_settings())
         .unwrap_or_else(|error| {
             warn!(error = %format!("{error:#}"), "voice settings not readable, using [voice]");
-            (None, None)
+            database::SavedVoiceSettings::default()
         });
     voice::VoiceControl::new(
         voice,

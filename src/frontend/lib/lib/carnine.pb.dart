@@ -5077,12 +5077,14 @@ class VoiceSettings extends $pb.GeneratedMessage {
     $core.bool? enabled,
     $core.int? volumePercent,
     $core.String? voice,
+    $core.int? musicUnderPercent,
   }) {
     final result = create();
     if (available != null) result.available = available;
     if (enabled != null) result.enabled = enabled;
     if (volumePercent != null) result.volumePercent = volumePercent;
     if (voice != null) result.voice = voice;
+    if (musicUnderPercent != null) result.musicUnderPercent = musicUnderPercent;
     return result;
   }
 
@@ -5104,6 +5106,8 @@ class VoiceSettings extends $pb.GeneratedMessage {
     ..aI(3, _omitFieldNames ? '' : 'volumePercent',
         fieldType: $pb.PbFieldType.OU3)
     ..aOS(4, _omitFieldNames ? '' : 'voice')
+    ..aI(5, _omitFieldNames ? '' : 'musicUnderPercent',
+        fieldType: $pb.PbFieldType.OU3)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5161,16 +5165,29 @@ class VoiceSettings extends $pb.GeneratedMessage {
   $core.bool hasVoice() => $_has(3);
   @$pb.TagNumber(4)
   void clearVoice() => $_clearField(4);
+
+  /// The music's level while a sentence plays, 0-100 (100 = not turned down).
+  /// Saved like the others; until set, [voice] music_under_percent.
+  @$pb.TagNumber(5)
+  $core.int get musicUnderPercent => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set musicUnderPercent($core.int value) => $_setUnsignedInt32(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasMusicUnderPercent() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearMusicUnderPercent() => $_clearField(5);
 }
 
 class SetVoiceSettingsRequest extends $pb.GeneratedMessage {
   factory SetVoiceSettingsRequest({
     $core.bool? enabled,
     $core.int? volumePercent,
+    $core.int? musicUnderPercent,
   }) {
     final result = create();
     if (enabled != null) result.enabled = enabled;
     if (volumePercent != null) result.volumePercent = volumePercent;
+    if (musicUnderPercent != null) result.musicUnderPercent = musicUnderPercent;
     return result;
   }
 
@@ -5189,6 +5206,8 @@ class SetVoiceSettingsRequest extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOB(1, _omitFieldNames ? '' : 'enabled')
     ..aI(2, _omitFieldNames ? '' : 'volumePercent',
+        fieldType: $pb.PbFieldType.OU3)
+    ..aI(3, _omitFieldNames ? '' : 'musicUnderPercent',
         fieldType: $pb.PbFieldType.OU3)
     ..hasRequiredFields = false;
 
@@ -5229,6 +5248,15 @@ class SetVoiceSettingsRequest extends $pb.GeneratedMessage {
   $core.bool hasVolumePercent() => $_has(1);
   @$pb.TagNumber(2)
   void clearVolumePercent() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get musicUnderPercent => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set musicUnderPercent($core.int value) => $_setUnsignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasMusicUnderPercent() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearMusicUnderPercent() => $_clearField(3);
 }
 
 class Route extends $pb.GeneratedMessage {

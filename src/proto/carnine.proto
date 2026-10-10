@@ -707,11 +707,15 @@ message VoiceSettings {
   bool enabled = 2;
   uint32 volume_percent = 3;  // 0-100
   string voice = 4;           // e.g. "thorsten-medium"
+  // The music's level while a sentence plays, 0-100 (100 = not turned down).
+  // Saved like the others; until set, [voice] music_under_percent.
+  uint32 music_under_percent = 5;
 }
 
 message SetVoiceSettingsRequest {
   optional bool enabled = 1;
   optional uint32 volume_percent = 2;  // 0-100; above is INVALID_ARGUMENT
+  optional uint32 music_under_percent = 3;  // 0-100; above is INVALID_ARGUMENT
 }
 
 message Route {

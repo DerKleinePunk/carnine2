@@ -353,7 +353,11 @@ impl NavigationService for NavigationServiceImpl {
             .as_ref()
             .ok_or_else(|| Status::failed_precondition("no speech output in this backend"))?;
         let state = voice
-            .update(request.enabled, request.volume_percent)
+            .update(
+                request.enabled,
+                request.volume_percent,
+                request.music_under_percent,
+            )
             .map_err(|error| Status::invalid_argument(error.to_string()))?;
         Ok(Response::new(voice_settings(Some(state))))
     }
@@ -546,6 +550,7 @@ fn voice_settings(state: Option<VoiceState>) -> VoiceSettings {
             available: state.available,
             enabled: state.enabled,
             volume_percent: state.volume_percent,
+            music_under_percent: state.music_under_percent,
             voice: state.voice,
         },
         None => VoiceSettings::default(),
@@ -761,7 +766,7 @@ mod tests {
         let status = service
             .set_voice_settings(Request::new(SetVoiceSettingsRequest {
                 enabled: Some(true),
-                volume_percent: None,
+                ..Default::default()
             }))
             .await
             .expect_err("nothing to switch");
@@ -782,7 +787,7 @@ mod tests {
         let control = VoiceControl::new(
             voice,
             &crate::config::VoiceConfig::default(),
-            (None, None),
+            crate::database::SavedVoiceSettings::default(),
             Box::new(|_| {}),
             None,
         );
@@ -791,21 +796,37 @@ mod tests {
             .set_voice_settings(Request::new(SetVoiceSettingsRequest {
                 enabled: Some(false),
                 volume_percent: Some(60),
+                music_under_percent: Some(0),
             }))
             .await
             .unwrap()
             .into_inner();
         assert!(!settings.enabled);
         assert_eq!(settings.volume_percent, 60);
+        assert_eq!(settings.music_under_percent, 0);
         assert_eq!(settings.voice, "thorsten-medium");
         let refused = service
             .set_voice_settings(Request::new(SetVoiceSettingsRequest {
-                enabled: None,
                 volume_percent: Some(150),
+                ..Default::default()
             }))
             .await
             .expect_err("above 100");
         assert_eq!(refused.code(), tonic::Code::InvalidArgument);
+        let refused = service
+            .set_voice_settings(Request::new(SetVoiceSettingsRequest {
+                music_under_percent: Some(101),
+                ..Default::default()
+            }))
+            .await
+            .expect_err("above 100");
+        assert_eq!(refused.code(), tonic::Code::InvalidArgument);
+        let settings = service
+            .get_voice_settings(Request::new(Empty {}))
+            .await
+            .unwrap()
+            .into_inner();
+        assert_eq!(settings.music_under_percent, 0, "kept after the refusal");
     }
 
     #[test]
