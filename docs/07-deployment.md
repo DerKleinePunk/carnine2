@@ -74,6 +74,13 @@ The deployment architecture emphasizes reliability and minimal resource consumpt
     `SetDisplayBrightness`), it never goes below `min_percent` (10 %), and it
     stays on when the backend exits. Until the backend runs, such a display
     stays dark.
+- **Clock module** (optional): a DS3231 module (ZS-042) on the I2C bus,
+  pins 1 (3.3 V; at 5 V its pull-ups would put 5 V on the Pi's SDA/SCL and
+  its charging circuit would charge the CR2032), 3, 5 and 9, at 0x68 (and
+  its EEPROM at 0x57), beside the IO board at 0x20; the IO board's I2C can
+  loop through the module's second header. It keeps the time without network, see
+  [Clock without network](#clock-without-network). Pins 17 and 20 stay
+  free for the CAN adapter.
 - **Power Supply**:
   • USB‑C: 5 V/3 A minimum (ensure quality supply to avoid voltage sag)
   • Optional: battery backup (UPS HAT) for graceful shutdown on power loss
@@ -440,11 +447,25 @@ field again instead.
 Switching to the camera with the reverse gear needs a signal from the car
 (CAN or a GPIO) and is not done yet.
 
-#### Clock without RTC and network
+#### Clock without network
 
 The Raspberry Pi has no battery-backed clock. At boot systemd-timesyncd
 starts from the time it saved at the last shutdown and corrects it over NTP
-once a network is there; in the car there usually is none. With
+once a network is there; in the car there usually is none.
+
+**With a DS3231 module** the time survives without network. The image loads
+its driver (`dtoverlay=i2c-rtc,ds3231` in `config.txt`) and ships `hwclock`
+(`util-linux-extra`). The driver sets the system clock itself when it
+registers `/dev/rtc0`, about 2.4 s into the boot, and with network the
+kernel writes the NTP time back into the module every 11 minutes
+(`RTC_SYSTOHC`). A new module is set once, when the system time is right
+(network, GPS fix or SSH from a laptop): `sudo hwclock -w`; `sudo hwclock -r`
+reads it. Without the module the driver should find nothing at 0x68 and
+create no `rtc0` (not tried yet). Tried on carnine-pc
+(2026-10-10): system time set to 2025 by hand, NTP off, reboot, and the time
+came from the module.
+
+**Without a module**, with
 `set_system_clock = true` in `[navigation]` (the device drop-in sets it) and
 the serial source, the backend sets the clock from the first valid GPS fix:
 

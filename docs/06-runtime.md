@@ -158,6 +158,12 @@ language chosen last (#30):
    loads wins. `SaveUiState` writes only the fields a request sets, so saving
    the page keeps the language and the other way round (`ui_state.language`,
    schema 8).
+6. The map's zoom while it follows the car is kept the same way
+   (`map_follow_zoom`, schema 14) for the options page (#131, not wired in
+   the frontend yet). While it is unset the frontend uses its default 16
+   (local_map's `MapConfig.followZoom`, since 0.8.8); saving 0 clears it
+   again, above 22 is refused. `media_grpc_client <endpoint> ui-state` shows
+   it, `save-follow-zoom <0-22>` sets it.
 
 ### Scenario 4: Vehicle Data Display (planned)
 
