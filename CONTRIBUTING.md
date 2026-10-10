@@ -55,6 +55,7 @@ cd src/backend  && cargo fmt --check && cargo clippy --all-targets && cargo test
 cd src/frontend && flutter analyze && flutter test
 cd resources/tools/demo && python3 -m unittest test_demo_gps.py
 cd resources/tools/sbom && python3 -m unittest test_gen_sbom.py
+cd resources/tools/speech && python3 -m unittest test_speech_tools.py
 ```
 
 The workflow additionally builds the backend in release mode on a native arm64
