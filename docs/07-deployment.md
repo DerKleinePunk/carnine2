@@ -250,10 +250,17 @@ takes hours.
 The Valhalla program itself is not part of the data: it is built natively on
 a Pi with `scripts/valhalla/build_valhalla_on_pi.sh` from the map project
 (described in `docs/valhalla-offline-setup.md`, "Stand auf den Test-Pis") and
-packaged as `carnine-valhalla.deb` with `resources/valhalla/package-deb.sh`.
+packaged as `carnine-valhalla.deb` with `resources/valhalla/package-deb.sh`
+(the same Valhalla 3.9.0 binaries since the first package; the Debian
+revision counts changes to the package around them).
 The package brings carnine2's own unit and configuration,
 `resources/valhalla/debian/valhalla.service` and `resources/valhalla/valhalla.json`
-(listening on `127.0.0.1:8002`).
+(listening on `127.0.0.1:8002`). The unit stops Valhalla with SIGINT and a
+3 s timeout: after SIGTERM `valhalla_service` lingers about 29 s (measured
+on the test Pi, 2026-09-25), longer than the 15 s the vehicle power supply
+allows for the shutdown; on SIGINT it ends at once. The package 3.9.0 in the
+images 0.13.0 to 0.15.0 lacks this; a device with such an image gets it by
+installing the current package with `sudo apt install ./carnine-valhalla_<version>.deb`.
 
 After building new data:
 
@@ -632,6 +639,8 @@ The Debian packages pull in everything they need; the image installs them:
 **Rust Backend Cross‑Compilation**
 - Rust toolchain with `aarch64-unknown-linux-gnu` target (installed via `rustup`)
 - `cargo-deb` (`cargo install cargo-deb`)
+- `cargo-about` (`cargo install cargo-about --locked --features cli`);
+  `build_pi.sh` stops without it
 - Cross linker `aarch64-linux-gnu-gcc` (`gcc-aarch64-linux-gnu`)
 - An arm64 sysroot with the ALSA development files at
   `build/sysroots/carnine-pi-arm64` (override `CARNINE_ARM64_SYSROOT`);
@@ -731,9 +740,14 @@ workstation. For the backend it
 2. cross-compiles with `aarch64-linux-gnu-gcc` as linker and `PKG_CONFIG_*`
    pointing into the sysroot, with `CARNINE_VERSION` and `CARNINE_BUILD_ID`
    from `VERSION` and the commit,
-3. packages that binary with `cargo deb --no-build --target
+3. writes the licence texts of every crate in the binary with
+   `cargo about` (`src/backend/about.toml`, `about.hbs`) into
+   `target/third-party-licenses.txt`; a crate under a licence that
+   `about.toml` does not accept stops the build,
+4. packages that binary with `cargo deb --no-build --target
    aarch64-unknown-linux-gnu` and stages the result as
-   `resources/debos/carnine-backend.deb`.
+   `resources/debos/carnine-backend.deb`; the licence texts go to
+   `/usr/share/doc/carnine-backend/third-party-licenses.txt`.
 
 With `cargo-auditable` installed (`cargo install cargo-auditable --locked`)
 step 2 runs `cargo auditable build`, so the binary carries its dependency
@@ -762,6 +776,22 @@ its own report: the recipe keeps the package list in
 `<image>.<audio_output>.sbom-input/` (one folder per variant, `.auprv1`
 added with the power supply), and `resources/debos/image-sbom.sh` turns it into an
 SBOM and a report on the host (`resources/debos/README.md`).
+
+**Licences (#123).** Each of our packages carries the licences of what it
+ships, under `/usr/share/doc/<package>/`: the backend the crate licences
+above; the frontend a `copyright` that names its parts and points to
+`opt/carnine/frontend/data/flutter_assets/NOTICES.Z` (Flutter collects the
+licences of the engine and every Dart package there), plus
+`ivi-homescreen-licenses.txt`, which `gen_sbom.py --licenses-output` writes
+from a fixed list of files per submodule (a delivered submodule without an
+entry, or a missing file, stops the build); Valhalla a `copyright` for
+Valhalla 3.9.0, prime_server 0.13.1 and the third_party parts compiled in.
+The image recipe adds `/usr/share/doc/carnine/SOURCE-OFFER.txt`
+(from `resources/debos/source-offer.txt`, with the version filled in): where
+the sources are, and a written offer of the GPL and LGPL sources for three
+years on request to software@carnine.de. Next to it,
+`source-packages.txt` lists every source package of the image with its
+version, read from the image's dpkg database after the last install.
 
 `./deploy_pi.sh` installs the staged packages on a device, and the debos
 recipe takes them into a new image.
