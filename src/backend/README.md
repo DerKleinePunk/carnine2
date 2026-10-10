@@ -217,7 +217,13 @@ It needs a protobuf `FileDescriptorSet` when server reflection is not enabled.
 The project client remains the regression-test tool because it uses generated
 Tonic stubs and therefore fails at compile time when the contract changes.
 
-`cargo deb` erzeugt ein optimiertes Debian-Paket unter `target/debian/`.
+`cargo deb` erzeugt ein optimiertes Debian-Paket unter `target/debian/`. Vorher
+muss die Lizenzdatei der Crates da sein (`cargo install cargo-about --locked --features cli`):
+
+```bash
+cargo about generate --offline --fail --target x86_64-unknown-linux-gnu about.hbs -o target/third-party-licenses.txt
+```
+
 Installieren lässt es sich beispielsweise mit:
 
 ```bash

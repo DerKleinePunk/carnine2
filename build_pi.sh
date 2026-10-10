@@ -70,6 +70,13 @@ if [[ ! -x "$FLUTTER_BIN" || ! -f "$EMB_EMBEDDER_DIR/.emb/raspberry-pi.emb.yaml"
   exit 1
 fi
 
+# The package carries the licence texts of all crates in the binary (#123).
+if ! command -v cargo-about >/dev/null 2>&1; then
+  echo "[pi] ERROR: cargo-about not found."
+  echo "[pi] Hint: cargo install cargo-about --locked --features cli"
+  exit 1
+fi
+
 # With cargo-auditable the binary carries its dependency list, so the SBOM
 # of the package names the crates actually built in (#41). Without it the
 # build still works; the package SBOM then lacks the crates.
@@ -92,6 +99,10 @@ echo "[pi] Building backend (aarch64-unknown-linux-gnu, release)..."
   "${BACKEND_BUILD[@]}" --release --target aarch64-unknown-linux-gnu
   rm -f target/debian/carnine-backend_*_arm64.deb
   rm -f target/aarch64-unknown-linux-gnu/debian/carnine-backend_*_arm64.deb
+  rm -f target/third-party-licenses.txt
+  # Stops on a licence about.toml does not accept.
+  cargo about generate --offline --fail --target aarch64-unknown-linux-gnu \
+    about.hbs -o target/third-party-licenses.txt
   # --no-build: cargo-deb would build again, without the dependency list.
   cargo deb --no-build --target aarch64-unknown-linux-gnu --deb-version "$BUILD_VERSION"
 )

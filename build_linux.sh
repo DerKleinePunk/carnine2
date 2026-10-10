@@ -24,6 +24,11 @@ echo "[linux] Building backend (native x86_64, release)..."
 (
   cd "$BACKEND_DIR"
   cargo build --release
+  # The package carries the licence texts of all crates in the binary (#123);
+  # this stops on a licence about.toml does not accept.
+  rm -f target/third-party-licenses.txt
+  cargo about generate --offline --fail --target x86_64-unknown-linux-gnu \
+    about.hbs -o target/third-party-licenses.txt
   cargo deb
 )
 

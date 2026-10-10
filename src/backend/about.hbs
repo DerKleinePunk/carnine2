@@ -1,0 +1,19 @@
+Licences of the Rust crates in carnine-backend
+==============================================
+
+carnine-backend itself is GPL-3.0-only, see /usr/share/doc/carnine-backend/copyright.
+The binary links the following crates statically. SQLite is compiled in through
+libsqlite3-sys (bundled); SQLite is in the public domain.
+
+{{#each licenses}}
+------------------------------------------------------------------------------
+{{{name}}} ({{{id}}})
+
+Used by:
+{{#each used_by}}
+  - {{{crate.name}}} {{{crate.version}}}{{#if crate.repository}} <{{{crate.repository}}}>{{/if}}
+{{/each}}
+
+{{{text}}}
+
+{{/each}}
