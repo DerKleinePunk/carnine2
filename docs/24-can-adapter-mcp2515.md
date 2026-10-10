@@ -57,7 +57,8 @@ These pins do not collide with what carnine2 already uses:
 - the CPU fan on pins 4 (5 V) and 6 (GND) on both test units,
 - hardware PWM on GPIO 18 (pin 12, case fan) and GPIO 19 (pin 35, display
   backlight), `pwm-2chan` in the image,
-- I2C on GPIO 2/3 (`dtparam=i2c_arm=on` in the image); keep it free,
+- I2C on GPIO 2/3 (`dtparam=i2c_arm=on` in the image), with the IO board at
+  0x20 and the DS3231 clock at 0x68/0x57; keep it free,
 - GPIO 0/1 are reserved for a HAT ID EEPROM.
 
 uart4 would sit on GPIO 8/9 and is therefore not used; see
