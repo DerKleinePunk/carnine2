@@ -11,6 +11,7 @@ up while it runs, so neither needs a restart of the frontend.
 |---|---|---|
 | `touchload` | `resources/tools/touchload/` | Load: random swipes and pinch-zooms on the map, reproducible by seed. Used for the frame-time measurements and the freeze soak tests. |
 | `demo.sh` + `touchplay` | `resources/tools/demo/` | Show: a scripted sequence of page switches, taps, typing and player commands, for filming the display (social media, trade fair). |
+| `messe-einrichten.sh` | `resources/config/messe/` | Trade fair mode: the device drives a tour in rounds on its own, see [Trade fair mode](#trade-fair-mode). |
 
 Both run from the development machine (WSL) and reach carnine-pc over SSH
 (`pi@192.168.2.51`, key login; `CARNINE_DEMO_PI` and `CARNINE_DEMO_PORT`
@@ -198,3 +199,88 @@ sudo systemctl restart carnine-demo-gps
 - A search for "Frankfurt" alone ranks a village of that name near Scheinfeld
   first, so the demo types "Frankfurt am Main".
 - The music is audible on the Pi's output at whatever volume is set.
+
+## Trade fair mode
+
+At the trade fair (Kunsthalle Montez, Frankfurt) the device runs on its own,
+without a laptop driving it: the replay source drives a fixed tour in rounds,
+with turn announcements and music. Unlike the scripted demo nothing is typed;
+the map loads the tour's route itself (`GetReplayRoute`).
+
+**Switching it on and off** from the development machine (WSL) or the laptop:
+
+```bash
+resources/config/messe/messe-einrichten.sh pi@192.168.2.51 an 192.168.77.2   # carnine-pc
+resources/config/messe/messe-einrichten.sh pi@192.168.2.51 aus
+```
+
+`an` copies the tour to `/var/lib/carnine/maps/messe-tour.nmea` and
+`90-messe.toml` to `/etc/carnine/config.d/`, then restarts backend and
+frontend. `aus` removes `90-messe.toml` and restarts; the tour file and a fixed
+address stay. The script turns nothing up: the music starts at the volume it
+had.
+
+**The drop-in** `resources/config/messe/90-messe.toml` overrides
+`10-navigation.toml` (drop-ins: [07 – Deployment, "Carnine Runtime User"](07-deployment.md#carnine-runtime-user)):
+
+| Key | Value | Effect |
+|---|---|---|
+| `[navigation] position_source` | `"replay"` | the tour instead of the GPS mouse |
+| `[navigation] replay_file` | `/var/lib/carnine/maps/messe-tour.nmea` | the tour |
+| `[navigation] replay_loop` | `true` | rounds without end |
+| `[navigation] replay_destination_name` | `"Kunsthalle Montez"` | the destination's name for the search field; without it street and locality from the names database |
+| `[navigation] demo_mode` | `true` | tells the frontend it is at the trade fair |
+| `[media] resume_mode` | `"auto-play"` | music starts by itself after power on, from the last playlist |
+
+**The tour** runs from Frankfurt Hauptbahnhof (south side) through Sachsenhausen
+along the Main to the Honsellbrücke at the Kunsthalle Montez (Honsellstraße 7):
+6.2 km, about 9 min a round with 10 s standing at the start and 20 s at the
+destination (533 fixes, 8.9 min). It was planned on carnine-pc's Valhalla
+through a tunnel and written as NMEA, with no via point; start and destination
+come from the names database:
+
+```bash
+ssh -f -N -o ExitOnForwardFailure=yes -L 18002:127.0.0.1:8002 pi@192.168.2.51
+cd resources/tools/demo
+python3 demo_gps.py plan 50.10572 8.66410 50.10818 8.71014 messe-tour.json --valhalla http://127.0.0.1:18002
+python3 demo_gps.py nmea messe-tour.json ../../config/messe/messe-tour.nmea   # --hz 1 --hold-start 10 --hold-dest 20
+```
+
+Another tour: other points, `--via LAT,LON` for each point to pass through.
+
+`nmea` writes the drive in real time from a fixed day; only the gaps between
+the fixes count, since the backend replaces the times with its own clock.
+
+**What the backend reports** (`NavigationService`):
+
+| Field | Meaning |
+|---|---|
+| `NavigationStatus.replay_lap` | round of the tour now driving, from 1; 0 without a replay. It rises with every new round, so a map that dropped the route after "Abbrechen" takes it up with the next one. |
+| `NavigationStatus.demo_mode` | `[navigation] demo_mode` |
+| `Route.destination_name` | the end of the replay route, for the search field; empty for other routes |
+
+`media_grpc_client <endpoint> nav-status` shows `replay_lap=… demo_mode=…`,
+`replay-route` shows `destination=…`.
+
+**Fixed address.** With a third argument (`192.168.77.x`) the device keeps that
+address beside DHCP, for a laptop on a switch without a router; the laptop
+takes `192.168.77.1/24`. On image devices (systemd-networkd) the script
+installs `/etc/systemd/network/wired.network.d/50-messe.conf`
+(from `50-messe.network.conf`). On a device with NetworkManager it sets
+nothing and prints the `nmcli` line to do it by hand. carnine-pc uses `.2`,
+jeep-pi `.3`.
+
+**Still open in the frontend** (Jonas): take up the route again with the next
+round after "Abbrechen"
+([#126](https://github.com/DerKleinePunk/carnine2/issues/126)), the
+destination in the search field
+([#127](https://github.com/DerKleinePunk/carnine2/issues/127)), back to the
+map after 60 s without a touch while `demo_mode` is on, not with the keyboard,
+a dialog or the media picker open
+([#128](https://github.com/DerKleinePunk/carnine2/issues/128)), and the
+password before leaving the app
+([#51](https://github.com/DerKleinePunk/carnine2/issues/51)).
+
+Tests: `sh resources/config/messe/tests/messe-einrichten-test.sh` (also in CI,
+with shellcheck), the `nmea` tests in `test_demo_gps.py`, and backend tests for
+the shipped tour file, the rounds, the name and the drop-in.

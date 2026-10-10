@@ -374,7 +374,8 @@ With `track_directory` set in `[navigation]` (the device drop-in uses
 sends to one file per drive, named after its GPS start time, e.g.
 `2026-09-25T14-57-00Z.nmea`. Such a file is a valid `replay_file`: a real
 drive becomes a trade-fair tour, and a problem seen on the road can be
-replayed at the desk.
+replayed at the desk. The trade fair mode drives such a tour in rounds on its
+own: [25 – Demo and Touch Tools, "Trade fair mode"](25-demo-and-touch-tools.md#trade-fair-mode).
 
 Recording is switched live over gRPC, no restart needed, and the switch is
 kept in the media database across restarts and deployments:
