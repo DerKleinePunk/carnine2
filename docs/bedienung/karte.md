@@ -8,11 +8,13 @@ Namensdatenbank). Die Karte selbst funktioniert auch ohne Backend. Das Image
 bringt keine Kartendaten mit. Die Karte von Hessen installiert man nach dem
 ersten Start ([Kartendaten installieren](nach-der-installation.md#kartendaten-installieren)).
 
-![Karte ohne Route: Suchfeld oben, Knöpfe rechts, darunter „© OpenStreetMap-Mitwirkende“, unten links der Standort](bilder/start.png)
+![Karte ohne Route: Suchfeld oben, Knöpfe rechts, darunter „© OpenMapTiles © OpenStreetMap-Mitwirkende“, unten links der Standort](bilder/start.png)
 
-Rechts unten auf der Karte steht „© OpenStreetMap-Mitwirkende“. Die
-Kartendaten kommen von OpenStreetMap, und deren Lizenz verlangt diesen
-Hinweis. Während einer Route steht er über der Leiste mit Ankunft und Distanz.
+Rechts unten auf der Karte steht „© OpenMapTiles © OpenStreetMap-Mitwirkende“.
+Die Kartendaten kommen von [OpenStreetMap](https://www.openstreetmap.org/copyright),
+die Kacheln sind nach dem Schema von [OpenMapTiles](https://openmaptiles.org/)
+gebaut. Beide Lizenzen verlangen diesen Hinweis. Während einer Route steht er
+über der Leiste mit Ankunft und Distanz.
 
 ## Karte bewegen
 
@@ -34,6 +36,12 @@ installiert: [Nach der Installation](nach-der-installation.md#kartendaten-instal
 
 Einen eigenen „Zentrieren“-Knopf gibt es nicht; nach dem Verschieben holt der
 Kompass-Knopf die Position zurück.
+
+**Zoom beim Folgen:** Jedes Mal, wenn die Karte anfängt, der eigenen Position
+zu folgen – nach dem Start, nach dem Laden einer Route und mit dem
+Kompass-Knopf –, geht sie auf Zoomstufe 16. Mit zwei Fingern oder Plus/Minus
+lässt sich weiter zoomen, die Karte folgt dabei weiter; dieser Zoom bleibt,
+bis das Folgen das nächste Mal angeht.
 
 ## Ziel suchen und Route starten
 
@@ -102,7 +110,7 @@ erreichbar“ (Backend weg, rot).
   etwas schräg, weil die Karte für die Beschriftung in 45°-Schritten neu
   gezeichnet wird (flutter_local_map #1).
 
-  ![Navigationsmodus mit gedrehter Karte: Namen wie „Bilsteinstraße“, „Hoherodskopfstraße“ und „Schwarzer Fluss“ stehen schräg, aber keiner kopfüber](bilder/karte-mitdrehen.png)
+  ![Navigationsmodus mit gedrehter Karte: Namen wie „Lüder“ und „Rothenbach“ stehen schräg, aber keiner kopfüber](bilder/karte-mitdrehen.png)
 
 Die Fahranweisungen erscheinen in der unter [Optionen → Darstellung & Sprache](optionen.md#darstellung--sprache)
 gewählten Sprache.
