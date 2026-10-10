@@ -8,6 +8,7 @@ git and writes them as CycloneDX components; the ones NVD lists carry a CPE,
 because grype matches CPEs and no pkg:github PURL.
 
   gen_sbom.py --repo-root DIR --output SBOM.cdx.json --vex-output VEX.openvex.json
+  gen_sbom.py --repo-root DIR --licenses-output LICENSES.txt
 
   grype sbom:SBOM.cdx.json --vex VEX.openvex.json
 
@@ -15,9 +16,12 @@ Written for carnine2 after ivi-homescreen #665 / #746 (2f004565), which does the
 same in scripts/gen_sbom.py; our pin (92c2353a) predates that script. The CPE
 and VEX tables follow #746, rechecked against our pin (2026-10-10).
 
-Only reads git (.gitmodules, ls-tree, describe, merge-base) and writes the two
-files. A submodule missing from DEPENDENCIES is an error: an SBOM without it
-would read as "scanned, nothing found".
+Only reads git (.gitmodules, ls-tree, describe, merge-base) and the license
+files, and writes the files asked for. A submodule missing from DEPENDENCIES is
+an error: an SBOM without it would read as "scanned, nothing found".
+
+--licenses-output collects the license texts of ivi-homescreen and of every
+submodule in the binary for the frontend package (#123).
 """
 import argparse
 import configparser
@@ -44,6 +48,21 @@ DEPENDENCIES = {
     "third_party/wayland-cxx-scanner": ("MIT", None, "required"),
     "third_party/fmt": ("MIT", "fmt:fmt", "required"),
     "third_party/googletest": ("BSD-3-Clause", None, "excluded"),
+}
+
+# The license files shipped with the frontend package, per checkout path ("" is
+# ivi-homescreen itself), relative to it. Every "required" dependency needs an
+# entry, and a missing file stops the run.
+LICENSE_FILES = {
+    "": ["LICENSE"],
+    "third_party/asio": ["asio/LICENSE_1_0.txt", "asio/COPYING"],
+    "third_party/cxxopts": ["LICENSE"],
+    "third_party/rapidjson": ["license.txt"],
+    "third_party/tomlplusplus": ["LICENSE"],
+    "third_party/Vulkan-Headers": ["LICENSE.md", "LICENSES/Apache-2.0.txt", "LICENSES/MIT.txt"],
+    "third_party/drm-cxx": ["LICENSE"],
+    "third_party/wayland-cxx-scanner": ["LICENSE"],
+    "third_party/fmt": ["LICENSE"],
 }
 
 # Advisories a CPE above matches that do not apply to the pinned commit.
@@ -217,13 +236,53 @@ def build(root):
     return document, statements
 
 
+def license_text(root):
+    """The license texts of ivi-homescreen and its delivered submodules."""
+    root = Path(root)
+    if not (root / ".gitmodules").is_file():
+        raise SystemExit(f"gen_sbom: {root} is no ivi-homescreen checkout (no .gitmodules)")
+    found = submodules(root)
+    unknown = [path for path, _ in found if path not in DEPENDENCIES]
+    if unknown:
+        raise SystemExit("gen_sbom: no entry in DEPENDENCIES for " + ", ".join(unknown)
+                         + ". Add it with the license file it ships and its NVD CPE.")
+    delivered = [path for path, _ in found if DEPENDENCIES[path][2] == "required"]
+    missing = [path for path in delivered if path not in LICENSE_FILES]
+    if missing:
+        raise SystemExit("gen_sbom: no entry in LICENSE_FILES for " + ", ".join(missing))
+
+    parts = ["Licenses of ivi-homescreen and the submodules built into it\n"
+             "===========================================================\n"]
+    for path in ["", *delivered]:
+        name = "ivi-homescreen" if not path else Path(path).name
+        spdx = "Apache-2.0" if not path else DEPENDENCIES[path][0]
+        for file in LICENSE_FILES[path]:
+            source = root / path / file
+            if not source.is_file():
+                raise SystemExit(f"gen_sbom: {source} is missing; is the submodule checked out?")
+            parts.append("-" * 78 + f"\n{name} ({spdx}), {file}\n\n"
+                         + source.read_text(encoding="utf-8", errors="replace").rstrip() + "\n")
+    return "\n".join(parts)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--repo-root", required=True, help="the ivi-homescreen checkout")
-    parser.add_argument("--output", required=True, help="CycloneDX SBOM to write")
-    parser.add_argument("--vex-output", required=True, help="OpenVEX document to write")
+    parser.add_argument("--output", help="CycloneDX SBOM to write")
+    parser.add_argument("--vex-output", help="OpenVEX document to write")
+    parser.add_argument("--licenses-output", help="license texts to write")
     args = parser.parse_args()
+    if bool(args.output) != bool(args.vex_output):
+        parser.error("--output and --vex-output go together")
+    if not args.output and not args.licenses_output:
+        parser.error("nothing to write: give --output/--vex-output or --licenses-output")
+
+    if args.licenses_output:
+        Path(args.licenses_output).write_text(license_text(args.repo_root))
+        print(f"gen_sbom: license texts in {args.licenses_output}")
+    if not args.output:
+        return 0
 
     document, statements = build(args.repo_root)
     # One timestamp for both, so they read as a pair.

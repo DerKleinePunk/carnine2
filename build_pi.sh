@@ -234,7 +234,12 @@ if [[ "$(file -b "$VIDEO_GRABBER_BUILD/libvideo_grabber_view.so" 2>/dev/null)" !
 fi
 install -m 0644 "$VIDEO_GRABBER_BUILD/libvideo_grabber_view.so" "$FRONTEND_BUNDLE/lib/"
 
-"$FRONTEND_DIR/package-deb.sh" "$FRONTEND_BUNDLE" "$FRONTEND_PACKAGE" "$BUILD_VERSION"
+# Licence texts of ivi-homescreen and its submodules for the package (#123).
+IHS_LICENSES="$ROOT_DIR/build/ivi-homescreen-licenses.txt"
+rm -f "$IHS_LICENSES"
+python3 -I "$ROOT_DIR/resources/tools/sbom/gen_sbom.py" --repo-root "$EMB_EMBEDDER_DIR" \
+  --licenses-output "$IHS_LICENSES"
+"$FRONTEND_DIR/package-deb.sh" "$FRONTEND_BUNDLE" "$FRONTEND_PACKAGE" "$BUILD_VERSION" "$IHS_LICENSES"
 # The listing is read whole first: grep -q stops reading at the match,
 # dpkg-deb then dies of SIGPIPE and pipefail fails the check.
 FRONTEND_CONTENTS="$(dpkg-deb -c "$FRONTEND_PACKAGE")"

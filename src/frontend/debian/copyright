@@ -1,0 +1,55 @@
+carnine-frontend: licences of the shipped software
+==================================================
+
+The CarNine user interface (opt/carnine/frontend/lib/libapp.so) is part of
+CarNine, Copyright 2026 Carnine Project, licensed under GPL-3.0-only:
+https://github.com/DerKleinePunk/carnine2/blob/main/LICENSE
+
+The package holds, besides it:
+
+  homescreen, libihs_shared.so    ivi-homescreen (Apache-2.0) and the
+                                  submodules built into it, see
+                                  ivi-homescreen-licenses.txt here
+  libflutter_engine.so, icudtl.dat
+                                  the Flutter engine with Skia, ICU, HarfBuzz
+                                  and the rest of its third_party code
+  libapp.so                       also the Dart packages it is built from
+  libsqlite3.so                   SQLite, public domain
+  libvideo_grabber_view.so        video_grabber (BSD-3-Clause, below)
+
+The licences of the Flutter engine and of every Dart package are in
+opt/carnine/frontend/data/flutter_assets/NOTICES.Z, gzip-compressed:
+
+  zcat /opt/carnine/frontend/data/flutter_assets/NOTICES.Z | less
+
+flutter_local_map (Dart package local_map) and video_grabber are our own
+libraries under the BSD 3-Clause License:
+
+BSD 3-Clause License
+
+Copyright (c) 2026, DerKleinePunk
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

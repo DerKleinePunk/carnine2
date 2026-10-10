@@ -19,7 +19,7 @@ trap 'rm -rf "$PACKAGE_ROOT"' EXIT
 chmod 0755 "$PACKAGE_ROOT"
 
 install -d "$PACKAGE_ROOT/DEBIAN" "$PACKAGE_ROOT/opt/valhalla/bin" "$PACKAGE_ROOT/opt/valhalla/lib" \
-  "$PACKAGE_ROOT/etc/valhalla" "$PACKAGE_ROOT/lib/systemd/system"
+  "$PACKAGE_ROOT/etc/valhalla" "$PACKAGE_ROOT/lib/systemd/system" "$PACKAGE_ROOT/usr/share/doc/carnine-valhalla"
 
 if [[ -d "$SOURCE" ]]; then
   cp -a "$SOURCE/valhalla_service" "$PACKAGE_ROOT/opt/valhalla/bin/"
@@ -38,10 +38,12 @@ cp "$ROOT_DIR/debian/postinst" "$PACKAGE_ROOT/DEBIAN/postinst"
 cp "$ROOT_DIR/valhalla.json" "$PACKAGE_ROOT/etc/valhalla/valhalla.json"
 echo /etc/valhalla/valhalla.json > "$PACKAGE_ROOT/DEBIAN/conffiles"
 cp "$ROOT_DIR/debian/valhalla.service" "$PACKAGE_ROOT/lib/systemd/system/valhalla.service"
+# Licences of Valhalla, prime_server and the compiled-in third_party parts (#123).
+cp "$ROOT_DIR/debian/copyright" "$PACKAGE_ROOT/usr/share/doc/carnine-valhalla/copyright"
 
 chmod 0755 "$PACKAGE_ROOT/DEBIAN/postinst" "$PACKAGE_ROOT/opt/valhalla/bin/valhalla_service"
 chmod 0644 "$PACKAGE_ROOT/etc/valhalla/valhalla.json" "$PACKAGE_ROOT/lib/systemd/system/valhalla.service" \
-  "$PACKAGE_ROOT/DEBIAN/conffiles"
+  "$PACKAGE_ROOT/DEBIAN/conffiles" "$PACKAGE_ROOT/usr/share/doc/carnine-valhalla/copyright"
 install -d "$(dirname "$OUTPUT_DEB")"
 rm -f "$OUTPUT_DEB"
 dpkg-deb --build --root-owner-group "$PACKAGE_ROOT" "$OUTPUT_DEB"

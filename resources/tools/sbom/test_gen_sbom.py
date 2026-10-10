@@ -134,6 +134,44 @@ class BuildTest(Fixture):
         self.assertRegex(document["metadata"]["component"]["version"], r"^v1\.0\.0-1-g")
 
 
+class LicenseTest(Fixture):
+    def setUp(self):
+        super().setUp()
+        (self.root / "LICENSE").write_text("Apache text\n")
+        (self.root / "third_party/rapidjson/license.txt").write_text("rapidjson text\n")
+        (self.root / "third_party/fmt/LICENSE").write_text("fmt text\n")
+        self.files = mock.patch.dict(gen_sbom.LICENSE_FILES, {
+            "": ["LICENSE"], "third_party/rapidjson": ["license.txt"],
+            "third_party/fmt": ["LICENSE"]}, clear=True)
+        self.files.start()
+
+    def tearDown(self):
+        self.files.stop()
+        super().tearDown()
+
+    def test_texts_of_ivi_homescreen_and_each_submodule(self):
+        text = gen_sbom.license_text(self.root)
+        self.assertIn("ivi-homescreen (Apache-2.0), LICENSE\n\nApache text\n", text)
+        self.assertIn("rapidjson (MIT), license.txt\n\nrapidjson text\n", text)
+        self.assertIn("fmt (MIT), LICENSE\n\nfmt text\n", text)
+        self.assertLess(text.index("Apache text"), text.index("rapidjson text"))
+
+    def test_missing_license_file_stops(self):
+        (self.root / "third_party/fmt/LICENSE").unlink()
+        with self.assertRaisesRegex(SystemExit, "fmt/LICENSE is missing"):
+            gen_sbom.license_text(self.root)
+
+    def test_delivered_submodule_without_an_entry_stops(self):
+        del gen_sbom.LICENSE_FILES["third_party/fmt"]
+        with self.assertRaisesRegex(SystemExit, "no entry in LICENSE_FILES for third_party/fmt"):
+            gen_sbom.license_text(self.root)
+
+    def test_excluded_submodule_needs_no_text(self):
+        gen_sbom.DEPENDENCIES["third_party/fmt"] = ("MIT", "fmt:fmt", "excluded")
+        del gen_sbom.LICENSE_FILES["third_party/fmt"]
+        self.assertNotIn("fmt", gen_sbom.license_text(self.root))
+
+
 class HelperTest(unittest.TestCase):
     def test_normalize_version(self):
         self.assertEqual(gen_sbom.normalize_version("v3.3.1"), "3.3.1")
@@ -151,6 +189,11 @@ class HelperTest(unittest.TestCase):
         self.assertEqual(gen_sbom.license_entry("MIT"), [{"license": {"id": "MIT"}}])
         self.assertEqual(gen_sbom.license_entry("Apache-2.0 AND MIT"),
                          [{"expression": "Apache-2.0 AND MIT"}])
+
+    def test_every_delivered_dependency_has_license_files(self):
+        for path, (_, _, scope) in gen_sbom.DEPENDENCIES.items():
+            if scope == "required":
+                self.assertIn(path, gen_sbom.LICENSE_FILES)
 
     def test_every_vex_entry_has_a_dependency_with_a_cpe(self):
         for path in gen_sbom.VEX:
