@@ -336,10 +336,12 @@ class UiState extends $pb.GeneratedMessage {
   factory UiState({
     $core.String? lastPage,
     $core.String? language,
+    $core.int? mapFollowZoom,
   }) {
     final result = create();
     if (lastPage != null) result.lastPage = lastPage;
     if (language != null) result.language = language;
+    if (mapFollowZoom != null) result.mapFollowZoom = mapFollowZoom;
     return result;
   }
 
@@ -358,6 +360,8 @@ class UiState extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'lastPage')
     ..aOS(2, _omitFieldNames ? '' : 'language')
+    ..aI(3, _omitFieldNames ? '' : 'mapFollowZoom',
+        fieldType: $pb.PbFieldType.OU3)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -401,6 +405,18 @@ class UiState extends $pb.GeneratedMessage {
   $core.bool hasLanguage() => $_has(1);
   @$pb.TagNumber(2)
   void clearLanguage() => $_clearField(2);
+
+  /// Zoom of the map while it follows the car, set in the options (#131);
+  /// unset while none was saved, then the frontend's default (16). Saving 0
+  /// goes back to that default; above 22 is refused.
+  @$pb.TagNumber(3)
+  $core.int get mapFollowZoom => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set mapFollowZoom($core.int value) => $_setUnsignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasMapFollowZoom() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearMapFollowZoom() => $_clearField(3);
 }
 
 class CanDataRequest extends $pb.GeneratedMessage {

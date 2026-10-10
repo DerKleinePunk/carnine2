@@ -94,6 +94,7 @@ async fn main() -> Result<()> {
         "ui-state" => get_ui_state(&endpoint).await?,
         "save-ui-state" => save_ui_state(&endpoint).await?,
         "save-language" => save_language(&endpoint).await?,
+        "save-follow-zoom" => save_follow_zoom(&endpoint).await?,
         "verify-exit-password" => verify_exit_password(&endpoint).await?,
         "set-exit-password" => set_exit_password(&endpoint).await?,
         "nav-status" => get_navigation_status(&endpoint).await?,
@@ -422,10 +423,34 @@ async fn get_ui_state(endpoint: &str) -> Result<()> {
     let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
     let state = client.get_ui_state(Empty {}).await?.into_inner();
     println!(
-        "last_page={} language={}",
+        "last_page={} language={} map_follow_zoom={}",
         state.last_page(),
-        state.language()
+        state.language(),
+        state
+            .map_follow_zoom
+            .map_or_else(|| "-".to_string(), |zoom| zoom.to_string())
     );
+    Ok(())
+}
+
+/// `save-follow-zoom <0-22>`: zoom of the map while it follows the car; 0
+/// goes back to the frontend's default.
+async fn save_follow_zoom(endpoint: &str) -> Result<()> {
+    let zoom: u32 = env::args()
+        .nth(3)
+        .context("usage: media_grpc_client [endpoint] save-follow-zoom <0-22>")?
+        .parse()
+        .context("the zoom is a whole number, 0 for the default")?;
+    let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let response = client
+        .save_ui_state(UiState {
+            last_page: None,
+            language: None,
+            map_follow_zoom: Some(zoom),
+        })
+        .await?
+        .into_inner();
+    println!("{}: {}", response.success, response.message);
     Ok(())
 }
 
@@ -506,6 +531,7 @@ async fn save_ui_state(endpoint: &str) -> Result<()> {
         .save_ui_state(UiState {
             last_page: Some(last_page),
             language: None,
+            map_follow_zoom: None,
         })
         .await?
         .into_inner();
@@ -565,6 +591,7 @@ async fn save_language(endpoint: &str) -> Result<()> {
         .save_ui_state(UiState {
             last_page: None,
             language: Some(language),
+            map_follow_zoom: None,
         })
         .await?
         .into_inner();

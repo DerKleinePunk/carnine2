@@ -79,6 +79,8 @@ pub struct SystemServiceImpl {
 
 /// Page names are identifiers like "maps"; anything longer is not one.
 const MAX_UI_PAGE_NAME_LEN: usize = 64;
+/// Map tiles stop at z22; SaveUiState refuses a follow zoom above it.
+const MAX_MAP_FOLLOW_ZOOM: u32 = 22;
 
 /// A language code such as "de" or "zh-Hans": letters and hyphens only.
 fn is_language_code(code: &str) -> bool {
@@ -257,8 +259,14 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
     }
 
     async fn get_ui_state(&self, _request: Request<Empty>) -> Result<Response<UiState>, Status> {
-        let (last_page, language) = database::Database::open(&self.database_path)
-            .and_then(|database| Ok((database.load_last_page()?, database.load_language()?)))
+        let (last_page, language, map_follow_zoom) = database::Database::open(&self.database_path)
+            .and_then(|database| {
+                Ok((
+                    database.load_last_page()?,
+                    database.load_language()?,
+                    database.load_map_follow_zoom()?,
+                ))
+            })
             .map_err(|error| {
                 error!(error = %error, "loading UI state failed");
                 Status::internal(error.to_string())
@@ -267,6 +275,7 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
         Ok(Response::new(UiState {
             last_page: Some(last_page),
             language: Some(language),
+            map_follow_zoom,
         }))
     }
 
@@ -360,8 +369,14 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
         let UiState {
             last_page,
             language,
+            map_follow_zoom,
         } = request.into_inner();
-        info!(?last_page, ?language, "saving UI state requested");
+        info!(
+            ?last_page,
+            ?language,
+            ?map_follow_zoom,
+            "saving UI state requested"
+        );
         if last_page
             .as_ref()
             .is_some_and(|page| page.len() > MAX_UI_PAGE_NAME_LEN)
@@ -376,6 +391,11 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
         {
             return Err(Status::invalid_argument("invalid language code"));
         }
+        if map_follow_zoom.is_some_and(|zoom| zoom > MAX_MAP_FOLLOW_ZOOM) {
+            return Err(Status::invalid_argument(format!(
+                "follow zoom above {MAX_MAP_FOLLOW_ZOOM}"
+            )));
+        }
         // Only what the request sets: a page save must not wipe the language.
         database::Database::open(&self.database_path)
             .and_then(|database| {
@@ -385,13 +405,17 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
                 if let Some(code) = &language {
                     database.save_language(code)?;
                 }
+                if let Some(zoom) = map_follow_zoom {
+                    // 0 goes back to the frontend's default.
+                    database.save_map_follow_zoom((zoom > 0).then_some(zoom))?;
+                }
                 Ok(())
             })
             .map_err(|error| {
                 error!(error = %error, "saving UI state failed");
                 Status::internal(error.to_string())
             })?;
-        info!(?last_page, ?language, "UI state saved");
+        info!(?last_page, ?language, ?map_follow_zoom, "UI state saved");
         Ok(Response::new(CommandResponse {
             success: true,
             message: "UI state saved".to_string(),
@@ -2349,6 +2373,7 @@ mod tests {
         save(UiState {
             last_page: Some("maps".to_string()),
             language: None,
+            map_follow_zoom: None,
         })
         .await
         .expect("UI state should save");
@@ -2357,12 +2382,14 @@ mod tests {
         save(UiState {
             last_page: None,
             language: Some("en".to_string()),
+            map_follow_zoom: None,
         })
         .await
         .expect("the language should save");
         save(UiState {
             last_page: Some("media".to_string()),
             language: None,
+            map_follow_zoom: None,
         })
         .await
         .expect("the page should save");
@@ -2370,6 +2397,7 @@ mod tests {
         let too_long = save(UiState {
             last_page: Some("x".repeat(65)),
             language: None,
+            map_follow_zoom: None,
         })
         .await
         .expect_err("an overlong page name is rejected");
@@ -2377,6 +2405,7 @@ mod tests {
         let bad_language = save(UiState {
             last_page: None,
             language: Some("de; DROP".to_string()),
+            map_follow_zoom: None,
         })
         .await
         .expect_err("an invalid language code is rejected");
@@ -2394,6 +2423,55 @@ mod tests {
             .into_inner();
         assert_eq!(restored.last_page(), "media");
         assert_eq!(restored.language(), "en");
+        assert_eq!(restored.map_follow_zoom, None, "never saved");
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    #[tokio::test]
+    async fn the_follow_zoom_is_kept_cleared_with_0_and_refused_above_22() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-follow-zoom-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&database_path);
+        let service = SystemServiceImpl::new(
+            Arc::new(system_metrics::SystemMetricsHandle::new()),
+            database_path.clone(),
+            crate::power_supply::PowerSupplyHub::new(false),
+        );
+        let save = |page: Option<&str>, zoom: Option<u32>| {
+            SystemService::save_ui_state(
+                &service,
+                Request::new(UiState {
+                    last_page: page.map(str::to_string),
+                    language: None,
+                    map_follow_zoom: zoom,
+                }),
+            )
+        };
+        let load = || SystemService::get_ui_state(&service, Request::new(Empty {}));
+
+        save(None, Some(15)).await.expect("a zoom should save");
+        // A page save leaves the zoom alone.
+        save(Some("maps"), None)
+            .await
+            .expect("the page should save");
+        let state = load().await.expect("loads").into_inner();
+        assert_eq!(
+            (state.map_follow_zoom, state.last_page()),
+            (Some(15), "maps")
+        );
+
+        let too_far = save(None, Some(23)).await.expect_err("above 22 is refused");
+        assert_eq!(too_far.code(), tonic::Code::InvalidArgument);
+        assert_eq!(load().await.unwrap().into_inner().map_follow_zoom, Some(15));
+
+        save(None, Some(0)).await.expect("0 should save");
+        assert_eq!(
+            load().await.unwrap().into_inner().map_follow_zoom,
+            None,
+            "0 goes back to the frontend's default"
+        );
         let _ = std::fs::remove_file(database_path);
     }
 

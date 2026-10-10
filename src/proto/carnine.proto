@@ -137,6 +137,10 @@ message UiState {
   // Display language chosen last, as its code (e.g. "de"); empty when none
   // was saved yet (#30).
   optional string language = 2;
+  // Zoom of the map while it follows the car, set in the options (#131);
+  // unset while none was saved, then the frontend's default (16). Saving 0
+  // goes back to that default; above 22 is refused.
+  optional uint32 map_follow_zoom = 3;
 }
 
 // Routing, own position and place search for the navigation page (ADR-021).

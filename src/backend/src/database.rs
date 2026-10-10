@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use anyhow::{Context, Result};
 use rusqlite::{params, Connection, OptionalExtension};
 
-const CURRENT_SCHEMA_VERSION: i64 = 13;
+const CURRENT_SCHEMA_VERSION: i64 = 14;
 
 /// What the options saved for the turn announcements; `None` where never
 /// set, and then the configuration's `[voice]` value holds.
@@ -340,6 +340,16 @@ impl Database {
             }
             self.connection
                 .execute_batch("INSERT INTO schema_migrations (version) VALUES (13);")?;
+        }
+        if version < 14 {
+            // Zoom of the map while it follows the car, set in the options;
+            // NULL means "the frontend's default".
+            if !self.has_column("ui_state", "map_follow_zoom")? {
+                self.connection
+                    .execute_batch("ALTER TABLE ui_state ADD COLUMN map_follow_zoom INTEGER;")?;
+            }
+            self.connection
+                .execute_batch("INSERT INTO schema_migrations (version) VALUES (14);")?;
         }
         if version > CURRENT_SCHEMA_VERSION {
             anyhow::bail!(
@@ -765,6 +775,30 @@ impl Database {
             [language],
         )?;
         Ok(())
+    }
+
+    /// Saves the zoom of the map while it follows the car; `None` goes back to
+    /// the frontend's default.
+    pub fn save_map_follow_zoom(&self, zoom: Option<u32>) -> Result<()> {
+        self.connection.execute(
+            "INSERT INTO ui_state (id, map_follow_zoom) VALUES (1, ?1)
+             ON CONFLICT(id) DO UPDATE SET map_follow_zoom = excluded.map_follow_zoom",
+            [zoom],
+        )?;
+        Ok(())
+    }
+
+    /// The follow zoom saved last, `None` while none was saved.
+    pub fn load_map_follow_zoom(&self) -> Result<Option<u32>> {
+        Ok(self
+            .connection
+            .query_row(
+                "SELECT map_follow_zoom FROM ui_state WHERE id = 1",
+                [],
+                |row| row.get(0),
+            )
+            .optional()?
+            .flatten())
     }
 
     /// The language saved last, or an empty string when there is none.
@@ -1749,6 +1783,37 @@ mod tests {
                 music_under_percent: Some(30),
             }
         );
+        drop(database);
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn schema_14_adds_the_follow_zoom_and_keeps_the_ui_state() {
+        let path =
+            std::env::temp_dir().join(format!("carnine-schema-14-{}.sqlite3", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+        let database = Database::open(&path).expect("database should open");
+        database.save_last_page("maps").unwrap();
+        database.save_language("en").unwrap();
+        // Back to schema 13, as 7435167 left it.
+        database
+            .connection
+            .execute_batch(
+                "ALTER TABLE ui_state DROP COLUMN map_follow_zoom;
+                 DELETE FROM schema_migrations WHERE version >= 14;",
+            )
+            .unwrap();
+        drop(database);
+
+        let database = Database::open(&path).expect("schema 13 should migrate");
+        assert_eq!(database.schema_version().unwrap(), CURRENT_SCHEMA_VERSION);
+        assert_eq!(database.load_last_page().unwrap(), "maps");
+        assert_eq!(database.load_language().unwrap(), "en");
+        assert_eq!(database.load_map_follow_zoom().unwrap(), None);
+        database.save_map_follow_zoom(Some(16)).unwrap();
+        assert_eq!(database.load_map_follow_zoom().unwrap(), Some(16));
+        database.save_map_follow_zoom(None).unwrap();
+        assert_eq!(database.load_map_follow_zoom().unwrap(), None);
         drop(database);
         let _ = std::fs::remove_file(&path);
     }

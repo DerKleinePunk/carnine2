@@ -328,17 +328,29 @@ const UiState$json = {
       '10': 'language',
       '17': true
     },
+    {
+      '1': 'map_follow_zoom',
+      '3': 3,
+      '4': 1,
+      '5': 13,
+      '9': 2,
+      '10': 'mapFollowZoom',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_last_page'},
     {'1': '_language'},
+    {'1': '_map_follow_zoom'},
   ],
 };
 
 /// Descriptor for `UiState`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List uiStateDescriptor = $convert.base64Decode(
     'CgdVaVN0YXRlEiAKCWxhc3RfcGFnZRgBIAEoCUgAUghsYXN0UGFnZYgBARIfCghsYW5ndWFnZR'
-    'gCIAEoCUgBUghsYW5ndWFnZYgBAUIMCgpfbGFzdF9wYWdlQgsKCV9sYW5ndWFnZQ==');
+    'gCIAEoCUgBUghsYW5ndWFnZYgBARIrCg9tYXBfZm9sbG93X3pvb20YAyABKA1IAlINbWFwRm9s'
+    'bG93Wm9vbYgBAUIMCgpfbGFzdF9wYWdlQgsKCV9sYW5ndWFnZUISChBfbWFwX2ZvbGxvd196b2'
+    '9t');
 
 @$core.Deprecated('Use canDataRequestDescriptor instead')
 const CanDataRequest$json = {
