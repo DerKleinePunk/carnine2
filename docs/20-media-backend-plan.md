@@ -210,8 +210,7 @@ Die Konfiguration enthaelt (Stand v0.9.3):
 - `[server]`: Socket-Pfad und -Rechte, optional eine TCP-Adresse
 - `[media]`: Medienordner, SQLite-Datenbankpfad, unterstuetzte Formate,
   Rescan beim Start, Resume-Modus, Cover-Cache
-- `[audio]`: Verhalten bei Navigationsansagen (`navigation_interrupt`) und
-  die Datei fuer die Lautstaerke (`volume_state_path`)
+- `[audio]`: die Datei fuer die Lautstaerke (`volume_state_path`)
 - `[logging]`: Log-Verzeichnis und Log-Level
 - dazu `[system]`, `[navigation]` und `[power_supply]`
 
