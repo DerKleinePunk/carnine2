@@ -1,0 +1,19 @@
+# Trade fair mode (Messe-Modus): the device drives the trade fair tour in
+# rounds on its own, with turn announcements and music, no laptop needed.
+# Installed as /etc/carnine/config.d/90-messe.toml next to 10-navigation.toml,
+# whose keys it overrides; delete it and restart the backend to switch off.
+# The tour file goes to /var/lib/carnine/maps/ with it (messe-einrichten.sh).
+[navigation]
+position_source = "replay"
+# Frankfurt Hauptbahnhof (south side) -> Kunsthalle Montez, Honsellstraße 7,
+# ~9 min a round; made by resources/tools/demo/demo_gps.py nmea.
+replay_file = "/var/lib/carnine/maps/messe-tour.nmea"
+replay_loop = true
+# Shown in the search field while the tour drives (#127).
+replay_destination_name = "Kunsthalle Montez"
+# The frontend returns to the map after 60 s without a touch (#128).
+demo_mode = true
+
+[media]
+# Music starts by itself after power on, the last playlist where it was.
+resume_mode = "auto-play"

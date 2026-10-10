@@ -1383,6 +1383,8 @@ const NavigationStatus$json = {
       '10': 'trackRecordingEnabled'
     },
     {'1': 'track_file', '3': 7, '4': 1, '5': 9, '10': 'trackFile'},
+    {'1': 'replay_lap', '3': 8, '4': 1, '5': 13, '10': 'replayLap'},
+    {'1': 'demo_mode', '3': 9, '4': 1, '5': 8, '10': 'demoMode'},
   ],
 };
 
@@ -1394,7 +1396,8 @@ final $typed_data.Uint8List navigationStatusDescriptor = $convert.base64Decode(
     'N0YXRlUghmaXhTdGF0ZRIdCgptYXBfcmVnaW9uGAQgASgJUgltYXBSZWdpb24SOgoZdHJhY2tf'
     'cmVjb3JkaW5nX2F2YWlsYWJsZRgFIAEoCFIXdHJhY2tSZWNvcmRpbmdBdmFpbGFibGUSNgoXdH'
     'JhY2tfcmVjb3JkaW5nX2VuYWJsZWQYBiABKAhSFXRyYWNrUmVjb3JkaW5nRW5hYmxlZBIdCgp0'
-    'cmFja19maWxlGAcgASgJUgl0cmFja0ZpbGU=');
+    'cmFja19maWxlGAcgASgJUgl0cmFja0ZpbGUSHQoKcmVwbGF5X2xhcBgIIAEoDVIJcmVwbGF5TG'
+    'FwEhsKCWRlbW9fbW9kZRgJIAEoCFIIZGVtb01vZGU=');
 
 @$core.Deprecated('Use setTrackRecordingRequestDescriptor instead')
 const SetTrackRecordingRequest$json = {
@@ -1830,6 +1833,7 @@ const Route$json = {
       '6': '.carnine.Maneuver',
       '10': 'maneuvers'
     },
+    {'1': 'destination_name', '3': 6, '4': 1, '5': 9, '10': 'destinationName'},
   ],
 };
 
@@ -1838,7 +1842,8 @@ final $typed_data.Uint8List routeDescriptor = $convert.base64Decode(
     'CgVSb3V0ZRIZCghyb3V0ZV9pZBgBIAEoCVIHcm91dGVJZBIrCghnZW9tZXRyeRgCIAMoCzIPLm'
     'Nhcm5pbmUuTGF0TG9uUghnZW9tZXRyeRInCg9kaXN0YW5jZV9tZXRlcnMYAyABKAFSDmRpc3Rh'
     'bmNlTWV0ZXJzEikKEGR1cmF0aW9uX3NlY29uZHMYBCABKAFSD2R1cmF0aW9uU2Vjb25kcxIvCg'
-    'ltYW5ldXZlcnMYBSADKAsyES5jYXJuaW5lLk1hbmV1dmVyUgltYW5ldXZlcnM=');
+    'ltYW5ldXZlcnMYBSADKAsyES5jYXJuaW5lLk1hbmV1dmVyUgltYW5ldXZlcnMSKQoQZGVzdGlu'
+    'YXRpb25fbmFtZRgGIAEoCVIPZGVzdGluYXRpb25OYW1l');
 
 @$core.Deprecated('Use cameraSettingsDescriptor instead')
 const CameraSettings$json = {

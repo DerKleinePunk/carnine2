@@ -378,6 +378,15 @@ pub struct NavigationConfig {
     /// Start the replay again when it reaches the end.
     #[serde(default = "default_replay_loop")]
     pub replay_loop: bool,
+    /// Name of the place the replay tour ends at, shown as its destination
+    /// ("Kunsthalle Montez"). Unset means street and locality from
+    /// `names_database`.
+    #[serde(default)]
+    pub replay_destination_name: Option<String>,
+    /// Trade fair mode: the device drives the replay tour on its own and the
+    /// frontend returns to the map after a while without a touch (#128).
+    #[serde(default)]
+    pub demo_mode: bool,
     /// Base URL of the Valhalla service the backend routes with.
     #[serde(default = "default_valhalla_url")]
     pub valhalla_url: String,
@@ -415,6 +424,8 @@ impl Default for NavigationConfig {
             track_directory: None,
             replay_file: None,
             replay_loop: default_replay_loop(),
+            replay_destination_name: None,
+            demo_mode: false,
             valhalla_url: default_valhalla_url(),
             map_region: String::new(),
             names_database: None,
@@ -1175,6 +1186,66 @@ mod tests {
         let path = path.as_os_str().to_owned();
         Config::load_with_env(|key| (key == "CARNINE_CONFIG").then(|| path.clone()))
             .map(|(config, _)| config)
+    }
+
+    #[test]
+    fn the_trade_fair_drop_in_switches_to_its_tour_and_keeps_the_map_setup() {
+        let path = configuration_in("messe");
+        for (name, source) in [
+            (
+                "10-navigation.toml",
+                "../../resources/config/config.d/10-navigation.toml",
+            ),
+            (
+                "90-messe.toml",
+                "../../resources/config/messe/90-messe.toml",
+            ),
+        ] {
+            let content = std::fs::read_to_string(source).expect("shipped drop-in");
+            write_drop_in(&path, name, &content);
+        }
+
+        let config = load_from(&path).expect("the trade fair setup should load");
+        let navigation = &config.navigation;
+        assert_eq!(
+            navigation.position_source,
+            super::PositionSourceSetting::Replay
+        );
+        assert_eq!(
+            navigation.replay_file.as_deref(),
+            Some(std::path::Path::new(
+                "/var/lib/carnine/maps/messe-tour.nmea"
+            ))
+        );
+        assert!(navigation.replay_loop);
+        assert!(navigation.demo_mode);
+        assert_eq!(
+            navigation.replay_destination_name.as_deref(),
+            Some("Kunsthalle Montez")
+        );
+        assert_eq!(config.media.resume_mode, "auto-play");
+        // The map setup still comes from 10-navigation.toml.
+        assert_eq!(
+            navigation.names_database.as_deref(),
+            Some(std::path::Path::new(
+                "/var/lib/carnine/maps/germany_names.db"
+            ))
+        );
+        assert_eq!(navigation.valhalla_url, "http://127.0.0.1:8002");
+        let _ = std::fs::remove_dir_all(path.parent().expect("test directory"));
+    }
+
+    #[test]
+    fn without_the_trade_fair_drop_in_nothing_changes() {
+        let path = configuration_in("ohne-messe");
+        let content = std::fs::read_to_string("../../resources/config/config.d/10-navigation.toml")
+            .expect("shipped drop-in");
+        write_drop_in(&path, "10-navigation.toml", &content);
+        let config = load_from(&path).expect("config should load");
+        assert!(!config.navigation.demo_mode);
+        assert_eq!(config.navigation.replay_destination_name, None);
+        assert_eq!(config.media.resume_mode, "restore_paused");
+        let _ = std::fs::remove_dir_all(path.parent().expect("test directory"));
     }
 
     #[test]

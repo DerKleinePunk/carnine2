@@ -179,11 +179,11 @@ fn points_around(
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::navigation::places::tests::TempDb;
 
-    const STATION: (f64, f64) = (52.25300, 10.53960);
+    pub(crate) const STATION: (f64, f64) = (52.25300, 10.53960);
     const BORTFELD: (f64, f64) = (52.30000, 10.40000);
 
     /// `from` moved `north` metres north and `east` metres east, in 1e-5
@@ -196,7 +196,7 @@ mod tests {
 
     /// The library's test data: what the real Braunschweig database holds at
     /// these spots.
-    fn reverse_db() -> TempDb {
+    pub(crate) fn reverse_db() -> TempDb {
         let db = TempDb::new();
         let connection = Connection::open(&db.path).expect("create db");
         connection

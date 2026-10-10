@@ -4087,6 +4087,8 @@ class NavigationStatus extends $pb.GeneratedMessage {
     $core.bool? trackRecordingAvailable,
     $core.bool? trackRecordingEnabled,
     $core.String? trackFile,
+    $core.int? replayLap,
+    $core.bool? demoMode,
   }) {
     final result = create();
     if (routingAvailable != null) result.routingAvailable = routingAvailable;
@@ -4098,6 +4100,8 @@ class NavigationStatus extends $pb.GeneratedMessage {
     if (trackRecordingEnabled != null)
       result.trackRecordingEnabled = trackRecordingEnabled;
     if (trackFile != null) result.trackFile = trackFile;
+    if (replayLap != null) result.replayLap = replayLap;
+    if (demoMode != null) result.demoMode = demoMode;
     return result;
   }
 
@@ -4123,6 +4127,8 @@ class NavigationStatus extends $pb.GeneratedMessage {
     ..aOB(5, _omitFieldNames ? '' : 'trackRecordingAvailable')
     ..aOB(6, _omitFieldNames ? '' : 'trackRecordingEnabled')
     ..aOS(7, _omitFieldNames ? '' : 'trackFile')
+    ..aI(8, _omitFieldNames ? '' : 'replayLap', fieldType: $pb.PbFieldType.OU3)
+    ..aOB(9, _omitFieldNames ? '' : 'demoMode')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -4209,6 +4215,29 @@ class NavigationStatus extends $pb.GeneratedMessage {
   $core.bool hasTrackFile() => $_has(6);
   @$pb.TagNumber(7)
   void clearTrackFile() => $_clearField(7);
+
+  /// Round of the replay tour now driving, from 1; 0 without a replay. Rises
+  /// by one each time the tour starts again, so a map that dropped the
+  /// tour's route can take it up with the next round (trade fair mode, #126).
+  @$pb.TagNumber(8)
+  $core.int get replayLap => $_getIZ(7);
+  @$pb.TagNumber(8)
+  set replayLap($core.int value) => $_setUnsignedInt32(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasReplayLap() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearReplayLap() => $_clearField(8);
+
+  /// Trade fair mode ([navigation] demo_mode): the frontend goes back to the
+  /// map after 60 s without a touch (#128).
+  @$pb.TagNumber(9)
+  $core.bool get demoMode => $_getBF(8);
+  @$pb.TagNumber(9)
+  set demoMode($core.bool value) => $_setBool(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasDemoMode() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearDemoMode() => $_clearField(9);
 }
 
 class SetTrackRecordingRequest extends $pb.GeneratedMessage {
@@ -5266,6 +5295,7 @@ class Route extends $pb.GeneratedMessage {
     $core.double? distanceMeters,
     $core.double? durationSeconds,
     $core.Iterable<Maneuver>? maneuvers,
+    $core.String? destinationName,
   }) {
     final result = create();
     if (routeId != null) result.routeId = routeId;
@@ -5273,6 +5303,7 @@ class Route extends $pb.GeneratedMessage {
     if (distanceMeters != null) result.distanceMeters = distanceMeters;
     if (durationSeconds != null) result.durationSeconds = durationSeconds;
     if (maneuvers != null) result.maneuvers.addAll(maneuvers);
+    if (destinationName != null) result.destinationName = destinationName;
     return result;
   }
 
@@ -5296,6 +5327,7 @@ class Route extends $pb.GeneratedMessage {
     ..aD(4, _omitFieldNames ? '' : 'durationSeconds')
     ..pPM<Maneuver>(5, _omitFieldNames ? '' : 'maneuvers',
         subBuilder: Maneuver.create)
+    ..aOS(6, _omitFieldNames ? '' : 'destinationName')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5348,6 +5380,18 @@ class Route extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(5)
   $pb.PbList<Maneuver> get maneuvers => $_getList(4);
+
+  /// Where the route ends, for the search field; set on the replay route
+  /// ([navigation] replay_destination_name, else street and locality from
+  /// the names database), empty otherwise (#127).
+  @$pb.TagNumber(6)
+  $core.String get destinationName => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set destinationName($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasDestinationName() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearDestinationName() => $_clearField(6);
 }
 
 class CameraSettings extends $pb.GeneratedMessage {

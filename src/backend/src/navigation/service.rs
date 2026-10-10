@@ -54,6 +54,10 @@ pub struct NavigationServiceImpl {
     replay_routes: Arc<tokio::sync::Mutex<HashMap<String, Route>>>,
     next_route_id: Arc<AtomicU64>,
     tracks: TrackRecorder,
+    /// Configured name of the replay tour's end; `None` asks the names
+    /// database.
+    replay_destination_name: Option<String>,
+    demo_mode: bool,
     /// Media database that keeps the recording switch; `None` in tests.
     database: Option<PathBuf>,
     /// Spoken turn announcements; `None` leaves the calls without effect.
@@ -72,6 +76,8 @@ impl NavigationServiceImpl {
             replay_routes: Arc::default(),
             next_route_id: Arc::new(AtomicU64::new(1)),
             tracks: TrackRecorder::new(None, false),
+            replay_destination_name: None,
+            demo_mode: false,
             database: None,
             voice: None,
         }
@@ -102,6 +108,47 @@ impl NavigationServiceImpl {
                 .file
                 .map(|path| path.display().to_string())
                 .unwrap_or_default(),
+            replay_lap: state.replay_lap,
+            demo_mode: self.demo_mode,
+        }
+    }
+
+    pub fn with_replay_destination(mut self, name: Option<String>, demo_mode: bool) -> Self {
+        self.replay_destination_name = name
+            .map(|name| name.trim().to_string())
+            .filter(|name| !name.is_empty());
+        self.demo_mode = demo_mode;
+        self
+    }
+
+    /// The configured name of the tour's end, else "street, locality" there
+    /// from the names database; empty when neither knows one. A lookup that
+    /// fails only costs the name, never the route.
+    async fn replay_destination_name(&self, end: (f64, f64)) -> String {
+        if let Some(name) = &self.replay_destination_name {
+            return name.clone();
+        }
+        let Some(database) = self.names_database.clone() else {
+            return String::new();
+        };
+        let found =
+            tokio::task::spawn_blocking(move || location_name::name_at(&database, end.0, end.1))
+                .await;
+        match found {
+            Ok(Ok(Some(name))) => [name.street, name.locality]
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>()
+                .join(", "),
+            Ok(Ok(None)) => String::new(),
+            Ok(Err(err)) => {
+                warn!(error = %format!("{err:#}"), "replay destination name not found");
+                String::new()
+            }
+            Err(err) => {
+                warn!(error = %err, "replay destination lookup panicked");
+                String::new()
+            }
         }
     }
 
@@ -140,6 +187,7 @@ impl NavigationServiceImpl {
                     verbal_post: maneuver.verbal_post,
                 })
                 .collect(),
+            destination_name: String::new(),
         }
     }
 
@@ -520,11 +568,15 @@ impl NavigationService for NavigationServiceImpl {
                 warn!(error = ?err, "replay route failed");
                 routing_status(err)
             })?;
-        let route = self.route_message(data);
+        let mut route = self.route_message(data);
+        if let Some(&end) = points.last() {
+            route.destination_name = self.replay_destination_name(end).await;
+        }
         info!(
             route_id = %route.route_id,
             distance_meters = route.distance_meters,
             maneuvers = route.maneuvers.len(),
+            destination = %route.destination_name,
             "replay route computed"
         );
         cache.insert(language, route.clone());
@@ -613,6 +665,98 @@ mod tests {
             }
         });
         (url, handle)
+    }
+
+    /// A Valhalla that answers every request with a one-leg trip.
+    async fn answering_valhalla() -> String {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let trip = serde_json::json!({"trip": {
+            "summary": {"length": 1.2, "time": 60.0},
+            "legs": [{"shape": "_p~iF~ps|U_ulLnnqC", "maneuvers": [
+                {"instruction": "Fahren Sie Richtung Norden.", "length": 1.2, "time": 60.0,
+                 "type": 1, "begin_shape_index": 0},
+                {"instruction": "Sie haben Ihr Ziel erreicht.", "length": 0.0, "time": 0.0,
+                 "type": 4, "begin_shape_index": 1}]}]}})
+        .to_string();
+        tokio::spawn(async move {
+            loop {
+                let (mut socket, _) = listener.accept().await.unwrap();
+                let trip = trip.clone();
+                tokio::spawn(async move {
+                    // Reads until the request has ended; the body is not needed.
+                    let mut request = Vec::new();
+                    let mut buffer = [0u8; 4096];
+                    loop {
+                        let read = socket.read(&mut buffer).await.unwrap();
+                        request.extend_from_slice(&buffer[..read]);
+                        let text = String::from_utf8_lossy(&request);
+                        let complete = text.find("\r\n\r\n").is_some_and(|split| {
+                            let length = text[..split]
+                                .lines()
+                                .find_map(|line| {
+                                    line.to_ascii_lowercase()
+                                        .strip_prefix("content-length:")
+                                        .map(|value| value.trim().parse::<usize>().unwrap())
+                                })
+                                .unwrap_or(0);
+                            request.len() >= split + 4 + length
+                        });
+                        if complete || read == 0 {
+                            break;
+                        }
+                    }
+                    let answer = format!(
+                        "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\n\r\n{trip}",
+                        trip.len()
+                    );
+                    let _ = socket.write_all(answer.as_bytes()).await;
+                });
+            }
+        });
+        url
+    }
+
+    #[tokio::test]
+    async fn the_replay_route_carries_its_destination_and_a_typed_route_none() {
+        let url = answering_valhalla().await;
+        let service =
+            NavigationServiceImpl::new(PositionHub::new(SourceKind::Replay), url, String::new())
+                .with_replay_points(Some(vec![(50.10572, 8.66410), (50.10818, 8.71014)]))
+                .with_replay_destination(Some("Kunsthalle Montez".to_string()), true);
+        let replay = service
+            .get_replay_route(Request::new(GetReplayRouteRequest { language: None }))
+            .await
+            .expect("the fake answers")
+            .into_inner();
+        assert_eq!(replay.destination_name, "Kunsthalle Montez");
+        assert_eq!(replay.maneuvers.len(), 2);
+        // The cached route keeps it.
+        let again = service
+            .get_replay_route(Request::new(GetReplayRouteRequest { language: None }))
+            .await
+            .expect("cached")
+            .into_inner();
+        assert_eq!(again.destination_name, "Kunsthalle Montez");
+
+        let typed = service
+            .compute_route(Request::new(ComputeRouteRequest {
+                origin: Some(LatLon {
+                    latitude: 50.10572,
+                    longitude: 8.66410,
+                }),
+                destination: Some(LatLon {
+                    latitude: 50.10818,
+                    longitude: 8.71014,
+                }),
+                language: None,
+                origin_heading_degrees: None,
+            }))
+            .await
+            .expect("the fake answers")
+            .into_inner();
+        assert_eq!(typed.destination_name, "", "only the replay route is named");
     }
 
     async fn route_request(
@@ -705,6 +849,7 @@ mod tests {
         let state = PositionState {
             source: SourceKind::Replay,
             fix: Some(fix(true)),
+            replay_lap: 1,
         };
         let wire = position_fix(&state).expect("a fix is sent");
         assert_eq!(wire.fix_state, FixState::Fix as i32);
@@ -719,6 +864,7 @@ mod tests {
         let state = PositionState {
             source: SourceKind::Serial,
             fix: Some(fix(false)),
+            replay_lap: 0,
         };
         let wire = position_fix(&state).expect("the no-fix state is still sent");
         assert_eq!(wire.fix_state, FixState::NoFix as i32);
@@ -732,6 +878,7 @@ mod tests {
         let state = PositionState {
             source: SourceKind::None,
             fix: None,
+            replay_lap: 0,
         };
         assert_eq!(position_fix(&state), None);
     }
@@ -950,6 +1097,61 @@ mod tests {
             .await
             .expect_err("no replay running");
         assert_eq!(status.code(), tonic::Code::NotFound);
+    }
+
+    #[tokio::test]
+    async fn the_replay_destination_is_the_configured_name_else_street_and_locality() {
+        use super::super::location_name::tests::{reverse_db, STATION};
+        let db = reverse_db();
+        let hub = || PositionHub::new(SourceKind::Replay);
+
+        let named = service(hub())
+            .with_names_database(Some(db.path.clone()))
+            .with_replay_destination(Some(" Kunsthalle Montez ".to_string()), false);
+        assert_eq!(
+            named.replay_destination_name(STATION).await,
+            "Kunsthalle Montez"
+        );
+
+        // A blank name counts as none; the names database answers.
+        let looked_up = service(hub())
+            .with_names_database(Some(db.path.clone()))
+            .with_replay_destination(Some("  ".to_string()), false);
+        assert_eq!(
+            looked_up.replay_destination_name(STATION).await,
+            "Willy-Brandt-Platz, Braunschweig"
+        );
+
+        // Nothing known: no name, and no error either.
+        assert_eq!(service(hub()).replay_destination_name(STATION).await, "");
+        let empty = super::super::places::tests::TempDb::new();
+        rusqlite::Connection::open(&empty.path)
+            .expect("create db")
+            .execute_batch("CREATE TABLE names_meta (id INTEGER PRIMARY KEY)")
+            .expect("schema");
+        let old_database = service(hub()).with_names_database(Some(empty.path.clone()));
+        assert_eq!(old_database.replay_destination_name(STATION).await, "");
+    }
+
+    #[tokio::test]
+    async fn the_status_reports_the_replay_lap_and_the_trade_fair_mode() {
+        let hub = PositionHub::new(SourceKind::Replay);
+        let plain = service(hub.clone())
+            .get_navigation_status(Request::new(Empty {}))
+            .await
+            .expect("status always answers")
+            .into_inner();
+        assert_eq!((plain.replay_lap, plain.demo_mode), (0, false));
+
+        hub.start_replay_lap();
+        hub.start_replay_lap();
+        let fair = service(hub)
+            .with_replay_destination(None, true)
+            .get_navigation_status(Request::new(Empty {}))
+            .await
+            .expect("status always answers")
+            .into_inner();
+        assert_eq!((fair.replay_lap, fair.demo_mode), (2, true));
     }
 
     #[tokio::test]

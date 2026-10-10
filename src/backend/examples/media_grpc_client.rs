@@ -588,7 +588,7 @@ fn print_navigation_status(status: &NavigationStatus) {
         }
     };
     println!(
-        "routing_available={} source={:?} fix={:?} region={} track_recording={} track_file={}",
+        "routing_available={} source={:?} fix={:?} region={} track_recording={} track_file={} replay_lap={} demo_mode={}",
         status.routing_available,
         status.position_source(),
         status.fix_state(),
@@ -602,6 +602,8 @@ fn print_navigation_status(status: &NavigationStatus) {
             (true, false) => "off",
         },
         or_dash(&status.track_file),
+        status.replay_lap,
+        status.demo_mode,
     );
 }
 
@@ -763,12 +765,17 @@ async fn replay_route(endpoint: &str) -> Result<()> {
 
 fn print_route(route: &Route) {
     println!(
-        "{} distance={:.1} km duration={:.0} min points={} maneuvers={}",
+        "{} distance={:.1} km duration={:.0} min points={} maneuvers={} destination={}",
         route.route_id,
         route.distance_meters / 1000.0,
         route.duration_seconds / 60.0,
         route.geometry.len(),
-        route.maneuvers.len()
+        route.maneuvers.len(),
+        if route.destination_name.is_empty() {
+            "-"
+        } else {
+            &route.destination_name
+        }
     );
     for maneuver in &route.maneuvers {
         println!(

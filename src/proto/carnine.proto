@@ -605,6 +605,13 @@ message NavigationStatus {
   bool track_recording_enabled = 6;
   // File being written right now; empty while nothing is written.
   string track_file = 7;
+  // Round of the replay tour now driving, from 1; 0 without a replay. Rises
+  // by one each time the tour starts again, so a map that dropped the
+  // tour's route can take it up with the next round (trade fair mode, #126).
+  uint32 replay_lap = 8;
+  // Trade fair mode ([navigation] demo_mode): the frontend goes back to the
+  // map after 60 s without a touch (#128).
+  bool demo_mode = 9;
 }
 
 message SetTrackRecordingRequest {
@@ -724,6 +731,10 @@ message Route {
   double distance_meters = 3;
   double duration_seconds = 4;
   repeated Maneuver maneuvers = 5;
+  // Where the route ends, for the search field; set on the replay route
+  // ([navigation] replay_destination_name, else street and locality from
+  // the names database), empty otherwise (#127).
+  string destination_name = 6;
 }
 
 // Video norm of the camera signal.

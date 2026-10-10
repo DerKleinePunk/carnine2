@@ -119,7 +119,7 @@ jobs:
 
       - name: shellcheck
         working-directory: resources/debos
-        run: shellcheck carnine-hostname.sh tests/carnine-hostname-test.sh carnine-rename.sh tests/carnine-rename-test.sh carnine-wlan.sh tests/carnine-wlan-test.sh carnine-password-check.sh carnine-password.sh tests/carnine-password-test.sh carnine-install-maps.sh tests/carnine-install-maps-test.sh ../../pack_maps.sh carnine-audio-output.sh tests/carnine-audio-output-test.sh carnine-cmdline.sh tests/carnine-cmdline-test.sh image-sbom.sh ../voice/package-deb.sh ../valhalla/package-deb.sh ../../src/frontend/package-deb.sh ../tools/deb/md5sums.sh ../tools/deb/tests/md5sums-test.sh
+        run: shellcheck carnine-hostname.sh tests/carnine-hostname-test.sh carnine-rename.sh tests/carnine-rename-test.sh carnine-wlan.sh tests/carnine-wlan-test.sh carnine-password-check.sh carnine-password.sh tests/carnine-password-test.sh carnine-install-maps.sh tests/carnine-install-maps-test.sh ../../pack_maps.sh carnine-audio-output.sh tests/carnine-audio-output-test.sh carnine-cmdline.sh tests/carnine-cmdline-test.sh image-sbom.sh ../voice/package-deb.sh ../valhalla/package-deb.sh ../../src/frontend/package-deb.sh ../tools/deb/md5sums.sh ../tools/deb/tests/md5sums-test.sh ../config/messe/messe-einrichten.sh ../config/messe/tests/messe-einrichten-test.sh
 
       - name: carnine-hostname tests
         working-directory: resources/debos
@@ -152,6 +152,8 @@ jobs:
         run: sh tests/carnine-cmdline-test.sh
       - name: md5sums tests (Debian packages)
         run: sh resources/tools/deb/tests/md5sums-test.sh
+      - name: Trade fair setup tests (messe-einrichten)
+        run: sh resources/config/messe/tests/messe-einrichten-test.sh
 
   user-guide:
     name: User guide PDF (pandoc, WeasyPrint)

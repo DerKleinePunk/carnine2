@@ -61,6 +61,10 @@ pub struct PositionState {
     pub source: SourceKind,
     /// `None` until the source delivered its first sentence.
     pub fix: Option<Fix>,
+    /// Round of the replay tour now driving, from 1; 0 for the other sources
+    /// and before the replay began. A map that dropped the tour's route
+    /// takes it up again with the next round (trade fair mode).
+    pub replay_lap: u32,
 }
 
 /// Latest position, shared with every stream. A `watch` channel fits: a slow
@@ -72,7 +76,11 @@ pub struct PositionHub {
 
 impl PositionHub {
     pub fn new(source: SourceKind) -> Self {
-        let (sender, _) = watch::channel(PositionState { source, fix: None });
+        let (sender, _) = watch::channel(PositionState {
+            source,
+            fix: None,
+            replay_lap: 0,
+        });
         Self { sender }
     }
 
@@ -86,6 +94,11 @@ impl PositionHub {
 
     pub fn publish(&self, fix: Fix) {
         self.sender.send_modify(|state| state.fix = Some(fix));
+    }
+
+    pub(crate) fn start_replay_lap(&self) {
+        self.sender
+            .send_modify(|state| state.replay_lap = state.replay_lap.saturating_add(1));
     }
 }
 
@@ -215,6 +228,7 @@ pub fn trace_points(steps: &[ReplayStep]) -> Vec<(f64, f64)> {
 pub async fn run_replay(hub: PositionHub, steps: Vec<ReplayStep>, name: String, looped: bool) {
     info!(replay = %name, fixes = steps.len(), looped, "position replay started");
     loop {
+        hub.start_replay_lap();
         for step in &steps {
             tokio::time::sleep(step.delay).await;
             let mut fix = step.fix.clone();
@@ -356,6 +370,59 @@ $GPRMC,141502.000,A,5024.5968,N,00921.8742,E,22.35,184.27,010518,,,A*5C
         assert!(steps[1].fix.valid);
         assert_eq!(steps[1].fix.accuracy_meters, Some(6.0));
         assert_eq!(steps[1].fix.heading_degrees, Some(184.27));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn each_round_of_a_looped_replay_counts_up_the_lap() {
+        let hub = PositionHub::new(SourceKind::Replay);
+        assert_eq!(hub.current().replay_lap, 0, "nothing driven yet");
+        // Two fixes a second apart: a round is 1 s, then the 1 s pause.
+        let steps = replay_steps(LOG)
+            .into_iter()
+            .map(|step| ReplayStep {
+                delay: if step.delay.is_zero() {
+                    step.delay
+                } else {
+                    Duration::from_secs(1)
+                },
+                ..step
+            })
+            .collect();
+        tokio::spawn(run_replay(hub.clone(), steps, "test".into(), true));
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        assert_eq!(hub.current().replay_lap, 1);
+        // 1 s round + 1 s pause later the second round has begun.
+        tokio::time::sleep(Duration::from_secs(2)).await;
+        assert_eq!(hub.current().replay_lap, 2);
+        tokio::time::sleep(Duration::from_secs(2)).await;
+        assert_eq!(hub.current().replay_lap, 3);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_replay_without_loop_stays_in_its_first_round() {
+        let hub = PositionHub::new(SourceKind::Replay);
+        run_replay(hub.clone(), replay_steps(LOG), "test".into(), false).await;
+        assert_eq!(hub.current().replay_lap, 1);
+    }
+
+    #[test]
+    fn the_trade_fair_tour_drives_from_the_main_station_to_the_kunsthalle_once_a_second() {
+        // resources/config/messe/messe-tour.nmea, made by demo_gps.py nmea.
+        let tour = include_str!("../../../../resources/config/messe/messe-tour.nmea");
+        let steps = replay_steps(tour);
+        assert_eq!(steps.len(), 533);
+        assert!(steps.iter().all(|step| step.fix.valid));
+        assert!(steps[1..]
+            .iter()
+            .all(|step| step.delay == Duration::from_secs(1)));
+        let near = |fix: &Fix, latitude: f64, longitude: f64| {
+            (fix.latitude - latitude).abs() < 0.0005 && (fix.longitude - longitude).abs() < 0.0005
+        };
+        // Frankfurt Hauptbahnhof, south side, and the Honsellbrücke above
+        // the Kunsthalle Montez.
+        assert!(near(&steps[0].fix, 50.10572, 8.66410));
+        assert!(near(&steps[steps.len() - 1].fix, 50.10818, 8.71014));
+        assert_eq!(steps[steps.len() - 1].fix.speed_mps, Some(0.0));
     }
 
     #[test]

@@ -16,6 +16,12 @@ loads no route of its own, so the one typed on camera is the only one.
       Writes GGA + RMC into PIPE: standing at the start until SIGUSR1, then
       the drive, then standing at the destination. --factor N covers N seconds
       of the drive per second of video; the displayed speed stays the real one.
+  demo_gps.py nmea TRACK.json TOUR.nmea [--hz N] [--hold-start S] [--hold-dest S]
+      Writes the drive as an NMEA file for the replay source, in real time:
+      S seconds standing at the start, the drive, S seconds at the
+      destination. With replay_loop the backend then drives it in rounds,
+      the trade fair tour. Only the gaps between the fixes count;
+      the backend replaces the times with its own clock.
 
 demo.sh runs feed as the systemd unit carnine-demo-gps and sends SIGUSR1 with
 systemctl kill. Do not signal it with pkill -f over SSH: the pattern is also in
@@ -148,14 +154,14 @@ def sentence(body):
     return f"${body}*{checksum:02X}\r\n"
 
 
-def fix(lat, lon, speed, course):
+def fix(lat, lon, speed, course, now=None):
     def coordinate(value, degree_digits, hemispheres):
         hemisphere = hemispheres[0] if value >= 0 else hemispheres[1]
         value = abs(value)
         degrees = int(value)
         return f"{degrees:0{degree_digits}d}{(value - degrees) * 60:07.4f}", hemisphere
 
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = now or datetime.datetime.now(datetime.timezone.utc)
     la, la_h = coordinate(lat, 2, "NS")
     lo, lo_h = coordinate(lon, 3, "EW")
     hms = now.strftime("%H%M%S") + f".{now.microsecond // 10000:02d}"
@@ -200,6 +206,24 @@ def feed(args):
             time.sleep(1)
 
 
+# Any fixed day: the file only has to count up, without a midnight in it.
+NMEA_START = datetime.datetime(2026, 1, 1, 8, 0, tzinfo=datetime.timezone.utc)
+
+
+def nmea(args):
+    with open(args.track) as f:
+        track = json.load(f)
+    start, dest = track["points"][0], track["points"][-1]
+    step = datetime.timedelta(seconds=1 / args.hz)
+    fixes = [(start[0], start[1], 0, 0)] * round(args.hold_start * args.hz)
+    fixes += drive(track, 1.0, args.hz)
+    fixes += [(dest[0], dest[1], 0, 0)] * round(args.hold_dest * args.hz)
+    with open(args.tour, "w", newline="") as out:
+        for n, (lat, lon, speed, course) in enumerate(fixes):
+            out.write(fix(lat, lon, speed, course, NMEA_START + n * step))
+    print(f"{len(fixes)} fixes, {len(fixes) / args.hz / 60:.1f} min", flush=True)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -216,8 +240,14 @@ def main(argv=None):
     f.add_argument("pipe")
     f.add_argument("--factor", type=float, default=1.0)
     f.add_argument("--hz", type=float, default=1.0)
+    n = commands.add_parser("nmea")
+    n.add_argument("track")
+    n.add_argument("tour")
+    n.add_argument("--hz", type=float, default=1.0)
+    n.add_argument("--hold-start", type=float, default=10.0, metavar="S")
+    n.add_argument("--hold-dest", type=float, default=20.0, metavar="S")
     args = parser.parse_args(argv)
-    {"plan": plan, "feed": feed}[args.command](args)
+    {"plan": plan, "feed": feed, "nmea": nmea}[args.command](args)
 
 
 if __name__ == "__main__":
