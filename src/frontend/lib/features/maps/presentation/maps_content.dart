@@ -22,6 +22,11 @@ class MapsContent extends StatelessWidget {
 
   final MapsController controller;
 
+  /// Where the trip bar sits while a route is active: from the bottom of the
+  /// map and, beside it, from its left and right edge.
+  @visibleForTesting
+  static const tripBarInsets = EdgeInsets.only(left: 24, right: 100, bottom: 6);
+
   @visibleForTesting
   static final MapConfig mapConfig = MapConfig(
     minZoom: 8,
@@ -45,12 +50,12 @@ class MapsContent extends StatelessWidget {
     // worst frame 98-123 ms, about 30 MB more resident.
     labelRotationStep: 45,
     // The map credit has to be readable without a tap. Bottom right, above
-    // the trip panel (its top at y 480 on the 1024x600 panel) and below the
-    // compass (Michael, 2026-10-07). The tiles follow the OpenMapTiles
-    // schema, whose licence (CC-BY 4.0) asks for its name beside
-    // OpenStreetMap's (local_map 0.8.5).
+    // the trip bar (tripBarInsets) and out of its shadow, below the compass
+    // (Michael, 2026-10-07). The tiles follow the OpenMapTiles schema, whose
+    // licence (CC-BY 4.0) asks for its name beside OpenStreetMap's
+    // (local_map 0.8.5).
     attributionText: MapConfig.defaultAttributionGerman,
-    attributionPadding: const EdgeInsets.only(right: 8, bottom: 125),
+    attributionPadding: const EdgeInsets.only(right: 8, bottom: 135),
   );
 
   static const _layerStyle = MapLayerStyle(
@@ -141,7 +146,15 @@ class _Overlays extends StatelessWidget {
           child: Center(child: _buttons(l10n)),
         ),
         if (_map.route != null)
-          Positioned(left: 24, right: 100, bottom: 20, child: _tripBar())
+          // Low enough that its shadow, cast upwards, stays clear of the map
+          // credit; at bottom 20 the display showed the credit doubled
+          // (Michael, 2026-10-10).
+          Positioned(
+            left: MapsContent.tripBarInsets.left,
+            right: MapsContent.tripBarInsets.right,
+            bottom: MapsContent.tripBarInsets.bottom,
+            child: _tripBar(),
+          )
         else if (_map.locationName case final name?)
           Positioned(
             left: 24,
