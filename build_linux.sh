@@ -29,7 +29,9 @@ echo "[linux] Building backend (native x86_64, release)..."
   rm -f target/third-party-licenses.txt
   cargo about generate --offline --fail --target x86_64-unknown-linux-gnu \
     about.hbs -o target/third-party-licenses.txt
-  cargo deb
+  # cargo-deb prints the package path and writes no DEBIAN/md5sums.
+  BACKEND_PACKAGE="$(cargo deb)"
+  sh "$ROOT_DIR/resources/tools/deb/md5sums.sh" "$BACKEND_PACKAGE"
 )
 
 echo "[linux] Preparing frontend dependencies..."

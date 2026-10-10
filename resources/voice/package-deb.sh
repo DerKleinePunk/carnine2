@@ -77,4 +77,6 @@ cp "$ROOT_DIR/debian/control" "$PACKAGE_ROOT/DEBIAN/control"
 install -m 0644 "$ROOT_DIR/debian/copyright" "$PACKAGE_ROOT/usr/share/doc/carnine-voice/copyright"
 install -d "$(dirname "$OUTPUT_DEB")"
 rm -f "$OUTPUT_DEB"
+# DEBIAN/md5sums, so dpkg -V on the device notices a changed file.
+sh "$ROOT_DIR/../tools/deb/md5sums.sh" "$PACKAGE_ROOT"
 dpkg-deb --build --root-owner-group -Zxz "$PACKAGE_ROOT" "$OUTPUT_DEB"

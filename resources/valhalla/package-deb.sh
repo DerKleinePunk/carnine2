@@ -44,6 +44,8 @@ cp "$ROOT_DIR/debian/copyright" "$PACKAGE_ROOT/usr/share/doc/carnine-valhalla/co
 chmod 0755 "$PACKAGE_ROOT/DEBIAN/postinst" "$PACKAGE_ROOT/opt/valhalla/bin/valhalla_service"
 chmod 0644 "$PACKAGE_ROOT/etc/valhalla/valhalla.json" "$PACKAGE_ROOT/lib/systemd/system/valhalla.service" \
   "$PACKAGE_ROOT/DEBIAN/conffiles" "$PACKAGE_ROOT/usr/share/doc/carnine-valhalla/copyright"
+# DEBIAN/md5sums, so dpkg -V on the device notices a changed file.
+sh "$ROOT_DIR/../tools/deb/md5sums.sh" "$PACKAGE_ROOT"
 install -d "$(dirname "$OUTPUT_DEB")"
 rm -f "$OUTPUT_DEB"
 dpkg-deb --build --root-owner-group "$PACKAGE_ROOT" "$OUTPUT_DEB"

@@ -28,4 +28,6 @@ chmod 0644 "$PACKAGE_ROOT/lib/systemd/system/carnine-frontend.service" \
   "$PACKAGE_ROOT/usr/share/doc/carnine-frontend/ivi-homescreen-licenses.txt"
 install -d "$(dirname "$OUTPUT_DEB")"
 rm -f "$OUTPUT_DEB"
+# DEBIAN/md5sums, so dpkg -V on the device notices a changed file.
+sh "$ROOT_DIR/../../resources/tools/deb/md5sums.sh" "$PACKAGE_ROOT"
 dpkg-deb --build --root-owner-group "$PACKAGE_ROOT" "$OUTPUT_DEB"

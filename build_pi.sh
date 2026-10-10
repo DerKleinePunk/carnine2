@@ -134,6 +134,8 @@ if [[ "$(dpkg-deb -f "$BACKEND_PACKAGE" Architecture)" != "arm64" ]]; then
   exit 1
 fi
 cp "$BACKEND_PACKAGE" "$ROOT_DIR/resources/debos/carnine-backend.deb"
+# cargo-deb writes no DEBIAN/md5sums; without them dpkg -V notices nothing.
+sh "$ROOT_DIR/resources/tools/deb/md5sums.sh" "$ROOT_DIR/resources/debos/carnine-backend.deb"
 echo "[pi] Backend package staged: $ROOT_DIR/resources/debos/carnine-backend.deb"
 
 if ! command -v protoc >/dev/null 2>&1; then
