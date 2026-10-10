@@ -110,7 +110,7 @@ erreichbar“ (Backend weg, rot).
   etwas schräg, weil die Karte für die Beschriftung in 45°-Schritten neu
   gezeichnet wird (flutter_local_map #1).
 
-  ![Navigationsmodus mit gedrehter Karte: Namen wie „Bilsteinstraße“, „Hoherodskopfstraße“ und „Schwarzer Fluss“ stehen schräg, aber keiner kopfüber](bilder/karte-mitdrehen.png)
+  ![Navigationsmodus mit gedrehter Karte: Namen wie „Lüder“ und „Rothenbach“ stehen schräg, aber keiner kopfüber](bilder/karte-mitdrehen.png)
 
 Die Fahranweisungen erscheinen in der unter [Optionen → Darstellung & Sprache](optionen.md#darstellung--sprache)
 gewählten Sprache.
