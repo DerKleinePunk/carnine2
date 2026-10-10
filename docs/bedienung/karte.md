@@ -37,6 +37,12 @@ installiert: [Nach der Installation](nach-der-installation.md#kartendaten-instal
 Einen eigenen „Zentrieren“-Knopf gibt es nicht; nach dem Verschieben holt der
 Kompass-Knopf die Position zurück.
 
+**Zoom beim Folgen:** Jedes Mal, wenn die Karte anfängt, der eigenen Position
+zu folgen – nach dem Start, nach dem Laden einer Route und mit dem
+Kompass-Knopf –, geht sie auf Zoomstufe 16. Mit zwei Fingern oder Plus/Minus
+lässt sich weiter zoomen, die Karte folgt dabei weiter; dieser Zoom bleibt,
+bis das Folgen das nächste Mal angeht.
+
 ## Ziel suchen und Route starten
 
 1. Oben in **Ziel eingeben** tippen – die [Bildschirmtastatur](tastatur.md)
