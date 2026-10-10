@@ -43,6 +43,10 @@ jobs:
         working-directory: resources/tools/sbom
         run: python3 -m unittest -v test_gen_sbom.py
 
+      - name: Speech trial tool tests (Python)
+        working-directory: resources/tools/speech
+        run: python3 -m unittest -v test_speech_tools.py
+
       # protoc for tonic-prost-build, ALSA headers for cpal. The default feature set
       # does not pull in ffmpeg-next, so no FFmpeg headers are needed - but the
       # metadata and cover-art tests shell out to the ffmpeg and ffprobe
