@@ -44,10 +44,12 @@ class MapsContent extends StatelessWidget {
     // 2026-09-30, demo drive at 15x): frames over 100 ms 0-5 instead of 0-1,
     // worst frame 98-123 ms, about 30 MB more resident.
     labelRotationStep: 45,
-    // The OpenStreetMap credit has to be readable without a tap. Bottom
-    // right, above the trip panel (its top at y 480 on the 1024x600 panel)
-    // and below the compass (Michael, 2026-10-07).
-    attributionText: MapConfig.osmAttributionGerman,
+    // The map credit has to be readable without a tap. Bottom right, above
+    // the trip panel (its top at y 480 on the 1024x600 panel) and below the
+    // compass (Michael, 2026-10-07). The tiles follow the OpenMapTiles
+    // schema, whose licence (CC-BY 4.0) asks for its name beside
+    // OpenStreetMap's (local_map 0.8.5).
+    attributionText: MapConfig.defaultAttributionGerman,
     attributionPadding: const EdgeInsets.only(right: 8, bottom: 125),
   );
 

@@ -15,7 +15,7 @@ const _compassBottom = 432.0;
 
 void main() {
   testWidgets(
-    'the OpenStreetMap credit shows in German, bottom right, between compass and trip panel',
+    'the map credit (OpenMapTiles, OpenStreetMap) shows in German, bottom right, between compass and trip panel',
     (tester) async {
       tester.view.physicalSize = const Size(1024, 600);
       tester.view.devicePixelRatio = 1;
@@ -32,7 +32,7 @@ void main() {
         ),
       );
 
-      final text = find.text('© OpenStreetMap-Mitwirkende');
+      final text = find.text('© OpenMapTiles © OpenStreetMap-Mitwirkende');
       expect(text, findsOneWidget, reason: 'readable without a tap');
       final box = tester
           .getRect(
