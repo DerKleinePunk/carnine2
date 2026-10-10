@@ -793,6 +793,10 @@ years on request to software@carnine.de. Next to it,
 `source-packages.txt` lists every source package of the image with its
 version, read from the image's dpkg database after the last install.
 
+Every package carries `DEBIAN/md5sums` (`resources/tools/deb/md5sums.sh`;
+the backend is repacked after `cargo deb`, which writes none; conffiles stay
+out), so `dpkg -V <package>` on a device shows a changed file.
+
 `./deploy_pi.sh` installs the staged packages on a device, and the debos
 recipe takes them into a new image.
 
