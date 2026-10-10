@@ -21,6 +21,10 @@ const _compassBottom = 432.0;
 const _shadowReach = 18.0;
 
 void main() {
+  test('following the car goes to zoom 16, not the overview of the route', () {
+    expect(MapsContent.mapConfig.followZoom, 16);
+  });
+
   testWidgets(
     'the map credit (OpenMapTiles, OpenStreetMap) shows in German, bottom right, between compass and trip bar',
     (tester) async {

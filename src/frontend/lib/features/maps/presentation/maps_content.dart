@@ -32,6 +32,11 @@ class MapsContent extends StatelessWidget {
     minZoom: 8,
     maxZoom: 17,
     initialZoom: 13,
+    // Following the car goes to this zoom; loading a route first shows all
+    // of it, and without it following kept that zoom - half of Frankfurt on
+    // the trade fair tour (Michael, 2026-10-10). The options will set it
+    // (#131), kept as UiState.map_follow_zoom.
+    followZoom: 16,
     vectorStyleAssets: const ['assets/maps/style_carnine_dark.json'],
     initialVectorStyleIndex: 0,
     // At most two new tiles are rasterized per frame. Measured on the Pi 4
