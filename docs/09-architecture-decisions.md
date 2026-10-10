@@ -1031,11 +1031,14 @@ device, and there is no remote service to sync with yet.
 
 ## ADR-024: Speech Recognition and Voice Control - sherpa-onnx for Offline ASR
 
-**Status:** Accepted, not implemented (v0.9.3: no sherpa-onnx dependency, no
-`SpeechService`, no `[speech]` configuration). The proto sketch below predates
-the current contract: `AudioEvent` is now `AudioEventType event` plus
-`message`, so new audio events would be new `AudioEventType` values rather
-than `oneof` fields.
+**Status:** Accepted, not implemented (v0.15.0: no microphone input, no
+`SpeechService`, no `[speech]` configuration). Refined on 2026-10-10 after
+measurements with recordings (see "Findings 2026-10-10" below): wake word
+"Hey Navi", no push-to-talk, music turned down for the command. Building it
+waits for a USB microphone in the car; the measurements are to be repeated
+with it. The proto sketch below predates the current contract: `AudioEvent`
+is now `AudioEventType event` plus `message`, so new audio events would be
+new `AudioEventType` values rather than `oneof` fields.
 
 (Numbered ADR-017 until 2026-09-30, when the duplicate numbers were resolved.)
 
@@ -1044,6 +1047,22 @@ Voice control is a natural interaction method for in-vehicle systems, allowing h
 
 **Decision:**
 Use [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) as the speech processing toolkit for offline Automatic Speech Recognition (ASR), Voice Activity Detection (VAD), and optional keyword spotting (wake-word detection). Integrate microphone input into the existing audio manager architecture.
+
+Refined on 2026-10-10:
+1. **Activation by wake word "Hey Navi"**, detected by sherpa-onnx keyword
+   spotting with the English gigaspeech model (3.3 M parameters, about 15 MB),
+   which listens all the time. No push-to-talk: a button while driving is not
+   practical, and steering-wheel buttons are not reachable in every car, old
+   cars often have none.
+2. **On the wake word, turn the music down or pause it** (the way
+   `music_under_percent` does for turn announcements, docs/26), so the
+   command is heard without music.
+3. **The command is read by the German NeMo FastConformer model**
+   (`sherpa-onnx-nemo-stt_de_fastconformer_hybrid_large_pc-int8`, 99 MB) up to
+   the end of speech (VAD), then matched fuzzily against the known commands
+   ("Naviigere" → navigiere, "zwölf" → 12). Afterwards the music returns.
+4. **Microphone over USB**, addressed by ALSA card name, not number (see
+   Consequences).
 
 **Rationale:**
 - **Fully offline**: No cloud dependency; all processing on-device ensures privacy and eliminates network latency
@@ -1060,7 +1079,31 @@ Use [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) as the speech processin
 - **Vosk** – good offline option but heavier resource footprint; less modular than sherpa-onnx
 - **Mozilla DeepSpeech** – no longer actively maintained (archived project)
 - **Google Cloud Speech / AWS Transcribe** – requires network; privacy concerns; violates offline-first principle
-- **Whisper (OpenAI)** – excellent accuracy but too resource-intensive for Raspberry Pi 4 real-time use
+- **Whisper (OpenAI)** – excellent accuracy but too resource-intensive for Raspberry Pi 4 real-time use; `whisper-base`, small enough for the Pi, was unusable on the German recordings of 2026-10-10
+- **Canary 180M** (sherpa-onnx, German among four languages) – the best texts on 2026-10-10, also for free destinations, but slower than real time on the Pi 4 (see Findings); kept in mind for destinations if they become important
+- **Push-to-talk** (on screen or a steering-wheel button) – rejected 2026-10-10, see Decision
+- **A wake word of our own, "Hey Carnine"** – not a German word, and no ready model knows it: the English keyword model found none of about 40 spoken, and the German models wrote everyday words ("kann nein", "Hey, Königin"), which would trigger in normal talk; only a model trained for it would do, which is a large effort
+- **"Hey Kit"** – one short syllable, found 1–2 times out of 5–7 by the English model and never by NeMo-de; dropped
+- **Echo cancellation instead of turning the music down** – PipeWire's `echo-cancel` does not fit: carnine-pc runs neither PipeWire nor PulseAudio, the backend plays through cpal straight to ALSA. The WebRTC echo canceller as a library inside the backend could work, since the backend produces the music and announcements itself; not tried. USB microphone arrays with built-in echo cancellation need the playback to run through them, which ours does not (HDMI or jack)
+- **I2S MEMS microphone** – the Pi's PCM/I2S pins are taken: GPIO 18 (fan PWM) and GPIO 19 (backlight PWM), and the other hardware PWM pins, GPIO 12/13, are UART5 to the power supply. I2S also only reaches a few centimetres, while the microphone belongs near the driver
+
+**Findings 2026-10-10:**
+Recordings on jeep-pi with the microphone of the USB reversing
+camera (16 kHz mono, in a room, near 30 cm and far 1–2 m), evaluated with
+sherpa-onnx 1.13.8, one thread. Files and full output on the shared drive
+(`mikrofon-test-2026-10-10/`), not in the repository.
+
+| What | Result |
+|---|---|
+| Commands, 38 pieces, 179 s speech | NeMo-de: commands mostly right, spelling bumpy ("Naviigere zu Frankfurt am Main", "Hauptstrae"); Canary best ("Liederbach Hauptstraße"); whisper-base unusable |
+| Speed on carnine-pc (Pi 4, one thread on core 2, frontend and backend running) | NeMo-de RTF 0.35: a 2 s command in 0.6–0.7 s, 5–6 s commands in 1.8–2.1 s. Canary RTF 1.55: 2.0–2.3 s and 7.1–7.5 s. 32 °C, `throttled=0x0` |
+| "Hey Navi", keyword model, music at moderate level | 4 of 5–7 |
+| "Hey Navi", keyword model, loud music through an amplifier (about as loud at the microphone as speech from 30 cm) | 5 of 10, so said twice at times |
+| "Hey Navi", NeMo-de with loud music | mangled ("Heyna wie", "Herry Navi"); the VAD takes music for speech (43 s in 361 s), so NeMo-de is not a wake-word detector |
+| False triggers | 0 in about 10 min of music and 2 min of talk with traps such as "das Navi sagt links" or "hey, ich hab Hunger" |
+
+Not measured yet: "Hey Navi" without music, the keyword spotter's CPU load
+next to the map, engine noise, and a microphone close to the driver.
 
 **Audio Architecture Integration:**
 The existing audio manager (see ADR-016 and `docs/20-media-backend-plan.md`) must be extended to coordinate multiple audio sources:
@@ -1136,7 +1179,7 @@ A `CommandRouter` component in the backend maps recognized intents to service ac
 [audio]
 backend = "alsa"         # or "pulse"
 output_device = "plughw:0,0"
-input_device = "plughw:2,0"  # Microphone ALSA device
+input_device = "plughw:CARD=<name>,DEV=0"  # Microphone by ALSA card name; plug converts to 16 kHz mono
 ducking_behavior = "duck"    # or "pause", "mix"
 ducking_level_db = -20       # Volume reduction during ducking
 
@@ -1144,21 +1187,33 @@ ducking_level_db = -20       # Volume reduction during ducking
 enabled = true
 language = "de-DE"           # or "en-US"
 model_path = "/usr/share/carnine/speech-models"
-push_to_talk = false         # true = manual, false = continuous VAD
 vad_threshold = 0.5          # Voice Activity Detection sensitivity
-wake_word = ""               # Optional wake word (e.g., "Hey Carnine")
+wake_word = "Hey Navi"       # keyword spotting, English model (see Findings)
 ```
 
 **Implementation phases:**
-1. **Phase 1 (MVP)**: Basic microphone integration, sherpa-onnx ASR, simple pattern-matching command parser
-2. **Phase 2**: VAD-based automatic activation, audio manager ducking coordination
-3. **Phase 3**: Wake-word detection, advanced NLU with ONNX intent models, TTS feedback
+Reordered on 2026-10-10, since without push-to-talk the wake word comes first:
+1. **Phase 1**: USB microphone input, "Hey Navi" keyword spotting, music down,
+   NeMo-de for the command, fuzzy matching of fixed commands (louder, quieter,
+   next track, end navigation, how far is it)
+2. **Phase 2**: destinations ("navigiere nach …", "fahre nach Hause") through
+   the place search, which needs a home address; maybe Canary for free
+   destinations if NeMo-de's spelling is not good enough
+3. **Phase 3**: echo cancellation in the backend, advanced NLU, spoken
+   confirmations (TTS, ADR-025)
+
+Estimate of 2026-10-10: phase 1 and 2 together about
+6–9 days backend, 1.5–2.5 days UI, 2–2.5 days documentation; after the trade
+fair on 6 Nov 2026, like BLE (#71) and the audio device choice (#48), because
+it touches audio and CPU where announcements and map are stable now.
 
 **Consequences:**
-- Microphone hardware (USB or built-in) must be present and configured in ALSA/PulseAudio
-- ONNX models for German/English must be packaged in Debian image (`resources/speech-models/`)
+- A USB microphone must be present: a clip-on microphone near the driver (sun visor, headliner), on a USB extension if needed, not on the USB hub with the SSD. The first one to try is a USB lavalier microphone (MillSO MUSBWhx-200B, ordered 2026-10-10). It becomes another ALSA card, so it is addressed by card name: the card order of the outputs (docs/07, "Audio output") must not shift when it is plugged in
+- The backend has no PipeWire or PulseAudio; microphone input would go through cpal/ALSA like the output. Without a microphone, library or model the backend runs on without speech, as with the announcements (ADR-025)
+- `libsherpa-onnx-c-api.so` from the `carnine-voice` package (1.13.8) already contains keyword spotter, recognizer and VAD; the models (keyword about 15 MB, NeMo-de 99 MB, silero VAD 0.6 MB) must be packaged in the image
 - Audio manager becomes more complex (coordinates output + input, multiple source priorities)
-- Speech recognition adds CPU/memory load; must be profiled on Raspberry Pi 4
+- Speech recognition adds CPU/memory load; must be profiled on Raspberry Pi 4. NeMo-de runs only for a command; the keyword spotter listens all the time and has not been measured next to the map yet. Turn announcements use core 3, so the cores must be chosen with care
+- Tested with German speech only: the English keyword model hears "Hey Navi" in German pronunciation, and NeMo-de only reads German. An English user interface would need its own model and test
 - Privacy-friendly: all voice data stays on-device; no cloud API keys needed
 - Commands are processed in real-time without network latency
 - Future TTS integration (sherpa-onnx also supports TTS) enables full voice assistant experience;
