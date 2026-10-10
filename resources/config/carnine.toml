@@ -171,7 +171,8 @@ hash = "$argon2id$v=19$m=19456,t=2,p=1$Y2FybmluZS1leGl0LXB3$O+DjYmFGfVSWu+fkiM29
 # it the backend runs on silently. The map library sends the sentences
 # (NavigationService PrepareAnnouncements/Announce; CLI: announce,
 # voice-settings, set-voice-settings). The options switch it and set its
-# loudness, which is saved and wins over enabled and volume_percent here.
+# loudness and the music's level under it, which are saved and win over
+# enabled, volume_percent and music_under_percent here.
 # Synthesis runs on one thread pinned to core 3, away from the map.
 # fixed_texts are kept synthesized for good, a safeguard for sentences that
 # may be missing from the cache when needed (the library prepares the
@@ -186,5 +187,5 @@ hash = "$argon2id$v=19$m=19456,t=2,p=1$Y2FybmluZS1leGl0LXB3$O+DjYmFGfVSWu+fkiM29
 # threads = 1
 # cache_dir = "/run/carnine/voice"
 # volume_percent = 100
-# music_under_percent = 30           # the music's level while speaking
+# music_under_percent = 30           # the music's level while speaking; 0 holds the track
 # fixed_texts = ["Die Route wird neu berechnet."]   # kept ready, [] for none

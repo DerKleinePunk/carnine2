@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -49,6 +50,14 @@ pub struct MediaPlayer {
     announcement: Mutex<Option<ActiveAnnouncement>>,
     /// Gain of announcements and of the music under them.
     announcement_levels: Mutex<AnnouncementLevels>,
+    /// Counts the playbacks started, so the music held for an announcement
+    /// is only taken up again if it is still the same playback.
+    playback_starts: AtomicU64,
+    /// Set while an announcement at music level 0 holds the music: the
+    /// mixer stops pulling a source at gain 0, so the track stands still,
+    /// and the position clock must stand still with it. The number is the
+    /// playback that was held.
+    music_held: Mutex<Option<u64>>,
 }
 
 /// Which announcement wins when two meet: a turn instruction cuts an
@@ -110,6 +119,8 @@ impl MediaPlayer {
             duration_cache: Mutex::new(None),
             announcement: Mutex::new(None),
             announcement_levels: Mutex::new(AnnouncementLevels::default()),
+            playback_starts: AtomicU64::new(0),
+            music_held: Mutex::new(None),
         }
     }
 
@@ -121,7 +132,8 @@ impl MediaPlayer {
     }
 
     /// Plays a spoken announcement (a WAV file) over the music and lowers
-    /// the music while it lasts. A newer announcement replaces a running one
+    /// the music while it lasts; at music level 0 the track stands still
+    /// and goes on from there afterwards. A newer announcement replaces a running one
     /// of the same or lower priority; an information that meets a running
     /// turn instruction is dropped (false).
     pub fn play_announcement(&self, path: &str, priority: AnnouncementPriority) -> Result<bool> {
@@ -146,7 +158,67 @@ impl MediaPlayer {
         playback.set_gain(levels.volume)?;
         *active = Some(ActiveAnnouncement { playback, priority });
         self.set_music_gain(levels.music_under);
+        if levels.music_under == 0.0 {
+            self.hold_music();
+        }
         Ok(true)
+    }
+
+    /// Stops the position clock of the playing track: at music level 0 the
+    /// track stands still for the announcement (the mixer pulls nothing from
+    /// a source at gain 0) and goes on from the same place afterwards.
+    fn hold_music(&self) {
+        let mut held = self
+            .music_held
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let playing = matches!(
+            *self
+                .state
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner()),
+            PlaybackState::Playing
+        );
+        if held.is_some() || !playing {
+            return;
+        }
+        let position_ms = self.position_ms();
+        *self
+            .position_ms
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = position_ms;
+        *self
+            .started_at
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
+        *held = Some(self.playback_starts.load(Ordering::Acquire));
+    }
+
+    /// Starts the position clock again after a held announcement, unless
+    /// the track was paused, stopped, changed or sought meanwhile (those
+    /// set the clock themselves).
+    fn release_music(&self) {
+        let Some(held) = self
+            .music_held
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take()
+        else {
+            return;
+        };
+        let playing = matches!(
+            *self
+                .state
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner()),
+            PlaybackState::Playing
+        );
+        if playing && held == self.playback_starts.load(Ordering::Acquire) {
+            self.started_at
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .get_or_insert_with(Instant::now);
+        }
     }
 
     /// Ends a finished announcement and brings the music back up; keeps the
@@ -166,6 +238,7 @@ impl MediaPlayer {
             if let Some(finished) = active.take() {
                 let _ = finished.playback.stop();
             }
+            self.release_music();
             self.set_music_gain(1.0);
         } else {
             let music_under = self
@@ -292,6 +365,7 @@ impl MediaPlayer {
         input_path: &str,
         position_ms: Option<i64>,
     ) -> Result<Box<dyn Playback>> {
+        self.playback_starts.fetch_add(1, Ordering::AcqRel);
         let started = match position_ms {
             Some(position_ms) => self.engine.start_at(input_path, position_ms),
             None => self.engine.start(input_path),
@@ -1701,6 +1775,68 @@ mod tests {
             levels.take().iter().all(|(path, _)| path != &levels.track),
             "the paused track is never touched"
         );
+    }
+
+    fn announce_at(levels: &Levels, music_under: f32) {
+        levels.player.set_announcement_levels(AnnouncementLevels {
+            volume: 1.0,
+            music_under,
+        });
+        levels
+            .player
+            .play_announcement("/run/a.wav", AnnouncementPriority::Maneuver)
+            .unwrap();
+    }
+
+    fn end_announcement(levels: &Levels) {
+        levels.finish("/run/a.wav");
+        levels.player.follow_announcement();
+    }
+
+    #[test]
+    fn at_music_level_0_the_track_stands_still_for_the_announcement() {
+        let levels = Levels::new();
+        announce_at(&levels, 0.0);
+        let held_at = levels.player.position_ms();
+        std::thread::sleep(std::time::Duration::from_millis(150));
+        levels.player.follow_announcement();
+        assert_eq!(levels.player.position_ms(), held_at, "clock held");
+        assert_eq!(levels.player.state(), "playing", "no pause shown");
+
+        end_announcement(&levels);
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        let after = levels.player.position_ms();
+        assert!(
+            (held_at + 80..held_at + 140).contains(&after),
+            "goes on from where it stood: {held_at} -> {after}"
+        );
+        assert_eq!(
+            levels.take().last(),
+            Some(&(levels.track.clone(), 1.0)),
+            "and is heard again"
+        );
+    }
+
+    #[test]
+    fn above_music_level_0_the_track_plays_on_under_the_announcement() {
+        let levels = Levels::new();
+        announce_at(&levels, 0.3);
+        let before = levels.player.position_ms();
+        std::thread::sleep(std::time::Duration::from_millis(150));
+        assert!(levels.player.position_ms() >= before + 140, "clock runs");
+        end_announcement(&levels);
+    }
+
+    #[test]
+    fn a_track_paused_during_a_held_announcement_stays_paused() {
+        let levels = Levels::new();
+        announce_at(&levels, 0.0);
+        levels.player.execute("pause", "").unwrap();
+        let paused_at = levels.player.position_ms();
+        end_announcement(&levels);
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        assert_eq!(levels.player.state(), "paused");
+        assert_eq!(levels.player.position_ms(), paused_at, "not started again");
     }
 
     struct FakePlayback {
