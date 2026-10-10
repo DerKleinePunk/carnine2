@@ -1,0 +1,42 @@
+Source code for the software in this CarNine image
+==================================================
+
+This image contains free software. Much of it is licensed under the GNU
+General Public License (GPL) or the GNU Lesser General Public License (LGPL),
+among it the Linux kernel, many Debian packages, FFmpeg, espeak-ng-data and
+CarNine itself (GPL-3.0-only). These licences give you the right to get the
+complete corresponding source code. The licence of each package is in
+/usr/share/doc/<package>/copyright.
+
+Where the source code is
+------------------------
+
+- CarNine (carnine-backend, carnine-frontend):
+  https://github.com/DerKleinePunk/carnine2, tag v{{VERSION}}
+- Valhalla routing (carnine-valhalla): see
+  /usr/share/doc/carnine-valhalla/copyright for the exact upstream versions.
+- The Debian and Raspberry Pi OS packages: /usr/share/doc/carnine/source-packages.txt
+  lists every source package with its exact version. Debian keeps every
+  version at https://snapshot.debian.org/package/<source>/<version>/ ;
+  Raspberry Pi packages (among them the kernel) are at
+  https://archive.raspberrypi.com/debian/ and https://github.com/raspberrypi/linux .
+
+Written offer
+-------------
+
+For at least three years after we last distribute this image, we will give
+anyone who asks the complete corresponding source code of every GPL and LGPL
+part of it, for no more than our cost of physically performing the source
+distribution, on a medium customarily used for software interchange.
+Write an e-mail to:
+
+  software@carnine.de
+
+Please name the image version, CarNine {{VERSION}}, in your request.
+
+----
+
+Quellcode der Software in diesem CarNine-Image: Viele Teile stehen unter der
+GPL oder LGPL. Wo es den Quellcode gibt und wie Sie ihn von uns bekommen
+(per E-Mail an software@carnine.de), steht oben. Die Liste aller Quellpakete
+mit Version liegt in /usr/share/doc/carnine/source-packages.txt.

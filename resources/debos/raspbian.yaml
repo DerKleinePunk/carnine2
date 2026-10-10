@@ -659,6 +659,17 @@ actions:
       systemctl enable carnine-frontend.service
       systemctl enable valhalla.service
 
+  # Licences and source offer (#123): the offer text and every source package
+  # of the image with its version, written after the last package is installed.
+  - action: run
+    description: Install the source code offer and the source package list
+    chroot: false
+    command: >-
+      install -D -m 0644 "$RECIPEDIR/source-offer.txt" "$ROOTDIR/usr/share/doc/carnine/SOURCE-OFFER.txt" &&
+      sed -i 's/{{ "{{" }}VERSION{{ "}}" }}/{{ $version }}/g' "$ROOTDIR/usr/share/doc/carnine/SOURCE-OFFER.txt" &&
+      dpkg-query --admindir="$ROOTDIR/var/lib/dpkg" -W -f '${source:Package} ${source:Version}\n' |
+      sort -u > "$ROOTDIR/usr/share/doc/carnine/source-packages.txt"
+
   - action: run
     description: Force systemd first boot menchanism
     chroot: true
