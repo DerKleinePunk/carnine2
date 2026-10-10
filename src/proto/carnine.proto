@@ -460,7 +460,10 @@ message Configuration {
   repeated string supported_formats = 4;
   bool rescan_on_start = 5;
   string resume_mode = 6;
-  string navigation_interrupt = 11;
+  // 11 was navigation_interrupt: never evaluated, removed 2026-10-10; the
+  // music goes down to [voice] music_under_percent during announcements.
+  reserved 11;
+  reserved "navigation_interrupt";
   string log_directory = 12;
   string log_level = 13;
   string cover_cache_dir = 14;

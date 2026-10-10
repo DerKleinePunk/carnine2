@@ -273,7 +273,6 @@ pub struct MediaConfig {
 
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
 pub struct AudioConfig {
-    pub navigation_interrupt: String,
     /// Where the volume survives a restart. Optional: configurations written
     /// before it existed keep the path that used to be fixed in the code.
     #[serde(default = "default_volume_state_path")]
@@ -789,7 +788,6 @@ mod tests {
                 .expect("default mode should parse"),
             0o600
         );
-        assert_eq!(config.audio.navigation_interrupt, "pause_music");
         assert_eq!(
             config.audio.volume_state_path,
             std::path::PathBuf::from("/var/lib/carnine/audio-volume")
@@ -1133,6 +1131,25 @@ mod tests {
 
         write_drop_in(&path, "30-camera.toml", "[camera]\nnorm = \"secam\"\n");
         assert!(load_from(&path).is_err(), "unknown norm refused");
+    }
+
+    #[test]
+    fn a_configuration_with_the_old_navigation_interrupt_still_loads() {
+        // Removed 2026-10-10: it was never evaluated (the music goes down to
+        // [voice] music_under_percent), but devices and images up to 0.15.0
+        // still carry it.
+        let path = configuration_in("navigation-interrupt");
+        write_drop_in(
+            &path,
+            "50-audio.toml",
+            "[audio]\nnavigation_interrupt = \"pause_music\"\n",
+        );
+
+        let config = load_from(&path).expect("config with the old key should load");
+        assert_eq!(
+            config.audio.volume_state_path,
+            std::path::PathBuf::from("/var/lib/carnine/audio-volume")
+        );
     }
 
     /// A copy of the repository configuration in its own directory, so a test

@@ -3025,7 +3025,6 @@ class Configuration extends $pb.GeneratedMessage {
     $core.Iterable<$core.String>? supportedFormats,
     $core.bool? rescanOnStart,
     $core.String? resumeMode,
-    $core.String? navigationInterrupt,
     $core.String? logDirectory,
     $core.String? logLevel,
     $core.String? coverCacheDir,
@@ -3043,8 +3042,6 @@ class Configuration extends $pb.GeneratedMessage {
       result.supportedFormats.addAll(supportedFormats);
     if (rescanOnStart != null) result.rescanOnStart = rescanOnStart;
     if (resumeMode != null) result.resumeMode = resumeMode;
-    if (navigationInterrupt != null)
-      result.navigationInterrupt = navigationInterrupt;
     if (logDirectory != null) result.logDirectory = logDirectory;
     if (logLevel != null) result.logLevel = logLevel;
     if (coverCacheDir != null) result.coverCacheDir = coverCacheDir;
@@ -3077,7 +3074,6 @@ class Configuration extends $pb.GeneratedMessage {
     ..pPS(4, _omitFieldNames ? '' : 'supportedFormats')
     ..aOB(5, _omitFieldNames ? '' : 'rescanOnStart')
     ..aOS(6, _omitFieldNames ? '' : 'resumeMode')
-    ..aOS(11, _omitFieldNames ? '' : 'navigationInterrupt')
     ..aOS(12, _omitFieldNames ? '' : 'logDirectory')
     ..aOS(13, _omitFieldNames ? '' : 'logLevel')
     ..aOS(14, _omitFieldNames ? '' : 'coverCacheDir')
@@ -3153,84 +3149,75 @@ class Configuration extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   void clearResumeMode() => $_clearField(6);
 
-  @$pb.TagNumber(11)
-  $core.String get navigationInterrupt => $_getSZ(6);
-  @$pb.TagNumber(11)
-  set navigationInterrupt($core.String value) => $_setString(6, value);
-  @$pb.TagNumber(11)
-  $core.bool hasNavigationInterrupt() => $_has(6);
-  @$pb.TagNumber(11)
-  void clearNavigationInterrupt() => $_clearField(11);
-
   @$pb.TagNumber(12)
-  $core.String get logDirectory => $_getSZ(7);
+  $core.String get logDirectory => $_getSZ(6);
   @$pb.TagNumber(12)
-  set logDirectory($core.String value) => $_setString(7, value);
+  set logDirectory($core.String value) => $_setString(6, value);
   @$pb.TagNumber(12)
-  $core.bool hasLogDirectory() => $_has(7);
+  $core.bool hasLogDirectory() => $_has(6);
   @$pb.TagNumber(12)
   void clearLogDirectory() => $_clearField(12);
 
   @$pb.TagNumber(13)
-  $core.String get logLevel => $_getSZ(8);
+  $core.String get logLevel => $_getSZ(7);
   @$pb.TagNumber(13)
-  set logLevel($core.String value) => $_setString(8, value);
+  set logLevel($core.String value) => $_setString(7, value);
   @$pb.TagNumber(13)
-  $core.bool hasLogLevel() => $_has(8);
+  $core.bool hasLogLevel() => $_has(7);
   @$pb.TagNumber(13)
   void clearLogLevel() => $_clearField(13);
 
   @$pb.TagNumber(14)
-  $core.String get coverCacheDir => $_getSZ(9);
+  $core.String get coverCacheDir => $_getSZ(8);
   @$pb.TagNumber(14)
-  set coverCacheDir($core.String value) => $_setString(9, value);
+  set coverCacheDir($core.String value) => $_setString(8, value);
   @$pb.TagNumber(14)
-  $core.bool hasCoverCacheDir() => $_has(9);
+  $core.bool hasCoverCacheDir() => $_has(8);
   @$pb.TagNumber(14)
   void clearCoverCacheDir() => $_clearField(14);
 
   /// Optional TCP loopback fallback (ADR-002); empty means unset. Must stay
   /// unset in production - see docs/07-deployment.md §7.4.
   @$pb.TagNumber(15)
-  $core.String get tcpAddress => $_getSZ(10);
+  $core.String get tcpAddress => $_getSZ(9);
   @$pb.TagNumber(15)
-  set tcpAddress($core.String value) => $_setString(10, value);
+  set tcpAddress($core.String value) => $_setString(9, value);
   @$pb.TagNumber(15)
-  $core.bool hasTcpAddress() => $_has(10);
+  $core.bool hasTcpAddress() => $_has(9);
   @$pb.TagNumber(15)
   void clearTcpAddress() => $_clearField(15);
 
   /// Health sampling, see SystemService.GetSystemMetrics.
   @$pb.TagNumber(16)
-  $fixnum.Int64 get metricsIntervalSeconds => $_getI64(11);
+  $fixnum.Int64 get metricsIntervalSeconds => $_getI64(10);
   @$pb.TagNumber(16)
-  set metricsIntervalSeconds($fixnum.Int64 value) => $_setInt64(11, value);
+  set metricsIntervalSeconds($fixnum.Int64 value) => $_setInt64(10, value);
   @$pb.TagNumber(16)
-  $core.bool hasMetricsIntervalSeconds() => $_has(11);
+  $core.bool hasMetricsIntervalSeconds() => $_has(10);
   @$pb.TagNumber(16)
   void clearMetricsIntervalSeconds() => $_clearField(16);
 
   @$pb.TagNumber(17)
-  $fixnum.Int64 get diskMetricsIntervalSeconds => $_getI64(12);
+  $fixnum.Int64 get diskMetricsIntervalSeconds => $_getI64(11);
   @$pb.TagNumber(17)
-  set diskMetricsIntervalSeconds($fixnum.Int64 value) => $_setInt64(12, value);
+  set diskMetricsIntervalSeconds($fixnum.Int64 value) => $_setInt64(11, value);
   @$pb.TagNumber(17)
-  $core.bool hasDiskMetricsIntervalSeconds() => $_has(12);
+  $core.bool hasDiskMetricsIntervalSeconds() => $_has(11);
   @$pb.TagNumber(17)
   void clearDiskMetricsIntervalSeconds() => $_clearField(17);
 
   /// Empty means the default: root filesystem plus every media folder.
   @$pb.TagNumber(18)
-  $pb.PbList<$core.String> get diskPaths => $_getList(13);
+  $pb.PbList<$core.String> get diskPaths => $_getList(12);
 
   /// Octal socket permissions such as "0660"; empty means the production
   /// default 0600. See docs/07-deployment.md §7.4.
   @$pb.TagNumber(19)
-  $core.String get socketMode => $_getSZ(14);
+  $core.String get socketMode => $_getSZ(13);
   @$pb.TagNumber(19)
-  set socketMode($core.String value) => $_setString(14, value);
+  set socketMode($core.String value) => $_setString(13, value);
   @$pb.TagNumber(19)
-  $core.bool hasSocketMode() => $_has(14);
+  $core.bool hasSocketMode() => $_has(13);
   @$pb.TagNumber(19)
   void clearSocketMode() => $_clearField(19);
 }

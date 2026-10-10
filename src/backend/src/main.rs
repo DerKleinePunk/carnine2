@@ -1591,7 +1591,6 @@ fn configuration_to_proto(configuration: &config::Config) -> Configuration {
         supported_formats: configuration.media.supported_formats.clone(),
         rescan_on_start: configuration.media.rescan_on_start,
         resume_mode: configuration.media.resume_mode.clone(),
-        navigation_interrupt: configuration.audio.navigation_interrupt.clone(),
         log_directory: configuration.logging.directory.display().to_string(),
         log_level: configuration.logging.level.clone(),
         cover_cache_dir: configuration.media.cover_cache_dir.display().to_string(),
@@ -1645,7 +1644,6 @@ fn configuration_from_proto(configuration: &Configuration) -> Result<config::Con
             cover_cache_dir: PathBuf::from(&configuration.cover_cache_dir),
         },
         audio: config::AudioConfig {
-            navigation_interrupt: configuration.navigation_interrupt.clone(),
             // Not in the Configuration message either; carried over as well.
             volume_state_path: config::default_volume_state_path(),
         },
@@ -2196,7 +2194,6 @@ mod tests {
                 cover_cache_dir: PathBuf::from("/tmp/carnine-covers"),
             },
             audio: config::AudioConfig {
-                navigation_interrupt: "pause_music".to_string(),
                 volume_state_path: PathBuf::from("/tmp/carnine-audio-volume"),
             },
             logging: config::LoggingConfig {
@@ -2677,10 +2674,6 @@ mod tests {
             restored.media.cover_cache_dir,
             original.media.cover_cache_dir
         );
-        assert_eq!(
-            restored.audio.navigation_interrupt,
-            original.audio.navigation_interrupt
-        );
         assert_eq!(restored.logging.directory, original.logging.directory);
         assert_eq!(restored.logging.level, original.logging.level);
     }
@@ -2761,8 +2754,12 @@ mod tests {
         let saved_configuration: config::Config =
             toml::from_str(&saved).expect("saved configuration should be valid TOML");
         assert_eq!(
-            saved_configuration.audio.navigation_interrupt,
-            "pause_music"
+            saved_configuration.audio.volume_state_path,
+            PathBuf::from("/tmp/carnine-audio-volume")
+        );
+        assert!(
+            !saved.contains("navigation_interrupt"),
+            "the removed key is not written back"
         );
         let _ = std::fs::remove_file(path);
     }

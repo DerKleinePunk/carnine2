@@ -972,13 +972,6 @@ const Configuration$json = {
     },
     {'1': 'rescan_on_start', '3': 5, '4': 1, '5': 8, '10': 'rescanOnStart'},
     {'1': 'resume_mode', '3': 6, '4': 1, '5': 9, '10': 'resumeMode'},
-    {
-      '1': 'navigation_interrupt',
-      '3': 11,
-      '4': 1,
-      '5': 9,
-      '10': 'navigationInterrupt'
-    },
     {'1': 'log_directory', '3': 12, '4': 1, '5': 9, '10': 'logDirectory'},
     {'1': 'log_level', '3': 13, '4': 1, '5': 9, '10': 'logLevel'},
     {'1': 'cover_cache_dir', '3': 14, '4': 1, '5': 9, '10': 'coverCacheDir'},
@@ -1000,6 +993,10 @@ const Configuration$json = {
     },
     {'1': 'disk_paths', '3': 18, '4': 3, '5': 9, '10': 'diskPaths'},
   ],
+  '9': [
+    {'1': 11, '2': 12},
+  ],
+  '10': ['navigation_interrupt'],
 };
 
 /// Descriptor for `Configuration`. Decode as a `google.protobuf.DescriptorProto`.
@@ -1008,14 +1005,13 @@ final $typed_data.Uint8List configurationDescriptor = $convert.base64Decode(
     'FiYXNlX3BhdGgYAiABKAlSDGRhdGFiYXNlUGF0aBIjCg1tZWRpYV9mb2xkZXJzGAMgAygJUgxt'
     'ZWRpYUZvbGRlcnMSKwoRc3VwcG9ydGVkX2Zvcm1hdHMYBCADKAlSEHN1cHBvcnRlZEZvcm1hdH'
     'MSJgoPcmVzY2FuX29uX3N0YXJ0GAUgASgIUg1yZXNjYW5PblN0YXJ0Eh8KC3Jlc3VtZV9tb2Rl'
-    'GAYgASgJUgpyZXN1bWVNb2RlEjEKFG5hdmlnYXRpb25faW50ZXJydXB0GAsgASgJUhNuYXZpZ2'
-    'F0aW9uSW50ZXJydXB0EiMKDWxvZ19kaXJlY3RvcnkYDCABKAlSDGxvZ0RpcmVjdG9yeRIbCgls'
-    'b2dfbGV2ZWwYDSABKAlSCGxvZ0xldmVsEiYKD2NvdmVyX2NhY2hlX2RpchgOIAEoCVINY292ZX'
-    'JDYWNoZURpchIfCgt0Y3BfYWRkcmVzcxgPIAEoCVIKdGNwQWRkcmVzcxIfCgtzb2NrZXRfbW9k'
-    'ZRgTIAEoCVIKc29ja2V0TW9kZRI4ChhtZXRyaWNzX2ludGVydmFsX3NlY29uZHMYECABKARSFm'
-    '1ldHJpY3NJbnRlcnZhbFNlY29uZHMSQQodZGlza19tZXRyaWNzX2ludGVydmFsX3NlY29uZHMY'
-    'ESABKARSGmRpc2tNZXRyaWNzSW50ZXJ2YWxTZWNvbmRzEh0KCmRpc2tfcGF0aHMYEiADKAlSCW'
-    'Rpc2tQYXRocw==');
+    'GAYgASgJUgpyZXN1bWVNb2RlEiMKDWxvZ19kaXJlY3RvcnkYDCABKAlSDGxvZ0RpcmVjdG9yeR'
+    'IbCglsb2dfbGV2ZWwYDSABKAlSCGxvZ0xldmVsEiYKD2NvdmVyX2NhY2hlX2RpchgOIAEoCVIN'
+    'Y292ZXJDYWNoZURpchIfCgt0Y3BfYWRkcmVzcxgPIAEoCVIKdGNwQWRkcmVzcxIfCgtzb2NrZX'
+    'RfbW9kZRgTIAEoCVIKc29ja2V0TW9kZRI4ChhtZXRyaWNzX2ludGVydmFsX3NlY29uZHMYECAB'
+    'KARSFm1ldHJpY3NJbnRlcnZhbFNlY29uZHMSQQodZGlza19tZXRyaWNzX2ludGVydmFsX3NlY2'
+    '9uZHMYESABKARSGmRpc2tNZXRyaWNzSW50ZXJ2YWxTZWNvbmRzEh0KCmRpc2tfcGF0aHMYEiAD'
+    'KAlSCWRpc2tQYXRoc0oECAsQDFIUbmF2aWdhdGlvbl9pbnRlcnJ1cHQ=');
 
 @$core.Deprecated('Use updateConfigurationRequestDescriptor instead')
 const UpdateConfigurationRequest$json = {
