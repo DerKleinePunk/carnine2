@@ -741,7 +741,20 @@ list; `--no-build` keeps cargo-deb from building it again without that list. Aft
 `build_pi.sh` writes an SBOM (CycloneDX and SPDX) and a grype CVE report next
 to each package in `resources/debos/` (`<package>.cdx.json`, `.spdx.json`,
 `.grype.txt`, #41): the backend's from the unpacked package, the frontend's
-from the `pubspec.lock` it was built with. Accepted findings are listed with
+from the `pubspec.lock` it was built with. ivi-homescreen gets its own files
+next to them (`carnine-frontend-ivi-homescreen.cdx.json`, `.openvex.json`,
+`.grype.txt`): it vendors its C++ libraries as git submodules without package
+metadata, which syft cannot see, so `resources/tools/sbom/gen_sbom.py` reads
+the pinned submodules from the checkout in the emb workspace and writes them
+as CycloneDX, with a CPE for the ones NVD lists (rapidjson, fmt), plus an
+OpenVEX document that grype reads with `--vex`. A VEX entry marks a CVE
+`not_affected` only if the build checks that the fixing commit is an ancestor
+of the pinned submodule (CVE-2024-38517 in rapidjson, fixed by 8269bc2b). If
+that check fails (the pin moved, or the submodule lacks the history), the
+script stops and `build_pi.sh` warns, writes no ivi-homescreen report and
+builds on. A CVE without an upstream fix to check, such as CVE-2024-39684,
+stays in the report. The script follows ivi-homescreen #746, which our pin
+predates. Not covered is the Flutter engine. Accepted findings are listed with
 their reason in `.grype.yaml`. These are reports only; a finding never stops
 the build. Without `cargo-auditable`, `syft` or `grype` the build goes on with
 a warning (`CARNINE_SYFT`/`CARNINE_GRYPE` name other binaries). The image gets

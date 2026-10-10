@@ -97,7 +97,7 @@ This section describes architectural principles, patterns, and technologies that
 - **CAN Simulation** (planned): Virtual CAN interfaces for testing without real vehicle
 
 ### Continuous Integration
-- **Build Pipeline**: GitHub Actions (`.github/workflows/ci.yml`): backend `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings` and `cargo test`; frontend `flutter analyze` and `flutter test`; shellcheck and tests for the image scripts; a native arm64 release build; an SBOM of our own dependencies (`Cargo.lock`, `pubspec.lock`) with syft, checked with grype, which fails only on a Critical finding that has a fix (#41, accepted findings in `.grype.yaml`)
+- **Build Pipeline**: GitHub Actions (`.github/workflows/ci.yml`): backend `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings` and `cargo test`; frontend `flutter analyze` and `flutter test`; shellcheck and tests for the image scripts; the tests of the demo tools and of the ivi-homescreen SBOM script (Python); a native arm64 release build; an SBOM of our own dependencies (`Cargo.lock`, `pubspec.lock`) with syft, checked with grype, which fails only on a Critical finding that has a fix (#41, accepted findings in `.grype.yaml`)
 - **Code Quality**: Clippy (Rust), Flutter analyze. No pre-commit hooks in the repository
 
 ## 8.8 Deployment and Updates

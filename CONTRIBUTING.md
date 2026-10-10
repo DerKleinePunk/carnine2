@@ -54,6 +54,7 @@ on GitHub-hosted runners. You can run the same checks locally before pushing:
 cd src/backend  && cargo fmt --check && cargo clippy --all-targets && cargo test
 cd src/frontend && flutter analyze && flutter test
 cd resources/tools/demo && python3 -m unittest test_demo_gps.py
+cd resources/tools/sbom && python3 -m unittest test_gen_sbom.py
 ```
 
 The workflow additionally builds the backend in release mode on a native arm64
