@@ -141,6 +141,8 @@ def license_entry(spdx):
 def build(root):
     """(CycloneDX document, OpenVEX statements) for the checkout at root."""
     root = Path(root)
+    if not (root / ".gitmodules").is_file():
+        raise SystemExit(f"gen_sbom: {root} is no ivi-homescreen checkout (no .gitmodules)")
     found = submodules(root)
     unknown = [path for path, _ in found if path not in DEPENDENCIES]
     if unknown:

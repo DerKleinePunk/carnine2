@@ -265,13 +265,15 @@ if command -v "$SYFT" >/dev/null 2>&1 && command -v "$GRYPE" >/dev/null 2>&1; th
   rm -rf "$BACKEND_UNPACKED"
   package_sbom carnine-frontend "$FRONTEND_STAGING_DIR"
   IHS_OUT="$ROOT_DIR/resources/debos/carnine-frontend-ivi-homescreen"
+  # Gone first, so a failed run leaves no report of an earlier build behind.
+  rm -f "$IHS_OUT.cdx.json" "$IHS_OUT.openvex.json" "$IHS_OUT.grype.txt"
   if python3 -I "$ROOT_DIR/resources/tools/sbom/gen_sbom.py" --repo-root "$EMB_EMBEDDER_DIR" \
       --output "$IHS_OUT.cdx.json" --vex-output "$IHS_OUT.openvex.json" &&
     "$GRYPE" "sbom:$IHS_OUT.cdx.json" --vex "$IHS_OUT.openvex.json" -q -c "$ROOT_DIR/.grype.yaml" \
       -o table > "$IHS_OUT.grype.txt" 2>&1; then
     echo "[pi] ivi-homescreen: SBOM $IHS_OUT.cdx.json, VEX $IHS_OUT.openvex.json, CVE report $IHS_OUT.grype.txt ($(grep -c . "$IHS_OUT.grype.txt") lines)"
   else
-    echo "[pi] WARNING: no ivi-homescreen SBOM or CVE report, see the lines above and $IHS_OUT.grype.txt"
+    echo "[pi] WARNING: no ivi-homescreen SBOM or CVE report, see the lines above (and $IHS_OUT.grype.txt if it exists)"
   fi
 else
   echo "[pi] WARNING: syft or grype not found, no package SBOM (set CARNINE_SYFT/CARNINE_GRYPE)."

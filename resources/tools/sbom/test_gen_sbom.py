@@ -125,6 +125,10 @@ class BuildTest(Fixture):
         with self.assertRaisesRegex(SystemExit, "no tag reachable in third_party/fmt"):
             gen_sbom.build(self.root)
 
+    def test_missing_checkout_stops(self):
+        with self.assertRaisesRegex(SystemExit, "no ivi-homescreen checkout"):
+            gen_sbom.build(Path(self.tmp.name) / "nowhere")
+
     def test_superproject_version(self):
         document, _ = gen_sbom.build(self.root)
         self.assertRegex(document["metadata"]["component"]["version"], r"^v1\.0\.0-1-g")
