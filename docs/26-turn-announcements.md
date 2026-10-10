@@ -127,7 +127,9 @@ Announce(text, priority) ──► in the cache? ── yes ──► play now �
   sentence is raised to a peak of 0.9, at most 4 times (+12 dB), without
   clipping. `volume_percent` scales it from there.
 - **Over the music:** the music goes to `music_under_percent` while a
-  sentence plays and back up afterwards. Paused music stays silent.
+  sentence plays and back up afterwards. Paused music stays silent. At 0 the
+  track stands still and goes on from the same place after the sentence;
+  the state stays "playing", so the UI shows no pause for those seconds.
 - **Priorities:** `MANEUVER` (stages, "jetzt", destination) and `INFO`
   ("Die Route wird neu berechnet."). A turn instruction cuts a running
   information short; an information that meets a running turn instruction is
@@ -144,8 +146,8 @@ Announce(text, priority) ──► in the cache? ── yes ──► play now �
 |---|---|
 | `PrepareAnnouncements(texts)` | synthesizes the texts in the background |
 | `Announce(text, priority)` | speaks the text; unspecified priority counts as `MANEUVER` |
-| `GetVoiceSettings()` | `available` (voice loaded), `enabled`, `volume_percent`, `voice` |
-| `SetVoiceSettings(enabled?, volume_percent?)` | changes and saves; a loudness above 100 is `INVALID_ARGUMENT` |
+| `GetVoiceSettings()` | `available` (voice loaded), `enabled`, `volume_percent`, `voice`, `music_under_percent` |
+| `SetVoiceSettings(enabled?, volume_percent?, music_under_percent?)` | changes and saves; a value above 100 is `INVALID_ARGUMENT` and nothing changes |
 
 `Maneuver` carries Valhalla's texts as `verbal_alert` (7, before),
 `verbal_pre` (8, at) and `verbal_post` (9, after), also in `GetReplayRoute`.
@@ -195,7 +197,7 @@ checks them against pinned SHA-256 values (see
 | `threads` | `1` | synthesis threads |
 | `cache_dir` | `/run/carnine/voice` | synthesized sentences (tmpfs) |
 | `volume_percent` | `100` | loudness of the announcements, 0–100 |
-| `music_under_percent` | `30` | music level while a sentence plays, 0–100 |
+| `music_under_percent` | `30` | music level while a sentence plays, 0–100; 0 holds the track |
 | `fixed_texts` | `["Die Route wird neu berechnet."]` | sentences kept ready for good, see below; `[]` for none |
 
 **Fixed sentences.** "Die Route wird neu berechnet." already stands at the
@@ -224,19 +226,21 @@ sudo systemctl restart carnine-backend
 inherit the pinning and all run on that one core. Two threads on two cores
 were considered and dropped (see [Measurements](#measurements)).
 
-**Switch and loudness are saved.** `SetVoiceSettings` writes them into the
-media database (schema 12, columns `voice_enabled` and `voice_volume` in
-`navigation_state`); saved values win over `enabled` and `volume_percent` in
-the configuration. A database from before schema 12 is migrated at start
-with both empty, which means "as the configuration says". The options page
-does not have the switch and the slider yet
+**Switch, loudness and music level are saved.** `SetVoiceSettings` writes
+them into the media database (schema 13, columns `voice_enabled`,
+`voice_volume` and `voice_music_under` in `navigation_state`); saved values
+win over `enabled`, `volume_percent` and `music_under_percent` in the
+configuration. A database from before schema 13 is migrated at start with
+the missing columns empty, which means "as the configuration says". The
+options page does not have the switch and the sliders yet
 ([#110](https://github.com/DerKleinePunk/carnine2/issues/110)); until then
 the example client does it:
 
 ```sh
-media_grpc_client <endpoint> voice-settings                 # available=true enabled=true volume=100 voice=thorsten-medium
+media_grpc_client <endpoint> voice-settings                 # available=true enabled=true volume=100% music_under=30% voice=thorsten-medium
 media_grpc_client <endpoint> set-voice-settings off         # or on
 media_grpc_client <endpoint> set-voice-settings - 80        # '-' keeps the switch
+media_grpc_client <endpoint> set-voice-settings - - 0       # music level; 0 holds the track
 media_grpc_client <endpoint> announce "Links abbiegen."     # MANEUVER; add 'info' for INFO
 media_grpc_client <endpoint> prepare-announcements "Erster Satz." "Zweiter Satz."
 ```

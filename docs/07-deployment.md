@@ -599,8 +599,8 @@ The package `carnine-voice` (installed by the image recipe) brings
 sherpa-onnx 1.13.8 and the German voices `thorsten-medium` (default) and
 `thorsten-low`; the backend loads them at run time and runs on silently
 without them. `[voice]` picks the voice, the core (default 3) and the levels;
-switch and loudness set over gRPC are saved in the media database
-(schema 12) and win over the configuration. Details, the flow and the
+switch, loudness and the music's level set over gRPC are saved in the media
+database (schema 13) and win over the configuration. Details, the flow and the
 measurements: [26 – Spoken Turn Announcements](26-turn-announcements.md).
 
 #### Operating System
