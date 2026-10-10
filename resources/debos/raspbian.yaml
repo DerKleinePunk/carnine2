@@ -118,6 +118,8 @@ actions:
       - fontconfig
       - fonts-liberation
       - i2c-tools
+      # hwclock, to set the DS3231 clock once (sudo hwclock -w).
+      - util-linux-extra
       - pulseaudio-utils
       - alsa-utils
       - udisks2
@@ -225,6 +227,11 @@ actions:
       sed -i '/^[[:space:]]*#\?[[:space:]]*dtparam=i2c_arm=/d' /boot/firmware/config.txt
       sed -i '/^[[:space:]]*#\?[[:space:]]*disable_splash=/d' /boot/firmware/config.txt
       printf '%s\n' 'dtparam=i2c_arm=on' 'disable_splash=1' >> /boot/firmware/config.txt
+      # DS3231 clock module on the same bus (0x68), for the time without
+      # network at the trade fair. Its driver sets the system clock when it
+      # registers rtc0; without the module there is just no rtc0.
+      sed -i '/^[[:space:]]*#\?[[:space:]]*dtoverlay=i2c-rtc/d' /boot/firmware/config.txt
+      printf '%s\n' 'dtoverlay=i2c-rtc,ds3231' >> /boot/firmware/config.txt
       # i2c_arm only brings up the bus; /dev/i2c-1 for i2cdetect and user
       # space needs i2c-dev, which Raspberry Pi OS loads in raspi-config.
       printf '%s\n' i2c-dev > /etc/modules-load.d/carnine-i2c.conf
