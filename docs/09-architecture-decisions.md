@@ -1090,8 +1090,10 @@ Refined on 2026-10-10:
 **Findings 2026-10-10:**
 Recordings on jeep-pi with the microphone of the USB reversing
 camera (16 kHz mono, in a room, near 30 cm and far 1–2 m), evaluated with
-sherpa-onnx 1.13.8, one thread. Files and full output on the shared drive
-(`mikrofon-test-2026-10-10/`), not in the repository.
+sherpa-onnx 1.13.8, one thread. The tools, with model downloads and how to
+repeat the measurements, are in `resources/tools/speech/`; the recordings
+and full output stay on the shared drive (`mikrofon-test-2026-10-10/`), not
+in the repository.
 
 | What | Result |
 |---|---|
