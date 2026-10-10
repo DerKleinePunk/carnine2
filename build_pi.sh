@@ -241,8 +241,10 @@ echo "[pi] Frontend package staged: $FRONTEND_PACKAGE"
 # to the test device must not hang on a CVE. The backend SBOM comes from the
 # unpacked package (the crates via cargo-auditable), the frontend's from the
 # pubspec.lock it was built with - the Dart code is compiled into libapp.so,
-# where syft cannot see it. Not covered: the Flutter engine and
-# ivi-homescreen, which carry no package metadata.
+# where syft cannot see it. ivi-homescreen vendors its C++ dependencies as git
+# submodules without package metadata; resources/tools/sbom/gen_sbom.py reads
+# them from the checkout, with CPEs and a VEX document grype gets with --vex.
+# Not covered: the Flutter engine.
 SYFT="${CARNINE_SYFT:-syft}"
 GRYPE="${CARNINE_GRYPE:-grype}"
 package_sbom() {
@@ -262,6 +264,15 @@ if command -v "$SYFT" >/dev/null 2>&1 && command -v "$GRYPE" >/dev/null 2>&1; th
   package_sbom carnine-backend "$BACKEND_UNPACKED"
   rm -rf "$BACKEND_UNPACKED"
   package_sbom carnine-frontend "$FRONTEND_STAGING_DIR"
+  IHS_OUT="$ROOT_DIR/resources/debos/carnine-frontend-ivi-homescreen"
+  if python3 -I "$ROOT_DIR/resources/tools/sbom/gen_sbom.py" --repo-root "$EMB_EMBEDDER_DIR" \
+      --output "$IHS_OUT.cdx.json" --vex-output "$IHS_OUT.openvex.json" &&
+    "$GRYPE" "sbom:$IHS_OUT.cdx.json" --vex "$IHS_OUT.openvex.json" -q -c "$ROOT_DIR/.grype.yaml" \
+      -o table > "$IHS_OUT.grype.txt" 2>&1; then
+    echo "[pi] ivi-homescreen: SBOM $IHS_OUT.cdx.json, VEX $IHS_OUT.openvex.json, CVE report $IHS_OUT.grype.txt ($(grep -c . "$IHS_OUT.grype.txt") lines)"
+  else
+    echo "[pi] WARNING: no ivi-homescreen SBOM or CVE report, see the lines above and $IHS_OUT.grype.txt"
+  fi
 else
   echo "[pi] WARNING: syft or grype not found, no package SBOM (set CARNINE_SYFT/CARNINE_GRYPE)."
 fi

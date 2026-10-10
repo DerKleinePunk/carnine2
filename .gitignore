@@ -35,6 +35,7 @@ resources/debos/carnine-voice.deb
 resources/debos/carnine-*.cdx.json
 resources/debos/carnine-*.spdx.json
 resources/debos/carnine-*.grype.txt
+resources/debos/carnine-*.openvex.json
 resources/debos/not-sync/
 resources/raspbian.img
 resources/raspbian.img.gz
