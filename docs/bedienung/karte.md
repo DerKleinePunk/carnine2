@@ -8,11 +8,13 @@ Namensdatenbank). Die Karte selbst funktioniert auch ohne Backend. Das Image
 bringt keine Kartendaten mit. Die Karte von Hessen installiert man nach dem
 ersten Start ([Kartendaten installieren](nach-der-installation.md#kartendaten-installieren)).
 
-![Karte ohne Route: Suchfeld oben, Knöpfe rechts, darunter „© OpenStreetMap-Mitwirkende“, unten links der Standort](bilder/start.png)
+![Karte ohne Route: Suchfeld oben, Knöpfe rechts, darunter „© OpenMapTiles © OpenStreetMap-Mitwirkende“, unten links der Standort](bilder/start.png)
 
-Rechts unten auf der Karte steht „© OpenStreetMap-Mitwirkende“. Die
-Kartendaten kommen von OpenStreetMap, und deren Lizenz verlangt diesen
-Hinweis. Während einer Route steht er über der Leiste mit Ankunft und Distanz.
+Rechts unten auf der Karte steht „© OpenMapTiles © OpenStreetMap-Mitwirkende“.
+Die Kartendaten kommen von [OpenStreetMap](https://www.openstreetmap.org/copyright),
+die Kacheln sind nach dem Schema von [OpenMapTiles](https://openmaptiles.org/)
+gebaut. Beide Lizenzen verlangen diesen Hinweis. Während einer Route steht er
+über der Leiste mit Ankunft und Distanz.
 
 ## Karte bewegen
 
