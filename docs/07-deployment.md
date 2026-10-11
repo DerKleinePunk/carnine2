@@ -463,7 +463,21 @@ kernel writes the NTP time back into the module every 11 minutes
 reads it. Without the module the driver should find nothing at 0x68 and
 create no `rtc0` (not tried yet). Tried on carnine-pc
 (2026-10-10): system time set to 2025 by hand, NTP off, reboot, and the time
-came from the module.
+came from the module. Tried without network (2026-10-11): jeep-pi 3.5
+minutes without power and LAN, the kernel set the clock from the module and
+every log line had the right time; the first NTP sync later moved it by at
+most a second (the module counts whole seconds). Whether the cell keeps the
+time over hours without power is not tried yet. `i2cdetect -y 1` (i2c-tools,
+in the image) shows the module at 0x68 and 0x57.
+
+The module keeps its time on a CR2032 coin cell. Without the cell and
+without power (for example while soldering) the time is lost: at the next
+boot the kernel logs `rtc-ds1307 1-0068: SET TIME!` and `hctosys: unable to
+read the hardware clock`, the system starts from the time systemd-timesyncd
+saved at the last shutdown, and the log carries that wrong time until NTP
+corrects it; from then on the kernel writes the right time back into the
+module. With the cell back, `sudo hwclock -r` shows whether the module holds
+the time.
 
 **Without a module**, with
 `set_system_clock = true` in `[navigation]` (the device drop-in sets it) and
