@@ -1777,6 +1777,33 @@ mod tests {
         );
     }
 
+    #[test]
+    fn an_announcement_plays_when_the_music_is_paused_or_stopped() {
+        for command in ["pause", "stop"] {
+            for music_under in [0.0, 0.3] {
+                let levels = Levels::new();
+                levels.player.execute(command, "").unwrap();
+                levels.player.set_announcement_levels(AnnouncementLevels {
+                    volume: 0.8,
+                    music_under,
+                });
+                levels.take();
+                assert!(
+                    levels
+                        .player
+                        .play_announcement("/run/a.wav", AnnouncementPriority::Maneuver)
+                        .unwrap(),
+                    "{command}, music level {music_under}: announcement started"
+                );
+                assert_eq!(
+                    levels.take(),
+                    [("/run/a.wav".to_string(), 0.8)],
+                    "{command}, music level {music_under}: announcement at its volume, track untouched"
+                );
+            }
+        }
+    }
+
     fn announce_at(levels: &Levels, music_under: f32) {
         levels.player.set_announcement_levels(AnnouncementLevels {
             volume: 1.0,
