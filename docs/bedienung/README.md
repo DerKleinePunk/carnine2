@@ -31,6 +31,8 @@ Die Kapitel 2 bis 6 folgen dem Seitenmenü von oben nach unten.
     Gerätenamen ändern, WLAN einrichten, Kartendaten installieren
 12. [Befehle auf dem Gerät](befehle.md) – alle Befehle, die das Image
     mitbringt, und was von selbst läuft
+13. [Lizenzen](lizenzen.md) – wo die Lizenztexte auf dem Gerät liegen und
+    wie man den Quellcode bekommt
 
 ## Die häufigsten Abläufe
 

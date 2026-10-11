@@ -30,6 +30,7 @@ pages=(
   image-schreiben.md
   nach-der-installation.md
   befehle.md
+  lizenzen.md
 )
 
 # A new page must be added above, or it would be missing from the PDF.
