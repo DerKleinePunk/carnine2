@@ -126,27 +126,27 @@ impl CpalAudioEngine {
     }
 }
 
-/// A configuration of `device` with exactly `channels`; see
-/// [`choose_output_config`].
+/// A configuration of `device` with exactly `channels`, at 48 kHz when the
+/// device takes it; see [`choose_output_config`]. 48 kHz is what the AC-3
+/// chain behind the multichannel output runs at: opened at the device's
+/// default 44.1 kHz instead, ALSA's plug converts the rate, reports the
+/// device ready before a whole period fits, and cpal's audio thread spins
+/// on it (about 40 % of a core on carnine-pc, 13.10.2026).
 fn output_config_with_channels(
     device: &cpal::Device,
     channels: u16,
 ) -> Result<cpal::SupportedStreamConfig> {
-    let preferred_rate = device
-        .default_output_config()
-        .map(|config| config.sample_rate().0)
-        .unwrap_or(48_000);
     let ranges: Vec<_> = device
         .supported_output_configs()
         .context("failed to list cpal output configurations")?
         .collect();
-    choose_output_config(&ranges, channels, preferred_rate)
+    choose_output_config(&ranges, channels, 48_000)
 }
 
 /// Picks from `ranges` one with exactly `channels` in a sample format the
 /// stream can write (f32, then i16, then u16 - ALSA's plug offers I8 and
-/// more first), at `preferred_rate` (the device's default) when the range
-/// holds it, else at 48 kHz (what an AC-3 encoder takes) or its highest rate.
+/// more first), at `preferred_rate` when the range holds it, else at 48 kHz
+/// or its highest rate.
 fn choose_output_config(
     ranges: &[cpal::SupportedStreamConfigRange],
     channels: u16,
