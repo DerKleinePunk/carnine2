@@ -15,6 +15,9 @@ class _FakeNavigationService extends pb.NavigationServiceBase {
   pb.NavigationStatus status = pb.NavigationStatus();
   String destinationName = 'Kunsthalle Montez';
   int replayRouteRequests = 0;
+
+  /// Thrown by the next fetches of the replay route while set.
+  GrpcError? replayError;
   final positions = StreamController<pb.PositionFix>.broadcast();
 
   /// A replay in round [lap]; the trade fair mode when [demo] is set.
@@ -38,6 +41,10 @@ class _FakeNavigationService extends pb.NavigationServiceBase {
     pb.GetReplayRouteRequest request,
   ) async {
     replayRouteRequests++;
+    final failure = replayError;
+    if (failure != null) {
+      throw failure;
+    }
     return pb.Route(
       distanceMeters: 1000,
       durationSeconds: 60,
@@ -113,7 +120,11 @@ void main() {
   late Server server;
   late MapsController controller;
 
+  /// The controller's clock, which the tests move on by hand.
+  var clock = DateTime(2026, 10, 13, 12);
+
   setUp(() async {
+    clock = DateTime(2026, 10, 13, 12);
     service = _FakeNavigationService();
     server = Server.create(services: [service]);
     await server.serve(address: InternetAddress.loopbackIPv4, port: 0);
@@ -129,6 +140,7 @@ void main() {
         ),
       ),
       statusInterval: const Duration(hours: 1),
+      now: () => clock,
     );
   });
 
@@ -283,6 +295,136 @@ void main() {
       await poll();
 
       expect(controller.map.route, isNotNull);
+    });
+  });
+
+  group('a replay route that cannot be fetched (#100)', () {
+    late List<String> lines;
+    late StreamSubscription<LogRecord> subscription;
+
+    setUp(() {
+      lines = [];
+      Logger.root.level = Level.ALL;
+      subscription = Logger.root.onRecord
+          .where(
+            (record) =>
+                record.message.startsWith('No replay route') ||
+                record.message.startsWith('Replay route loaded'),
+          )
+          .listen((record) => lines.add(record.message));
+    });
+
+    tearDown(() => subscription.cancel());
+
+    Future<void> after(Duration time) async {
+      clock = clock.add(time);
+      await poll();
+    }
+
+    test('it is not asked for at every status, only after a pause', () async {
+      service
+        ..replayError = GrpcError.notFound('no replay tour with positions')
+        ..replay(lap: 1);
+
+      await poll();
+      expect(service.replayRouteRequests, 1);
+
+      // The same second, and 2 s later: still within the first pause (3 s).
+      await poll();
+      await after(const Duration(seconds: 2));
+      expect(service.replayRouteRequests, 1);
+
+      await after(const Duration(seconds: 1));
+      expect(service.replayRouteRequests, 2);
+    });
+
+    test('the pauses grow: 3, 6, 15, 30, 60 s, and then stay at 60', () async {
+      service
+        ..replayError = GrpcError.notFound('no replay tour with positions')
+        ..replay(lap: 1);
+      await poll();
+      var requests = 1;
+
+      for (final pause in [3, 6, 15, 30, 60, 60]) {
+        await after(Duration(seconds: pause - 1));
+        expect(
+          service.replayRouteRequests,
+          requests,
+          reason: 'before $pause s',
+        );
+        await after(const Duration(seconds: 1));
+        requests++;
+        expect(service.replayRouteRequests, requests, reason: 'at $pause s');
+      }
+    });
+
+    test('the same reason is logged once, another one again', () async {
+      service
+        ..replayError = GrpcError.notFound('no replay tour with positions')
+        ..replay(lap: 1);
+      await poll();
+      await after(const Duration(seconds: 3));
+      await after(const Duration(seconds: 6));
+      expect(service.replayRouteRequests, 3);
+      expect(lines, hasLength(1), reason: lines.join(' | '));
+      expect(lines.single, contains('no replay tour with positions'));
+
+      service.replayError = GrpcError.notFound('valhalla has no route');
+      await after(const Duration(seconds: 15));
+
+      expect(lines, hasLength(2), reason: lines.join(' | '));
+      expect(lines.last, contains('valhalla has no route'));
+    });
+
+    test('when the route comes, it loads and a line says so', () async {
+      service
+        ..replayError = GrpcError.notFound('no replay tour with positions')
+        ..replay(lap: 1);
+      await poll();
+      expect(controller.map.route, isNull);
+
+      service.replayError = null;
+      await after(const Duration(seconds: 3));
+
+      expect(controller.map.route, isNotNull);
+      expect(lines.last, 'Replay route loaded');
+      // From now on a failure is news again.
+      controller.cancelRoute();
+      service
+        ..replayError = GrpcError.notFound('no replay tour with positions')
+        ..replay(lap: 2);
+      await poll();
+      expect(lines.last, contains('No replay route yet'));
+    });
+
+    test('a new round tries at once, however long the pause was', () async {
+      service
+        ..replayError = GrpcError.notFound('no replay tour with positions')
+        ..replay(lap: 1);
+      await poll();
+      await after(const Duration(seconds: 3));
+      await after(const Duration(seconds: 6));
+      final requests = service.replayRouteRequests;
+
+      service
+        ..replayError = null
+        ..replay(lap: 2);
+      await poll();
+
+      expect(service.replayRouteRequests, requests + 1);
+      expect(controller.map.route, isNotNull);
+    });
+
+    test('Abbrechen asks for nothing, failed or not', () async {
+      service
+        ..replayError = GrpcError.notFound('no replay tour with positions')
+        ..replay(lap: 1);
+      await poll();
+      controller.cancelRoute();
+
+      await after(const Duration(minutes: 5));
+
+      expect(service.replayRouteRequests, 1);
     });
   });
 

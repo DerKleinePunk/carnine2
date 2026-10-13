@@ -135,7 +135,8 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.settingsAppearanceSemantic: 'Weergave- en taalinstellingen openen',
   AppTextKey.settingsAppearanceTabTitle: 'Weergave',
   AppTextKey.settingsDevicesTitle: 'Apparaten',
-  AppTextKey.settingsDevicesSubtitle: 'Camera, audio-uitgang en telefoon-app',
+  AppTextKey.settingsDevicesSubtitle:
+      'Camera, audio-uitgang, telefoon-app en voeding',
   AppTextKey.settingsDevicesSemantic: 'Apparaatinstellingen openen',
   AppTextKey.settingsDevicesCameraTitle: 'Camera',
   AppTextKey.settingsDevicesCameraSubtitle:

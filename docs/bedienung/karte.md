@@ -168,4 +168,8 @@ nach dem Ende von vorn.
   siehe [Messe-Modus](verhalten.md#messe-modus)), steht er im Suchfeld wie ein
   gewähltes Ziel, mit **X** zum Löschen. Nach **ABBRECHEN** ist das Feld
   wieder leer. Eine selbst gewählte Route bleibt, wenn das Backend neu startet.
+- Fehlt die Tour oder liefert das Backend keine Route, fragt die Oberfläche in
+  wachsenden Pausen wieder nach (3, 6, 15, 30, danach alle 60 Sekunden) und
+  schreibt den Grund nur einmal ins Log. Mit einer neuen Runde oder einem
+  Neustart des Backends versucht sie es sofort wieder.
 - Erst ohne Route erscheint unten links der Standort (siehe oben).

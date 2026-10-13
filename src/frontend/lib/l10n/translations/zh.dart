@@ -124,7 +124,7 @@ const Map<AppTextKey, String> zhTranslations = <AppTextKey, String>{
   AppTextKey.settingsAppearanceSemantic: '打开外观和语言设置',
   AppTextKey.settingsAppearanceTabTitle: '外观',
   AppTextKey.settingsDevicesTitle: '设备',
-  AppTextKey.settingsDevicesSubtitle: '摄像头、音频输出和手机应用',
+  AppTextKey.settingsDevicesSubtitle: '摄像头、音频输出、手机应用和电源',
   AppTextKey.settingsDevicesSemantic: '打开设备设置',
   AppTextKey.settingsDevicesCameraTitle: '摄像头',
   AppTextKey.settingsDevicesCameraSubtitle: '设备、视频制式、输入和画面宽度',

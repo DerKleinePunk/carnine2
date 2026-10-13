@@ -1,3 +1,4 @@
+import 'package:carnine_frontend/features/controls/presentation/widgets/fitted_name.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:carnine_frontend/styles/colors.dart';
 import 'package:carnine_frontend/styles/text_styles.dart';
@@ -53,10 +54,8 @@ class ControlSliderCard extends StatelessWidget {
             const SizedBox(width: 14),
             SizedBox(
               width: 200,
-              child: Text(
-                name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              child: FittedName(
+                name: name,
                 style: AppTextStyles.headlineLarge.copyWith(
                   color: isAvailable
                       ? AppColors.onSurface

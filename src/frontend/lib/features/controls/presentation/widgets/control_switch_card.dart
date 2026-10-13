@@ -1,3 +1,4 @@
+import 'package:carnine_frontend/features/controls/presentation/widgets/fitted_name.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:carnine_frontend/styles/colors.dart';
 import 'package:carnine_frontend/styles/text_styles.dart';
@@ -81,10 +82,8 @@ class ControlSwitchCard extends StatelessWidget {
                     ],
                   ),
                   const Spacer(),
-                  Text(
-                    name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  FittedName(
+                    name: name,
                     style: AppTextStyles.headlineLarge.copyWith(
                       color: isAvailable
                           ? AppColors.onSurface

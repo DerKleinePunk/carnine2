@@ -135,7 +135,8 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.settingsAppearanceSemantic: 'Åbn udseende- og sprogindstillinger',
   AppTextKey.settingsAppearanceTabTitle: 'Udseende',
   AppTextKey.settingsDevicesTitle: 'Enheder',
-  AppTextKey.settingsDevicesSubtitle: 'Kamera, lydudgang og telefon-app',
+  AppTextKey.settingsDevicesSubtitle:
+      'Kamera, lydudgang, telefon-app og strømforsyning',
   AppTextKey.settingsDevicesSemantic: 'Åbn enhedsindstillinger',
   AppTextKey.settingsDevicesCameraTitle: 'Kamera',
   AppTextKey.settingsDevicesCameraSubtitle:

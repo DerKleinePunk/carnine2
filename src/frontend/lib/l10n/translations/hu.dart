@@ -141,7 +141,7 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.settingsAppearanceTabTitle: 'Megjelenés',
   AppTextKey.settingsDevicesTitle: 'Eszközök',
   AppTextKey.settingsDevicesSubtitle:
-      'Kamera, hangkimenet és telefonos alkalmazás',
+      'Kamera, hangkimenet, telefonos alkalmazás és tápegység',
   AppTextKey.settingsDevicesSemantic: 'Eszközbeállítások megnyitása',
   AppTextKey.settingsDevicesCameraTitle: 'Kamera',
   AppTextKey.settingsDevicesCameraSubtitle:

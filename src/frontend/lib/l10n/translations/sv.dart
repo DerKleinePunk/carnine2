@@ -135,7 +135,8 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
       'Öppna utseende- och språkinställningar',
   AppTextKey.settingsAppearanceTabTitle: 'Utseende',
   AppTextKey.settingsDevicesTitle: 'Enheter',
-  AppTextKey.settingsDevicesSubtitle: 'Kamera, ljudutgång och mobilapp',
+  AppTextKey.settingsDevicesSubtitle:
+      'Kamera, ljudutgång, mobilapp och strömförsörjning',
   AppTextKey.settingsDevicesSemantic: 'Öppna enhetsinställningar',
   AppTextKey.settingsDevicesCameraTitle: 'Kamera',
   AppTextKey.settingsDevicesCameraSubtitle:

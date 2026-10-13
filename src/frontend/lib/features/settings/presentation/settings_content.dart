@@ -936,7 +936,7 @@ class _LanguageGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final crossAxisCount = constraints.maxWidth < 620 ? 2 : 3;
-        final options = _sortedLanguageOptions(l10n);
+        final options = sortedLanguageOptions(l10n);
 
         return GridView.builder(
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -961,15 +961,6 @@ class _LanguageGrid extends StatelessWidget {
           },
         );
       },
-    );
-  }
-
-  List<AppLanguageOption> _sortedLanguageOptions(AppLocalizations l10n) {
-    return <AppLanguageOption>[...AppLanguageOptions.all]..sort(
-      (left, right) => l10n
-          .text(left.labelKey)
-          .toLowerCase()
-          .compareTo(l10n.text(right.labelKey).toLowerCase()),
     );
   }
 }

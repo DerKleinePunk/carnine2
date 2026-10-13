@@ -138,7 +138,7 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.settingsAppearanceTabTitle: 'Görünüm',
   AppTextKey.settingsDevicesTitle: 'Cihazlar',
   AppTextKey.settingsDevicesSubtitle:
-      'Kamera, ses çıkışı ve telefon uygulaması',
+      'Kamera, ses çıkışı, telefon uygulaması ve güç kaynağı',
   AppTextKey.settingsDevicesSemantic: 'Cihaz ayarlarını aç',
   AppTextKey.settingsDevicesCameraTitle: 'Kamera',
   AppTextKey.settingsDevicesCameraSubtitle:

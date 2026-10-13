@@ -1,4 +1,5 @@
 import 'package:carnine_frontend/l10n/app_localizations.dart';
+import 'package:carnine_frontend/l10n/collation.dart';
 import 'package:flutter/material.dart';
 
 /// Selectable frontend language with display metadata for the settings UI.
@@ -120,4 +121,17 @@ abstract final class AppLanguageOptions {
       orElse: () => all.first,
     );
   }
+}
+
+/// The languages in the order of their names in the display language: "Dänisch"
+/// before "Deutsch", not behind "Ungarisch" (#92).
+List<AppLanguageOption> sortedLanguageOptions(AppLocalizations l10n) {
+  return <AppLanguageOption>[...AppLanguageOptions.all]..sort((left, right) {
+    final leftName = l10n.text(left.labelKey);
+    final rightName = l10n.text(right.labelKey);
+    final byKey = collationKey(leftName).compareTo(collationKey(rightName));
+    return byKey != 0
+        ? byKey
+        : leftName.toLowerCase().compareTo(rightName.toLowerCase());
+  });
 }

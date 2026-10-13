@@ -139,7 +139,7 @@ const Map<AppTextKey, String> itTranslations = <AppTextKey, String>{
   AppTextKey.settingsAppearanceTabTitle: 'Aspetto',
   AppTextKey.settingsDevicesTitle: 'Dispositivi',
   AppTextKey.settingsDevicesSubtitle:
-      'Telecamera, uscita audio e app del telefono',
+      'Telecamera, uscita audio, app del telefono e alimentatore',
   AppTextKey.settingsDevicesSemantic: 'Apri impostazioni dispositivi',
   AppTextKey.settingsDevicesCameraTitle: 'Telecamera',
   AppTextKey.settingsDevicesCameraSubtitle:

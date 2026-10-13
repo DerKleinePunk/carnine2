@@ -127,7 +127,7 @@ const Map<AppTextKey, String> jaTranslations = <AppTextKey, String>{
   AppTextKey.settingsAppearanceSemantic: '表示と言語の設定を開く',
   AppTextKey.settingsAppearanceTabTitle: '表示',
   AppTextKey.settingsDevicesTitle: 'デバイス',
-  AppTextKey.settingsDevicesSubtitle: 'カメラ、音声出力、スマホアプリ',
+  AppTextKey.settingsDevicesSubtitle: 'カメラ、音声出力、スマホアプリ、電源',
   AppTextKey.settingsDevicesSemantic: 'デバイス設定を開く',
   AppTextKey.settingsDevicesCameraTitle: 'カメラ',
   AppTextKey.settingsDevicesCameraSubtitle: 'デバイス、ビデオ規格、入力、映像の幅',

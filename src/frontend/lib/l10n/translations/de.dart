@@ -139,7 +139,8 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.settingsAppearanceSemantic: 'Darstellung und Sprache öffnen',
   AppTextKey.settingsAppearanceTabTitle: 'Darstellung',
   AppTextKey.settingsDevicesTitle: 'Geräte',
-  AppTextKey.settingsDevicesSubtitle: 'Kamera, Ton-Ausgang und Handy-App',
+  AppTextKey.settingsDevicesSubtitle:
+      'Kamera, Audio-Ausgang, Handy-App und Netzteil',
   AppTextKey.settingsDevicesSemantic: 'Geräteeinstellungen öffnen',
   AppTextKey.settingsDevicesCameraTitle: 'Kamera',
   AppTextKey.settingsDevicesCameraSubtitle:

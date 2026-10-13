@@ -20,6 +20,9 @@ der Konfiguration des Backends ([Einrichten](#einrichten)).
   es mehr, lässt sich die Seite nach oben und unten wischen.
 - Die Namen stehen so da, wie man sie in der Konfiguration vergeben hat. Sie
   werden nicht übersetzt.
+  Lange Namen brechen nur zwischen Wörtern um, in höchstens zwei Zeilen. Ist ein
+  einzelnes Wort breiter als die Karte (z. B. „Zusatzscheinwerfer“), wird die
+  Schrift kleiner, bis es passt; erst unter 12 Punkt wird es abgeschnitten.
 
 ## Was die Karten anzeigen
 

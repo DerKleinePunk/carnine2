@@ -20,8 +20,11 @@ class MapsController extends ChangeNotifier {
     NavigationChannel? channel,
     LanguageTag? language,
     this.statusInterval = const Duration(seconds: 3),
+    this.replayRetryDelays = defaultReplayRetryDelays,
+    DateTime Function()? now,
     Logger? logger,
   }) : _channel = channel ?? NavigationChannel(),
+       _now = now ?? DateTime.now,
        _logger = logger ?? Logger('MapsController') {
     _language = language ?? () => 'de-DE';
     _routing = GrpcRoutingProvider(_channel, language: () => _language());
@@ -51,7 +54,21 @@ class MapsController extends ChangeNotifier {
       Platform.environment['CARNINE_MAP_TILES'] ??
       '/var/lib/carnine/maps/map.mbtiles';
 
+  /// How long to wait before fetching the replay route again after it failed:
+  /// the first pause, the second, ... the last one holds from then on (#100).
+  /// The status is asked every [statusInterval]; a pause shorter than that
+  /// means "at the next one".
+  static const List<Duration> defaultReplayRetryDelays = [
+    Duration(seconds: 3),
+    Duration(seconds: 6),
+    Duration(seconds: 15),
+    Duration(seconds: 30),
+    Duration(seconds: 60),
+  ];
+
   final Duration statusInterval;
+  final List<Duration> replayRetryDelays;
+  final DateTime Function() _now;
   final NavigationChannel _channel;
   final Logger _logger;
   late final LanguageTag _language;
@@ -82,6 +99,14 @@ class MapsController extends ChangeNotifier {
   bool _replayRouteShown = false;
   String? _replayDestinationName;
   int _loggedZoomStep = 0;
+
+  /// Fetching the replay route failed this often in a row; the next try waits
+  /// until [_replayRetryAt] (#100).
+  int _replayFailures = 0;
+  DateTime? _replayRetryAt;
+
+  /// The reason that was logged last, so a reason that stays is logged once.
+  String? _loggedReplayProblem;
   List<GeocoderResult> _results = const [];
   bool _searching = false;
   bool _queried = false;
@@ -199,6 +224,10 @@ class MapsController extends ChangeNotifier {
     final lap = status.replayLap;
     final previousLap = _seenLap;
     _seenLap = isReplay ? lap : null;
+    if (!isReplay || lap != previousLap) {
+      // A new round, a restart or another source: what failed may work now.
+      _resetReplayRetries();
+    }
     if (!isReplay) {
       _replayDismissed = false;
       _dismissedLap = null;
@@ -221,8 +250,38 @@ class MapsController extends ChangeNotifier {
     }
     _status = status;
     notifyListeners();
-    if (isReplay && map.route == null && !_replayDismissed) {
+    if (isReplay &&
+        map.route == null &&
+        !_replayDismissed &&
+        !_waitingToRetryReplayRoute) {
       unawaited(_loadReplayRoute());
+    }
+  }
+
+  bool get _waitingToRetryReplayRoute {
+    final retryAt = _replayRetryAt;
+    return retryAt != null && _now().isBefore(retryAt);
+  }
+
+  void _resetReplayRetries() {
+    _replayFailures = 0;
+    _replayRetryAt = null;
+  }
+
+  /// The route could not be fetched: wait longer each time, and say why only
+  /// when the reason is a new one. Every 3 s the same line filled the log.
+  void _replayRouteFailed(NavigationFailure failure) {
+    _replayFailures++;
+    final delays = replayRetryDelays;
+    final delay = delays[(_replayFailures - 1).clamp(0, delays.length - 1)];
+    _replayRetryAt = _now().add(delay);
+    final problem = '${failure.kind.name}: ${failure.message}';
+    if (problem != _loggedReplayProblem) {
+      _loggedReplayProblem = problem;
+      _logger.info(
+        'No replay route yet: $problem (trying again in '
+        '${delay.inSeconds} s, then less often)',
+      );
     }
   }
 
@@ -235,6 +294,11 @@ class MapsController extends ChangeNotifier {
       final replay = await _statusClient.replayRoute(_language());
       if (_disposed || map.route != null) return;
       map.setRoute(replay.route);
+      _resetReplayRetries();
+      if (_loggedReplayProblem != null) {
+        _loggedReplayProblem = null;
+        _logger.info('Replay route loaded');
+      }
       _replayRouteShown = true;
       _replayDestinationName = replay.destinationName.isEmpty
           ? null
@@ -243,7 +307,7 @@ class MapsController extends ChangeNotifier {
       map.headingUp = true;
       notifyListeners();
     } on NavigationFailure catch (failure) {
-      _logger.info('No replay route yet: ${failure.kind} ${failure.message}');
+      _replayRouteFailed(failure);
     } finally {
       _replayRouteLoading = false;
     }

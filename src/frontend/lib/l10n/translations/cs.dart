@@ -136,7 +136,7 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.settingsAppearanceTabTitle: 'Vzhled',
   AppTextKey.settingsDevicesTitle: 'Zařízení',
   AppTextKey.settingsDevicesSubtitle:
-      'Kamera, zvukový výstup a aplikace v telefonu',
+      'Kamera, zvukový výstup, aplikace v telefonu a zdroj',
   AppTextKey.settingsDevicesSemantic: 'Otevřít nastavení zařízení',
   AppTextKey.settingsDevicesCameraTitle: 'Kamera',
   AppTextKey.settingsDevicesCameraSubtitle:

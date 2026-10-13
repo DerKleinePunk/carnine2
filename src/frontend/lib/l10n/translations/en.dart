@@ -135,7 +135,8 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
       'Open appearance and language settings',
   AppTextKey.settingsAppearanceTabTitle: 'Appearance',
   AppTextKey.settingsDevicesTitle: 'Devices',
-  AppTextKey.settingsDevicesSubtitle: 'Camera, audio output and phone app',
+  AppTextKey.settingsDevicesSubtitle:
+      'Camera, audio output, phone app and power supply',
   AppTextKey.settingsDevicesSemantic: 'Open device settings',
   AppTextKey.settingsDevicesCameraTitle: 'Camera',
   AppTextKey.settingsDevicesCameraSubtitle:
