@@ -283,6 +283,18 @@ pub struct AudioConfig {
     /// announcements and the lowered music only in front.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub channels: Option<u16>,
+    /// Level of the rear speakers in percent of the front (0-100, 100 unless
+    /// given), for cars whose rear amplifier is much stronger. Set once at
+    /// installation; without rear speakers it does nothing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rear_percent: Option<u32>,
+}
+
+impl AudioConfig {
+    /// `rear_percent` as a gain, 1.0 unless given.
+    pub fn rear_level(&self) -> f32 {
+        self.rear_percent.unwrap_or(100) as f32 / 100.0
+    }
 }
 
 pub fn default_volume_state_path() -> PathBuf {
@@ -571,6 +583,9 @@ impl Config {
             if !matches!(channels, 2 | 4 | 6) {
                 anyhow::bail!("audio.channels must be 2, 4 or 6, not {channels}");
             }
+        }
+        if let Some(rear) = self.audio.rear_percent.filter(|rear| *rear > 100) {
+            anyhow::bail!("audio.rear_percent must be between 0 and 100, not {rear}");
         }
         if self.system.metrics_interval_seconds == 0
             || self.system.disk_metrics_interval_seconds == 0
@@ -1046,6 +1061,19 @@ mod tests {
                 "audio.channels = {channels}"
             );
         }
+        config.audio.channels = Some(4);
+        for (rear, valid) in [(0, true), (50, true), (100, true), (101, false)] {
+            config.audio.rear_percent = Some(rear);
+            assert_eq!(
+                config.validate().is_ok(),
+                valid,
+                "audio.rear_percent = {rear}"
+            );
+        }
+        config.audio.rear_percent = None;
+        assert_eq!(config.audio.rear_level(), 1.0);
+        config.audio.rear_percent = Some(30);
+        assert!((config.audio.rear_level() - 0.3).abs() < 1e-6);
 
         let (mut config, _) =
             Config::load_with_env(|_| None).expect("repository config should load");

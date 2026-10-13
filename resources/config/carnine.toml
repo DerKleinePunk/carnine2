@@ -37,6 +37,9 @@ volume_state_path = "/var/lib/carnine/audio-volume"
 # image variant audio_output hdmi-ac3: the music plays there at full level,
 # the announcements and the music lowered under them only in front.
 # channels = 4
+# The rear speakers' level in percent of the front, 100 unless given: for a
+# rear amplifier much stronger than the front one. Set once at installation.
+# rear_percent = 50
 
 [logging]
 directory = "/var/log/carnine"

@@ -580,9 +580,10 @@ impl MediaServiceImpl {
         resume_mode: String,
         cover_cache_dir: PathBuf,
         audio_channels: Option<u16>,
+        rear_level: f32,
     ) -> Result<Self> {
         let service = Self::from_player(
-            MediaPlayer::new(audio_channels),
+            MediaPlayer::new(audio_channels, rear_level),
             database_path,
             media_folders,
             supported_formats,
@@ -949,6 +950,7 @@ impl ConfigService for ConfigServiceImpl {
             updated.camera = current.camera.clone();
             updated.audio.volume_state_path = current.audio.volume_state_path.clone();
             updated.audio.channels = current.audio.channels;
+            updated.audio.rear_percent = current.audio.rear_percent;
             updated.system.cpu_temperature_warn_celsius =
                 current.system.cpu_temperature_warn_celsius;
             updated.system.cpu_temperature_clear_celsius =
@@ -1673,6 +1675,7 @@ fn configuration_from_proto(configuration: &Configuration) -> Result<config::Con
             // Not in the Configuration message either; carried over as well.
             volume_state_path: config::default_volume_state_path(),
             channels: None,
+            rear_percent: None,
         },
         logging: config::LoggingConfig {
             directory: PathBuf::from(&configuration.log_directory),
@@ -1938,6 +1941,7 @@ async fn main() -> Result<()> {
         configuration.media.resume_mode.clone(),
         configuration.media.cover_cache_dir.clone(),
         configuration.audio.channels,
+        configuration.audio.rear_level(),
     )?;
     let audio_volume = Arc::new(audio_volume::AudioVolume::new(
         configuration.audio.volume_state_path.clone(),
@@ -2224,6 +2228,7 @@ mod tests {
             audio: config::AudioConfig {
                 volume_state_path: PathBuf::from("/tmp/carnine-audio-volume"),
                 channels: None,
+                rear_percent: None,
             },
             logging: config::LoggingConfig {
                 directory: PathBuf::from("/tmp/carnine-logs"),

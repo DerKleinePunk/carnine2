@@ -26,7 +26,7 @@ fn main() -> Result<()> {
     let input_path = env::args()
         .nth(1)
         .context("usage: cpal_engine_adapter_spike <music-file>")?;
-    let engine = CpalAudioEngine::new(None)?;
+    let engine = CpalAudioEngine::new(None, 1.0)?;
     let playback = engine.start(&input_path)?;
     println!("cpal AudioEngine playback started");
     thread::sleep(Duration::from_secs(5));

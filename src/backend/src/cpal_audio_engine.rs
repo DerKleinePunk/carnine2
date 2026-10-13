@@ -77,7 +77,7 @@ pub struct CpalAudioEngine {
 impl CpalAudioEngine {
     /// Opens the default output device with `channels`, or with its own
     /// default configuration when none is given.
-    pub fn new(channels: Option<u16>) -> Result<Self> {
+    pub fn new(channels: Option<u16>, rear_level: f32) -> Result<Self> {
         let host = cpal::default_host();
         let device = host
             .default_output_device()
@@ -98,7 +98,10 @@ impl CpalAudioEngine {
             &device,
             &supported.config(),
             supported.sample_format(),
-            channels,
+            OutputLayout {
+                channels,
+                rear_level: rear_level.clamp(0.0, 1.0),
+            },
             mixer,
             command_receiver,
             stream_error_handler(Arc::clone(&fault), Arc::clone(&slot)),
@@ -361,24 +364,42 @@ impl Playback for CpalPlayback {
     }
 }
 
+/// How the mixed frames go out: the device's channel count, and the level of
+/// the rear speakers relative to the front (`[audio] rear_percent`).
+#[derive(Debug, Clone, Copy)]
+struct OutputLayout {
+    channels: usize,
+    rear_level: f32,
+}
+
+impl OutputLayout {
+    #[cfg(test)]
+    fn stereo() -> Self {
+        Self {
+            channels: CHANNELS,
+            rear_level: 1.0,
+        }
+    }
+}
+
 fn build_stream(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
     sample_format: cpal::SampleFormat,
-    channels: usize,
+    layout: OutputLayout,
     mixer: AudioMixer,
     command_receiver: Receiver<MixerCommand>,
     on_error: impl FnMut(cpal::StreamError) + Send + 'static,
 ) -> Result<cpal::Stream> {
     match sample_format {
         cpal::SampleFormat::F32 => {
-            build_typed_stream::<f32>(device, config, channels, mixer, command_receiver, on_error)
+            build_typed_stream::<f32>(device, config, layout, mixer, command_receiver, on_error)
         }
         cpal::SampleFormat::I16 => {
-            build_typed_stream::<i16>(device, config, channels, mixer, command_receiver, on_error)
+            build_typed_stream::<i16>(device, config, layout, mixer, command_receiver, on_error)
         }
         cpal::SampleFormat::U16 => {
-            build_typed_stream::<u16>(device, config, channels, mixer, command_receiver, on_error)
+            build_typed_stream::<u16>(device, config, layout, mixer, command_receiver, on_error)
         }
         format => anyhow::bail!("unsupported output sample format: {format:?}"),
     }
@@ -387,7 +408,7 @@ fn build_stream(
 fn build_typed_stream<T>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
-    channels: usize,
+    layout: OutputLayout,
     mut mixer: AudioMixer,
     command_receiver: Receiver<MixerCommand>,
     on_error: impl FnMut(cpal::StreamError) + Send + 'static,
@@ -398,7 +419,7 @@ where
     Ok(device.build_output_stream(
         config,
         move |output: &mut [T], _info| {
-            fill_output(output, channels, &mut mixer, &command_receiver);
+            fill_output(output, layout, &mut mixer, &command_receiver);
         },
         on_error,
         None,
@@ -410,7 +431,7 @@ where
 /// engine without a sound card (#2).
 fn fill_output<T>(
     output: &mut [T],
-    channels: usize,
+    layout: OutputLayout,
     mixer: &mut AudioMixer,
     command_receiver: &Receiver<MixerCommand>,
 ) where
@@ -419,12 +440,15 @@ fn fill_output<T>(
     for command in command_receiver.try_iter() {
         apply_command(mixer, command);
     }
+    let channels = layout.channels;
     if channels >= SURROUND_CHANNELS {
         // ALSA's order: front left/right, rear left/right, then centre and
         // LFE for 5.1, which stay silent.
         let mut mixed_frame = [0.0_f32; SURROUND_CHANNELS];
         for frame in output.chunks_mut(channels) {
             let _ = mixer.render_surround(&mut mixed_frame);
+            mixed_frame[2] *= layout.rear_level;
+            mixed_frame[3] *= layout.rear_level;
             for (index, channel) in frame.iter_mut().enumerate() {
                 *channel = T::from_sample(mixed_frame.get(index).copied().unwrap_or(0.0));
             }
@@ -499,7 +523,12 @@ pub(crate) fn engine_with_null_output(
                     Err(mpsc::TryRecvError::Empty) => {}
                     Err(mpsc::TryRecvError::Disconnected) => return,
                 }
-                fill_output(&mut output, CHANNELS, &mut mixer, &command_receiver);
+                fill_output(
+                    &mut output,
+                    OutputLayout::stereo(),
+                    &mut mixer,
+                    &command_receiver,
+                );
                 sink(&output);
                 thread::sleep(pace);
             }
@@ -519,7 +548,9 @@ mod tests {
     use std::sync::mpsc;
     use std::sync::{Arc, Mutex};
 
-    use super::{fill_output, stream_error_handler, CpalPlayback, MixerCommand, StreamFault};
+    use super::{
+        fill_output, stream_error_handler, CpalPlayback, MixerCommand, OutputLayout, StreamFault,
+    };
     use crate::audio_engine::Playback;
     use crate::audio_mixer::{AudioMixer, SourceId};
 
@@ -527,6 +558,10 @@ mod tests {
     /// back, plus one of an announcement (0.2, 0.2) only in front, put out
     /// with `channels`.
     fn fill_one_frame(channels: usize) -> Vec<f32> {
+        fill_one_frame_with_rear(channels, 1.0)
+    }
+
+    fn fill_one_frame_with_rear(channels: usize, rear_level: f32) -> Vec<f32> {
         let mut mixer = AudioMixer::new(1, 1);
         let music = mixer.add_source(vec![0.5, 0.25], 1.0).unwrap();
         let announcement = mixer.add_source(vec![0.2, 0.2], 1.0).unwrap();
@@ -534,7 +569,15 @@ mod tests {
         mixer.set_levels(announcement, 1.0, 0.0).unwrap();
         let (_sender, receiver) = mpsc::channel::<MixerCommand>();
         let mut output = vec![9.0_f32; channels];
-        fill_output(&mut output, channels, &mut mixer, &receiver);
+        fill_output(
+            &mut output,
+            OutputLayout {
+                channels,
+                rear_level,
+            },
+            &mut mixer,
+            &receiver,
+        );
         output
     }
 
@@ -627,6 +670,15 @@ mod tests {
     #[test]
     fn four_channels_carry_front_and_rear_in_alsa_order() {
         assert_close(&fill_one_frame(4), &[0.35, 0.275, 0.5, 0.25]);
+    }
+
+    #[test]
+    fn the_rear_level_lowers_only_the_rear_speakers() {
+        assert_close(
+            &fill_one_frame_with_rear(4, 0.3),
+            &[0.35, 0.275, 0.5 * 0.3, 0.25 * 0.3],
+        );
+        assert_close(&fill_one_frame_with_rear(2, 0.3), &[0.35, 0.275]);
     }
 
     #[test]
