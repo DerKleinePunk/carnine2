@@ -155,10 +155,12 @@ impl MediaPlayer {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let playback = self.engine.start(path)?;
-        playback.set_gain(levels.volume)?;
+        // Announcements only in front; rear speakers keep the music alone.
+        playback.set_levels(levels.volume, 0.0)?;
         *active = Some(ActiveAnnouncement { playback, priority });
         self.set_music_gain(levels.music_under);
-        if levels.music_under == 0.0 {
+        // With rear speakers the music goes on there, so the track runs.
+        if levels.music_under == 0.0 && !self.engine.has_rear_speakers() {
             self.hold_music();
         }
         Ok(true)
@@ -250,8 +252,8 @@ impl MediaPlayer {
         }
     }
 
-    /// Sets the music's gain, only while it plays: a paused track sits at 0
-    /// and must stay silent.
+    /// Sets the music's gain in front, only while it plays: a paused track
+    /// sits at 0 and must stay silent. Rear speakers keep the full level.
     fn set_music_gain(&self, gain: f32) {
         let playing = matches!(
             *self
@@ -269,7 +271,7 @@ impl MediaPlayer {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .as_ref()
         {
-            if let Err(error) = playback.set_gain(gain) {
+            if let Err(error) = playback.set_levels(gain, 1.0) {
                 tracing::warn!(%error, "setting the music level failed");
             }
         }
@@ -314,11 +316,12 @@ impl MediaPlayer {
     }
 
     /// Builds the sole production player, backed by `cpal`. `cpal` opens
-    /// the default output device eagerly; without one the player still
-    /// comes up and retries on the next start (#55).
-    pub fn new() -> Self {
-        Self::with_state(Box::new(RetryingAudioEngine::new(Box::new(|| {
-            Ok(Box::new(CpalAudioEngine::new()?) as Box<dyn AudioEngine>)
+    /// the default output device eagerly, with `channels` (`[audio]
+    /// channels`) or the device's own default; without a device the player
+    /// still comes up and retries on the next start (#55).
+    pub fn new(channels: Option<u16>) -> Self {
+        Self::with_state(Box::new(RetryingAudioEngine::new(Box::new(move || {
+            Ok(Box::new(CpalAudioEngine::new(channels)?) as Box<dyn AudioEngine>)
         }))))
     }
 
@@ -1571,6 +1574,7 @@ mod tests {
         path: String,
         finished: Arc<AtomicBool>,
         gains: Arc<Mutex<Vec<(String, f32)>>>,
+        speaker_levels: Arc<Mutex<Vec<(String, f32, f32)>>>,
     }
 
     impl Playback for LevelPlayback {
@@ -1586,6 +1590,13 @@ mod tests {
             self.gains.lock().unwrap().push((self.path.clone(), gain));
             Ok(())
         }
+        fn set_levels(&self, front: f32, rear: f32) -> Result<()> {
+            self.speaker_levels
+                .lock()
+                .unwrap()
+                .push((self.path.clone(), front, rear));
+            self.set_gain(front)
+        }
         fn stop(self: Box<Self>) -> Result<()> {
             self.gains.lock().unwrap().push((self.path.clone(), -1.0));
             Ok(())
@@ -1600,6 +1611,8 @@ mod tests {
     struct LevelEngine {
         finished: Arc<Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
         gains: Arc<Mutex<Vec<(String, f32)>>>,
+        speaker_levels: Arc<Mutex<Vec<(String, f32, f32)>>>,
+        rear_speakers: bool,
     }
 
     impl AudioEngine for LevelEngine {
@@ -1613,7 +1626,12 @@ mod tests {
                 path: input_path.to_string(),
                 finished,
                 gains: Arc::clone(&self.gains),
+                speaker_levels: Arc::clone(&self.speaker_levels),
             }))
+        }
+
+        fn has_rear_speakers(&self) -> bool {
+            self.rear_speakers
         }
     }
 
@@ -1621,14 +1639,27 @@ mod tests {
         player: MediaPlayer,
         finished: Arc<Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
         gains: Arc<Mutex<Vec<(String, f32)>>>,
+        speaker_levels: Arc<Mutex<Vec<(String, f32, f32)>>>,
         track: String,
     }
 
     impl Levels {
         fn new() -> Self {
-            let engine = LevelEngine::default();
+            Self::with_engine(LevelEngine::default())
+        }
+
+        /// An output with rear speakers (`[audio] channels = 4`).
+        fn with_rear_speakers() -> Self {
+            Self::with_engine(LevelEngine {
+                rear_speakers: true,
+                ..LevelEngine::default()
+            })
+        }
+
+        fn with_engine(engine: LevelEngine) -> Self {
             let finished = Arc::clone(&engine.finished);
             let gains = Arc::clone(&engine.gains);
+            let speaker_levels = Arc::clone(&engine.speaker_levels);
             let player = MediaPlayer::with_engine(Box::new(engine));
             let track = std::env::temp_dir()
                 .join(format!(
@@ -1644,8 +1675,14 @@ mod tests {
                 player,
                 finished,
                 gains,
+                speaker_levels,
                 track,
             }
+        }
+
+        /// Front and rear levels set since the last call, as (path, front, rear).
+        fn take_speaker_levels(&self) -> Vec<(String, f32, f32)> {
+            std::mem::take(&mut *self.speaker_levels.lock().unwrap())
         }
 
         fn finish(&self, path: &str) {
@@ -1842,6 +1879,47 @@ mod tests {
             Some(&(levels.track.clone(), 1.0)),
             "and is heard again"
         );
+    }
+
+    #[test]
+    fn with_rear_speakers_an_announcement_is_heard_in_front_and_the_music_stays_full_behind() {
+        let levels = Levels::with_rear_speakers();
+        levels.player.set_announcement_levels(AnnouncementLevels {
+            volume: 0.8,
+            music_under: 0.25,
+        });
+        levels.take_speaker_levels();
+
+        levels
+            .player
+            .play_announcement("/run/a.wav", AnnouncementPriority::Maneuver)
+            .unwrap();
+        assert_eq!(
+            levels.take_speaker_levels(),
+            [
+                ("/run/a.wav".to_string(), 0.8, 0.0),
+                (levels.track.clone(), 0.25, 1.0)
+            ]
+        );
+
+        end_announcement(&levels);
+        assert_eq!(
+            levels.take_speaker_levels(),
+            [(levels.track.clone(), 1.0, 1.0)]
+        );
+    }
+
+    #[test]
+    fn with_rear_speakers_the_track_plays_on_at_music_level_0() {
+        let levels = Levels::with_rear_speakers();
+        announce_at(&levels, 0.0);
+        let before = levels.player.position_ms();
+        std::thread::sleep(std::time::Duration::from_millis(150));
+        assert!(
+            levels.player.position_ms() >= before + 140,
+            "the rear speakers still play it, so its clock runs"
+        );
+        end_announcement(&levels);
     }
 
     #[test]

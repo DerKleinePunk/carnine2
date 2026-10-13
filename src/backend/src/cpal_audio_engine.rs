@@ -9,7 +9,7 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use tracing::{error, info, warn};
 
 use crate::audio_engine::{AudioEngine, Playback};
-use crate::audio_mixer::{AudioMixer, SourceId, CHANNELS};
+use crate::audio_mixer::{AudioMixer, SourceId, CHANNELS, SURROUND_CHANNELS};
 use crate::audio_source::ExternalPcmSource;
 
 const FADE_MILLISECONDS: u32 = 250;
@@ -22,9 +22,10 @@ enum MixerCommand {
         reply: mpsc::SyncSender<Result<SourceId>>,
         cancelled: Arc<AtomicBool>,
     },
-    SetGain {
+    SetLevels {
         source_id: SourceId,
-        gain: f32,
+        front: f32,
+        rear: f32,
     },
     Remove {
         source_id: SourceId,
@@ -70,17 +71,23 @@ pub struct CpalAudioEngine {
     stream: StreamSlot,
     fault: Arc<StreamFault>,
     sample_rate: u32,
+    rear_speakers: bool,
 }
 
 impl CpalAudioEngine {
-    pub fn new() -> Result<Self> {
+    /// Opens the default output device with `channels`, or with its own
+    /// default configuration when none is given.
+    pub fn new(channels: Option<u16>) -> Result<Self> {
         let host = cpal::default_host();
         let device = host
             .default_output_device()
             .context("no default cpal output device")?;
-        let supported = device
-            .default_output_config()
-            .context("failed to read cpal output configuration")?;
+        let supported = match channels {
+            None => device
+                .default_output_config()
+                .context("failed to read cpal output configuration")?,
+            Some(wanted) => output_config_with_channels(&device, wanted)?,
+        };
         let sample_rate = supported.sample_rate().0;
         let channels = supported.channels() as usize;
         let (command_sender, command_receiver) = mpsc::channel();
@@ -111,8 +118,59 @@ impl CpalAudioEngine {
             stream: slot,
             fault,
             sample_rate,
+            rear_speakers: channels >= SURROUND_CHANNELS,
         })
     }
+}
+
+/// A configuration of `device` with exactly `channels`; see
+/// [`choose_output_config`].
+fn output_config_with_channels(
+    device: &cpal::Device,
+    channels: u16,
+) -> Result<cpal::SupportedStreamConfig> {
+    let preferred_rate = device
+        .default_output_config()
+        .map(|config| config.sample_rate().0)
+        .unwrap_or(48_000);
+    let ranges: Vec<_> = device
+        .supported_output_configs()
+        .context("failed to list cpal output configurations")?
+        .collect();
+    choose_output_config(&ranges, channels, preferred_rate)
+}
+
+/// Picks from `ranges` one with exactly `channels` in a sample format the
+/// stream can write (f32, then i16, then u16 - ALSA's plug offers I8 and
+/// more first), at `preferred_rate` (the device's default) when the range
+/// holds it, else at 48 kHz (what an AC-3 encoder takes) or its highest rate.
+fn choose_output_config(
+    ranges: &[cpal::SupportedStreamConfigRange],
+    channels: u16,
+    preferred_rate: u32,
+) -> Result<cpal::SupportedStreamConfig> {
+    let holds = |range: &cpal::SupportedStreamConfigRange, rate: u32| {
+        (range.min_sample_rate().0..=range.max_sample_rate().0).contains(&rate)
+    };
+    for format in [
+        cpal::SampleFormat::F32,
+        cpal::SampleFormat::I16,
+        cpal::SampleFormat::U16,
+    ] {
+        let usable: Vec<_> = ranges
+            .iter()
+            .filter(|range| range.channels() == channels && range.sample_format() == format)
+            .collect();
+        for rate in [preferred_rate, 48_000] {
+            if let Some(range) = usable.iter().find(|range| holds(range, rate)) {
+                return Ok(range.with_sample_rate(cpal::SampleRate(rate)));
+            }
+        }
+        if let Some(range) = usable.first() {
+            return Ok(range.with_max_sample_rate());
+        }
+    }
+    anyhow::bail!("the output device offers no usable configuration with {channels} channels")
 }
 
 /// The cpal error callback: logs the first error, then drops the stream on
@@ -209,6 +267,10 @@ impl AudioEngine for CpalAudioEngine {
     fn output_available(&self) -> bool {
         !self.fault.is_broken()
     }
+
+    fn has_rear_speakers(&self) -> bool {
+        self.rear_speakers
+    }
 }
 
 #[derive(Debug)]
@@ -222,9 +284,10 @@ impl Playback for CpalPlayback {
     fn pause(&self) -> Result<()> {
         info!(source_id = ?self.source_id, "cpal audio source pause requested");
         self.command_sender
-            .send(MixerCommand::SetGain {
+            .send(MixerCommand::SetLevels {
                 source_id: self.source_id,
-                gain: 0.0,
+                front: 0.0,
+                rear: 0.0,
             })
             .map_err(|_| anyhow::anyhow!("cpal mixer thread is not available"))?;
         Ok(())
@@ -233,19 +296,25 @@ impl Playback for CpalPlayback {
     fn resume(&self) -> Result<()> {
         info!(source_id = ?self.source_id, "cpal audio source resume requested");
         self.command_sender
-            .send(MixerCommand::SetGain {
+            .send(MixerCommand::SetLevels {
                 source_id: self.source_id,
-                gain: 1.0,
+                front: 1.0,
+                rear: 1.0,
             })
             .map_err(|_| anyhow::anyhow!("cpal mixer thread is not available"))?;
         Ok(())
     }
 
     fn set_gain(&self, gain: f32) -> Result<()> {
+        self.set_levels(gain, gain)
+    }
+
+    fn set_levels(&self, front: f32, rear: f32) -> Result<()> {
         self.command_sender
-            .send(MixerCommand::SetGain {
+            .send(MixerCommand::SetLevels {
                 source_id: self.source_id,
-                gain: gain.clamp(0.0, 1.0),
+                front: front.clamp(0.0, 1.0),
+                rear: rear.clamp(0.0, 1.0),
             })
             .map_err(|_| anyhow::anyhow!("cpal mixer thread is not available"))?;
         Ok(())
@@ -258,9 +327,10 @@ impl Playback for CpalPlayback {
         // every later start would fail on stopping this playback first.
         let mixer_alive = self
             .command_sender
-            .send(MixerCommand::SetGain {
+            .send(MixerCommand::SetLevels {
                 source_id: self.source_id,
-                gain: 0.0,
+                front: 0.0,
+                rear: 0.0,
             })
             .is_ok();
         if mixer_alive {
@@ -349,6 +419,18 @@ fn fill_output<T>(
     for command in command_receiver.try_iter() {
         apply_command(mixer, command);
     }
+    if channels >= SURROUND_CHANNELS {
+        // ALSA's order: front left/right, rear left/right, then centre and
+        // LFE for 5.1, which stay silent.
+        let mut mixed_frame = [0.0_f32; SURROUND_CHANNELS];
+        for frame in output.chunks_mut(channels) {
+            let _ = mixer.render_surround(&mut mixed_frame);
+            for (index, channel) in frame.iter_mut().enumerate() {
+                *channel = T::from_sample(mixed_frame.get(index).copied().unwrap_or(0.0));
+            }
+        }
+        return;
+    }
     let mut mixed_frame = [0.0_f32; CHANNELS];
     for frame in output.chunks_mut(channels) {
         let _ = mixer.render(&mut mixed_frame);
@@ -380,8 +462,12 @@ fn apply_command(mixer: &mut AudioMixer, command: MixerCommand) {
             };
             let _ = reply.send(result);
         }
-        MixerCommand::SetGain { source_id, gain } => {
-            let _ = mixer.set_gain(source_id, gain);
+        MixerCommand::SetLevels {
+            source_id,
+            front,
+            rear,
+        } => {
+            let _ = mixer.set_levels(source_id, front, rear);
         }
         MixerCommand::Remove { source_id } => {
             let _ = mixer.remove_source(source_id);
@@ -424,6 +510,7 @@ pub(crate) fn engine_with_null_output(
         stream: Arc::new(Mutex::new(None)),
         fault: Arc::new(StreamFault::default()),
         sample_rate,
+        rear_speakers: false,
     }
 }
 
@@ -432,9 +519,120 @@ mod tests {
     use std::sync::mpsc;
     use std::sync::{Arc, Mutex};
 
-    use super::{stream_error_handler, CpalPlayback, StreamFault};
+    use super::{fill_output, stream_error_handler, CpalPlayback, MixerCommand, StreamFault};
     use crate::audio_engine::Playback;
-    use crate::audio_mixer::SourceId;
+    use crate::audio_mixer::{AudioMixer, SourceId};
+
+    /// One stereo frame (0.5, 0.25) of music at 0.3 in front and full at the
+    /// back, plus one of an announcement (0.2, 0.2) only in front, put out
+    /// with `channels`.
+    fn fill_one_frame(channels: usize) -> Vec<f32> {
+        let mut mixer = AudioMixer::new(1, 1);
+        let music = mixer.add_source(vec![0.5, 0.25], 1.0).unwrap();
+        let announcement = mixer.add_source(vec![0.2, 0.2], 1.0).unwrap();
+        mixer.set_levels(music, 0.3, 1.0).unwrap();
+        mixer.set_levels(announcement, 1.0, 0.0).unwrap();
+        let (_sender, receiver) = mpsc::channel::<MixerCommand>();
+        let mut output = vec![9.0_f32; channels];
+        fill_output(&mut output, channels, &mut mixer, &receiver);
+        output
+    }
+
+    fn assert_close(actual: &[f32], expected: &[f32]) {
+        assert_eq!(actual.len(), expected.len(), "{actual:?}");
+        assert!(
+            actual
+                .iter()
+                .zip(expected)
+                .all(|(a, e)| (a - e).abs() < 0.0001),
+            "{actual:?} != {expected:?}"
+        );
+    }
+
+    fn range(
+        channels: u16,
+        min: u32,
+        max: u32,
+        format: cpal::SampleFormat,
+    ) -> cpal::SupportedStreamConfigRange {
+        cpal::SupportedStreamConfigRange::new(
+            channels,
+            cpal::SampleRate(min),
+            cpal::SampleRate(max),
+            cpal::SupportedBufferSize::Unknown,
+            format,
+        )
+    }
+
+    #[test]
+    fn the_output_config_has_the_channels_in_a_format_the_stream_writes() {
+        use cpal::SampleFormat::{F32, I16, I8, U16};
+        // What ALSA's plug offers: every format, I8 first.
+        let ranges = [
+            range(2, 4_000, 192_000, I8),
+            range(4, 4_000, 192_000, I8),
+            range(2, 4_000, 192_000, I16),
+            range(4, 4_000, 192_000, U16),
+            range(4, 4_000, 192_000, I16),
+        ];
+
+        let chosen = super::choose_output_config(&ranges, 4, 44_100).unwrap();
+
+        assert_eq!(chosen.channels(), 4);
+        assert_eq!(chosen.sample_format(), I16, "i16 before u16, I8 never");
+        assert_eq!(chosen.sample_rate().0, 44_100, "the device's default rate");
+
+        let with_f32 = [range(4, 4_000, 192_000, I16), range(4, 4_000, 192_000, F32)];
+        assert_eq!(
+            super::choose_output_config(&with_f32, 4, 48_000)
+                .unwrap()
+                .sample_format(),
+            F32
+        );
+    }
+
+    #[test]
+    fn the_output_config_falls_back_to_48_khz_then_the_highest_rate() {
+        use cpal::SampleFormat::I16;
+        let only_48k = [range(4, 48_000, 48_000, I16)];
+        assert_eq!(
+            super::choose_output_config(&only_48k, 4, 44_100)
+                .unwrap()
+                .sample_rate()
+                .0,
+            48_000
+        );
+        let only_96k = [range(4, 96_000, 96_000, I16)];
+        assert_eq!(
+            super::choose_output_config(&only_96k, 4, 44_100)
+                .unwrap()
+                .sample_rate()
+                .0,
+            96_000
+        );
+    }
+
+    #[test]
+    fn without_the_channels_in_a_usable_format_there_is_no_output_config() {
+        use cpal::SampleFormat::{I16, I8};
+        let ranges = [range(2, 4_000, 192_000, I16), range(4, 4_000, 192_000, I8)];
+        assert!(super::choose_output_config(&ranges, 4, 48_000).is_err());
+    }
+
+    #[test]
+    fn stereo_output_carries_the_front_mix() {
+        assert_close(&fill_one_frame(2), &[0.15 + 0.2, 0.075 + 0.2]);
+    }
+
+    #[test]
+    fn four_channels_carry_front_and_rear_in_alsa_order() {
+        assert_close(&fill_one_frame(4), &[0.35, 0.275, 0.5, 0.25]);
+    }
+
+    #[test]
+    fn five_one_leaves_centre_and_lfe_silent() {
+        assert_close(&fill_one_frame(6), &[0.35, 0.275, 0.5, 0.25, 0.0, 0.0]);
+    }
 
     #[test]
     fn only_the_first_stream_error_counts_as_new() {

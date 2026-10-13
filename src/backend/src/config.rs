@@ -277,6 +277,12 @@ pub struct AudioConfig {
     /// before it existed keep the path that used to be fixed in the code.
     #[serde(default = "default_volume_state_path")]
     pub volume_state_path: PathBuf,
+    /// Channels the output is opened with; without it the device's own
+    /// default (stereo). 4 or 6 feed rear speakers, e.g. through an AC-3
+    /// encoder to a 5.1 decoder: the music plays there at its full level,
+    /// announcements and the lowered music only in front.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub channels: Option<u16>,
 }
 
 pub fn default_volume_state_path() -> PathBuf {
@@ -561,6 +567,11 @@ impl Config {
             anyhow::bail!("invalid log level: {}", self.logging.level);
         }
         self.server.socket_permissions()?;
+        if let Some(channels) = self.audio.channels {
+            if !matches!(channels, 2 | 4 | 6) {
+                anyhow::bail!("audio.channels must be 2, 4 or 6, not {channels}");
+            }
+        }
         if self.system.metrics_interval_seconds == 0
             || self.system.disk_metrics_interval_seconds == 0
             || self.system.warm_metrics_interval_seconds == 0
@@ -1017,6 +1028,24 @@ mod tests {
             Config::load_with_env(|_| None).expect("repository config should load");
         config.audio.volume_state_path = std::path::PathBuf::new();
         assert!(config.validate().is_err());
+
+        let (mut config, _) =
+            Config::load_with_env(|_| None).expect("repository config should load");
+        for (channels, valid) in [
+            (1, false),
+            (2, true),
+            (3, false),
+            (4, true),
+            (6, true),
+            (8, false),
+        ] {
+            config.audio.channels = Some(channels);
+            assert_eq!(
+                config.validate().is_ok(),
+                valid,
+                "audio.channels = {channels}"
+            );
+        }
 
         let (mut config, _) =
             Config::load_with_env(|_| None).expect("repository config should load");

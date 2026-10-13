@@ -2,6 +2,9 @@ use anyhow::{bail, Result};
 use ringbuf::{traits::Consumer, HeapCons};
 
 pub const CHANNELS: usize = 2;
+/// Front left/right plus rear left/right, what [`AudioMixer::render_surround`]
+/// writes per frame.
+pub const SURROUND_CHANNELS: usize = 4;
 const MAX_SOURCES: usize = 8;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -21,7 +24,34 @@ struct AudioSource {
     gain: f32,
     target_gain: f32,
     gain_step: f32,
+    /// Level on the rear speakers. Only [`AudioMixer::render_surround`]
+    /// plays it; it fades together with `gain`.
+    rear_gain: f32,
+    rear_target_gain: f32,
+    rear_gain_step: f32,
     fade_frames_remaining: usize,
+}
+
+impl AudioSource {
+    fn new(samples: Option<Vec<f32>>, consumer: Option<HeapCons<f32>>, gain: f32) -> Self {
+        Self {
+            samples,
+            consumer,
+            position: 0,
+            gain,
+            target_gain: gain,
+            gain_step: 0.0,
+            rear_gain: gain,
+            rear_target_gain: gain,
+            rear_gain_step: 0.0,
+            fade_frames_remaining: 0,
+        }
+    }
+
+    /// Silent and not mid-fade on every speaker that is rendered.
+    fn is_muted(&self, with_rear: bool) -> bool {
+        self.fade_frames_remaining == 0 && self.gain == 0.0 && (!with_rear || self.rear_gain == 0.0)
+    }
 }
 
 pub struct AudioMixer {
@@ -54,15 +84,7 @@ impl AudioMixer {
             .iter()
             .position(Option::is_none)
             .ok_or_else(|| anyhow::anyhow!("audio mixer source limit reached"))?;
-        self.sources[slot] = Some(AudioSource {
-            samples: Some(samples),
-            consumer: None,
-            position: 0,
-            gain,
-            target_gain: gain,
-            gain_step: 0.0,
-            fade_frames_remaining: 0,
-        });
+        self.sources[slot] = Some(AudioSource::new(Some(samples), None, gain));
         Ok(SourceId(slot))
     }
 
@@ -75,27 +97,31 @@ impl AudioMixer {
             .iter()
             .position(Option::is_none)
             .ok_or_else(|| anyhow::anyhow!("audio mixer source limit reached"))?;
-        self.sources[slot] = Some(AudioSource {
-            samples: None,
-            consumer: Some(consumer),
-            position: 0,
-            gain,
-            target_gain: gain,
-            gain_step: 0.0,
-            fade_frames_remaining: 0,
-        });
+        self.sources[slot] = Some(AudioSource::new(None, Some(consumer), gain));
         Ok(SourceId(slot))
     }
 
+    /// Fades a source to `target_gain` on every speaker. Production goes
+    /// through `set_levels`; the tests and the mixer spikes use this.
+    #[allow(dead_code)]
     pub fn set_gain(&mut self, source_id: SourceId, target_gain: f32) -> Result<()> {
-        if !(0.0..=1.0).contains(&target_gain) {
+        self.set_levels(source_id, target_gain, target_gain)
+    }
+
+    /// Fades a source to `front` on the front speakers and to `rear` on the
+    /// rear ones: the music under an announcement only goes down in front,
+    /// an announcement is not heard in the back.
+    pub fn set_levels(&mut self, source_id: SourceId, front: f32, rear: f32) -> Result<()> {
+        if !(0.0..=1.0).contains(&front) || !(0.0..=1.0).contains(&rear) {
             bail!("audio source gain must be between 0 and 1");
         }
         let fade_frames = self.fade_frames;
         let source = self.source_mut(source_id)?;
-        source.target_gain = target_gain;
+        source.target_gain = front;
+        source.rear_target_gain = rear;
         source.fade_frames_remaining = fade_frames;
-        source.gain_step = (target_gain - source.gain) / fade_frames as f32;
+        source.gain_step = (front - source.gain) / fade_frames as f32;
+        source.rear_gain_step = (rear - source.rear_gain) / fade_frames as f32;
         Ok(())
     }
 
@@ -105,18 +131,34 @@ impl AudioMixer {
         Ok(())
     }
 
+    /// Renders stereo frames: what the front speakers play.
     pub fn render(&mut self, output: &mut [f32]) -> Result<()> {
         if !output.len().is_multiple_of(CHANNELS) {
             bail!("output must contain complete stereo frames");
         }
+        self.render_frames(output, CHANNELS);
+        Ok(())
+    }
+
+    /// Renders frames of front left, front right, rear left, rear right.
+    pub fn render_surround(&mut self, output: &mut [f32]) -> Result<()> {
+        if !output.len().is_multiple_of(SURROUND_CHANNELS) {
+            bail!("output must contain complete four-channel frames");
+        }
+        self.render_frames(output, SURROUND_CHANNELS);
+        Ok(())
+    }
+
+    fn render_frames(&mut self, output: &mut [f32], width: usize) {
+        let with_rear = width == SURROUND_CHANNELS;
         output.fill(0.0);
-        for frame in output.as_chunks_mut::<CHANNELS>().0 {
+        for frame in output.chunks_exact_mut(width) {
             for source in &mut self.sources {
                 let Some(source) = source else {
                     continue;
                 };
                 advance_gain(source);
-                if source.gain == 0.0 && source.fade_frames_remaining == 0 {
+                if source.is_muted(with_rear) {
                     // Fully muted and not mid-fade (e.g. paused): stop pulling
                     // samples so a stream source's decoder sees real
                     // backpressure instead of having its ring buffer drained
@@ -139,9 +181,14 @@ impl AudioMixer {
                 };
                 frame[0] += left * source.gain;
                 frame[1] += right * source.gain;
+                if with_rear {
+                    frame[2] += left * source.rear_gain;
+                    frame[3] += right * source.rear_gain;
+                }
             }
-            frame[0] = frame[0].clamp(-1.0, 1.0);
-            frame[1] = frame[1].clamp(-1.0, 1.0);
+            for sample in frame.iter_mut() {
+                *sample = sample.clamp(-1.0, 1.0);
+            }
         }
         for source in &mut self.sources {
             if source.as_ref().is_some_and(|source| {
@@ -153,7 +200,6 @@ impl AudioMixer {
                 *source = None;
             }
         }
-        Ok(())
     }
 
     fn source_mut(&mut self, source_id: SourceId) -> Result<&mut AudioSource> {
@@ -169,15 +215,17 @@ fn advance_gain(source: &mut AudioSource) {
         return;
     }
     source.gain += source.gain_step;
+    source.rear_gain += source.rear_gain_step;
     source.fade_frames_remaining -= 1;
     if source.fade_frames_remaining == 0 {
         source.gain = source.target_gain;
+        source.rear_gain = source.rear_target_gain;
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{AudioMixer, CHANNELS};
+    use super::{AudioMixer, CHANNELS, SURROUND_CHANNELS};
 
     #[test]
     fn mixes_two_stereo_sources() {
@@ -275,5 +323,127 @@ mod tests {
             occupied_once_muted,
             "a fully muted source must stop draining its ring buffer, not just its audible output"
         );
+    }
+
+    #[test]
+    fn surround_plays_a_source_on_front_and_rear_alike() {
+        let mut mixer = AudioMixer::new(100, 100);
+        mixer.add_source(vec![0.25, 0.5], 1.0).unwrap();
+        let mut output = [0.0; SURROUND_CHANNELS];
+
+        mixer.render_surround(&mut output).unwrap();
+
+        assert_eq!(output, [0.25, 0.5, 0.25, 0.5]);
+    }
+
+    #[test]
+    fn music_under_an_announcement_goes_down_in_front_only() {
+        // fade_frames = 1: the levels are reached within the first frame.
+        let mut mixer = AudioMixer::new(1, 1);
+        let music = mixer.add_source(vec![0.5; 4], 1.0).unwrap();
+        let announcement = mixer.add_source(vec![0.25; 4], 1.0).unwrap();
+        mixer.set_levels(music, 0.3, 1.0).unwrap();
+        mixer.set_levels(announcement, 1.0, 0.0).unwrap();
+        let mut output = [0.0; SURROUND_CHANNELS];
+
+        mixer.render_surround(&mut output).unwrap();
+
+        let front = 0.5 * 0.3 + 0.25;
+        let expected = [front, front, 0.5, 0.5];
+        assert!(
+            output
+                .iter()
+                .zip(expected)
+                .all(|(actual, expected)| (actual - expected).abs() < 0.0001),
+            "{output:?}"
+        );
+    }
+
+    #[test]
+    fn stereo_plays_the_front_levels() {
+        let mut mixer = AudioMixer::new(1, 1);
+        let music = mixer.add_source(vec![0.5; 4], 1.0).unwrap();
+        let announcement = mixer.add_source(vec![0.25; 4], 1.0).unwrap();
+        mixer.set_levels(music, 0.3, 1.0).unwrap();
+        mixer.set_levels(announcement, 1.0, 0.0).unwrap();
+        let mut output = [0.0; CHANNELS];
+
+        mixer.render(&mut output).unwrap();
+
+        let front = 0.5 * 0.3 + 0.25;
+        assert!(
+            output.iter().all(|actual| (actual - front).abs() < 0.0001),
+            "{output:?}"
+        );
+    }
+
+    #[test]
+    fn rear_fades_together_with_front() {
+        let mut mixer = AudioMixer::new(100, 100);
+        let source_id = mixer.add_source(vec![1.0; 8], 1.0).unwrap();
+        mixer.set_levels(source_id, 0.0, 0.5).unwrap();
+        let mut output = [0.0; SURROUND_CHANNELS * 2];
+
+        mixer.render_surround(&mut output).unwrap();
+
+        let expected = [0.9, 0.9, 0.95, 0.95, 0.8, 0.8, 0.9, 0.9];
+        assert!(
+            output
+                .iter()
+                .zip(expected)
+                .all(|(actual, expected)| (actual - expected).abs() < 0.0001),
+            "{output:?}"
+        );
+    }
+
+    #[test]
+    fn rejects_levels_outside_zero_to_one() {
+        let mut mixer = AudioMixer::new(100, 100);
+        let source_id = mixer.add_source(vec![0.5, 0.5], 1.0).unwrap();
+
+        assert!(mixer.set_levels(source_id, 1.5, 1.0).is_err());
+        assert!(mixer.set_levels(source_id, 1.0, -0.1).is_err());
+        assert!(mixer.render_surround(&mut [0.0; 3]).is_err());
+    }
+
+    // Stereo at music level 0 holds the track (the player stops its clock),
+    // so the source must not be drained; with rear speakers the music keeps
+    // playing there and has to be read on.
+    #[test]
+    fn a_source_silent_in_front_is_drained_only_with_rear_speakers() {
+        use ringbuf::{
+            traits::{Observer, Producer, Split},
+            HeapRb,
+        };
+
+        for (surround, drained) in [(false, false), (true, true)] {
+            let mut mixer = AudioMixer::new(1, 1);
+            let ring = HeapRb::<f32>::new(16);
+            let (mut producer, consumer) = ring.split();
+            for sample in [0.5_f32; 12] {
+                producer.try_push(sample).unwrap();
+            }
+            let source_id = mixer.add_stream_source(consumer, 1.0).unwrap();
+            mixer.set_levels(source_id, 0.0, 1.0).unwrap();
+            let mut stereo = [0.0; CHANNELS];
+            let mut four = [0.0; SURROUND_CHANNELS];
+            let mut render = |mixer: &mut AudioMixer| {
+                if surround {
+                    mixer.render_surround(&mut four).unwrap();
+                } else {
+                    mixer.render(&mut stereo).unwrap();
+                }
+            };
+            render(&mut mixer);
+            let occupied_after_fade = producer.occupied_len();
+
+            render(&mut mixer);
+
+            assert_eq!(
+                producer.occupied_len() < occupied_after_fade,
+                drained,
+                "surround {surround}"
+            );
+        }
     }
 }

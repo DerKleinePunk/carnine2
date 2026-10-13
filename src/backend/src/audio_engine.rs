@@ -19,6 +19,12 @@ pub trait AudioEngine: Send + Sync {
     fn output_available(&self) -> bool {
         true
     }
+
+    /// True when the output has rear speakers (4 or more channels): the music
+    /// keeps playing there while an announcement lowers it in front.
+    fn has_rear_speakers(&self) -> bool {
+        false
+    }
 }
 
 pub trait Playback: Send {
@@ -30,6 +36,12 @@ pub trait Playback: Send {
     /// announcement. An engine without levels ignores it.
     fn set_gain(&self, _gain: f32) -> Result<()> {
         Ok(())
+    }
+
+    /// Fades the front speakers to `front` and the rear ones to `rear`. An
+    /// engine without rear speakers only takes the front level.
+    fn set_levels(&self, front: f32, _rear: f32) -> Result<()> {
+        self.set_gain(front)
     }
 
     // True only once playback reached the track's natural end on its own,
@@ -134,6 +146,14 @@ impl AudioEngine for RetryingAudioEngine {
             Some(engine) => engine.shutdown(),
             None => Ok(()),
         }
+    }
+
+    fn has_rear_speakers(&self) -> bool {
+        self.engine
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .as_deref()
+            .is_some_and(|engine| engine.has_rear_speakers())
     }
 
     fn output_available(&self) -> bool {

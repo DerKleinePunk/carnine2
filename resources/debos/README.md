@@ -190,9 +190,15 @@ Der Ton kommt ab Werk über HDMI0 (ALSA-Karte 0). Für ein Display ohne
 Lautsprecher, z. B. das Waveshare 7C, kommt `-t audio_output:jack` dazu. Dann
 wird die Klinke des Pi Karte 0 (`options snd slots=snd_bcm2835,vc4,vc4` in
 `/etc/modprobe.d/carnine-audio.conf`), und das Backend spielt und regelt dort.
-Erlaubt sind `hdmi` (Vorgabe) und `jack`, ein anderer Wert bricht den Bau ab
-(#64). Umstellen ohne neues Image: `docs/bedienung/ton-klinke.md`. Tests:
-`sh tests/carnine-audio-output-test.sh`.
+Erlaubt sind `hdmi` (Vorgabe), `jack` und `hdmi-ac3`, ein anderer Wert bricht
+den Bau ab (#64). `hdmi-ac3` ist nur für einen 5.1-Decoder zwischen Pi und
+Display (z. B. einen HDMI-Audio-Extraktor mit vier Boxen): Das Backend spielt
+vier Kanäle (`[audio] channels = 4` in `config.d/20-audio-ac3.toml`, vorne
+Musik und Ansagen, hinten die Musik in voller Lautstärke), `/etc/asound.conf`
+führt sie über den Regler PCM und den AC-3-Kodierer a52 (Paket
+`libasound2-plugins`) als Bitstrom auf HDMI0. Ein Display, das nur PCM nimmt,
+bleibt damit stumm. Umstellen ohne neues Image: `docs/bedienung/ton-klinke.md`.
+Tests: `sh tests/carnine-audio-output-test.sh`.
 
 Das Waveshare-Profil läuft unter **Full KMS** (`vc4-kms-v3d`). Das Panel bringt
 ein geklontes EDID mit ungeraden Timings mit, die der vc4-Treiber ablehnt — er
