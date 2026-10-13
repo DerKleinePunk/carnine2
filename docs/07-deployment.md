@@ -707,7 +707,8 @@ hw:CARD=Loopback,DEV=1 → carnine-ac3: ffmpeg (AC-3 quad, 448 kbit/s, IEC 61937
 - `/etc/modprobe.d/carnine-ac3.conf` loads the loopback as
   `snd-aloop id=Loopback pcm_substreams=1`, `/etc/modules-load.d/carnine-ac3.conf`
   loads it at boot.
-- `carnine-ac3.service` (user `carnine`, group `audio`, `Restart=always`)
+- `carnine-ac3.service` (user and group `carnine`, supplementary group `audio`,
+  `Restart=always`)
   runs `/usr/local/sbin/carnine-ac3-encoder`: `ffmpeg` reads the four channels
   from the other end of the loopback, encodes AC-3 and packs it as non-audio
   IEC 61937 (`-f spdif`), `aplay` sends it to HDMI0 as 2 channels at 48 kHz
