@@ -207,17 +207,29 @@ class NavigationStatusClient {
   );
 
   /// The running replay's route, map-matched by the backend.
-  Future<RoutingResult> replayRoute(String language) async {
+  Future<ReplayRoute> replayRoute(String language) async {
     try {
       final route = await _channel.stub.getReplayRoute(
         pb.GetReplayRouteRequest(language: language),
         options: CallOptions(timeout: _callTimeout),
       );
-      return routeFromProto(route);
+      return ReplayRoute(
+        route: routeFromProto(route),
+        destinationName: route.destinationName,
+      );
     } catch (error) {
       throw navigationFailureFrom(error);
     }
   }
+}
+
+/// The replay's route and the name of its end point (#127), empty when the
+/// backend has none to show.
+class ReplayRoute {
+  const ReplayRoute({required this.route, this.destinationName = ''});
+
+  final RoutingResult route;
+  final String destinationName;
 }
 
 /// Hands the library's turn announcements to the backend, which speaks

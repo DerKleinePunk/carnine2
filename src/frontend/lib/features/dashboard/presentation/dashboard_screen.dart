@@ -1,3 +1,4 @@
+import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_scope.dart';
 import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart';
 import 'package:carnine_frontend/features/camera/presentation/camera_content.dart';
 import 'package:carnine_frontend/features/controls/data/controls_repository.dart';
@@ -6,6 +7,7 @@ import 'dart:async';
 import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
 import 'package:carnine_frontend/features/maps/presentation/maps_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_controller.dart';
+import 'package:carnine_frontend/features/dashboard/presentation/idle_return.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/models/dashboard_nav_item.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/power_supply_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/thermal_warning_controller.dart';
@@ -17,6 +19,7 @@ import 'package:carnine_frontend/features/media/presentation/media_controller.da
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 /// Main dashboard shell for the fixed car display.
@@ -33,6 +36,7 @@ class DashboardScreen extends StatefulWidget {
     this.exitPasswordStore,
     this.controlsRepository,
     this.cameraSourceFactory,
+    this.idleReturnAfter = const Duration(seconds: 60),
     super.key,
   });
 
@@ -59,6 +63,10 @@ class DashboardScreen extends StatefulWidget {
   /// The camera page's picture source; the native grabber unless a test
   /// gives one.
   final GrabberSourceFactory? cameraSourceFactory;
+
+  /// Trade fair mode: how long nobody touches the screen before it returns to
+  /// the map (#128).
+  final Duration idleReturnAfter;
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -102,10 +110,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   DashboardGrpcStatus _lastHandledGrpcStatus = DashboardGrpcStatus.notConnected;
 
+  // Trade fair mode (#128): back to the map after a minute without a touch.
+  late final IdleReturn _idleReturn = IdleReturn(
+    after: widget.idleReturnAfter,
+    isEnabled: () => _mapsController.demoMode,
+    onIdle: _returnToMap,
+  );
+
   @override
   void initState() {
     super.initState();
     _controller.addListener(_handleControllerChange);
+    _mapsController.addListener(_idleReturn.sync);
+    // Every touch anywhere counts - also on the keyboard and in dialogs,
+    // which are outside of this screen's widget tree.
+    GestureBinding.instance.pointerRouter.addGlobalRoute(_handlePointer);
     unawaited(_controller.restoreLastPage());
     _powerSupplyController.start();
     _thermalWarningController.start();
@@ -116,6 +135,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   void dispose() {
+    _idleReturn.dispose();
+    GestureBinding.instance.pointerRouter.removeGlobalRoute(_handlePointer);
+    _mapsController.removeListener(_idleReturn.sync);
     _controller.removeListener(_handleControllerChange);
     if (_ownsController) {
       _controller.dispose();
@@ -134,6 +156,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     super.dispose();
+  }
+
+  void _handlePointer(PointerEvent event) {
+    if (event is PointerDownEvent ||
+        event is PointerMoveEvent ||
+        event is PointerUpEvent) {
+      _idleReturn.touch();
+    }
+  }
+
+  void _returnToMap() {
+    if (!mounted ||
+        !_mapsController.demoMode ||
+        _controller.selectedItem.destination == DashboardDestination.maps) {
+      // On the map there is nothing to do.
+      return;
+    }
+    if (_isInInput()) {
+      // Someone is typing or choosing: wait another minute.
+      _idleReturn.restart();
+      return;
+    }
+    _controller.selectDestination(DashboardDestination.maps);
+  }
+
+  /// The keyboard, a dialog or a playlist flow is open: leaving would throw
+  /// away what someone is in the middle of.
+  bool _isInInput() {
+    if (OnScreenKeyboardScope.maybeOf(context)?.isOpen ?? false) {
+      return true;
+    }
+    // A dialog is a route above the dashboard.
+    if (Navigator.maybeOf(context)?.canPop() ?? false) {
+      return true;
+    }
+    return _controller.selectedItem.destination == DashboardDestination.media &&
+        _mediaController.isEditingPlaylist;
   }
 
   /// Surfaces backend connection failures as a dialog exactly once per

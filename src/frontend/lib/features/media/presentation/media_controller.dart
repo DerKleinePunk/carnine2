@@ -101,6 +101,14 @@ class MediaController extends ChangeNotifier {
 
   bool get isQueueExpanded => _isQueueExpanded;
   MediaLibraryAction? get openLibraryAction => _openLibraryAction;
+
+  /// A playlist is being put together or renamed: the media page's flows with
+  /// input, which the trade fair mode must not cut off by going back to the
+  /// map (#128). The player, the lists and the playlist view are not.
+  bool get isEditingPlaylist =>
+      _openLibraryAction == MediaLibraryAction.create ||
+      playlists.pendingAddEntriesTarget != null ||
+      playlists.renameTarget != null;
   MediaConnectionStatus get connection => _connection;
 
   Future<void> start() async {

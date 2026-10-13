@@ -33,6 +33,8 @@ class MapsController extends ChangeNotifier {
       positionSource: _positions,
       reverseGeocoder: GrpcReverseGeocoder(_channel),
     );
+    _loggedZoomStep = map.zoom.value.round();
+    map.zoom.addListener(_logZoom);
     _announcer = GrpcAnnouncer(_channel, language: () => _language());
     // One after the other, so a Prepare reaches the backend before the
     // Announce of one of its sentences.
@@ -67,6 +69,19 @@ class MapsController extends ChangeNotifier {
   pb.NavigationStatus? _status;
   bool _replayRouteLoading = false;
   bool _replayDismissed = false;
+
+  /// The round of the replay in which "Abbrechen" was pressed: the replay
+  /// route stays away until the round is over (#126).
+  int? _dismissedLap;
+
+  /// The round the last status reported, `null` without a replay.
+  int? _seenLap;
+
+  /// Whether the route on the map is the replay's own, not one the user
+  /// chose - only that one is dropped when the backend starts over.
+  bool _replayRouteShown = false;
+  String? _replayDestinationName;
+  int _loggedZoomStep = 0;
   List<GeocoderResult> _results = const [];
   bool _searching = false;
   bool _queried = false;
@@ -75,6 +90,15 @@ class MapsController extends ChangeNotifier {
 
   /// Last answer of `GetNavigationStatus`, `null` while the backend is down.
   pb.NavigationStatus? get status => _status;
+
+  /// Trade fair mode (`[navigation] demo_mode`): the device drives the tour
+  /// on its own and returns to the map when nobody touches it (#128). Unknown
+  /// while the backend is down.
+  bool get demoMode => _status?.demoMode ?? false;
+
+  /// The name of the end point while the replay's route is on the map, for
+  /// the search field (#127); `null` for a route the user chose.
+  String? get replayDestinationName => _replayDestinationName;
   bool get backendReachable => _status != null;
   List<GeocoderResult> get results => _results;
   bool get searching => _searching;
@@ -134,17 +158,27 @@ class MapsController extends ChangeNotifier {
   Future<void> selectDestination(GeocoderResult place) async {
     _searchRequest++;
     _queried = false;
+    _replayRouteShown = false;
+    _replayDestinationName = null;
     _setResults(const [], null);
     await map.setDestination(place);
   }
 
-  /// Cancel button. A replay route stays away until the source changes, so
-  /// the demo does not come back the second after someone cancelled it.
+  /// Cancel button. A replay route stays away until the round is over, so
+  /// the demo does not come back the second after someone cancelled it; the
+  /// next round brings it back (#126).
   void cancelRoute() {
     map.setRoute(null);
     _replayDismissed = true;
+    _dismissedLap = _status?.replayLap;
+    _replayRouteShown = false;
+    _replayDestinationName = null;
     notifyListeners();
   }
+
+  /// Asks the backend for its status now, instead of at the next tick.
+  @visibleForTesting
+  Future<void> refreshStatus() => _pollStatus();
 
   Future<void> _pollStatus() async {
     try {
@@ -162,7 +196,29 @@ class MapsController extends ChangeNotifier {
   void _onStatus(pb.NavigationStatus status) {
     final isReplay =
         status.positionSource == pb.PositionSourceKind.POSITION_SOURCE_REPLAY;
-    if (!isReplay) _replayDismissed = false;
+    final lap = status.replayLap;
+    final previousLap = _seenLap;
+    _seenLap = isReplay ? lap : null;
+    if (!isReplay) {
+      _replayDismissed = false;
+      _dismissedLap = null;
+    } else {
+      // "Abbrechen" holds until the end of the round: a new one lifts it.
+      if (_replayDismissed && lap != _dismissedLap) {
+        _replayDismissed = false;
+      }
+      // The round counter fell: the backend started over (restarted, or the
+      // trade fair mode was switched on), so the route on the map is an old
+      // one. Drop it and fetch the new one.
+      if (previousLap != null && lap < previousLap) {
+        _replayDismissed = false;
+        if (_replayRouteShown) {
+          map.setRoute(null);
+          _replayRouteShown = false;
+          _replayDestinationName = null;
+        }
+      }
+    }
     _status = status;
     notifyListeners();
     if (isReplay && map.route == null && !_replayDismissed) {
@@ -176,9 +232,13 @@ class MapsController extends ChangeNotifier {
     if (_replayRouteLoading) return;
     _replayRouteLoading = true;
     try {
-      final route = await _statusClient.replayRoute(_language());
+      final replay = await _statusClient.replayRoute(_language());
       if (_disposed || map.route != null) return;
-      map.setRoute(route);
+      map.setRoute(replay.route);
+      _replayRouteShown = true;
+      _replayDestinationName = replay.destinationName.isEmpty
+          ? null
+          : replay.destinationName;
       map.followPosition = true;
       map.headingUp = true;
       notifyListeners();
@@ -189,9 +249,21 @@ class MapsController extends ChangeNotifier {
     }
   }
 
+  /// One line when the whole zoom level changes, so a trade fair rehearsal or
+  /// a long test shows how far in or out the map was (#130). Gestures move
+  /// the zoom continuously; within one level nothing is written.
+  void _logZoom() {
+    final zoom = map.zoom.value;
+    final step = zoom.round();
+    if (step == _loggedZoomStep) return;
+    _loggedZoomStep = step;
+    _logger.info('[map] Zoom $step (${zoom.toStringAsFixed(1)})');
+  }
+
   @override
   void dispose() {
     _disposed = true;
+    map.zoom.removeListener(_logZoom);
     _statusTimer?.cancel();
     unawaited(_announcements.cancel());
     map.dispose();

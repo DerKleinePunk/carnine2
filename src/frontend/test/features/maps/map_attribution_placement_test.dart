@@ -15,10 +15,15 @@ const _mapSize = Size(928, 560);
 /// y 432.
 const _compassBottom = 432.0;
 
-/// The trip bar casts its shadow about 18 px upwards (blur 24, offset -6).
-/// On the display the credit showed doubled while inside it (Michael,
-/// 2026-10-10), though not in a screenshot.
-const _shadowReach = 18.0;
+/// The trip bar's shadow (blur 24) reaches about 24 px to the side. On the
+/// display the credit showed doubled while inside it (Michael, 2026-10-10),
+/// though not in a screenshot.
+const _shadowReach = 24.0;
+
+/// The credit's widest line, "© OpenStreetMap-", 16 characters at 11 px with
+/// its 4 px of padding on both sides (measured on the display, 13.10.2026).
+/// The test fonts are wider, so the room for it is checked in numbers.
+const _creditWidth = 114.0;
 
 void main() {
   test('following the car goes to zoom 16, not the overview of the route', () {
@@ -26,7 +31,7 @@ void main() {
   });
 
   testWidgets(
-    'the map credit (OpenMapTiles, OpenStreetMap) shows in German, bottom right, between compass and trip bar',
+    'the map credit (OpenMapTiles, OpenStreetMap) shows in German, in three lines in the bottom right corner, beside the trip bar',
     (tester) async {
       tester.view.physicalSize = const Size(1024, 600);
       tester.view.devicePixelRatio = 1;
@@ -71,24 +76,40 @@ void main() {
       // The localizations load asynchronously.
       await tester.pump();
 
-      final text = find.text('© OpenMapTiles © OpenStreetMap-Mitwirkende');
+      final text = find.text(MapsContent.attribution);
       expect(text, findsOneWidget, reason: 'readable without a tap');
+      expect(
+        MapsContent.attribution.replaceAll('\n', ' ').replaceAll('- ', '-'),
+        '© OpenMapTiles © OpenStreetMap-Mitwirkende',
+        reason: 'the same words as before, only in lines',
+      );
       final box = tester
           .getRect(
             find.ancestor(of: text, matching: find.byType(DecoratedBox)).first,
           )
           .shift(_mapOrigin);
-      final tripBarTop = tester
-          .getRect(find.byType(TripStatusBar))
-          .shift(_mapOrigin)
-          .top;
+
+      // In the corner of the display: 8 px from the right edge, 6 px from the
+      // bottom, level with the trip bar's bottom edge.
+      expect(box.right, closeTo(_mapOrigin.dx + _mapSize.width - 8, 0.5));
+      expect(box.bottom, closeTo(_mapOrigin.dy + _mapSize.height - 6, 0.5));
       expect(
         box.bottom,
-        lessThanOrEqualTo(tripBarTop - _shadowReach),
-        reason: 'out of the trip bar shadow',
+        closeTo(
+          tester.getRect(find.byType(TripStatusBar)).shift(_mapOrigin).bottom,
+          0.5,
+        ),
       );
+      // Three lines of 11 px, not one long one: low and narrow.
+      expect(box.height, inInclusiveRange(36, 48));
       expect(box.top, greaterThanOrEqualTo(_compassBottom));
-      expect(box.right, closeTo(_mapOrigin.dx + _mapSize.width - 8, 0.5));
+
+      // The trip bar leaves the room beside it: the credit, its distance to the
+      // edge and the shadow.
+      expect(
+        insets.right,
+        greaterThanOrEqualTo(8 + _creditWidth + _shadowReach),
+      );
     },
   );
 }

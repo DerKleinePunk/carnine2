@@ -20,6 +20,7 @@ class DestinationSearch extends StatefulWidget {
     required this.onSelected,
     this.message,
     this.near,
+    this.shownDestination,
     super.key,
   });
 
@@ -34,12 +35,52 @@ class DestinationSearch extends StatefulWidget {
   /// Shown under the field instead of hits, e.g. "no results".
   final String? message;
 
+  /// The end point of the route the device drives on its own (trade fair, the
+  /// replay): the field shows it like a chosen destination (#127). `null` when
+  /// the route is gone, and the field is empty again.
+  final String? shownDestination;
+
   @override
   State<DestinationSearch> createState() => _DestinationSearchState();
 }
 
 class _DestinationSearchState extends State<DestinationSearch> {
   final TextEditingController _text = TextEditingController();
+
+  /// Set while the text is changed by the page, not by the user: that is no
+  /// search.
+  bool _quiet = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final name = widget.shownDestination;
+    if (name != null) {
+      _text.text = name;
+    }
+  }
+
+  @override
+  void didUpdateWidget(DestinationSearch oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final name = widget.shownDestination;
+    final before = oldWidget.shownDestination;
+    if (name == before) {
+      return;
+    }
+    if (name != null) {
+      _setQuietly(name);
+    } else if (_text.text == before) {
+      // Only what the page wrote: a destination typed or picked since stays.
+      _setQuietly('');
+    }
+  }
+
+  void _setQuietly(String text) {
+    _quiet = true;
+    _text.text = text;
+    _quiet = false;
+  }
 
   @override
   void dispose() {
@@ -70,7 +111,11 @@ class _DestinationSearchState extends State<DestinationSearch> {
             decoration: _fieldDecoration,
             child: OnScreenTextField(
               controller: _text,
-              onChanged: widget.onChanged,
+              onChanged: (query) {
+                if (!_quiet) {
+                  widget.onChanged(query);
+                }
+              },
               semanticLabel: l10n.text(AppTextKey.mapsSearchSemantic),
               hintText: l10n.text(AppTextKey.mapsSearchPlaceholder),
               prefixIcon: const Icon(Icons.search, color: AppColors.primary),

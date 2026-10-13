@@ -22,7 +22,7 @@ Die Kapitel 2 bis 6 folgen dem Seitenmenü von oben nach unten.
 7. [Bildschirmtastatur](tastatur.md)
 8. [Verhalten über Neustarts und ohne Backend](verhalten.md) – was gespeichert
    wird, was bei Verbindungsverlust, ohne Tonausgang und bei Überhitzung
-   passiert, was noch Platzhalter ist, Dauertest einrichten
+   passiert, Messe-Modus, was noch Platzhalter ist, Dauertest einrichten
 9. [Ton über die Klinke](ton-klinke.md) – für Displays ohne Lautsprecher
    (z. B. Waveshare 7C)
 10. [Ton über vier Boxen](ton-vier-boxen.md) – vorne und hinten über einen

@@ -24,8 +24,18 @@ class MapsContent extends StatelessWidget {
 
   /// Where the trip bar sits while a route is active: from the bottom of the
   /// map and, beside it, from its left and right edge.
+  ///
+  /// On the right it keeps 148 px free: the map credit in the corner (about
+  /// 114 px wide at 11 px, 8 px from the edge) and the 24 px the bar's shadow
+  /// reaches sideways - inside the shadow the credit showed doubled on the
+  /// display (Michael, 2026-10-10).
   @visibleForTesting
-  static const tripBarInsets = EdgeInsets.only(left: 24, right: 100, bottom: 6);
+  static const tripBarInsets = EdgeInsets.only(left: 24, right: 148, bottom: 6);
+
+  /// "© OpenMapTiles © OpenStreetMap-Mitwirkende" (the library's
+  /// `defaultAttributionGerman`) in three lines, broken at the hyphen.
+  @visibleForTesting
+  static const attribution = '© OpenMapTiles\n© OpenStreetMap-\nMitwirkende';
 
   @visibleForTesting
   static final MapConfig mapConfig = MapConfig(
@@ -54,13 +64,14 @@ class MapsContent extends StatelessWidget {
     // 2026-09-30, demo drive at 15x): frames over 100 ms 0-5 instead of 0-1,
     // worst frame 98-123 ms, about 30 MB more resident.
     labelRotationStep: 45,
-    // The map credit has to be readable without a tap. Bottom right, above
-    // the trip bar (tripBarInsets) and out of its shadow, below the compass
-    // (Michael, 2026-10-07). The tiles follow the OpenMapTiles schema, whose
-    // licence (CC-BY 4.0) asks for its name beside OpenStreetMap's
-    // (local_map 0.8.5).
-    attributionText: MapConfig.defaultAttributionGerman,
-    attributionPadding: const EdgeInsets.only(right: 8, bottom: 135),
+    // The map credit has to be readable without a tap. In three short lines in
+    // the bottom right corner, beside the trip bar (tripBarInsets leaves the
+    // room), instead of one long line above it. The tiles follow the
+    // OpenMapTiles schema, whose licence (CC-BY 4.0) asks for its name beside
+    // OpenStreetMap's (local_map 0.8.5); the wording is the library's German
+    // one, only broken into lines.
+    attributionText: attribution,
+    attributionPadding: const EdgeInsets.only(right: 8, bottom: 6),
   );
 
   static const _layerStyle = MapLayerStyle(
@@ -183,6 +194,7 @@ class _Overlays extends StatelessWidget {
       searching: controller.searching,
       message: message,
       near: _map.position?.position,
+      shownDestination: controller.replayDestinationName,
       onChanged: controller.search,
       onSelected: controller.selectDestination,
     );

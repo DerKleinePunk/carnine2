@@ -12,6 +12,14 @@ class OnScreenKeyboardScope
     super.key,
   }) : super(notifier: controller);
 
+  /// The keyboard controller, or `null` where there is no scope - for a
+  /// caller that only wants to look at it and does not depend on it.
+  static OnScreenKeyboardController? maybeOf(BuildContext context) {
+    return context
+        .getInheritedWidgetOfExactType<OnScreenKeyboardScope>()
+        ?.notifier;
+  }
+
   static OnScreenKeyboardController of(BuildContext context) {
     final scope =
         context.dependOnInheritedWidgetOfExactType<OnScreenKeyboardScope>();

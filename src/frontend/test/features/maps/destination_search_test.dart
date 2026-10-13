@@ -7,7 +7,12 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:local_map/local_map.dart';
 
-Widget _harness(List<GeocoderResult> results, {LatLng? near}) {
+Widget _harness(
+  List<GeocoderResult> results, {
+  LatLng? near,
+  String? shown,
+  ValueChanged<String>? onChanged,
+}) {
   final keyboard = OnScreenKeyboardController();
   addTearDown(keyboard.dispose);
   return MaterialApp(
@@ -26,7 +31,8 @@ Widget _harness(List<GeocoderResult> results, {LatLng? near}) {
           results: results,
           searching: false,
           near: near,
-          onChanged: (_) {},
+          shownDestination: shown,
+          onChanged: onChanged ?? (_) {},
           onSelected: (_) {},
         ),
       ),
@@ -74,5 +80,102 @@ void main() {
     );
     await tester.pump();
     expect(find.text('Ort'), findsOneWidget);
+  });
+
+  group('the destination of the replay route (#127)', () {
+    String fieldText(WidgetTester tester) =>
+        tester.widget<TextField>(find.byType(TextField)).controller!.text;
+
+    testWidgets('the name stands in the field and starts no search', (
+      tester,
+    ) async {
+      final searches = <String>[];
+      await tester.pumpWidget(
+        _harness(const [], shown: 'Kunsthalle Montez', onChanged: searches.add),
+      );
+      await tester.pump();
+
+      expect(find.text('Kunsthalle Montez'), findsOneWidget);
+      expect(searches, isEmpty);
+    });
+
+    testWidgets('the name that arrives later is written without a search', (
+      tester,
+    ) async {
+      final searches = <String>[];
+      await tester.pumpWidget(_harness(const [], onChanged: searches.add));
+      await tester.pump();
+      expect(fieldText(tester), isEmpty);
+
+      await tester.pumpWidget(
+        _harness(const [], shown: 'Kunsthalle Montez', onChanged: searches.add),
+      );
+      await tester.pump();
+
+      expect(fieldText(tester), 'Kunsthalle Montez');
+      expect(searches, isEmpty);
+    });
+
+    testWidgets('after Abbrechen the field is empty again, without a search', (
+      tester,
+    ) async {
+      final searches = <String>[];
+      await tester.pumpWidget(
+        _harness(const [], shown: 'Kunsthalle Montez', onChanged: searches.add),
+      );
+      await tester.pump();
+
+      await tester.pumpWidget(_harness(const [], onChanged: searches.add));
+      await tester.pump();
+
+      expect(fieldText(tester), isEmpty);
+      expect(searches, isEmpty);
+    });
+
+    testWidgets('a destination chosen meanwhile is not wiped', (tester) async {
+      await tester.pumpWidget(_harness(const [], shown: 'Kunsthalle Montez'));
+      await tester.pump();
+      tester.widget<TextField>(find.byType(TextField)).controller!.text =
+          'Alsfeld';
+
+      await tester.pumpWidget(_harness(const []));
+      await tester.pump();
+
+      expect(fieldText(tester), 'Alsfeld');
+    });
+
+    testWidgets('the X clears the name and asks for no results, a typed '
+        'text searches as always', (tester) async {
+      final searches = <String>[];
+      await tester.pumpWidget(
+        _harness(const [], shown: 'Kunsthalle Montez', onChanged: searches.add),
+      );
+      await tester.pump();
+
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pump();
+      expect(fieldText(tester), isEmpty);
+      expect(searches.last, '');
+
+      tester.widget<TextField>(find.byType(TextField)).controller!.text =
+          'Haupt';
+      await tester.pump();
+      expect(searches.last, 'Haupt');
+    });
+
+    testWidgets('the same name again does not write the field twice', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_harness(const [], shown: 'Kunsthalle Montez'));
+      await tester.pump();
+      tester.widget<TextField>(find.byType(TextField)).controller!.text =
+          'Kunsthalle Montez, Honsellstraße';
+
+      await tester.pumpWidget(_harness(const [], shown: 'Kunsthalle Montez'));
+      await tester.pump();
+
+      // Nothing changed on the page, so the user's edit stays.
+      expect(fieldText(tester), 'Kunsthalle Montez, Honsellstraße');
+    });
   });
 }

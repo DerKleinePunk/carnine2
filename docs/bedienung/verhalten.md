@@ -104,6 +104,41 @@ jemand **Verstanden** tippt.
   70 °C geht er auf den eingestellten Wert zurück. Wer den Regler während der
   Warnung verstellt, legt damit den Wert für danach fest.
 
+## Messe-Modus
+
+Am Messestand fährt das Gerät die Replay-Tour in Schleife, mit Ansagen und
+Musik, ohne Laptop. Eingeschaltet wird das im Backend, im Drop-in
+`/etc/carnine/config.d/90-messe.toml` (Vorlage: `resources/config/messe/`):
+
+```toml
+[navigation]
+replay_destination_name = "Kunsthalle Montez"   # Name im Suchfeld
+demo_mode = true                                # Rückkehr zur Karte
+```
+
+Danach `sudo systemctl restart carnine-backend`. Ausschalten: Datei löschen und
+neu starten. Die Oberfläche merkt den Modus nach spätestens 3 Sekunden.
+
+| Was | Verhalten |
+|---|---|
+| Ziel im Suchfeld | Während die Tour fährt, steht dort der Name des Ziels. Mit **X** löscht man ihn und kann suchen. |
+| **ABBRECHEN** | Löscht die Route bis zum Ende der Runde. Danach lädt die Karte die Tour wieder. |
+| Zurück zur Karte | Nach **60 Sekunden ohne Berührung** wechselt die Oberfläche zur Seite **Karten**. Jede Berührung, auch auf der Tastatur und in Dialogen, beginnt die 60 Sekunden neu. |
+
+Die Rückkehr zur Karte wartet, solange etwas offen ist, in das jemand gerade
+eingibt oder was er entscheidet: die Bildschirmtastatur, ein Dialog (Passwort,
+Logansicht, Playlist löschen …) und die Playlist-Abläufe in **Medien** (Playlist
+anlegen, Titel hinzufügen, umbenennen). Dann folgt die nächste Minute. Der
+Player, die Sammlungen, die Bibliothek und die Playlist-Ansicht halten sie
+nicht auf. Auf der Karte selbst passiert nichts. Ohne `demo_mode` bleibt alles
+wie sonst.
+
+**Zoom im Log:** Jedes Mal, wenn sich die ganze Zoomstufe der Karte ändert,
+schreibt die Oberfläche eine Zeile wie `[map] Zoom 16 (15.7)` ins Log
+(**Optionen → System → Logansicht öffnen**). Bei Gesten innerhalb einer Stufe
+kommt nichts. So sieht man bei Proben und Dauertests, wie weit die Karte
+drinnen oder draußen war.
+
 ## Noch nicht verfügbar
 
 Sichtbar, aber ohne Funktion:

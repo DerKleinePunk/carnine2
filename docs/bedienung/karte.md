@@ -10,11 +10,11 @@ ersten Start ([Kartendaten installieren](nach-der-installation.md#kartendaten-in
 
 ![Karte ohne Route: Suchfeld oben, Knöpfe rechts, darunter „© OpenMapTiles © OpenStreetMap-Mitwirkende“, unten links der Standort](bilder/start.png)
 
-Rechts unten auf der Karte steht „© OpenMapTiles © OpenStreetMap-Mitwirkende“.
-Die Kartendaten kommen von [OpenStreetMap](https://www.openstreetmap.org/copyright),
+Ganz unten rechts auf der Karte steht „© OpenMapTiles © OpenStreetMap-Mitwirkende“,
+in drei kurzen Zeilen untereinander. Die Kartendaten kommen von [OpenStreetMap](https://www.openstreetmap.org/copyright),
 die Kacheln sind nach dem Schema von [OpenMapTiles](https://openmaptiles.org/)
 gebaut. Beide Lizenzen verlangen diesen Hinweis. Während einer Route steht er
-über der Leiste mit Ankunft und Distanz.
+neben der Leiste mit Ankunft und Distanz, die dafür rechts etwas schmaler ist.
 
 ## Karte bewegen
 
@@ -158,6 +158,14 @@ September 2026 gibt es ihn gar nicht (und die Suche zeigt keinen Ort).
 Auf dem Test-Pi liefert das Backend meist eine aufgezeichnete Tour statt
 echtem GPS. Angezeigt wird das nirgends. Im Replay lädt die Karte die Route der
 Aufzeichnung selbst und schaltet den Navigationsmodus ein; die Tour beginnt
-nach dem Ende von vorn. Nach **ABBRECHEN** kommt die Replay-Route erst wieder,
-wenn die Positionsquelle wechselt (z. B. Backend-Neustart). Erst ohne Route
-erscheint unten links der Standort (siehe oben).
+nach dem Ende von vorn.
+
+- **ABBRECHEN** gilt bis zum Ende der laufenden Runde. Beginnt die Tour von
+  vorn, lädt die Karte die Route wieder, mit Folgen und Fahrtrichtung oben wie
+  beim ersten Mal. Ein Backend-Neustart bringt sie ebenfalls zurück, auch wenn
+  vorher abgebrochen wurde.
+- Hat das Backend einen Namen für das Ende der Tour (`replay_destination_name`,
+  siehe [Messe-Modus](verhalten.md#messe-modus)), steht er im Suchfeld wie ein
+  gewähltes Ziel, mit **X** zum Löschen. Nach **ABBRECHEN** ist das Feld
+  wieder leer. Eine selbst gewählte Route bleibt, wenn das Backend neu startet.
+- Erst ohne Route erscheint unten links der Standort (siehe oben).
