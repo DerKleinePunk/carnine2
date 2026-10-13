@@ -656,6 +656,157 @@ sudo systemctl restart carnine-backend
 Then check in the UI that music plays on the panel and that the volume
 slider changes `amixer -c 0 get PCM`.
 
+#### Four speakers over AC-3 (`hdmi-ac3`)
+
+For a car with front and rear speakers, the sound can leave HDMI0 as an AC-3
+(Dolby Digital) bitstream to a 5.1 decoder between the Pi and the panel, such
+as the HDMI splitter with analogue outputs on jeep-pi (since 13.10.2026). Such
+a decoder takes multichannel sound only as AC-3 or DTS; its EDID offers no
+multichannel PCM, and plain stereo PCM it plays in front only.
+
+**What the backend does** (fdc3b66, 3dd494d). With `[audio] channels = 4` it
+opens the output with four channels in ALSA's order: front left/right, rear
+left/right (with 6, centre and LFE stay silent). The mixer renders front and
+rear apart:
+
+| | Front | Rear |
+|---|---|---|
+| Music | yes, lowered during an announcement (`music_under_percent`) | yes, always at the rear level |
+| Announcements | yes | no |
+| Pause | silent | silent |
+
+`[audio] rear_percent` (0–100, 100 unless given) scales the rear channels
+after the mixer, for a rear amplifier much stronger than the front one. It
+is linear like the music level under announcements: 50 ≈ −6 dB,
+30 ≈ −10 dB, 10 = −20 dB. On jeep-pi (160 W behind, 20 W in front) 30 fitted
+by ear; the template `resources/config/carnine.toml` carries it as an
+example. Without `channels` (or with 2) everything is stereo as before and
+`rear_percent` does nothing. The configuration check refuses `channels` other
+than 2, 4 or 6 and `rear_percent` above 100. Both are read at start, so a
+change needs `sudo systemctl restart carnine-backend`; the UI and
+`UpdateConfiguration` do not touch them.
+
+**The chain.** The encoding runs in a service of its own, behind the ALSA
+loopback (`snd-aloop`), not inside ALSA's `default` device (037837a):
+
+```
+backend (4 ch, 48 kHz) → plug → softvol "PCM Playback Volume" (card 0)
+  → plug (S16_LE, 48 kHz, 4 ch) → hw:CARD=Loopback,DEV=0
+hw:CARD=Loopback,DEV=1 → carnine-ac3: ffmpeg (AC-3 quad, 448 kbit/s, IEC 61937)
+  → aplay → hdmi:CARD=vc4hdmi0,AES0=0x06
+```
+
+- `/etc/asound.conf` replaces the `default` device with the first line. The
+  volume control keeps the full name `vc4-hdmi.conf` gives it, so
+  `alsa-restore` and the backend's `amixer -c 0 sset PCM` find one control,
+  not two (e11179e: with a plain `PCM` the first start on jeep-pi stayed
+  silent). It sits in front of the encoder, because a bitstream cannot be
+  scaled afterwards. `card 0` is safe: `options snd slots=vc4,vc4,snd_bcm2835`
+  (`carnine-audio.conf`) keeps card 0 for vc4hdmi0, and the loopback is
+  always addressed by its name.
+- `/etc/modprobe.d/carnine-ac3.conf` loads the loopback as
+  `snd-aloop id=Loopback pcm_substreams=1`, `/etc/modules-load.d/carnine-ac3.conf`
+  loads it at boot.
+- `carnine-ac3.service` (user and group `carnine`, supplementary group `audio`,
+  `Restart=always`)
+  runs `/usr/local/sbin/carnine-ac3-encoder`: `ffmpeg` reads the four channels
+  from the other end of the loopback, encodes AC-3 and packs it as non-audio
+  IEC 61937 (`-f spdif`), `aplay` sends it to HDMI0 as 2 channels at 48 kHz
+  (buffer 200 ms, period 50 ms); `AES0=0x06` marks the stream as non-audio.
+  The layout is fixed to `quad` (front left/right, rear left/right, AC-3 mode
+  2/2): left to itself, ffmpeg guesses "4.0", centre plus one rear channel.
+  `CARNINE_AC3_INPUT` and `CARNINE_AC3_OUTPUT` change the devices for tests.
+- The backend opens the device at 48 kHz whenever `channels` is set
+  (5bfbf8f). At 44.1 kHz the plug resamples and reports "ready" too early,
+  and the audio thread spins.
+
+`channels = 6` would need `channels 6` in `pcm.carnine_loop`, `-channels 6`
+and the layout `5.1` in the encoder.
+
+**Why not the `a52` plugin.** The first chain (fdc3b66, 3dd494d) put the
+`a52` plugin of `libasound2-plugins` straight into `default`. It played, but
+cost about one core all the time: on jeep-pi the backend took 66–101 % of a
+core instead of 9–22 % with stereo, the whole system 32–42 % of four cores.
+Almost all of it was system time in the audio thread `cpal_alsa`. `a52`
+passes the device's "ready" on although it cannot take data yet, so the
+writer spins (about 19,000 `SYNC_PTR` calls in 5 s, with silence too); its
+periods are fixed at 1536 frames (alsa-plugins 1.2.12). A `dmix` in between
+would calm it, but `dmix` cannot feed vc4 HDMI, which takes only IEC958
+subframes. Behind the loopback the backend writes into a plain hardware
+buffer and the encoder blocks properly.
+
+**Switching it on.** Build the image with `-t audio_output:hdmi-ac3`: HDMI0
+stays card 0 as with `hdmi`, and `carnine-audio-output.sh` writes
+`/etc/asound.conf`, the two `snd-aloop` files, the encoder script, the
+service (enabled) and `/etc/carnine/config.d/20-audio-ac3.toml`
+(`[audio]` `channels = 4`). `ffmpeg` is in the image anyway, no extra
+package is needed. Add `rear_percent` in a drop-in of its own if the rear is
+too loud. On a running device the same by hand, as the user guide page
+[Ton über vier Boxen](bedienung/ton-vier-boxen.md) shows; `modprobe snd-aloop`
+saves the reboot, a new initramfs is not needed.
+
+**Switching it off.** `systemctl disable --now carnine-ac3`, delete
+`/etc/asound.conf`, the drop-in (or the `channels` line), the service, the
+encoder script and the two `snd-aloop` files, and restart the backend: it is
+stereo PCM on HDMI0 again, exactly as before. Building with `hdmi` or `jack`
+removes all of them too.
+There is no switch in the UI on purpose: without an AC-3 decoder in front of
+it, a panel or TV that takes only PCM stays silent. A switch would belong on
+the expert page (#138).
+
+**Checks.** The backend log names the channels when the stream starts:
+
+```
+cpal audio output stream started … channels=4 sample_format=F32
+```
+
+ALSA's plug offers I8 first, which the stream cannot write, so the backend
+picks f32, i16 or u16 with the asked channels. If the device offers none,
+the backend logs "offers no usable configuration with 4 channels" and
+behaves as without an
+output device: it reports `AUDIO_OUTPUT_UNAVAILABLE`, the UI shows its hint,
+and the player retries (#55, #56).
+
+On carnine-pc (13.10.2026, the chain into the ALSA loopback instead of HDMI,
+nothing audible) the encoder kept four discrete channels (`quad(side)`), the
+volume control lowered all four alike, and the backend at `channels = 4` put
+music on front and rear at −22 dB, during an announcement front −32 dB plus
+speech and rear −22 dB without speech. On jeep-pi Michael heard it through
+the splitter (switch set to 5.1) on four speakers.
+
+`journalctl -u carnine-ac3` shows underruns of `aplay`. One right after the
+start of backend and frontend is harmless; regular ones would mean that the
+clocks of loopback and HDMI drift apart.
+
+**CPU.** The stream runs all the time, also while the music is paused
+(silence in the bitstream, so the decoder keeps its lock). On jeep-pi with
+music and replay announcements (13.10.2026, 3 × 60 s):
+
+| | Backend (% of one core) | ffmpeg | aplay | System (% of four cores) |
+|---|---|---|---|---|
+| Stereo, HDMI | 9–22 | – | – | 18–23 |
+| `a52` plugin, 44.1 kHz | 66–101 | – | – | 32–42 |
+| Loopback + `carnine-ac3` | 10–23 | 6.8 | 0.7 | 17–22 |
+
+So AC-3 now costs little more than the encoder. In a run of almost ten hours
+(13.10.2026, 08:23–18:07, music and replay announcements all the time, 1381
+announcements) there was one underrun of 0.02 ms (12:28:23, without an
+announcement or any other event in the journal), no pattern, and no restart
+of `carnine-ac3` or the backend. The backend averaged 2.5 % of a core (peaks
+up to 31 % are the speech synthesis), ffmpeg 6.9 % (5.7–8.6 %), 31–39 °C,
+`throttled` 0x0 throughout, nobody heard a crackle.
+
+**No pop.** The splitter does not pop when playback stops: the carrier never
+breaks off, because pause is silence inside the running AC-3 stream. That
+fits the finding that the pop comes from the Waveshare panel losing the HDMI
+carrier, not from the Pi
+([20 – Media Backend Plan](20-media-backend-plan.md#der-plopp-kommt-von-der-hdmi-senke-nicht-aus-dem-backend)).
+
+On jeep-pi the panel runs with an EDID override that joins the 1024×600
+timings of the 7H to the audio block of the splitter
+(`waveshare-7h-splitter-261013.bin`), so the Pi keeps the panel's mode while
+the splitter announces AC-3.
+
 #### Spoken turn announcements
 
 The package `carnine-voice` (installed by the image recipe) brings
@@ -769,6 +920,9 @@ directories and the configuration; there is no manual OS setup with
   default `auto`
 - `-t audio_output:jack`: headphone jack as card 0 instead of HDMI (see
   [Audio output](#audio-output))
+- `-t audio_output:hdmi-ac3`: HDMI0 as card 0, four channels as AC-3 for a
+  5.1 decoder in front of the panel (see
+  [Four speakers over AC-3](#four-speakers-over-ac-3-hdmi-ac3))
 - `-t power_supply:auprv1`: car power supply with `gpio-poweroff` (docs/23)
 - `-t target_hostname:<name>`, `-t "ssh_public_key:…"`; on the device the
   name changes with `sudo carnine-rename <name>` (since the release after

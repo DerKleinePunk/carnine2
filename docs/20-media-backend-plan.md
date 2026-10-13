@@ -657,6 +657,13 @@ Plopp jemals stoeren sollte: `snd-aloop` mit `alsaloop` als Dauerbruecke, ein
 dauerhafter PipeWire-/PulseAudio-Daemon, oder akzeptieren - im Betrieb ist er
 praktisch nur beim Herunterfahren und bei jedem Deployment hoerbar.
 
+Gegenprobe vom 2026-10-13 auf jeep-pi: Mit dem 5.1-HDMI-Splitter und der
+Einstellung der Variante `hdmi-ac3` (von Hand eingerichtet) ploppt nichts mehr. Dort laeuft der AC-3-Strom
+ununterbrochen (Pause ist Stille im Strom), der Decoder des Splitters verliert
+den Lock nie. Das passt zum Befund oben: Der Plopp ist eine Eigenschaft der
+Senke (des Waveshare-Panels), nicht des Pi
+([07 – Deployment, "Four speakers over AC-3"](07-deployment.md#four-speakers-over-ac-3-hdmi-ac3)).
+
 ### Der Decoderthread hat einen Kern verbrannt
 
 Gemessen auf dem Pi waehrend normaler Wiedergabe: **99,9 % CPU** auf dem

@@ -27,6 +27,7 @@ pages=(
   tastatur.md
   verhalten.md
   ton-klinke.md
+  ton-vier-boxen.md
   image-schreiben.md
   nach-der-installation.md
   befehle.md
