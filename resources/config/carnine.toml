@@ -38,8 +38,9 @@ volume_state_path = "/var/lib/carnine/audio-volume"
 # the announcements and the music lowered under them only in front.
 # channels = 4
 # The rear speakers' level in percent of the front, 100 unless given: for a
-# rear amplifier much stronger than the front one. Set once at installation.
-# rear_percent = 50
+# rear amplifier much stronger than the front one. Set once at installation;
+# e.g. 30 (about -10 dB) for 160 W behind and 20 W in front, by ear.
+# rear_percent = 30
 
 [logging]
 directory = "/var/log/carnine"
