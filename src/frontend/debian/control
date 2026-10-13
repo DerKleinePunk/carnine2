@@ -4,6 +4,6 @@ Section: misc
 Priority: optional
 Architecture: arm64
 Maintainer: Carnine Project
-Depends: libdrm2, libgbm1, libegl1, libgles2, libinput10, libxkbcommon0, libudev1, libsystemd0, libseat1, libdisplay-info2, seatd, libatomic1, fontconfig, fonts-liberation
+Depends: libdrm2, libgbm1, libegl1, libgles2, libinput10, libxkbcommon0, libudev1, libsystemd0, libseat1, libdisplay-info2, seatd, libatomic1, fontconfig, fonts-liberation, libjpeg62-turbo
 Description: Carnine Flutter frontend
  DRM/KMS Flutter frontend and its ivi-homescreen runtime for Raspberry Pi.
