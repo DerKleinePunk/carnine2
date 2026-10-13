@@ -83,8 +83,8 @@ void main() {
     await tester.tap(find.text('System'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Aktuelle Frontend-Logs'), findsOneWidget);
-    expect(find.text('Noch keine Logeinträge'), findsOneWidget);
+    expect(find.text('Wartung'), findsOneWidget);
+    expect(find.text('Oberfläche'), findsOneWidget);
     expect(find.text('Logansicht öffnen'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.arrow_back));

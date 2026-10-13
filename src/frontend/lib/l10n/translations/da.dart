@@ -166,7 +166,6 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.settingsMapSubtitle: 'Kortvisning og ruteadfærd',
   AppTextKey.settingsMapSemantic: 'Åbn kortindstillinger',
   AppTextKey.settingsCurrentLanguage: 'Aktivt sprog',
-  AppTextKey.settingsDiagnosticsRecentLogs: 'Seneste frontend-logge',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Åbn logvisning',
   AppTextKey.settingsDiagnosticsExit: 'Afslut',
   AppTextKey.settingsDiagnosticsRestart: 'Genstart',
@@ -180,6 +179,35 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.settingsExitPasswordIncorrect: 'Forkert adgangskode',
   AppTextKey.settingsExitPasswordConfirmAction: 'Bekræft',
   AppTextKey.settingsExitPasswordCancelAction: 'Annuller',
+  AppTextKey.settingsDiagnosticsGroupMaintenance: 'Vedligeholdelse',
+  AppTextKey.settingsDiagnosticsGroupInterface: 'Brugerflade',
+  AppTextKey.settingsDiagnosticsLogsSubtitle: 'Se brugerfladens meddelelser',
+  AppTextKey.settingsDiagnosticsChangePassword: 'Skift adgangskode',
+  AppTextKey.settingsDiagnosticsChangePasswordSubtitle:
+      'Adgangskode til vedligeholdelsestilstand',
+  AppTextKey.settingsDiagnosticsRestartSubtitle:
+      'Kun brugerfladen, musikken spiller videre',
+  AppTextKey.settingsDiagnosticsExitSubtitle:
+      'Vedligeholdelsestilstand, kræver adgangskode',
+  AppTextKey.settingsDiagnosticsVersion: 'Version',
+  AppTextKey.settingsExitPasswordChecking: 'Kontrollerer …',
+  AppTextKey.settingsExitPasswordUnavailable:
+      'Adgangskoden kan ikke kontrolleres lige nu. Prøv venligst igen om et øjeblik.',
+  AppTextKey.settingsExitPasswordShow: 'Vis adgangskode',
+  AppTextKey.settingsExitPasswordHide: 'Skjul adgangskode',
+  AppTextKey.settingsExitPasswordStepCurrent:
+      'Indtast venligst den nuværende adgangskode.',
+  AppTextKey.settingsExitPasswordStepNew:
+      'Indtast venligst den nye adgangskode (4 til 64 tegn).',
+  AppTextKey.settingsExitPasswordStepRepeat:
+      'Gentag venligst den nye adgangskode.',
+  AppTextKey.settingsExitPasswordNextAction: 'Næste',
+  AppTextKey.settingsExitPasswordMismatch:
+      'Indtastningerne stemmer ikke overens. Indtast venligst den nye adgangskode igen.',
+  AppTextKey.settingsExitPasswordRules:
+      'Den nye adgangskode skal være på 4 til 64 tegn.',
+  AppTextKey.settingsExitPasswordSaveFailed: 'Adgangskoden kunne ikke gemmes.',
+  AppTextKey.settingsExitPasswordChanged: 'Adgangskoden er blevet ændret.',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Udseende forberedt',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Farver og typografi konfigureres i dette område.',

@@ -172,7 +172,6 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.settingsMapSubtitle: 'Térképnézet és útvonalviselkedés',
   AppTextKey.settingsMapSemantic: 'Térképbeállítások megnyitása',
   AppTextKey.settingsCurrentLanguage: 'Aktív nyelv',
-  AppTextKey.settingsDiagnosticsRecentLogs: 'Legutóbbi frontend-naplók',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Naplónézet megnyitása',
   AppTextKey.settingsDiagnosticsExit: 'Kilépés',
   AppTextKey.settingsDiagnosticsRestart: 'Újraindítás',
@@ -185,6 +184,37 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.settingsExitPasswordIncorrect: 'Hibás jelszó',
   AppTextKey.settingsExitPasswordConfirmAction: 'Megerősítés',
   AppTextKey.settingsExitPasswordCancelAction: 'Mégse',
+  AppTextKey.settingsDiagnosticsGroupMaintenance: 'Karbantartás',
+  AppTextKey.settingsDiagnosticsGroupInterface: 'Felület',
+  AppTextKey.settingsDiagnosticsLogsSubtitle:
+      'A felület üzeneteinek megtekintése',
+  AppTextKey.settingsDiagnosticsChangePassword: 'Jelszó módosítása',
+  AppTextKey.settingsDiagnosticsChangePasswordSubtitle:
+      'A karbantartási mód jelszava',
+  AppTextKey.settingsDiagnosticsRestartSubtitle:
+      'Csak a felület, a zene tovább szól',
+  AppTextKey.settingsDiagnosticsExitSubtitle:
+      'Karbantartási mód, jelszó szükséges',
+  AppTextKey.settingsDiagnosticsVersion: 'Verzió',
+  AppTextKey.settingsExitPasswordChecking: 'Ellenőrzés …',
+  AppTextKey.settingsExitPasswordUnavailable:
+      'A jelszó jelenleg nem ellenőrizhető. Kérjük, próbálja újra egy pillanat múlva.',
+  AppTextKey.settingsExitPasswordShow: 'Jelszó megjelenítése',
+  AppTextKey.settingsExitPasswordHide: 'Jelszó elrejtése',
+  AppTextKey.settingsExitPasswordStepCurrent:
+      'Kérjük, adja meg a jelenlegi jelszót.',
+  AppTextKey.settingsExitPasswordStepNew:
+      'Kérjük, adja meg az új jelszót (4–64 karakter).',
+  AppTextKey.settingsExitPasswordStepRepeat:
+      'Kérjük, ismételje meg az új jelszót.',
+  AppTextKey.settingsExitPasswordNextAction: 'Tovább',
+  AppTextKey.settingsExitPasswordMismatch:
+      'A két bevitel nem egyezik. Kérjük, adja meg újra az új jelszót.',
+  AppTextKey.settingsExitPasswordRules:
+      'Az új jelszónak 4 és 64 karakter közötti hosszúságúnak kell lennie.',
+  AppTextKey.settingsExitPasswordSaveFailed:
+      'A jelszót nem sikerült elmenteni.',
+  AppTextKey.settingsExitPasswordChanged: 'A jelszó sikeresen megváltozott.',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Megjelenés előkészítve',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'A színek és a tipográfia ebben a részben lesznek beállíthatók.',

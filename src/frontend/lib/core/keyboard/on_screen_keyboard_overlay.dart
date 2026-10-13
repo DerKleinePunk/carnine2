@@ -4,7 +4,8 @@ import 'keyboard_panel.dart';
 import 'on_screen_keyboard_controller.dart';
 
 /// Every layer has exactly 3 character rows plus the shared bottom row.
-const double _panelHeight = 4 * keyRowHeight + 28;
+/// Also what a dialog with a text field leaves free at the bottom.
+const double keyboardPanelHeight = 4 * keyRowHeight + 28;
 
 /// App-wide, always-mounted keyboard surface. Slides in from the bottom
 /// when [controller] has an active field, and back out on close - staying
@@ -25,7 +26,7 @@ class OnScreenKeyboardOverlay extends StatelessWidget {
           curve: Curves.easeOut,
           left: 0,
           right: 0,
-          bottom: controller.isOpen ? 0 : -_panelHeight,
+          bottom: controller.isOpen ? 0 : -keyboardPanelHeight,
           child: const KeyboardPanel(),
         );
       },

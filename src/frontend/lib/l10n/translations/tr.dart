@@ -169,7 +169,6 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.settingsMapSubtitle: 'Harita görünümü ve rota davranışı',
   AppTextKey.settingsMapSemantic: 'Harita ayarlarını aç',
   AppTextKey.settingsCurrentLanguage: 'Etkin dil',
-  AppTextKey.settingsDiagnosticsRecentLogs: 'Son frontend günlükleri',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Günlük görüntüleyiciyi aç',
   AppTextKey.settingsDiagnosticsExit: 'Çıkış',
   AppTextKey.settingsDiagnosticsRestart: 'Yeniden başlat',
@@ -182,6 +181,32 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.settingsExitPasswordIncorrect: 'Yanlış şifre',
   AppTextKey.settingsExitPasswordConfirmAction: 'Onayla',
   AppTextKey.settingsExitPasswordCancelAction: 'İptal',
+  AppTextKey.settingsDiagnosticsGroupMaintenance: 'Bakım',
+  AppTextKey.settingsDiagnosticsGroupInterface: 'Arayüz',
+  AppTextKey.settingsDiagnosticsLogsSubtitle: 'Arayüz iletilerini görüntüle',
+  AppTextKey.settingsDiagnosticsChangePassword: 'Şifreyi değiştir',
+  AppTextKey.settingsDiagnosticsChangePasswordSubtitle: 'Bakım modu şifresi',
+  AppTextKey.settingsDiagnosticsRestartSubtitle:
+      'Yalnızca arayüz, müzik çalmaya devam eder',
+  AppTextKey.settingsDiagnosticsExitSubtitle: 'Bakım modu, şifre gerekli',
+  AppTextKey.settingsDiagnosticsVersion: 'Sürüm',
+  AppTextKey.settingsExitPasswordChecking: 'Doğrulanıyor …',
+  AppTextKey.settingsExitPasswordUnavailable:
+      'Şifre şu anda doğrulanamıyor. Lütfen birazdan tekrar deneyin.',
+  AppTextKey.settingsExitPasswordShow: 'Şifreyi göster',
+  AppTextKey.settingsExitPasswordHide: 'Şifreyi gizle',
+  AppTextKey.settingsExitPasswordStepCurrent: 'Lütfen mevcut şifreyi girin.',
+  AppTextKey.settingsExitPasswordStepNew:
+      'Lütfen yeni şifreyi girin (4 ile 64 karakter arası).',
+  AppTextKey.settingsExitPasswordStepRepeat:
+      'Lütfen yeni şifreyi tekrar girin.',
+  AppTextKey.settingsExitPasswordNextAction: 'İleri',
+  AppTextKey.settingsExitPasswordMismatch:
+      'Girişler eşleşmiyor. Lütfen yeni şifreyi tekrar girin.',
+  AppTextKey.settingsExitPasswordRules:
+      'Yeni şifre 4 ile 64 karakter arasında olmalıdır.',
+  AppTextKey.settingsExitPasswordSaveFailed: 'Şifre kaydedilemedi.',
+  AppTextKey.settingsExitPasswordChanged: 'Şifre başarıyla değiştirildi.',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Görünüm hazırlandı',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Renkler ve tipografi bu alanda yapılandırılacak.',

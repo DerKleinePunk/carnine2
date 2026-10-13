@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_controller.dart';
 import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_overlay.dart';
 import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_scope.dart';
-import 'package:carnine_frontend/core/keyboard/on_screen_text_field.dart';
 import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart';
 import 'package:carnine_frontend/features/settings/presentation/models/settings_option_item.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/camera_settings_page.dart';
@@ -69,128 +68,7 @@ Widget _harness({
 }
 
 void main() {
-  testWidgets(
-    'diagnostics page shows logs, updates, restart and exit actions',
-    (tester) async {
-      await tester.pumpWidget(_harness(onRestart: () {}, onExit: () {}));
-      await tester.pump();
-      await tester.pump();
-
-      expect(find.text('Logansicht öffnen'), findsOneWidget);
-      expect(find.text('Nach Updates suchen'), findsOneWidget);
-      expect(find.text('Neustart'), findsOneWidget);
-      expect(find.text('Beenden'), findsOneWidget);
-    },
-  );
-
-  testWidgets('checking for updates shows a not-yet-available dialog', (
-    tester,
-  ) async {
-    await tester.pumpWidget(_harness(onRestart: () {}, onExit: () {}));
-    await tester.pump();
-    await tester.pump();
-
-    await tester.tap(find.text('Nach Updates suchen'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Noch nicht verfügbar'), findsOneWidget);
-
-    await tester.tap(find.text('Schließen'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Noch nicht verfügbar'), findsNothing);
-  });
-
-  testWidgets('restart runs immediately, without any confirmation', (
-    tester,
-  ) async {
-    var restarted = false;
-    await tester.pumpWidget(
-      _harness(onRestart: () => restarted = true, onExit: () {}),
-    );
-    await tester.pump();
-    await tester.pump();
-
-    await tester.tap(find.text('Neustart'));
-    await tester.pump();
-
-    expect(restarted, isTrue);
-  });
-
-  testWidgets(
-    'exit asks for a password first and does not run on a wrong one',
-    (tester) async {
-      var exited = false;
-      await tester.pumpWidget(
-        _harness(onRestart: () {}, onExit: () => exited = true),
-      );
-      await tester.pump();
-      await tester.pump();
-
-      await tester.tap(find.text('Beenden'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Passwort erforderlich'), findsOneWidget);
-
-      tester
-              .widget<OnScreenTextField>(find.byType(OnScreenTextField))
-              .controller
-              .text =
-          'wrong';
-      await tester.pump();
-      await tester.tap(find.text('Bestätigen'));
-      await tester.pump();
-
-      expect(find.text('Falsches Passwort'), findsOneWidget);
-      expect(exited, isFalse);
-      // The dialog stays open for another attempt.
-      expect(find.text('Passwort erforderlich'), findsOneWidget);
-    },
-  );
-
-  testWidgets('exit runs after the correct mock password is confirmed', (
-    tester,
-  ) async {
-    var exited = false;
-    await tester.pumpWidget(
-      _harness(onRestart: () {}, onExit: () => exited = true),
-    );
-    await tester.pump();
-    await tester.pump();
-
-    await tester.tap(find.text('Beenden'));
-    await tester.pumpAndSettle();
-
-    tester
-            .widget<OnScreenTextField>(find.byType(OnScreenTextField))
-            .controller
-            .text =
-        '4321';
-    await tester.pump();
-    await tester.tap(find.text('Bestätigen'));
-    await tester.pumpAndSettle();
-
-    expect(exited, isTrue);
-    expect(find.text('Passwort erforderlich'), findsNothing);
-  });
-
-  testWidgets('cancelling the password dialog does not exit', (tester) async {
-    var exited = false;
-    await tester.pumpWidget(
-      _harness(onRestart: () {}, onExit: () => exited = true),
-    );
-    await tester.pump();
-    await tester.pump();
-
-    await tester.tap(find.text('Beenden'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Abbrechen'));
-    await tester.pumpAndSettle();
-
-    expect(exited, isFalse);
-    expect(find.text('Passwort erforderlich'), findsNothing);
-  });
+  // The System page and the password dialogs: system_page_test.dart.
 
   group('Darstellung & Sprache, Geräte', () {
     Future<void> openOverview(WidgetTester tester) async {

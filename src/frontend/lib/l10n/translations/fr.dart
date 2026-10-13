@@ -173,7 +173,6 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
       'Affichage de carte et comportement des itinéraires',
   AppTextKey.settingsMapSemantic: 'Ouvrir les réglages de carte',
   AppTextKey.settingsCurrentLanguage: 'Langue active',
-  AppTextKey.settingsDiagnosticsRecentLogs: 'Journaux frontend récents',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Ouvrir les journaux',
   AppTextKey.settingsDiagnosticsExit: 'Quitter',
   AppTextKey.settingsDiagnosticsRestart: 'Redémarrer',
@@ -187,6 +186,38 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.settingsExitPasswordIncorrect: 'Mot de passe incorrect',
   AppTextKey.settingsExitPasswordConfirmAction: 'Confirmer',
   AppTextKey.settingsExitPasswordCancelAction: 'Annuler',
+  AppTextKey.settingsDiagnosticsGroupMaintenance: 'Maintenance',
+  AppTextKey.settingsDiagnosticsGroupInterface: 'Interface',
+  AppTextKey.settingsDiagnosticsLogsSubtitle:
+      'Afficher les messages de l’interface',
+  AppTextKey.settingsDiagnosticsChangePassword: 'Modifier le mot de passe',
+  AppTextKey.settingsDiagnosticsChangePasswordSubtitle:
+      'Mot de passe du mode maintenance',
+  AppTextKey.settingsDiagnosticsRestartSubtitle:
+      'L’interface uniquement, la musique continue',
+  AppTextKey.settingsDiagnosticsExitSubtitle:
+      'Mode maintenance, mot de passe requis',
+  AppTextKey.settingsDiagnosticsVersion: 'Version',
+  AppTextKey.settingsExitPasswordChecking: 'Vérification …',
+  AppTextKey.settingsExitPasswordUnavailable:
+      'Le mot de passe ne peut pas être vérifié pour le moment. Veuillez réessayer dans un instant.',
+  AppTextKey.settingsExitPasswordShow: 'Afficher le mot de passe',
+  AppTextKey.settingsExitPasswordHide: 'Masquer le mot de passe',
+  AppTextKey.settingsExitPasswordStepCurrent:
+      'Veuillez saisir le mot de passe actuel.',
+  AppTextKey.settingsExitPasswordStepNew:
+      'Veuillez saisir le nouveau mot de passe (4 à 64 caractères).',
+  AppTextKey.settingsExitPasswordStepRepeat:
+      'Veuillez répéter le nouveau mot de passe.',
+  AppTextKey.settingsExitPasswordNextAction: 'Suivant',
+  AppTextKey.settingsExitPasswordMismatch:
+      'Les saisies ne correspondent pas. Veuillez saisir à nouveau le nouveau mot de passe.',
+  AppTextKey.settingsExitPasswordRules:
+      'Le nouveau mot de passe doit comporter entre 4 et 64 caractères.',
+  AppTextKey.settingsExitPasswordSaveFailed:
+      'Le mot de passe n’a pas pu être enregistré.',
+  AppTextKey.settingsExitPasswordChanged:
+      'Le mot de passe a été modifié avec succès.',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Apparence préparée',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Les couleurs et la typographie seront configurées ici.',

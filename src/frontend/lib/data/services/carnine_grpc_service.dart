@@ -2,6 +2,7 @@ import 'package:carnine_frontend/core/platform/grpc_endpoint.dart';
 import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart';
 import 'package:carnine_frontend/features/camera/domain/video_device.dart';
 import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
+import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/lib/carnine.pbgrpc.dart';
 import 'package:grpc/grpc.dart';
 import 'package:logging/logging.dart';
@@ -13,7 +14,8 @@ typedef ClientChannelFactory = ClientChannel Function();
 ///
 /// The service keeps transport creation isolated in [GrpcEndpoint] so
 /// dashboard widgets don't need to know which transport is active.
-class CarnineGrpcService implements UiStateStore, CameraSettingsStore {
+class CarnineGrpcService
+    implements UiStateStore, CameraSettingsStore, ExitPasswordStore {
   CarnineGrpcService({Logger? logger, ClientChannelFactory? channelFactory})
     : _logger = logger ?? Logger('CarnineGrpcService'),
       _channelFactory = channelFactory ?? _createDefaultChannel;
@@ -192,6 +194,69 @@ class CarnineGrpcService implements UiStateStore, CameraSettingsStore {
       width: settings.width == 720 || settings.width == 360
           ? settings.width
           : defaults.width,
+    );
+  }
+
+  /// A password call that gets no answer in this time did not work.
+  static const Duration _passwordCallTimeout = Duration(seconds: 5);
+
+  @override
+  Future<bool> verify(String password) async {
+    final channel = _channelFactory();
+    try {
+      final check = await SystemServiceClient(channel).verifyExitPassword(
+        ExitPasswordRequest(password: password),
+        options: CallOptions(timeout: _passwordCallTimeout),
+      );
+      return check.valid;
+    } catch (error) {
+      throw exitPasswordExceptionFrom(error);
+    } finally {
+      await channel.shutdown();
+    }
+  }
+
+  @override
+  Future<void> change({required String current, required String next}) async {
+    final channel = _channelFactory();
+    try {
+      final response = await SystemServiceClient(channel).setExitPassword(
+        SetExitPasswordRequest(currentPassword: current, newPassword: next),
+        options: CallOptions(timeout: _passwordCallTimeout),
+      );
+      if (!response.success) {
+        throw ExitPasswordException(
+          ExitPasswordFailure.failed,
+          response.message,
+        );
+      }
+    } on ExitPasswordException {
+      rethrow;
+    } catch (error) {
+      throw exitPasswordExceptionFrom(error);
+    } finally {
+      await channel.shutdown();
+    }
+  }
+
+  /// What a failed password call means for the user. The backend's own
+  /// message is kept for the log only, since it is English.
+  static ExitPasswordException exitPasswordExceptionFrom(Object error) {
+    if (error is GrpcError) {
+      final failure = switch (error.code) {
+        StatusCode.permissionDenied => ExitPasswordFailure.wrongCurrent,
+        StatusCode.invalidArgument => ExitPasswordFailure.rejected,
+        StatusCode.unavailable ||
+        StatusCode.deadlineExceeded ||
+        StatusCode.cancelled => ExitPasswordFailure.unreachable,
+        _ => ExitPasswordFailure.failed,
+      };
+      return ExitPasswordException(failure, error.message ?? '');
+    }
+    // No answer at all: the socket is not there, or the call was cut off.
+    return ExitPasswordException(
+      ExitPasswordFailure.unreachable,
+      error.toString(),
     );
   }
 

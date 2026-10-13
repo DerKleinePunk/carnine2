@@ -171,7 +171,6 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.settingsMapSubtitle: 'Kartenansicht und Routenverhalten',
   AppTextKey.settingsMapSemantic: 'Karteneinstellungen öffnen',
   AppTextKey.settingsCurrentLanguage: 'Aktive Sprache',
-  AppTextKey.settingsDiagnosticsRecentLogs: 'Aktuelle Frontend-Logs',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Logansicht öffnen',
   AppTextKey.settingsDiagnosticsExit: 'Beenden',
   AppTextKey.settingsDiagnosticsRestart: 'Neustart',
@@ -184,6 +183,37 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.settingsExitPasswordIncorrect: 'Falsches Passwort',
   AppTextKey.settingsExitPasswordConfirmAction: 'Bestätigen',
   AppTextKey.settingsExitPasswordCancelAction: 'Abbrechen',
+  AppTextKey.settingsDiagnosticsGroupMaintenance: 'Wartung',
+  AppTextKey.settingsDiagnosticsGroupInterface: 'Oberfläche',
+  AppTextKey.settingsDiagnosticsLogsSubtitle:
+      'Meldungen der Oberfläche ansehen',
+  AppTextKey.settingsDiagnosticsChangePassword: 'Passwort ändern',
+  AppTextKey.settingsDiagnosticsChangePasswordSubtitle:
+      'Passwort für den Wartungsmodus',
+  AppTextKey.settingsDiagnosticsRestartSubtitle:
+      'Nur die Oberfläche, die Musik läuft weiter',
+  AppTextKey.settingsDiagnosticsExitSubtitle: 'Wartungsmodus, Passwort nötig',
+  AppTextKey.settingsDiagnosticsVersion: 'Version',
+  AppTextKey.settingsExitPasswordChecking: 'Wird geprüft …',
+  AppTextKey.settingsExitPasswordUnavailable:
+      'Das Passwort kann gerade nicht geprüft werden. Bitte versuchen Sie es gleich noch einmal.',
+  AppTextKey.settingsExitPasswordShow: 'Passwort anzeigen',
+  AppTextKey.settingsExitPasswordHide: 'Passwort verbergen',
+  AppTextKey.settingsExitPasswordStepCurrent:
+      'Bitte geben Sie das aktuelle Passwort ein.',
+  AppTextKey.settingsExitPasswordStepNew:
+      'Bitte geben Sie das neue Passwort ein (4 bis 64 Zeichen).',
+  AppTextKey.settingsExitPasswordStepRepeat:
+      'Bitte wiederholen Sie das neue Passwort.',
+  AppTextKey.settingsExitPasswordNextAction: 'Weiter',
+  AppTextKey.settingsExitPasswordMismatch:
+      'Die Eingaben stimmen nicht überein. Bitte geben Sie das neue Passwort erneut ein.',
+  AppTextKey.settingsExitPasswordRules:
+      'Das neue Passwort muss 4 bis 64 Zeichen lang sein.',
+  AppTextKey.settingsExitPasswordSaveFailed:
+      'Das Passwort konnte nicht gespeichert werden.',
+  AppTextKey.settingsExitPasswordChanged:
+      'Das Passwort wurde erfolgreich geändert.',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Darstellung vorbereitet',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Farbgebung und Schriftarten folgen in diesem Bereich.',

@@ -170,7 +170,6 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
   AppTextKey.settingsMapSubtitle: 'Vista del mapa y comportamiento de rutas',
   AppTextKey.settingsMapSemantic: 'Abrir ajustes de mapa',
   AppTextKey.settingsCurrentLanguage: 'Idioma activo',
-  AppTextKey.settingsDiagnosticsRecentLogs: 'Registros recientes del frontend',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Abrir visor de registros',
   AppTextKey.settingsDiagnosticsExit: 'Salir',
   AppTextKey.settingsDiagnosticsRestart: 'Reiniciar',
@@ -183,6 +182,36 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
   AppTextKey.settingsExitPasswordIncorrect: 'Contraseña incorrecta',
   AppTextKey.settingsExitPasswordConfirmAction: 'Confirmar',
   AppTextKey.settingsExitPasswordCancelAction: 'Cancelar',
+  AppTextKey.settingsDiagnosticsGroupMaintenance: 'Mantenimiento',
+  AppTextKey.settingsDiagnosticsGroupInterface: 'Interfaz',
+  AppTextKey.settingsDiagnosticsLogsSubtitle: 'Ver los mensajes de la interfaz',
+  AppTextKey.settingsDiagnosticsChangePassword: 'Cambiar contraseña',
+  AppTextKey.settingsDiagnosticsChangePasswordSubtitle:
+      'Contraseña del modo de mantenimiento',
+  AppTextKey.settingsDiagnosticsRestartSubtitle:
+      'Solo la interfaz; la música sigue sonando',
+  AppTextKey.settingsDiagnosticsExitSubtitle:
+      'Modo de mantenimiento, requiere contraseña',
+  AppTextKey.settingsDiagnosticsVersion: 'Versión',
+  AppTextKey.settingsExitPasswordChecking: 'Comprobando …',
+  AppTextKey.settingsExitPasswordUnavailable:
+      'Ahora mismo no se puede comprobar la contraseña. Inténtelo de nuevo en un momento.',
+  AppTextKey.settingsExitPasswordShow: 'Mostrar contraseña',
+  AppTextKey.settingsExitPasswordHide: 'Ocultar contraseña',
+  AppTextKey.settingsExitPasswordStepCurrent:
+      'Introduzca la contraseña actual.',
+  AppTextKey.settingsExitPasswordStepNew:
+      'Introduzca la contraseña nueva (de 4 a 64 caracteres).',
+  AppTextKey.settingsExitPasswordStepRepeat: 'Repita la contraseña nueva.',
+  AppTextKey.settingsExitPasswordNextAction: 'Siguiente',
+  AppTextKey.settingsExitPasswordMismatch:
+      'Las entradas no coinciden. Introduzca de nuevo la contraseña nueva.',
+  AppTextKey.settingsExitPasswordRules:
+      'La contraseña nueva debe tener entre 4 y 64 caracteres.',
+  AppTextKey.settingsExitPasswordSaveFailed:
+      'No se pudo guardar la contraseña.',
+  AppTextKey.settingsExitPasswordChanged:
+      'La contraseña se ha cambiado correctamente.',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Apariencia preparada',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Los colores y la tipografía se configurarán en esta área.',

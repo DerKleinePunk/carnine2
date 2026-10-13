@@ -168,7 +168,6 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.settingsMapSubtitle: 'Zobrazení mapy a chování tras',
   AppTextKey.settingsMapSemantic: 'Otevřít nastavení mapy',
   AppTextKey.settingsCurrentLanguage: 'Aktivní jazyk',
-  AppTextKey.settingsDiagnosticsRecentLogs: 'Nedávné frontendové logy',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Otevřít prohlížeč logů',
   AppTextKey.settingsDiagnosticsExit: 'Ukončit',
   AppTextKey.settingsDiagnosticsRestart: 'Restartovat',
@@ -181,6 +180,31 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.settingsExitPasswordIncorrect: 'Nesprávné heslo',
   AppTextKey.settingsExitPasswordConfirmAction: 'Potvrdit',
   AppTextKey.settingsExitPasswordCancelAction: 'Zrušit',
+  AppTextKey.settingsDiagnosticsGroupMaintenance: 'Údržba',
+  AppTextKey.settingsDiagnosticsGroupInterface: 'Rozhraní',
+  AppTextKey.settingsDiagnosticsLogsSubtitle: 'Zobrazit zprávy rozhraní',
+  AppTextKey.settingsDiagnosticsChangePassword: 'Změnit heslo',
+  AppTextKey.settingsDiagnosticsChangePasswordSubtitle:
+      'Heslo pro servisní režim',
+  AppTextKey.settingsDiagnosticsRestartSubtitle:
+      'Jen rozhraní, hudba hraje dál',
+  AppTextKey.settingsDiagnosticsExitSubtitle: 'Servisní režim, nutné heslo',
+  AppTextKey.settingsDiagnosticsVersion: 'Verze',
+  AppTextKey.settingsExitPasswordChecking: 'Ověřování …',
+  AppTextKey.settingsExitPasswordUnavailable:
+      'Heslo se teď nedá ověřit. Zkuste to prosím za chvíli znovu.',
+  AppTextKey.settingsExitPasswordShow: 'Zobrazit heslo',
+  AppTextKey.settingsExitPasswordHide: 'Skrýt heslo',
+  AppTextKey.settingsExitPasswordStepCurrent: 'Zadejte prosím aktuální heslo.',
+  AppTextKey.settingsExitPasswordStepNew:
+      'Zadejte prosím nové heslo (4 až 64 znaků).',
+  AppTextKey.settingsExitPasswordStepRepeat: 'Zopakujte prosím nové heslo.',
+  AppTextKey.settingsExitPasswordNextAction: 'Další',
+  AppTextKey.settingsExitPasswordMismatch:
+      'Zadání se neshodují. Zadejte prosím nové heslo znovu.',
+  AppTextKey.settingsExitPasswordRules: 'Nové heslo musí mít 4 až 64 znaků.',
+  AppTextKey.settingsExitPasswordSaveFailed: 'Heslo se nepodařilo uložit.',
+  AppTextKey.settingsExitPasswordChanged: 'Heslo bylo úspěšně změněno.',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Vzhled připraven',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Barvy a typografie se budou konfigurovat v této části.',

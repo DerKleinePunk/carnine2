@@ -7,6 +7,7 @@ import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_overlay.dart';
 import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_scope.dart';
 import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_screen.dart';
+import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +21,7 @@ class CarnineApp extends StatefulWidget {
   const CarnineApp({
     this.uiStateStore,
     this.cameraSettingsStore,
+    this.exitPasswordStore,
     this.controlsRepository,
     super.key,
   });
@@ -29,6 +31,10 @@ class CarnineApp extends StatefulWidget {
 
   /// Where the camera page gets its settings; tests leave it out.
   final CameraSettingsStore? cameraSettingsStore;
+
+  /// Where the password for "Beenden" is checked and changed; tests leave
+  /// it out.
+  final ExitPasswordStore? exitPasswordStore;
 
   /// Where the Technik page gets its controls from; tests leave it out.
   final ControlsRepository? controlsRepository;
@@ -102,6 +108,7 @@ class _CarnineAppState extends State<CarnineApp> {
             languageController: _languageController,
             uiStateStore: widget.uiStateStore,
             cameraSettingsStore: widget.cameraSettingsStore,
+            exitPasswordStore: widget.exitPasswordStore,
             controlsRepository: widget.controlsRepository,
           ),
         );

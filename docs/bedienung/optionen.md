@@ -12,7 +12,7 @@ Vier Kacheln; der Pfeil oben links in jeder Unterseite führt zurück zur
 | **Karteneinstellungen** | noch leer („… vorbereitet“) |
 | **Darstellung & Sprache** | zwei Reiter: **Darstellung** (noch leer) und **Sprache** (Anzeigesprache wählen) |
 | **Geräte** | **Kamera** einstellen; Audio-Ausgang, Handy-App und Netzteil als Vorschau |
-| **System** | Logs, Neustart, Beenden, Updates |
+| **System** | Logs, Updates, Passwort ändern, Neustart, Beenden, Version |
 
 ## Darstellung & Sprache
 
@@ -94,26 +94,74 @@ Der Pfeil oben links führt zurück zu **Geräte**. Die Seite hat zwei Spalten:
 
 ## System
 
-![System: Frontend-Logs, darunter Logansicht öffnen, Nach Updates suchen, Neustart, Beenden](bilder/optionen-system.png)
+![System: zwei Gruppen mit je drei Kacheln, Wartung (Logansicht, Updates, Passwort ändern) und Oberfläche (Neustart, Beenden, Version)](bilder/optionen-system.png)
 
-- **Aktuelle Frontend-Logs:** die letzten 30 Zeilen.
-- **Logansicht öffnen:** alle gepufferten Zeilen (bis 200) in einem Dialog.
+Die Seite hat sechs große Kacheln in zwei Gruppen. Jede Kachel nennt in einer
+Zeile, was sie tut.
+
+**Wartung**
+
+- **Logansicht öffnen:** alle gepufferten Zeilen der Oberfläche (bis 200) in
+  einem Dialog.
 - **Nach Updates suchen:** zeigt nur „Noch nicht verfügbar“ (#20).
+- **Passwort ändern:** ändert das Passwort für **Beenden**, siehe
+  [Beenden-Passwort](#beenden-passwort).
+
+**Oberfläche**
+
 - **Neustart:** startet **nur die Oberfläche** neu, sofort und ohne Rückfrage.
   Auf dem Pi übernimmt systemd den Neustart; Backend und Musik laufen weiter.
-- **Beenden** – der **Wartungsmodus**: fragt nach einem Passwort und beendet
-  dann die Oberfläche. **Das Passwort ist ab Werk `4321`.** Ändern lässt es
-  sich noch nicht, es steht vorläufig fest im Code
-  (`exit_password_dialog.dart`, #51). **Bestätigen** oder **Fertig** auf der
-  Tastatur prüft es, bei falscher Eingabe erscheint „Falsches Passwort“.
-  **Abbrechen** oder Antippen außerhalb des Dialogs bricht ab.
+- **Beenden** (rot): der **Wartungsmodus**. Fragt nach dem
+  [Beenden-Passwort](#beenden-passwort) und beendet dann die Oberfläche.
+- **Version:** zeigt die Versionsnummer der Oberfläche und darunter das Datum
+  des Builds (z. B. `0.17.0` und `2026-10-13`). Die Kachel ist nur eine
+  Anzeige.
 
-  Die Oberfläche startet danach **absichtlich nicht** von selbst neu: Wer das
-  Passwort kennt, soll am Gerät eine Konsole bekommen und dort arbeiten
-  können. Etwa 5 Sekunden nach dem Beenden erscheint die Text-Anmeldung. Das
-  Backend läuft weiter. Zurück zur Oberfläche mit
-  `sudo systemctl start carnine-frontend` oder einem Neustart des Geräts.
-  Stürzt die Oberfläche dagegen ab, startet systemd sie nach 3 Sekunden neu,
-  ohne dass die Konsole dazwischen erscheint.
+### Beenden
 
-  ![Dialog „Passwort erforderlich“ mit leerem Feld, Abbrechen und Bestätigen, darunter die Tastatur](bilder/optionen-beenden.png)
+**Beenden** fragt nach dem Passwort. **Bestätigen** oder **Fertig** auf der
+Tastatur schickt es zur Prüfung an das Backend; solange es prüft (etwa eine
+Sekunde), steht unter dem Feld „Wird geprüft …“. Bei falscher Eingabe erscheint
+„Falsches Passwort“ und das Feld ist wieder leer. **Abbrechen** oder Antippen
+außerhalb des Dialogs bricht ab.
+
+Das **Auge** im Feld zeigt die Eingabe, ein zweiter Tipp blendet sie wieder
+aus. Das Passwort steht sonst nur als Punkte da.
+
+Ist das Backend nicht erreichbar, beendet sich die Oberfläche **nicht**. Unter
+dem Feld steht „Das Passwort kann gerade nicht geprüft werden. Bitte versuchen
+Sie es gleich noch einmal.“, der Dialog bleibt offen, und ein erneutes
+**Bestätigen** versucht es noch einmal.
+
+Die Oberfläche startet danach **absichtlich nicht** von selbst neu: Wer das
+Passwort kennt, soll am Gerät eine Konsole bekommen und dort arbeiten können.
+Etwa 5 Sekunden nach dem Beenden erscheint die Text-Anmeldung. Das Backend
+läuft weiter. Zurück zur Oberfläche mit `sudo systemctl start carnine-frontend`
+oder einem Neustart des Geräts. Stürzt die Oberfläche dagegen ab, startet
+systemd sie nach 3 Sekunden neu, ohne dass die Konsole dazwischen erscheint.
+
+![Dialog „Passwort erforderlich“ mit leerem Feld und dem Auge, Abbrechen und Bestätigen, darunter die Tastatur](bilder/optionen-beenden.png)
+
+### Beenden-Passwort
+
+Das Passwort steht **nicht in dieser Anleitung**. Wer das Gerät eingerichtet
+hat, kennt es. Das Backend hält es nur als Hash (Argon2id); die Oberfläche
+speichert es nirgends. Ändern: **System → Passwort ändern**. Der
+Dialog fragt Schritt für Schritt, mit je einem Feld:
+
+1. **Das aktuelle Passwort.** Ist es falsch, steht „Falsches Passwort“ und es
+   geht nicht weiter.
+2. **Das neue Passwort**, 4 bis 64 Zeichen. Ist es kürzer oder länger, steht
+   „Das neue Passwort muss 4 bis 64 Zeichen lang sein.“
+3. **Das neue Passwort noch einmal.** Stimmen die beiden nicht überein, geht es
+   zurück zu Schritt 2.
+
+Danach steht „Das Passwort wurde erfolgreich geändert.“, **Fertig** schließt den
+Dialog. Das neue Passwort gilt sofort, übersteht einen Neustart und eine
+Neuinstallation der Pakete (`deploy_pi.sh`). Ist das Backend zwischendurch
+nicht erreichbar, bleibt der Dialog auf dem Schritt und meldet es; dann noch
+einmal **Weiter** bzw. **Bestätigen**.
+
+Zurück auf das Passwort aus der Konfiguration (`config.toml`) geht es mit
+`sudo rm /etc/carnine/config.d/30-exit-password.toml` und einem Neustart des
+Backends (`sudo systemctl restart carnine-backend`).

@@ -170,7 +170,6 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.settingsMapSubtitle: 'Widok mapy i zachowanie tras',
   AppTextKey.settingsMapSemantic: 'Otwórz ustawienia mapy',
   AppTextKey.settingsCurrentLanguage: 'Aktywny język',
-  AppTextKey.settingsDiagnosticsRecentLogs: 'Ostatnie logi frontendu',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Otwórz podgląd logów',
   AppTextKey.settingsDiagnosticsExit: 'Zakończ',
   AppTextKey.settingsDiagnosticsRestart: 'Uruchom ponownie',
@@ -183,6 +182,32 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.settingsExitPasswordIncorrect: 'Nieprawidłowe hasło',
   AppTextKey.settingsExitPasswordConfirmAction: 'Potwierdź',
   AppTextKey.settingsExitPasswordCancelAction: 'Anuluj',
+  AppTextKey.settingsDiagnosticsGroupMaintenance: 'Serwis',
+  AppTextKey.settingsDiagnosticsGroupInterface: 'Interfejs',
+  AppTextKey.settingsDiagnosticsLogsSubtitle: 'Wyświetl komunikaty interfejsu',
+  AppTextKey.settingsDiagnosticsChangePassword: 'Zmień hasło',
+  AppTextKey.settingsDiagnosticsChangePasswordSubtitle:
+      'Hasło do trybu serwisowego',
+  AppTextKey.settingsDiagnosticsRestartSubtitle:
+      'Tylko interfejs, muzyka gra dalej',
+  AppTextKey.settingsDiagnosticsExitSubtitle: 'Tryb serwisowy, wymagane hasło',
+  AppTextKey.settingsDiagnosticsVersion: 'Wersja',
+  AppTextKey.settingsExitPasswordChecking: 'Sprawdzanie …',
+  AppTextKey.settingsExitPasswordUnavailable:
+      'Nie można teraz sprawdzić hasła. Proszę spróbować ponownie za chwilę.',
+  AppTextKey.settingsExitPasswordShow: 'Pokaż hasło',
+  AppTextKey.settingsExitPasswordHide: 'Ukryj hasło',
+  AppTextKey.settingsExitPasswordStepCurrent: 'Proszę wpisać obecne hasło.',
+  AppTextKey.settingsExitPasswordStepNew:
+      'Proszę wpisać nowe hasło (od 4 do 64 znaków).',
+  AppTextKey.settingsExitPasswordStepRepeat: 'Proszę powtórzyć nowe hasło.',
+  AppTextKey.settingsExitPasswordNextAction: 'Dalej',
+  AppTextKey.settingsExitPasswordMismatch:
+      'Wpisane hasła nie są zgodne. Proszę wpisać nowe hasło ponownie.',
+  AppTextKey.settingsExitPasswordRules:
+      'Nowe hasło musi mieć od 4 do 64 znaków.',
+  AppTextKey.settingsExitPasswordSaveFailed: 'Nie udało się zapisać hasła.',
+  AppTextKey.settingsExitPasswordChanged: 'Hasło zostało pomyślnie zmienione.',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Wygląd przygotowany',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Kolory i typografia będą konfigurowane w tym obszarze.',

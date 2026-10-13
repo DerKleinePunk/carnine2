@@ -1,26 +1,29 @@
-import 'package:carnine_frontend/core/keyboard/on_screen_text_field.dart';
+import 'dart:async';
+
+import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
+import 'package:carnine_frontend/features/settings/presentation/widgets/password_field.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
-import 'package:carnine_frontend/styles/colors.dart';
-import 'package:carnine_frontend/styles/text_styles.dart';
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
 
-/// Confirms exit with a password prompt before [AppWindow.exitApplication]
-/// runs.
-///
-/// Mockup only: the accepted password is hardcoded, there is no real
-/// authentication backend yet - see [_mockPassword].
+/// Asks for the password before [AppWindow.exitApplication] runs. The backend
+/// checks it (`VerifyExitPassword`); without an answer the frontend does not
+/// exit (#51).
 class ExitPasswordDialog extends StatefulWidget {
-  const ExitPasswordDialog({super.key});
+  const ExitPasswordDialog({required this.store, super.key});
 
-  // TODO(auth): replace with a real credential check once one exists.
-  static const String _mockPassword = '4321';
+  /// `null` without a backend: the password cannot be checked then.
+  final ExitPasswordStore? store;
 
-  /// Shows the dialog and resolves to `true` only if the mock password was
-  /// entered correctly - `false` on cancel or on dismissing the barrier.
-  static Future<bool> show(BuildContext context) async {
+  /// Shows the dialog and resolves to `true` only if the backend accepted the
+  /// password - `false` on cancel or on dismissing the barrier.
+  static Future<bool> show(
+    BuildContext context, {
+    required ExitPasswordStore? store,
+  }) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => const ExitPasswordDialog(),
+      builder: (context) => ExitPasswordDialog(store: store),
     );
 
     return confirmed ?? false;
@@ -30,9 +33,13 @@ class ExitPasswordDialog extends StatefulWidget {
   State<ExitPasswordDialog> createState() => _ExitPasswordDialogState();
 }
 
+enum _Problem { wrong, unavailable }
+
 class _ExitPasswordDialogState extends State<ExitPasswordDialog> {
+  final Logger _logger = Logger('ExitPasswordDialog');
   final TextEditingController _passwordController = TextEditingController();
-  bool _showError = false;
+  bool _checking = false;
+  _Problem? _problem;
 
   @override
   void dispose() {
@@ -40,52 +47,81 @@ class _ExitPasswordDialogState extends State<ExitPasswordDialog> {
     super.dispose();
   }
 
-  void _confirm() {
-    if (_passwordController.text == ExitPasswordDialog._mockPassword) {
-      Navigator.of(context).pop(true);
+  Future<void> _confirm() async {
+    if (_checking) {
       return;
     }
+    setState(() {
+      _checking = true;
+      _problem = null;
+    });
 
-    setState(() => _showError = true);
-    _passwordController.clear();
+    _Problem? problem;
+    try {
+      final store = widget.store;
+      if (store == null) {
+        throw const ExitPasswordException(ExitPasswordFailure.unreachable);
+      }
+      final valid = await store.verify(_passwordController.text);
+      if (!mounted) {
+        return;
+      }
+      if (valid) {
+        Navigator.of(context).pop(true);
+        return;
+      }
+      problem = _Problem.wrong;
+    } on ExitPasswordException catch (error) {
+      _logger.info('The password could not be checked: $error');
+      problem = _Problem.unavailable;
+    }
+
+    if (!mounted) {
+      return;
+    }
+    if (problem == _Problem.wrong) {
+      _passwordController.clear();
+    }
+    setState(() {
+      _checking = false;
+      _problem = problem;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final problem = _problem;
+    final statusKey = _checking
+        ? AppTextKey.settingsExitPasswordChecking
+        : switch (problem) {
+            _Problem.wrong => AppTextKey.settingsExitPasswordIncorrect,
+            _Problem.unavailable => AppTextKey.settingsExitPasswordUnavailable,
+            null => null,
+          };
 
-    return AlertDialog(
-      // A default centered dialog would sit low enough on this fixed 600px
-      // display for the on-screen keyboard - which opens immediately, since
-      // the field autofocuses - to cover its own Confirm/Cancel buttons.
-      // Anchoring near the top keeps the whole dialog clear of that region.
-      alignment: const Alignment(0, -0.6),
-      title: Text(l10n.text(AppTextKey.settingsExitPasswordTitle)),
+    return PasswordDialogFrame(
+      title: l10n.text(AppTextKey.settingsExitPasswordTitle),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 320,
-            child: OnScreenTextField(
+            width: 360,
+            child: PasswordField(
               controller: _passwordController,
-              autofocus: true,
-              obscureText: true,
-              onSubmitted: (_) => _confirm(),
-              semanticLabel: l10n.text(AppTextKey.settingsExitPasswordHint),
               hintText: l10n.text(AppTextKey.settingsExitPasswordHint),
+              onSubmitted: (_) => unawaited(_confirm()),
             ),
           ),
-          if (_showError) ...[
-            const SizedBox(height: 8),
-            Text(
-              l10n.text(AppTextKey.settingsExitPasswordIncorrect),
-              style: AppTextStyles.bodyLarge.copyWith(
-                color: AppColors.error,
-                fontSize: 12,
-              ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: 360,
+            child: PasswordMessage(
+              text: statusKey == null ? null : l10n.text(statusKey),
+              isError: !_checking,
             ),
-          ],
+          ),
         ],
       ),
       actions: [
@@ -94,7 +130,7 @@ class _ExitPasswordDialogState extends State<ExitPasswordDialog> {
           child: Text(l10n.text(AppTextKey.settingsExitPasswordCancelAction)),
         ),
         TextButton(
-          onPressed: _confirm,
+          onPressed: _checking ? null : () => unawaited(_confirm()),
           child: Text(l10n.text(AppTextKey.settingsExitPasswordConfirmAction)),
         ),
       ],

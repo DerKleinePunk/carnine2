@@ -166,7 +166,6 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.settingsMapSubtitle: 'Kartvy och ruttbeteende',
   AppTextKey.settingsMapSemantic: 'Öppna kartinställningar',
   AppTextKey.settingsCurrentLanguage: 'Aktivt språk',
-  AppTextKey.settingsDiagnosticsRecentLogs: 'Senaste frontendloggar',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Öppna loggvisaren',
   AppTextKey.settingsDiagnosticsExit: 'Avsluta',
   AppTextKey.settingsDiagnosticsRestart: 'Starta om',
@@ -179,6 +178,32 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.settingsExitPasswordIncorrect: 'Fel lösenord',
   AppTextKey.settingsExitPasswordConfirmAction: 'Bekräfta',
   AppTextKey.settingsExitPasswordCancelAction: 'Avbryt',
+  AppTextKey.settingsDiagnosticsGroupMaintenance: 'Underhåll',
+  AppTextKey.settingsDiagnosticsGroupInterface: 'Gränssnitt',
+  AppTextKey.settingsDiagnosticsLogsSubtitle: 'Visa gränssnittets meddelanden',
+  AppTextKey.settingsDiagnosticsChangePassword: 'Ändra lösenord',
+  AppTextKey.settingsDiagnosticsChangePasswordSubtitle:
+      'Lösenord för underhållsläget',
+  AppTextKey.settingsDiagnosticsRestartSubtitle:
+      'Bara gränssnittet, musiken spelar vidare',
+  AppTextKey.settingsDiagnosticsExitSubtitle: 'Underhållsläge, lösenord krävs',
+  AppTextKey.settingsDiagnosticsVersion: 'Version',
+  AppTextKey.settingsExitPasswordChecking: 'Kontrollerar …',
+  AppTextKey.settingsExitPasswordUnavailable:
+      'Lösenordet kan inte kontrolleras just nu. Försök igen om en stund.',
+  AppTextKey.settingsExitPasswordShow: 'Visa lösenord',
+  AppTextKey.settingsExitPasswordHide: 'Dölj lösenord',
+  AppTextKey.settingsExitPasswordStepCurrent: 'Ange det nuvarande lösenordet.',
+  AppTextKey.settingsExitPasswordStepNew:
+      'Ange det nya lösenordet (4 till 64 tecken).',
+  AppTextKey.settingsExitPasswordStepRepeat: 'Upprepa det nya lösenordet.',
+  AppTextKey.settingsExitPasswordNextAction: 'Nästa',
+  AppTextKey.settingsExitPasswordMismatch:
+      'Inmatningarna stämmer inte överens. Ange det nya lösenordet igen.',
+  AppTextKey.settingsExitPasswordRules:
+      'Det nya lösenordet måste vara 4 till 64 tecken långt.',
+  AppTextKey.settingsExitPasswordSaveFailed: 'Lösenordet kunde inte sparas.',
+  AppTextKey.settingsExitPasswordChanged: 'Lösenordet har ändrats.',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Utseende förberett',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Färger och typografi kommer att konfigureras här.',

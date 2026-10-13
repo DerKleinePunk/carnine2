@@ -24,15 +24,15 @@ Wie das Image auf die Karte kommt, steht unter
 
 `root` hat kein Passwort und kann sich nicht anmelden.
 
-**Es gibt zwei Passwörter**, beide sind ab Werk bekannt:
+**Es gibt zwei Passwörter**, beide sind ab Werk bekannt oder lassen sich
+erfragen:
 
 | Passwort | Ab Werk | Ändern |
 |---|---|---|
 | Benutzer `pi` (Anmeldung, SSH, `sudo`) | `raspberry` | gleich nach dem ersten Start, siehe [Passwort ändern](#passwort-ändern) |
-| **Optionen → Beenden** in der Oberfläche | `4321` | geht noch nicht, es steht fest im Code (#51) |
+| **Optionen → System → Beenden** in der Oberfläche | steht nicht in dieser Anleitung | in der Oberfläche unter **System → Passwort ändern**, siehe [Optionen](optionen.md#beenden-passwort) |
 
-Beide gehören nach der Inbetriebnahme geändert. Für das Passwort von `pi` geht
-das heute schon; für das Beenden-Passwort, sobald die Oberfläche es kann.
+Beide gehören nach der Inbetriebnahme geändert.
 
 Solange `pi` noch das Standardpasswort hat, erscheint bei **jeder
 Anmeldung**, an der Konsole wie per SSH, diese Warnung:

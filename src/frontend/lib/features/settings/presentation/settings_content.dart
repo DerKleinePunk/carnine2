@@ -2,10 +2,11 @@ import 'package:carnine_frontend/core/logging/app_logging.dart';
 import 'package:carnine_frontend/core/logging/log_viewer_dialog.dart';
 import 'package:carnine_frontend/core/platform/app_window.dart';
 import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart';
+import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/features/settings/presentation/models/settings_option_item.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_controller.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/camera_settings_page.dart';
-import 'package:carnine_frontend/features/settings/presentation/widgets/exit_password_dialog.dart';
+import 'package:carnine_frontend/features/settings/presentation/widgets/system_page.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/language_flag.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/settings_choice_button.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
@@ -25,6 +26,7 @@ class SettingsContent extends StatefulWidget {
     this.onRestart,
     this.onExit,
     this.cameraSettingsStore,
+    this.exitPasswordStore,
     this.onShowCamera,
     super.key,
   });
@@ -35,6 +37,11 @@ class SettingsContent extends StatefulWidget {
   /// Where the camera settings live. Without one (tests, no backend) the
   /// camera row on "Geräte" stays a preview.
   final CameraSettingsStore? cameraSettingsStore;
+
+  /// Where the password for "Beenden" is checked and changed. Without one
+  /// (tests, no backend) the exit is refused and the password cannot be
+  /// changed.
+  final ExitPasswordStore? exitPasswordStore;
 
   /// Opens the Kamera page, so a changed setting can be looked at.
   final VoidCallback? onShowCamera;
@@ -101,12 +108,12 @@ class _SettingsContentState extends State<SettingsContent> {
       key: ValueKey<SettingsSection>(openSection),
       item: _optionFor(openSection),
       languageController: widget.languageController,
-      logLines: _logLines,
       onBack: _controller.closeSection,
       devicePage: _controller.openDevicePage,
       onOpenDevicePage: _controller.showDevicePage,
       onCloseDevicePage: _controller.closeDevicePage,
       cameraSettingsStore: widget.cameraSettingsStore,
+      exitPasswordStore: widget.exitPasswordStore,
       onShowCamera: widget.onShowCamera,
       onOpenLogs: _openLogViewer,
       onRestart: widget.onRestart ?? AppWindow.restartApplication,
@@ -355,12 +362,12 @@ class _SettingsSectionPage extends StatelessWidget {
   const _SettingsSectionPage({
     required this.item,
     required this.languageController,
-    required this.logLines,
     required this.onBack,
     required this.devicePage,
     required this.onOpenDevicePage,
     required this.onCloseDevicePage,
     required this.cameraSettingsStore,
+    required this.exitPasswordStore,
     required this.onShowCamera,
     required this.onOpenLogs,
     required this.onRestart,
@@ -370,12 +377,12 @@ class _SettingsSectionPage extends StatelessWidget {
 
   final SettingsOptionItem item;
   final AppLanguageController languageController;
-  final ValueListenable<List<String>> logLines;
   final VoidCallback onBack;
   final SettingsDevicePage? devicePage;
   final ValueChanged<SettingsDevicePage> onOpenDevicePage;
   final VoidCallback onCloseDevicePage;
   final CameraSettingsStore? cameraSettingsStore;
+  final ExitPasswordStore? exitPasswordStore;
   final VoidCallback? onShowCamera;
   final VoidCallback onOpenLogs;
   final VoidCallback onRestart;
@@ -425,8 +432,8 @@ class _SettingsSectionPage extends StatelessWidget {
         languageController: languageController,
       ),
       SettingsSection.devices => _devicesBody(),
-      SettingsSection.diagnostics => _DiagnosticsPage(
-        logLines: logLines,
+      SettingsSection.diagnostics => SystemPage(
+        exitPasswordStore: exitPasswordStore,
         onOpenLogs: onOpenLogs,
         onRestart: onRestart,
         onExit: onExit,
@@ -1036,184 +1043,6 @@ class _LanguageOptionTile extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _DiagnosticsPage extends StatelessWidget {
-  const _DiagnosticsPage({
-    required this.logLines,
-    required this.onOpenLogs,
-    required this.onRestart,
-    required this.onExit,
-  });
-
-  final ValueListenable<List<String>> logLines;
-  final VoidCallback onOpenLogs;
-  final VoidCallback onRestart;
-  final VoidCallback onExit;
-
-  Future<void> _showUpdatesUnavailable(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-
-    return showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(
-          l10n.text(AppTextKey.settingsDiagnosticsUpdatesUnavailableTitle),
-        ),
-        content: Text(
-          l10n.text(AppTextKey.settingsDiagnosticsUpdatesUnavailableMessage),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(l10n.text(AppTextKey.close)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _confirmExit(BuildContext context) async {
-    final confirmed = await ExitPasswordDialog.show(context);
-    if (confirmed) {
-      onExit();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionLabel(
-          text: l10n.text(AppTextKey.settingsDiagnosticsRecentLogs),
-        ),
-        const SizedBox(height: 12),
-        Expanded(child: _InlineLogPanel(logLines: logLines)),
-        const SizedBox(height: 14),
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: onOpenLogs,
-                icon: const Icon(Icons.article, size: 22),
-                label: Text(l10n.text(AppTextKey.settingsDiagnosticsOpenLogs)),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => _showUpdatesUnavailable(context),
-                icon: const Icon(Icons.system_update, size: 22),
-                label: Text(
-                  l10n.text(AppTextKey.settingsDiagnosticsCheckUpdates),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: onRestart,
-                icon: const Icon(Icons.restart_alt, size: 22),
-                label: Text(l10n.text(AppTextKey.settingsDiagnosticsRestart)),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => _confirmExit(context),
-                icon: const Icon(Icons.power_settings_new, size: 22),
-                label: Text(l10n.text(AppTextKey.settingsDiagnosticsExit)),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _InlineLogPanel extends StatelessWidget {
-  const _InlineLogPanel({required this.logLines});
-
-  final ValueListenable<List<String>> logLines;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainer,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.outlineVariant20),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: ValueListenableBuilder<List<String>>(
-          valueListenable: logLines,
-          builder: (context, logs, child) => _InlineLogList(logs: logs),
-        ),
-      ),
-    );
-  }
-}
-
-class _InlineLogList extends StatelessWidget {
-  const _InlineLogList({required this.logs});
-
-  final List<String> logs;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-
-    if (logs.isEmpty) {
-      return Center(
-        child: Text(
-          l10n.text(AppTextKey.noLogEntriesYet),
-          textAlign: TextAlign.center,
-          style: AppTextStyles.bodyLarge.copyWith(
-            color: AppColors.onSurfaceVariant,
-          ),
-        ),
-      );
-    }
-
-    return _VisibleLogList(logs: logs);
-  }
-}
-
-class _VisibleLogList extends StatelessWidget {
-  const _VisibleLogList({required this.logs});
-
-  final List<String> logs;
-
-  @override
-  Widget build(BuildContext context) {
-    final visibleLogs = logs.length > 30
-        ? logs.sublist(logs.length - 30)
-        : logs;
-
-    return ListView.builder(
-      itemCount: visibleLogs.length,
-      itemBuilder: (context, index) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Text(
-            visibleLogs[index],
-            style: AppTextStyles.logLine.copyWith(
-              color: AppColors.onSurfaceVariant,
-            ),
-          ),
-        );
-      },
     );
   }
 }

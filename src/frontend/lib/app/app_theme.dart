@@ -13,6 +13,11 @@ abstract final class CarnineTheme {
     return ThemeData.dark(useMaterial3: true).copyWith(
       colorScheme: _darkColorScheme,
       scaffoldBackgroundColor: AppColors.surface,
+      // The top layer: a dialog must stand out from the page and the dimmed
+      // area behind it, which are both as dark as the surface.
+      dialogTheme: const DialogThemeData(
+        backgroundColor: AppColors.surfaceContainerHighest,
+      ),
       textTheme: const TextTheme(
         headlineLarge: AppTextStyles.headlineLarge,
         bodyLarge: AppTextStyles.bodyLarge,

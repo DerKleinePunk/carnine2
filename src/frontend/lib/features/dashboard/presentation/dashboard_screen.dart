@@ -14,6 +14,7 @@ import 'package:carnine_frontend/features/dashboard/presentation/widgets/dashboa
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/side_menu.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/thermal_warning_overlay.dart';
 import 'package:carnine_frontend/features/media/presentation/media_controller.dart';
+import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -29,6 +30,7 @@ class DashboardScreen extends StatefulWidget {
     this.thermalWarningController,
     this.uiStateStore,
     this.cameraSettingsStore,
+    this.exitPasswordStore,
     this.controlsRepository,
     this.cameraSourceFactory,
     super.key,
@@ -47,6 +49,9 @@ class DashboardScreen extends StatefulWidget {
 
   /// Where the camera page gets its settings; without it the defaults.
   final CameraSettingsStore? cameraSettingsStore;
+
+  /// Where the password for "Beenden" is checked and changed.
+  final ExitPasswordStore? exitPasswordStore;
 
   /// Where the Technik page gets its controls from; tests leave it out.
   final ControlsRepository? controlsRepository;
@@ -223,6 +228,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   mediaController: _mediaController,
                   mapsController: _mapsController,
                   cameraSettingsStore: widget.cameraSettingsStore,
+                  exitPasswordStore: widget.exitPasswordStore,
                   cameraSourceFactory: widget.cameraSourceFactory,
                   onShowCamera: () => _controller.selectDestination(
                     DashboardDestination.camera,

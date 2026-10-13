@@ -166,7 +166,6 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.settingsMapSubtitle: 'Kaartweergave en routegedrag',
   AppTextKey.settingsMapSemantic: 'Kaartinstellingen openen',
   AppTextKey.settingsCurrentLanguage: 'Actieve taal',
-  AppTextKey.settingsDiagnosticsRecentLogs: 'Recente frontend-logs',
   AppTextKey.settingsDiagnosticsOpenLogs: 'Logweergave openen',
   AppTextKey.settingsDiagnosticsExit: 'Afsluiten',
   AppTextKey.settingsDiagnosticsRestart: 'Herstarten',
@@ -179,6 +178,36 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.settingsExitPasswordIncorrect: 'Onjuist wachtwoord',
   AppTextKey.settingsExitPasswordConfirmAction: 'Bevestigen',
   AppTextKey.settingsExitPasswordCancelAction: 'Annuleren',
+  AppTextKey.settingsDiagnosticsGroupMaintenance: 'Onderhoud',
+  AppTextKey.settingsDiagnosticsGroupInterface: 'Interface',
+  AppTextKey.settingsDiagnosticsLogsSubtitle:
+      'Berichten van de interface bekijken',
+  AppTextKey.settingsDiagnosticsChangePassword: 'Wachtwoord wijzigen',
+  AppTextKey.settingsDiagnosticsChangePasswordSubtitle:
+      'Wachtwoord voor de onderhoudsmodus',
+  AppTextKey.settingsDiagnosticsRestartSubtitle:
+      'Alleen de interface, de muziek speelt door',
+  AppTextKey.settingsDiagnosticsExitSubtitle:
+      'Onderhoudsmodus, wachtwoord vereist',
+  AppTextKey.settingsDiagnosticsVersion: 'Versie',
+  AppTextKey.settingsExitPasswordChecking: 'Controleren …',
+  AppTextKey.settingsExitPasswordUnavailable:
+      'Het wachtwoord kan nu niet worden gecontroleerd. Probeer het zo meteen opnieuw.',
+  AppTextKey.settingsExitPasswordShow: 'Wachtwoord tonen',
+  AppTextKey.settingsExitPasswordHide: 'Wachtwoord verbergen',
+  AppTextKey.settingsExitPasswordStepCurrent: 'Voer het huidige wachtwoord in.',
+  AppTextKey.settingsExitPasswordStepNew:
+      'Voer het nieuwe wachtwoord in (4 tot 64 tekens).',
+  AppTextKey.settingsExitPasswordStepRepeat: 'Herhaal het nieuwe wachtwoord.',
+  AppTextKey.settingsExitPasswordNextAction: 'Volgende',
+  AppTextKey.settingsExitPasswordMismatch:
+      'De invoer komt niet overeen. Voer het nieuwe wachtwoord opnieuw in.',
+  AppTextKey.settingsExitPasswordRules:
+      'Het nieuwe wachtwoord moet 4 tot 64 tekens lang zijn.',
+  AppTextKey.settingsExitPasswordSaveFailed:
+      'Het wachtwoord kon niet worden opgeslagen.',
+  AppTextKey.settingsExitPasswordChanged:
+      'Het wachtwoord is succesvol gewijzigd.',
   AppTextKey.settingsAppearanceComingSoonTitle: 'Weergave voorbereid',
   AppTextKey.settingsAppearanceComingSoonDescription:
       'Kleuren en typografie worden hier geconfigureerd.',

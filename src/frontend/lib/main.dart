@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:carnine_frontend/app/carnine_app.dart';
 import 'package:carnine_frontend/features/controls/data/controls_repository.dart';
 import 'package:carnine_frontend/app/ui_readiness.dart';
+import 'package:carnine_frontend/core/app_version.dart';
 import 'package:carnine_frontend/core/logging/app_logging.dart';
 import 'package:carnine_frontend/core/platform/app_window.dart';
 import 'package:carnine_frontend/data/services/carnine_grpc_service.dart';
@@ -23,6 +24,8 @@ const _uiReadyMinFrames = 5;
 const _uiReadyFrameForceInterval = Duration(milliseconds: 100);
 const _uiReadyMaxWait = Duration(seconds: 5);
 
+// build_pi.sh stamps the version into the two defaults below, so they stay
+// here, in main.dart, and are handed to [AppVersion] at start.
 const _carnineVersion = String.fromEnvironment(
   'CARNINE_VERSION',
   defaultValue: 'unknown',
@@ -38,6 +41,7 @@ Future<void> main() async {
   await AppWindow.ensureConfigured();
   await AppLogging.initialize();
 
+  AppVersion.initialize(version: _carnineVersion, build: _carnineBuildVersion);
   AppLogging.frontend.info(
     'Frontend app started; version=$_carnineVersion build=$_carnineBuildVersion',
   );
@@ -46,6 +50,7 @@ Future<void> main() async {
     CarnineApp(
       uiStateStore: backend,
       cameraSettingsStore: backend,
+      exitPasswordStore: backend,
       controlsRepository: GrpcControlsRepository(),
     ),
   );
