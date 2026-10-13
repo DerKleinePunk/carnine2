@@ -737,11 +737,17 @@ splitter (switch set to 5.1) on four speakers.
 (silence in the bitstream, so the decoder keeps its lock). On jeep-pi with
 music and replay announcements (3 × 60 s each) the backend took 66–101 % of
 one core instead of 9–22 % with stereo, the whole system 32–42 % of four
-cores instead of 18–23 %. Almost all of it is the audio thread `cpal_alsa`,
-about 89 % of a core, and most of that is system time between `a52` and the
-HDMI device, not the encoding itself.
-Larger buffers and periods in the chain and opening the backend at 48 kHz
-(it opens at 44.1 kHz, so the plug resamples) are still to be tried.
+cores instead of 18–23 %, so about one core all the time. Almost all of it
+is the audio thread `cpal_alsa`, and most of that is system time. The cause
+is not the encoding but the `a52` plugin: it passes the device's "ready" on
+unfiltered although it cannot take data yet, so the writer spins (about
+19,000 `SYNC_PTR` calls in 5 s, with silence too). Its periods are fixed at
+1536 frames (alsa-plugins 1.2.12); larger periods on the application side
+and 48 kHz instead of 44.1 kHz do not help (measured on carnine-pc, a52 alone
+into the ALSA loopback with silence: about 36 % of a core, 39 % at 44.1 kHz).
+A `dmix` in between would fix it (3.6 %), but `dmix` cannot feed vc4 HDMI,
+which takes only IEC958 subframes. Whether to leave it, patch the plugin or
+encode AC-3 in the backend is still open.
 
 **No pop.** The splitter does not pop when playback stops: the carrier never
 breaks off, because pause is silence inside the running AC-3 stream. That

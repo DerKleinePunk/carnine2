@@ -658,7 +658,7 @@ dauerhafter PipeWire-/PulseAudio-Daemon, oder akzeptieren - im Betrieb ist er
 praktisch nur beim Herunterfahren und bei jedem Deployment hoerbar.
 
 Gegenprobe vom 2026-10-13 auf jeep-pi: Mit dem 5.1-HDMI-Splitter und der
-Image-Variante `hdmi-ac3` ploppt nichts mehr. Dort laeuft der AC-3-Strom
+Einstellung der Variante `hdmi-ac3` (von Hand eingerichtet) ploppt nichts mehr. Dort laeuft der AC-3-Strom
 ununterbrochen (Pause ist Stille im Strom), der Decoder des Splitters verliert
 den Lock nie. Das passt zum Befund oben: Der Plopp ist eine Eigenschaft der
 Senke (des Waveshare-Panels), nicht des Pi
