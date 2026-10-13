@@ -49,7 +49,9 @@ if [ "$output" = hdmi-ac3 ]; then
     cat > "$asound_conf" << '__EOF__'
 # Written by carnine-audio-output.sh (audio_output hdmi-ac3): four channels
 # through the volume control PCM (amixer -c 0, as on plain HDMI) and the
-# AC-3 encoder to HDMI0, AES0=0x06 marks the stream as non-audio.
+# AC-3 encoder to HDMI0, AES0=0x06 marks the stream as non-audio. The control
+# has the full name vc4-hdmi.conf gives it ("PCM Playback Volume"): with a
+# plain "PCM" next to the restored one, amixer finds two and fails.
 pcm.!default {
     type plug
     slave.pcm "carnine_volume"
@@ -58,7 +60,7 @@ pcm.carnine_volume {
     type softvol
     slave.pcm "carnine_ac3"
     control {
-        name "PCM"
+        name "PCM Playback Volume"
         card 0
     }
 }

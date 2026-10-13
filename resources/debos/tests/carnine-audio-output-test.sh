@@ -53,9 +53,9 @@ sh "$SCRIPT" hdmi-ac3 "$tree" > /dev/null
 check "hdmi-ac3: slots" "$(modprobe_line "$tree")" "options snd slots=vc4,vc4,snd_bcm2835"
 check "hdmi-ac3: default goes through the volume control" \
     "$(grep -c 'slave.pcm "carnine_volume"' "$tree/etc/asound.conf")" "1"
-check "hdmi-ac3: volume control PCM on card 0" \
+check "hdmi-ac3: the same volume control as plain HDMI (one PCM for amixer)" \
     "$(grep -A3 'control {' "$tree/etc/asound.conf" | tr '\n' ' ' | tr -s ' ')" \
-    ' control { name "PCM" card 0 } '
+    ' control { name "PCM Playback Volume" card 0 } '
 check "hdmi-ac3: a52 to HDMI0 as non-audio" \
     "$(grep -c 'slavepcm "hdmi:CARD=vc4hdmi0,AES0=0x06"' "$tree/etc/asound.conf")" "1"
 check "hdmi-ac3: four channels in the encoder" "$(grep -c '^    channels 4$' "$tree/etc/asound.conf")" "1"
