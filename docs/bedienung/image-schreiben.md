@@ -37,7 +37,9 @@ Festplatte.
 | `…-waveshare-7c` | aus der Klinke | Waveshare **7C** (ohne Lautsprecher), siehe [unten](#waveshare-7c) |
 
 Im Zweifel `hdmi`. Umstellen geht später auch noch, siehe
-[Ton über die Klinke](ton-klinke.md).
+[Ton über die Klinke](ton-klinke.md). Für Boxen vorne und hinten über einen
+5.1-Decoder gibt es kein eigenes fertiges Image: das `hdmi`-Image nehmen und
+umstellen wie in [Ton über vier Boxen](ton-vier-boxen.md).
 
 **Das `7c`-Image nicht an ein 7H.** Ohne die Vorgabe meldet sich das 7H mit
 seiner geklonten Kennung, in der 1024 × 600 fehlt. Der Pi wählt dann

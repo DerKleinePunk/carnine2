@@ -25,13 +25,15 @@ Die Kapitel 2 bis 6 folgen dem Seitenmenü von oben nach unten.
    passiert, was noch Platzhalter ist, Dauertest einrichten
 9. [Ton über die Klinke](ton-klinke.md) – für Displays ohne Lautsprecher
    (z. B. Waveshare 7C)
-10. [Image auf die SD-Karte schreiben](image-schreiben.md) – unter Windows
+10. [Ton über vier Boxen](ton-vier-boxen.md) – vorne und hinten über einen
+    5.1-Decoder, Ansagen nur vorne
+11. [Image auf die SD-Karte schreiben](image-schreiben.md) – unter Windows
     mit Rufus, unter Linux mit `bmaptool`, welche Variante, erster Start
-11. [Nach der Installation](nach-der-installation.md) – Standardpasswort und
+12. [Nach der Installation](nach-der-installation.md) – Standardpasswort und
     Gerätenamen ändern, WLAN einrichten, Kartendaten installieren
-12. [Befehle auf dem Gerät](befehle.md) – alle Befehle, die das Image
+13. [Befehle auf dem Gerät](befehle.md) – alle Befehle, die das Image
     mitbringt, und was von selbst läuft
-13. [Lizenzen](lizenzen.md) – wo die Lizenztexte auf dem Gerät liegen und
+14. [Lizenzen](lizenzen.md) – wo die Lizenztexte auf dem Gerät liegen und
     wie man den Quellcode bekommt
 
 ## Die häufigsten Abläufe

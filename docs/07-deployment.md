@@ -656,6 +656,104 @@ sudo systemctl restart carnine-backend
 Then check in the UI that music plays on the panel and that the volume
 slider changes `amixer -c 0 get PCM`.
 
+#### Four speakers over AC-3 (`hdmi-ac3`)
+
+For a car with front and rear speakers, the sound can leave HDMI0 as an AC-3
+(Dolby Digital) bitstream to a 5.1 decoder between the Pi and the panel, such
+as the HDMI splitter with analogue outputs on jeep-pi (since 13.10.2026). Such
+a decoder takes multichannel sound only as AC-3 or DTS; its EDID offers no
+multichannel PCM, and plain stereo PCM it plays in front only.
+
+**What the backend does** (fdc3b66, 3dd494d). With `[audio] channels = 4` it
+opens the output with four channels in ALSA's order: front left/right, rear
+left/right (with 6, centre and LFE stay silent). The mixer renders front and
+rear apart:
+
+| | Front | Rear |
+|---|---|---|
+| Music | yes, lowered during an announcement (`music_under_percent`) | yes, always at the rear level |
+| Announcements | yes | no |
+| Pause | silent | silent |
+
+`[audio] rear_percent` (0–100, 100 unless given) scales the rear channels
+after the mixer, for a rear amplifier much stronger than the front one. It
+is linear like the music level under announcements: 50 ≈ −6 dB,
+30 ≈ −10 dB, 10 = −20 dB. On jeep-pi (160 W behind, 20 W in front) 30 fitted
+by ear; the template `resources/config/carnine.toml` carries it as an
+example. Without `channels` (or with 2) everything is stereo as before and
+`rear_percent` does nothing. The configuration check refuses `channels` other
+than 2, 4 or 6 and `rear_percent` above 100. Both are read at start, so a
+change needs `sudo systemctl restart carnine-backend`; the UI and
+`UpdateConfiguration` do not touch them.
+
+**The ALSA chain.** `/etc/asound.conf` replaces the card's `default` device:
+plug → softvol `PCM Playback Volume` on card 0 → `a52` (448 kbit/s, 48 kHz,
+4 channels, package `libasound2-plugins`) → `hdmi:CARD=vc4hdmi0,AES0=0x06`,
+where `AES0=0x06` marks the stream as non-audio IEC 61937. The volume control
+keeps the full name `vc4-hdmi.conf` gives it, so `alsa-restore` and the
+backend's `amixer -c 0 sset PCM` find one control, not two (e11179e: with a
+plain `PCM` the first start on jeep-pi stayed silent). The control sits in
+front of the encoder, because a bitstream cannot be scaled afterwards. For
+`channels = 6` the line `channels 4` in `pcm.carnine_ac3` has to say 6 as
+well.
+
+**Switching it on.** Build the image with `-t audio_output:hdmi-ac3`: HDMI0
+stays card 0 as with `hdmi`, the recipe installs `libasound2-plugins`, and
+`carnine-audio-output.sh` writes `/etc/asound.conf` and
+`/etc/carnine/config.d/20-audio-ac3.toml` (`[audio]` `channels = 4`). Add
+`rear_percent` in a drop-in of its own if the rear is too loud. On a running
+device the same by hand, as the user guide page
+[Ton über vier Boxen](bedienung/ton-vier-boxen.md) shows; nothing needs a
+reboot or a new initramfs.
+
+**Switching it off.** Delete `/etc/asound.conf` and the drop-in (or the
+`channels` line) and restart the backend: it is stereo PCM on HDMI0 again,
+exactly as before. Building with `hdmi` or `jack` removes both files too.
+There is no switch in the UI on purpose: without an AC-3 decoder in front of
+it, a panel or TV that takes only PCM stays silent. A switch would belong on
+the expert page (#138).
+
+**Checks.** The backend log names the channels when the stream starts:
+
+```
+cpal audio output stream started … channels=4 sample_format=F32
+```
+
+ALSA's plug offers I8 first, which the stream cannot write, so the backend
+picks f32, i16 or u16 with the asked channels. If the device offers none,
+the backend logs "offers no usable configuration with 4 channels" and
+behaves as without an
+output device: it reports `AUDIO_OUTPUT_UNAVAILABLE`, the UI shows its hint,
+and the player retries (#55, #56).
+
+On carnine-pc (13.10.2026, the a52 chain into a file over the ALSA
+loopback, nothing audible) a52 kept four discrete channels, the volume
+control lowered all four alike, and the backend at `channels = 4` put music
+on front and rear at −22 dB, during an announcement front −32 dB plus speech
+and rear −22 dB without speech. On jeep-pi Michael heard it through the
+splitter (switch set to 5.1) on four speakers.
+
+**CPU.** The stream runs all the time, also while the music is paused
+(silence in the bitstream, so the decoder keeps its lock). On jeep-pi with
+music and replay announcements (3 × 60 s each) the backend took 66–101 % of
+one core instead of 9–22 % with stereo, the whole system 32–42 % of four
+cores instead of 18–23 %. Almost all of it is the audio thread `cpal_alsa`,
+about 89 % of a core, and most of that is system time between `a52` and the
+HDMI device, not the encoding itself.
+Larger buffers and periods in the chain and opening the backend at 48 kHz
+(it opens at 44.1 kHz, so the plug resamples) are still to be tried.
+
+**No pop.** The splitter does not pop when playback stops: the carrier never
+breaks off, because pause is silence inside the running AC-3 stream. That
+fits the finding that the pop comes from the Waveshare panel losing the HDMI
+carrier, not from the Pi
+([20 – Media Backend Plan](20-media-backend-plan.md#der-plopp-kommt-von-der-hdmi-senke-nicht-aus-dem-backend)).
+
+On jeep-pi the panel runs with an EDID override that joins the 1024×600
+timings of the 7H to the audio block of the splitter
+(`waveshare-7h-splitter-261013.bin`), so the Pi keeps the panel's mode while
+the splitter announces AC-3.
+
 #### Spoken turn announcements
 
 The package `carnine-voice` (installed by the image recipe) brings
@@ -769,6 +867,9 @@ directories and the configuration; there is no manual OS setup with
   default `auto`
 - `-t audio_output:jack`: headphone jack as card 0 instead of HDMI (see
   [Audio output](#audio-output))
+- `-t audio_output:hdmi-ac3`: HDMI0 as card 0, four channels as AC-3 for a
+  5.1 decoder in front of the panel (see
+  [Four speakers over AC-3](#four-speakers-over-ac-3-hdmi-ac3))
 - `-t power_supply:auprv1`: car power supply with `gpio-poweroff` (docs/23)
 - `-t target_hostname:<name>`, `-t "ssh_public_key:…"`; on the device the
   name changes with `sudo carnine-rename <name>` (since the release after

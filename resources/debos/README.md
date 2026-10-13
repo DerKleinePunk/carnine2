@@ -198,7 +198,8 @@ Musik und Ansagen, hinten die Musik in voller Lautstärke), `/etc/asound.conf`
 führt sie über den Regler PCM in den ALSA-Loopback (`snd-aloop`), und der
 Dienst `carnine-ac3` kodiert sie mit ffmpeg zu AC-3 und gibt sie mit aplay
 als Bitstrom auf HDMI0 aus. Ein Display, das nur PCM nimmt,
-bleibt damit stumm. Umstellen ohne neues Image: `docs/bedienung/ton-klinke.md`.
+bleibt damit stumm. Umstellen ohne neues Image: `docs/bedienung/ton-klinke.md`
+(Klinke) und `docs/bedienung/ton-vier-boxen.md` (`hdmi-ac3`).
 Tests: `sh tests/carnine-audio-output-test.sh`.
 
 Das Waveshare-Profil läuft unter **Full KMS** (`vc4-kms-v3d`). Das Panel bringt
