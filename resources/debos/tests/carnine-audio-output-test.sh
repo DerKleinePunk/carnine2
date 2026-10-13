@@ -47,7 +47,8 @@ check "switch back: one line" "$(wc -l < "$tree/etc/modprobe.d/carnine-audio.con
 check "switch back: slots" "$(modprobe_line "$tree")" "options snd slots=vc4,vc4,snd_bcm2835"
 rm -rf "$tree"
 
-# hdmi-ac3 keeps HDMI0 as card 0 and adds the AC-3 chain and four channels.
+# hdmi-ac3 keeps HDMI0 as card 0 and adds the loopback, the encoder service
+# and four channels.
 tree=$(mktemp -d)
 sh "$SCRIPT" hdmi-ac3 "$tree" > /dev/null
 check "hdmi-ac3: slots" "$(modprobe_line "$tree")" "options snd slots=vc4,vc4,snd_bcm2835"
@@ -56,16 +57,36 @@ check "hdmi-ac3: default goes through the volume control" \
 check "hdmi-ac3: the same volume control as plain HDMI (one PCM for amixer)" \
     "$(grep -A3 'control {' "$tree/etc/asound.conf" | tr '\n' ' ' | tr -s ' ')" \
     ' control { name "PCM Playback Volume" card 0 } '
-check "hdmi-ac3: a52 to HDMI0 as non-audio" \
-    "$(grep -c 'slavepcm "hdmi:CARD=vc4hdmi0,AES0=0x06"' "$tree/etc/asound.conf")" "1"
-check "hdmi-ac3: four channels in the encoder" "$(grep -c '^    channels 4$' "$tree/etc/asound.conf")" "1"
+check "hdmi-ac3: into the loopback in the encoder's format" \
+    "$(grep -A5 'slave {' "$tree/etc/asound.conf" | tr '\n' ' ' | tr -s ' ')" \
+    ' slave { pcm "hw:CARD=Loopback,DEV=0" format S16_LE rate 48000 channels 4 } '
+check "hdmi-ac3: no a52 any more" "$(grep -c a52 "$tree/etc/asound.conf")" "0"
 check "hdmi-ac3: backend opens four channels" \
     "$(grep -v '^#' "$tree/etc/carnine/config.d/20-audio-ac3.toml" | tr '\n' ' ')" '[audio] channels = 4 '
-# Back to hdmi removes both files again.
+check "hdmi-ac3: loopback loaded at boot" "$(grep -v '^#' "$tree/etc/modules-load.d/carnine-ac3.conf")" "snd-aloop"
+check "hdmi-ac3: loopback named for the configs" \
+    "$(grep -v '^#' "$tree/etc/modprobe.d/carnine-ac3.conf")" "options snd-aloop id=Loopback pcm_substreams=1"
+check "hdmi-ac3: encoder executable" "$(test -x "$tree/usr/local/sbin/carnine-ac3-encoder" && echo yes)" "yes"
+check "hdmi-ac3: encoder reads the loopback" \
+    "$(grep -c 'CARNINE_AC3_INPUT:-hw:CARD=Loopback,DEV=1' "$tree/usr/local/sbin/carnine-ac3-encoder")" "1"
+check "hdmi-ac3: encoder takes the four channels as front and rear pairs" \
+    "$(grep -c 'channelmap=channel_layout=quad' "$tree/usr/local/sbin/carnine-ac3-encoder")" "1"
+check "hdmi-ac3: encoder writes HDMI0 as non-audio" \
+    "$(grep -c 'CARNINE_AC3_OUTPUT:-hdmi:CARD=vc4hdmi0,AES0=0x06' "$tree/usr/local/sbin/carnine-ac3-encoder")" "1"
+check "hdmi-ac3: service runs the encoder as carnine" \
+    "$(grep -E '^(User|ExecStart)=' "$tree/etc/systemd/system/carnine-ac3.service" | tr '\n' ' ')" \
+    'User=carnine ExecStart=/usr/local/sbin/carnine-ac3-encoder '
+check "hdmi-ac3: service enabled" \
+    "$(readlink "$tree/etc/systemd/system/multi-user.target.wants/carnine-ac3.service")" \
+    "/etc/systemd/system/carnine-ac3.service"
+# Back to hdmi removes every file again.
 sh "$SCRIPT" hdmi "$tree" > /dev/null
-check "hdmi after hdmi-ac3: no asound.conf" "$(test -e "$tree/etc/asound.conf" && echo there || echo gone)" "gone"
-check "hdmi after hdmi-ac3: no channels drop-in" \
-    "$(test -e "$tree/etc/carnine/config.d/20-audio-ac3.toml" && echo there || echo gone)" "gone"
+for file in etc/asound.conf etc/carnine/config.d/20-audio-ac3.toml etc/modules-load.d/carnine-ac3.conf \
+    etc/modprobe.d/carnine-ac3.conf usr/local/sbin/carnine-ac3-encoder \
+    etc/systemd/system/carnine-ac3.service etc/systemd/system/multi-user.target.wants/carnine-ac3.service; do
+    check "hdmi after hdmi-ac3: no $file" \
+        "$(test -e "$tree/$file" -o -L "$tree/$file" && echo there || echo gone)" "gone"
+done
 rm -rf "$tree"
 
 # Anything else fails the build and writes nothing.

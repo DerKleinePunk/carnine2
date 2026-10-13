@@ -195,8 +195,9 @@ den Bau ab (#64). `hdmi-ac3` ist nur für einen 5.1-Decoder zwischen Pi und
 Display (z. B. einen HDMI-Audio-Extraktor mit vier Boxen): Das Backend spielt
 vier Kanäle (`[audio] channels = 4` in `config.d/20-audio-ac3.toml`, vorne
 Musik und Ansagen, hinten die Musik in voller Lautstärke), `/etc/asound.conf`
-führt sie über den Regler PCM und den AC-3-Kodierer a52 (Paket
-`libasound2-plugins`) als Bitstrom auf HDMI0. Ein Display, das nur PCM nimmt,
+führt sie über den Regler PCM in den ALSA-Loopback (`snd-aloop`), und der
+Dienst `carnine-ac3` kodiert sie mit ffmpeg zu AC-3 und gibt sie mit aplay
+als Bitstrom auf HDMI0 aus. Ein Display, das nur PCM nimmt,
 bleibt damit stumm. Umstellen ohne neues Image: `docs/bedienung/ton-klinke.md`.
 Tests: `sh tests/carnine-audio-output-test.sh`.
 

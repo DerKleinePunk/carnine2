@@ -290,14 +290,6 @@ actions:
     chroot: false
     command: sh "${RECIPEDIR}/carnine-audio-output.sh" "{{ $audio_output }}" "${ROOTDIR}"
 
-{{- if eq $audio_output "hdmi-ac3" }}
-
-  # hdmi-ac3: the AC-3 encoder a52 in /etc/asound.conf comes from here.
-  - action: apt
-    description: Install the ALSA AC-3 encoder (audio_output hdmi-ac3)
-    packages:
-      - libasound2-plugins
-{{- end }}
 
   # Den Regler PCM legt softvol erst beim ersten Oeffnen an, und die
   # Steuerung gehoert dann dem Prozess, der sie angelegt hat, solange er das
