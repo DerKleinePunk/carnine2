@@ -25,7 +25,8 @@ kommen aus der Kamera selbst.*
 | **USB-Kamera** (Webcam), unkomprimiert (YUYV) oder als MJPEG | direkt an USB | immer 640 × 480 |
 
 Kann eine Kamera beides, nimmt die Seite das unkomprimierte Bild. MJPEG
-packt der Pi selbst aus. Das ist neu und erst kurz geprüft.
+packt der Pi selbst aus. Das ist neu; mit einer MJPEG-Kamera ist es noch
+nicht ausprobiert.
 
 **Ältere Webcams nicht benutzen**, z. B. die Microsoft LifeCam VX-3000. Sie
 zeigen zwar ein Bild, aber nach etwa zwei Minuten bleibt der ganze Pi stehen

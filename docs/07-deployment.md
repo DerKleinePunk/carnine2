@@ -426,7 +426,8 @@ broken frame is dropped, the log names the first error and counts the rest
 when the device is closed. The decoder came with video_grabber a6bc71f
 (carnine2 27d4373). Proven so far with one camera for a short run: the
 LifeCam on carnine-pc gave 12 frames/s, 118 decoded, 0 broken, 7.8 ms per
-frame. An MJPEG camera on `uvcvideo` has not had a long run yet.
+frame. An MJPEG camera on `uvcvideo` has not been tried yet (the camera on
+jeep-pi offers MJPEG but delivered no frames in that mode under Linux).
 
 **Do not use `gspca` cameras.** On 2026-10-13 the LifeCam VX-3000 froze
 carnine-pc (Pi 4, kernel 6.18.50) three times after one and a half to two and
