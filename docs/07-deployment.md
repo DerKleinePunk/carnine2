@@ -37,8 +37,9 @@ The deployment architecture emphasizes reliability and minimal resource consumpt
 - **GPS receiver** (optional, `position_source = "serial"`): any NMEA 0183
   receiver on USB or a UART, see [GPS receiver](#gps-receiver) below
 - **Reversing camera** (optional, Kamera page since 0.10.0): an analogue camera
-  on a USB grabber with the STK1160 chip, or a USB camera that delivers YUYV
-  (uvcvideo); not on a hub that also carries the SSD, see
+  on a USB grabber with the STK1160 chip, or a USB camera with `uvcvideo`
+  (YUYV or MJPEG); not a `gspca` camera, not on a hub that also carries the
+  SSD, see
   [Reversing camera](#reversing-camera) below
 - **Vehicle power supply** (optional): the AuPrV1_1 board switches the Pi
   with the ignition and gives it time to shut down; serial line on uart5
@@ -415,7 +416,26 @@ The capture path follows the device's format:
 |---|---|---|---|
 | USB grabber with STK1160 (composite/S-Video) | `stk1160` | UYVY | `norm`, `input` (0–3 composite, 4 S-Video), `width` 360 or 720 |
 | USB camera | `uvcvideo` | YUYV, always 640×480 | none of them |
-| camera with MJPEG only | `uvcvideo` | — | not supported, the page shows "Kamera gestört" |
+| USB camera with MJPEG only | `uvcvideo` | MJPEG, decoded on the Pi | none of them |
+| older webcam such as the Microsoft LifeCam VX-3000 | `gspca` (`sonixj`) | JPEG, decoded on the Pi | none of them; **freezes the Pi**, see below |
+
+A device that offers several formats is read in the order UYVY, YUYV, then
+MJPEG/JPEG. JPEG frames are decoded with libjpeg-turbo (`libjpeg.so.62`,
+which is why `carnine-frontend` depends on `libjpeg62-turbo`); a cut-off or
+broken frame is dropped, the log names the first error and counts the rest
+when the device is closed. The decoder came with video_grabber a6bc71f
+(carnine2 27d4373). Proven so far with one camera for a short run: the
+LifeCam on carnine-pc gave 12 frames/s, 118 decoded, 0 broken, 7.8 ms per
+frame. An MJPEG camera on `uvcvideo` has not been tried yet (the camera on
+jeep-pi offers MJPEG but delivered no frames in that mode under Linux).
+
+**Do not use `gspca` cameras.** On 2026-10-13 the LifeCam VX-3000 froze
+carnine-pc (Pi 4, kernel 6.18.50) three times after one and a half to two and
+a half minutes of streaming, with and without the app, on the external hub
+and directly on the Pi; no oops, no throttling, only `Not enough bandwidth`
+from `sonixj` when the device was opened. Short runs of ten seconds worked,
+so a quick look does not show it. For a reversing camera take a USB camera
+that `uvcvideo` drives.
 
 At width 720 the STK1160 fills USB 2: on jeep-pi about two thirds of the
 frames came incomplete and the page showed about 10 per second; at 360, the
