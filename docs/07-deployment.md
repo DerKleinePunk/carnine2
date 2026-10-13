@@ -686,29 +686,69 @@ than 2, 4 or 6 and `rear_percent` above 100. Both are read at start, so a
 change needs `sudo systemctl restart carnine-backend`; the UI and
 `UpdateConfiguration` do not touch them.
 
-**The ALSA chain.** `/etc/asound.conf` replaces the card's `default` device:
-plug → softvol `PCM Playback Volume` on card 0 → `a52` (448 kbit/s, 48 kHz,
-4 channels, package `libasound2-plugins`) → `hdmi:CARD=vc4hdmi0,AES0=0x06`,
-where `AES0=0x06` marks the stream as non-audio IEC 61937. The volume control
-keeps the full name `vc4-hdmi.conf` gives it, so `alsa-restore` and the
-backend's `amixer -c 0 sset PCM` find one control, not two (e11179e: with a
-plain `PCM` the first start on jeep-pi stayed silent). The control sits in
-front of the encoder, because a bitstream cannot be scaled afterwards. For
-`channels = 6` the line `channels 4` in `pcm.carnine_ac3` has to say 6 as
-well.
+**The chain.** The encoding runs in a service of its own, behind the ALSA
+loopback (`snd-aloop`), not inside ALSA's `default` device (b38abd0):
+
+```
+backend (4 ch, 48 kHz) → plug → softvol "PCM Playback Volume" (card 0)
+  → plug (S16_LE, 48 kHz, 4 ch) → hw:CARD=Loopback,DEV=0
+hw:CARD=Loopback,DEV=1 → carnine-ac3: ffmpeg (AC-3 quad, 448 kbit/s, IEC 61937)
+  → aplay → hdmi:CARD=vc4hdmi0,AES0=0x06
+```
+
+- `/etc/asound.conf` replaces the `default` device with the first line. The
+  volume control keeps the full name `vc4-hdmi.conf` gives it, so
+  `alsa-restore` and the backend's `amixer -c 0 sset PCM` find one control,
+  not two (e11179e: with a plain `PCM` the first start on jeep-pi stayed
+  silent). It sits in front of the encoder, because a bitstream cannot be
+  scaled afterwards. `card 0` is safe: `options snd slots=vc4,vc4,snd_bcm2835`
+  (`carnine-audio.conf`) keeps card 0 for vc4hdmi0, and the loopback is
+  always addressed by its name.
+- `/etc/modprobe.d/carnine-ac3.conf` loads the loopback as
+  `snd-aloop id=Loopback pcm_substreams=1`, `/etc/modules-load.d/carnine-ac3.conf`
+  loads it at boot.
+- `carnine-ac3.service` (user `carnine`, group `audio`, `Restart=always`)
+  runs `/usr/local/sbin/carnine-ac3-encoder`: `ffmpeg` reads the four channels
+  from the other end of the loopback, encodes AC-3 and packs it as non-audio
+  IEC 61937 (`-f spdif`), `aplay` sends it to HDMI0 as 2 channels at 48 kHz
+  (buffer 200 ms, period 50 ms); `AES0=0x06` marks the stream as non-audio.
+  The layout is fixed to `quad` (front left/right, rear left/right, AC-3 mode
+  2/2): left to itself, ffmpeg guesses "4.0", centre plus one rear channel.
+  `CARNINE_AC3_INPUT` and `CARNINE_AC3_OUTPUT` change the devices for tests.
+- The backend opens the device at 48 kHz whenever `channels` is set
+  (bbdf2d4). At 44.1 kHz the plug resamples and reports "ready" too early,
+  and the audio thread spins.
+
+`channels = 6` would need `channels 6` in `pcm.carnine_loop`, `-channels 6`
+and the layout `5.1` in the encoder.
+
+**Why not the `a52` plugin.** The first chain (fdc3b66, 3dd494d) put the
+`a52` plugin of `libasound2-plugins` straight into `default`. It played, but
+cost about one core all the time: on jeep-pi the backend took 66–101 % of a
+core instead of 9–22 % with stereo, the whole system 32–42 % of four cores.
+Almost all of it was system time in the audio thread `cpal_alsa`. `a52`
+passes the device's "ready" on although it cannot take data yet, so the
+writer spins (about 19,000 `SYNC_PTR` calls in 5 s, with silence too); its
+periods are fixed at 1536 frames (alsa-plugins 1.2.12). A `dmix` in between
+would calm it, but `dmix` cannot feed vc4 HDMI, which takes only IEC958
+subframes. Behind the loopback the backend writes into a plain hardware
+buffer and the encoder blocks properly.
 
 **Switching it on.** Build the image with `-t audio_output:hdmi-ac3`: HDMI0
-stays card 0 as with `hdmi`, the recipe installs `libasound2-plugins`, and
-`carnine-audio-output.sh` writes `/etc/asound.conf` and
-`/etc/carnine/config.d/20-audio-ac3.toml` (`[audio]` `channels = 4`). Add
-`rear_percent` in a drop-in of its own if the rear is too loud. On a running
-device the same by hand, as the user guide page
-[Ton über vier Boxen](bedienung/ton-vier-boxen.md) shows; nothing needs a
-reboot or a new initramfs.
+stays card 0 as with `hdmi`, and `carnine-audio-output.sh` writes
+`/etc/asound.conf`, the two `snd-aloop` files, the encoder script, the
+service (enabled) and `/etc/carnine/config.d/20-audio-ac3.toml`
+(`[audio]` `channels = 4`). `ffmpeg` is in the image anyway, no extra
+package is needed. Add `rear_percent` in a drop-in of its own if the rear is
+too loud. On a running device the same by hand, as the user guide page
+[Ton über vier Boxen](bedienung/ton-vier-boxen.md) shows; `modprobe snd-aloop`
+saves the reboot, a new initramfs is not needed.
 
-**Switching it off.** Delete `/etc/asound.conf` and the drop-in (or the
-`channels` line) and restart the backend: it is stereo PCM on HDMI0 again,
-exactly as before. Building with `hdmi` or `jack` removes both files too.
+**Switching it off.** `systemctl disable --now carnine-ac3`, delete
+`/etc/asound.conf`, the drop-in (or the `channels` line), the service, the
+encoder script and the two `snd-aloop` files, and restart the backend: it is
+stereo PCM on HDMI0 again, exactly as before. Building with `hdmi` or `jack`
+removes all of them too.
 There is no switch in the UI on purpose: without an AC-3 decoder in front of
 it, a panel or TV that takes only PCM stays silent. A switch would belong on
 the expert page (#138).
@@ -726,28 +766,32 @@ behaves as without an
 output device: it reports `AUDIO_OUTPUT_UNAVAILABLE`, the UI shows its hint,
 and the player retries (#55, #56).
 
-On carnine-pc (13.10.2026, the a52 chain into a file over the ALSA
-loopback, nothing audible) a52 kept four discrete channels, the volume
-control lowered all four alike, and the backend at `channels = 4` put music
-on front and rear at −22 dB, during an announcement front −32 dB plus speech
-and rear −22 dB without speech. On jeep-pi Michael heard it through the
-splitter (switch set to 5.1) on four speakers.
+On carnine-pc (13.10.2026, the chain into the ALSA loopback instead of HDMI,
+nothing audible) the encoder kept four discrete channels (`quad(side)`), the
+volume control lowered all four alike, and the backend at `channels = 4` put
+music on front and rear at −22 dB, during an announcement front −32 dB plus
+speech and rear −22 dB without speech. On jeep-pi Michael heard it through
+the splitter (switch set to 5.1) on four speakers.
+
+`journalctl -u carnine-ac3` shows underruns of `aplay`. One right after the
+start of backend and frontend is harmless; regular ones would mean that the
+clocks of loopback and HDMI drift apart.
 
 **CPU.** The stream runs all the time, also while the music is paused
 (silence in the bitstream, so the decoder keeps its lock). On jeep-pi with
-music and replay announcements (3 × 60 s each) the backend took 66–101 % of
-one core instead of 9–22 % with stereo, the whole system 32–42 % of four
-cores instead of 18–23 %, so about one core all the time. Almost all of it
-is the audio thread `cpal_alsa`, and most of that is system time. The cause
-is not the encoding but the `a52` plugin: it passes the device's "ready" on
-unfiltered although it cannot take data yet, so the writer spins (about
-19,000 `SYNC_PTR` calls in 5 s, with silence too). Its periods are fixed at
-1536 frames (alsa-plugins 1.2.12); larger periods on the application side
-and 48 kHz instead of 44.1 kHz do not help (measured on carnine-pc, a52 alone
-into the ALSA loopback with silence: about 36 % of a core, 39 % at 44.1 kHz).
-A `dmix` in between would fix it (3.6 %), but `dmix` cannot feed vc4 HDMI,
-which takes only IEC958 subframes. Whether to leave it, patch the plugin or
-encode AC-3 in the backend is still open.
+music and replay announcements (13.10.2026, 3 × 60 s):
+
+| | Backend (% of one core) | ffmpeg | aplay | System (% of four cores) |
+|---|---|---|---|---|
+| Stereo, HDMI | 9–22 | – | – | 18–23 |
+| `a52` plugin, 44.1 kHz | 66–101 | – | – | 32–42 |
+| Loopback + `carnine-ac3` | 10–23 | 6.8 | 0.7 | 17–22 |
+
+So AC-3 now costs little more than the encoder. In a run of four hours
+(08:23–12:21, music and announcements all the time) there was no underrun
+and no restart of `carnine-ac3` or the backend; the backend averaged 2.5 % of
+a core (peaks up to 31 % are the speech synthesis), ffmpeg 6.7 %
+(5.9–7.8 %), 34–39 °C, `throttled` 0x0 throughout.
 
 **No pop.** The splitter does not pop when playback stops: the carrier never
 breaks off, because pause is silence inside the running AC-3 stream. That
