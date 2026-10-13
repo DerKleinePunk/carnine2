@@ -787,11 +787,13 @@ music and replay announcements (13.10.2026, 3 × 60 s):
 | `a52` plugin, 44.1 kHz | 66–101 | – | – | 32–42 |
 | Loopback + `carnine-ac3` | 10–23 | 6.8 | 0.7 | 17–22 |
 
-So AC-3 now costs little more than the encoder. In a run of four hours
-(08:23–12:21, music and announcements all the time) there was no underrun
-and no restart of `carnine-ac3` or the backend; the backend averaged 2.5 % of
-a core (peaks up to 31 % are the speech synthesis), ffmpeg 6.7 %
-(5.9–7.8 %), 34–39 °C, `throttled` 0x0 throughout.
+So AC-3 now costs little more than the encoder. In a run of almost ten hours
+(13.10.2026, 08:23–18:07, music and replay announcements all the time, 1381
+announcements) there was one underrun of 0.02 ms (12:28:23, without an
+announcement or any other event in the journal), no pattern, and no restart
+of `carnine-ac3` or the backend. The backend averaged 2.5 % of a core (peaks
+up to 31 % are the speech synthesis), ffmpeg 6.9 % (5.7–8.6 %), 31–39 °C,
+`throttled` 0x0 throughout, nobody heard a crackle.
 
 **No pop.** The splitter does not pop when playback stops: the carrier never
 breaks off, because pause is silence inside the running AC-3 stream. That

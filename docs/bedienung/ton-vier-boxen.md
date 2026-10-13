@@ -197,6 +197,6 @@ Neustart geladen, das stört nicht.
 
 *Geprüft:* am 13.10.2026 auf dem Test-Pi jeep-pi (Pi 4, HDMI-Splitter mit
 5.1-Ausgängen, 20 W vorne, 160 W hinten), Musik auf allen vier Boxen,
-Ansagen nur vorne, `rear_percent = 30`, vier Stunden Dauerlauf mit Musik
-und Ansagen ohne Aussetzer. Die Schritte von Hand auf dieser
+Ansagen nur vorne, `rear_percent = 30`, fast zehn Stunden Dauerlauf mit
+Musik und 1381 Ansagen ohne hörbaren Aussetzer. Die Schritte von Hand auf dieser
 Seite entsprechen dem, was die Image-Variante `hdmi-ac3` schreibt.
