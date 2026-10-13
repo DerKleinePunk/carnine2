@@ -687,7 +687,7 @@ change needs `sudo systemctl restart carnine-backend`; the UI and
 `UpdateConfiguration` do not touch them.
 
 **The chain.** The encoding runs in a service of its own, behind the ALSA
-loopback (`snd-aloop`), not inside ALSA's `default` device (b38abd0):
+loopback (`snd-aloop`), not inside ALSA's `default` device (037837a):
 
 ```
 backend (4 ch, 48 kHz) → plug → softvol "PCM Playback Volume" (card 0)
@@ -716,7 +716,7 @@ hw:CARD=Loopback,DEV=1 → carnine-ac3: ffmpeg (AC-3 quad, 448 kbit/s, IEC 61937
   2/2): left to itself, ffmpeg guesses "4.0", centre plus one rear channel.
   `CARNINE_AC3_INPUT` and `CARNINE_AC3_OUTPUT` change the devices for tests.
 - The backend opens the device at 48 kHz whenever `channels` is set
-  (bbdf2d4). At 44.1 kHz the plug resamples and reports "ready" too early,
+  (5bfbf8f). At 44.1 kHz the plug resamples and reports "ready" too early,
   and the audio thread spins.
 
 `channels = 6` would need `channels 6` in `pcm.carnine_loop`, `-channels 6`
