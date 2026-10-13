@@ -22,10 +22,16 @@ kommen aus der Kamera selbst.*
 | Kamera | Anschluss | Bild |
 |---|---|---|
 | Analoge Rückfahrkamera (Composite oder S-Video) | über einen USB-Grabber mit **STK1160**-Chip | 360 Pixel breit (einstellbar auf 720), NTSC oder PAL |
-| **USB-Kamera** (Webcam), die unkomprimiert liefert (YUYV) | direkt an USB | immer 640 × 480 |
+| **USB-Kamera** (Webcam), unkomprimiert (YUYV) oder als MJPEG | direkt an USB | immer 640 × 480 |
 
-Kameras, die **nur MJPEG** liefern, gehen nicht. Die Seite zeigt dann
-„Kamera gestört“.
+Kann eine Kamera beides, nimmt die Seite das unkomprimierte Bild. MJPEG
+packt der Pi selbst aus. Das ist neu und erst kurz geprüft.
+
+**Ältere Webcams nicht benutzen**, z. B. die Microsoft LifeCam VX-3000. Sie
+zeigen zwar ein Bild, aber nach etwa zwei Minuten bleibt der ganze Pi stehen
+und lässt sich nur noch über den Strom neu starten. Ein kurzer Blick auf die
+Seite zeigt das noch nicht. Für eine Rückfahrkamera eine neuere USB-Kamera
+nehmen, die unter Linux ohne eigenen Treiber läuft („UVC“ im Datenblatt).
 
 Grabber und USB-Kamera **direkt an den Pi** stecken, nicht an einen
 USB-Hub, an dem auch die SSD hängt. Auf dem Test-Pi hat der Grabber dort
@@ -45,7 +51,7 @@ in der Sprache der Oberfläche.
 | **Verbinde mit der Kamera …** | Die Seite öffnet gerade die Kamera. |
 | **Kein Kamerasignal** | Das Gerät ist da, liefert aber kein Bild, z. B. weil am gelben Stecker des Grabbers nichts hängt oder die Kamera keinen Strom hat. |
 | **Kamera nicht angeschlossen** | Es gibt kein Gerät, z. B. weil Grabber oder Kamera abgezogen sind. Auf einem Gerät ganz ohne Kamera steht immer dieser Hinweis. |
-| **Kamera gestört** | Öffnen oder Abspielen ist fehlgeschlagen, z. B. bei einer Kamera, die nur MJPEG kann. |
+| **Kamera gestört** | Öffnen oder Abspielen ist fehlgeschlagen, z. B. bei einer Kamera, deren Bildformat die Seite nicht kennt. |
 
 **Anstecken und Abziehen bei offener Seite** geht: Fehlt die Kamera, versucht
 die Seite jede Sekunde, sie neu zu öffnen. Nach dem Anstecken steht kurz
