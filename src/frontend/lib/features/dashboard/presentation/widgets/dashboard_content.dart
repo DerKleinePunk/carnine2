@@ -8,6 +8,7 @@ import 'package:carnine_frontend/features/maps/presentation/maps_content.dart';
 import 'package:carnine_frontend/features/maps/presentation/maps_controller.dart';
 import 'package:carnine_frontend/features/media/presentation/media_content.dart';
 import 'package:carnine_frontend/features/media/presentation/media_controller.dart';
+import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_content.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
@@ -31,6 +32,7 @@ class DashboardContent extends StatelessWidget {
     required this.mapsController,
     this.cameraSettingsStore,
     this.exitPasswordStore,
+    this.announcementSettingsStore,
     this.cameraSourceFactory,
     this.onShowCamera,
     this.controlsRepository,
@@ -48,6 +50,7 @@ class DashboardContent extends StatelessWidget {
   final MapsController mapsController;
   final CameraSettingsStore? cameraSettingsStore;
   final ExitPasswordStore? exitPasswordStore;
+  final AnnouncementSettingsStore? announcementSettingsStore;
   final GrabberSourceFactory? cameraSourceFactory;
 
   /// Selects the Kamera page - from the camera settings, to look at a change.
@@ -63,6 +66,7 @@ class DashboardContent extends StatelessWidget {
         languageController: languageController,
         cameraSettingsStore: cameraSettingsStore,
         exitPasswordStore: exitPasswordStore,
+        announcementSettingsStore: announcementSettingsStore,
         onShowCamera: onShowCamera,
       );
     }

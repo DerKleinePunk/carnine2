@@ -211,6 +211,17 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.settingsMapComingSoonTitle: 'Nastavení mapy připraveno',
   AppTextKey.settingsMapComingSoonDescription:
       'Zobrazení mapy a možnosti tras se budou konfigurovat v této části.',
+  AppTextKey.settingsMapTabAnnouncements: 'Hlášení',
+  AppTextKey.settingsMapTabMap: 'Mapa',
+  AppTextKey.settingsAnnouncementsSwitchTitle: 'Hlasová hlášení',
+  AppTextKey.settingsAnnouncementsSwitchSubtitle:
+      'Pokyny k odbočení se během navigace čtou nahlas',
+  AppTextKey.settingsAnnouncementsVolume: 'Hlasitost hlášení',
+  AppTextKey.settingsAnnouncementsMusicUnder: 'Hudba během hlášení',
+  AppTextKey.settingsAnnouncementsMusicHint:
+      'Při 0 % se hudba během hlášení zastaví a poté pokračuje od stejného místa. Při 100 % zůstává stejně hlasitá.',
+  AppTextKey.settingsAnnouncementsUnavailable: 'Není nainstalován žádný hlas',
+  AppTextKey.settingsAnnouncementsTest: 'Vyzkoušet hlášení',
   AppTextKey.settingsMockDescription:
       'Dočasná oblast nastavení pro globální možnosti frontendu.',
   AppTextKey.languageGerman: 'němčina',

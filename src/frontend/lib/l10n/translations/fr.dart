@@ -225,6 +225,17 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.settingsMapComingSoonTitle: 'Réglages de carte préparés',
   AppTextKey.settingsMapComingSoonDescription:
       'L’affichage de carte et les options d’itinéraire seront configurés ici.',
+  AppTextKey.settingsMapTabAnnouncements: 'Annonces',
+  AppTextKey.settingsMapTabMap: 'Carte',
+  AppTextKey.settingsAnnouncementsSwitchTitle: 'Annonces vocales',
+  AppTextKey.settingsAnnouncementsSwitchSubtitle:
+      'Les consignes de virage sont énoncées pendant la navigation',
+  AppTextKey.settingsAnnouncementsVolume: 'Volume des annonces',
+  AppTextKey.settingsAnnouncementsMusicUnder: 'Musique pendant une annonce',
+  AppTextKey.settingsAnnouncementsMusicHint:
+      'À 0 %, la musique est mise en pause pendant une annonce et reprend ensuite au même endroit. À 100 %, elle reste au même volume.',
+  AppTextKey.settingsAnnouncementsUnavailable: 'Aucune voix installée',
+  AppTextKey.settingsAnnouncementsTest: 'Tester une annonce',
   AppTextKey.settingsMockDescription:
       'Zone de réglages temporaire pour les options globales du frontend.',
   AppTextKey.languageGerman: 'allemand',

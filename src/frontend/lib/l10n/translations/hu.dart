@@ -221,6 +221,17 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.settingsMapComingSoonTitle: 'Térképbeállítások előkészítve',
   AppTextKey.settingsMapComingSoonDescription:
       'A térképnézet és az útvonalopciók ebben a részben lesznek beállíthatók.',
+  AppTextKey.settingsMapTabAnnouncements: 'Közlések',
+  AppTextKey.settingsMapTabMap: 'Térkép',
+  AppTextKey.settingsAnnouncementsSwitchTitle: 'Hangos közlések',
+  AppTextKey.settingsAnnouncementsSwitchSubtitle:
+      'A navigáció közben felolvassa a kanyarodási utasításokat',
+  AppTextKey.settingsAnnouncementsVolume: 'A közlések hangereje',
+  AppTextKey.settingsAnnouncementsMusicUnder: 'Zene közlés közben',
+  AppTextKey.settingsAnnouncementsMusicHint:
+      '0 %-nál a zene a közlés idejére megáll, utána ugyanazon a helyen folytatódik. 100 %-nál ugyanolyan hangos marad.',
+  AppTextKey.settingsAnnouncementsUnavailable: 'Nincs telepített hang',
+  AppTextKey.settingsAnnouncementsTest: 'Közlés kipróbálása',
   AppTextKey.settingsMockDescription:
       'Ideiglenes beállítási terület a globális frontend-opciókhoz.',
   AppTextKey.languageGerman: 'német',

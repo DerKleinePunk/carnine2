@@ -139,9 +139,10 @@ im Gerät selbst, Internet braucht es dafür nicht.
   In jeder anderen Sprache bleibt die Navigation stumm. Wer während einer
   Fahrt auf Deutsch umstellt, hört bis zur nächsten Routenberechnung ein
   Gemisch aus Deutsch und der vorigen Sprache; ein neues Ziel behebt das.
-- **Ein- und ausschalten** und die Lautstärke der Ansagen gibt es in den
-  Optionen noch nicht (#110). Ab Werk sind die Ansagen an, mit voller
-  Lautstärke.
+- **Ein- und ausschalten**, die Lautstärke und wie leise die Musik wird, stellt man
+  unter [Optionen → Karteneinstellungen](optionen.md#karteneinstellungen) ein.
+  Ab Werk sind die Ansagen an, mit voller Lautstärke, und die Musik geht auf
+  30 %.
 
 ## Wo bin ich?
 

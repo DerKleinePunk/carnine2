@@ -9,10 +9,39 @@ Vier Kacheln; der Pfeil oben links in jeder Unterseite führt zurück zur
 
 | Kachel | Inhalt |
 |---|---|
-| **Karteneinstellungen** | noch leer („… vorbereitet“) |
+| **Karteneinstellungen** | zwei Reiter: **Ansagen** (Sprachansagen der Navigation) und **Karte** (noch leer) |
 | **Darstellung & Sprache** | zwei Reiter: **Darstellung** (noch leer) und **Sprache** (Anzeigesprache wählen) |
 | **Geräte** | **Kamera** einstellen; Audio-Ausgang, Handy-App und Netzteil als Vorschau |
 | **System** | Logs, Updates, Passwort ändern, Neustart, Beenden, Version |
+
+## Karteneinstellungen
+
+Oben zwei Reiter: **Ansagen** und **Karte**. Die Seite öffnet auf **Ansagen**.
+Der Reiter **Karte** ist noch leer („… vorbereitet“).
+
+**Ansagen** stellt die gesprochenen Abbiegehinweise der Navigation ein
+([Karten, Sprachansagen](karte.md#sprachansagen)). Jede Änderung gilt sofort und
+bleibt über Neustarts erhalten, das Backend speichert sie.
+
+- **Sprachansagen:** Die ganze Karte antippen schaltet die Ansagen an oder aus.
+- **Lautstärke der Ansagen** (0 bis 100 %): Den Griff ziehen, gesendet wird beim
+  Loslassen. Die Stufen sind 5 %.
+- **Musik während einer Ansage** (0 bis 100 %): Wie laut die Musik bleibt,
+  solange gesprochen wird. Bei **0 %** hält die Musik an und läuft danach an
+  derselben Stelle weiter, bei **100 %** bleibt sie gleich laut. Ab Werk 30 %.
+- **Ansage testen** spricht den Satz „In 300 Metern rechts abbiegen.“, damit man
+  Lautstärke und Musik gleich hört. Der Satz ist immer deutsch, weil die Stimme
+  deutsch ist. Beim ersten Mal braucht das Gerät ein paar Sekunden, um ihn zu
+  sprechen. Ausgegraut bei ausgeschalteten Ansagen.
+- **Keine Stimme installiert:** Fehlt das Sprachpaket `carnine-voice` (z. B. in
+  WSL), steht das statt der Erklärung auf der Karte, und nichts auf der Seite
+  lässt sich ändern.
+- Ist das Backend nicht erreichbar, steht „Die Verbindung zum Backend wurde
+  unterbrochen …“ mit **Erneut versuchen**. Schlägt eine Änderung fehl, erscheint
+  kurz „Befehl fehlgeschlagen“, und der Regler springt auf den gespeicherten Wert.
+
+Die Ansagen gibt es nur, wenn die Oberfläche auf Deutsch steht, die Einstellungen
+selbst sind in jeder Sprache bedienbar.
 
 ## Darstellung & Sprache
 

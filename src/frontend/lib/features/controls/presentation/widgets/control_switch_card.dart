@@ -1,3 +1,4 @@
+import 'package:carnine_frontend/core/widgets/mini_switch.dart';
 import 'package:carnine_frontend/features/controls/presentation/widgets/fitted_name.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:carnine_frontend/styles/colors.dart';
@@ -78,7 +79,7 @@ class ControlSwitchCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Icon(Icons.power_settings_new, color: accent, size: 34),
-                      _MiniSwitch(isOn: isOn, isAvailable: isAvailable),
+                      MiniSwitch(isOn: isOn, isAvailable: isAvailable),
                     ],
                   ),
                   const Spacer(),
@@ -105,46 +106,6 @@ class ControlSwitchCard extends StatelessWidget {
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The switch drawn on the card; it shows the state and takes no touch of
-/// its own.
-class _MiniSwitch extends StatelessWidget {
-  const _MiniSwitch({required this.isOn, required this.isAvailable});
-
-  final bool isOn;
-  final bool isAvailable;
-
-  @override
-  Widget build(BuildContext context) {
-    final isLit = isAvailable && isOn;
-
-    return Container(
-      width: 56,
-      height: 30,
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: isLit ? AppColors.primary40 : AppColors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-          color: isLit ? AppColors.primary : AppColors.outlineVariant20,
-        ),
-      ),
-      child: AnimatedAlign(
-        duration: const Duration(milliseconds: 150),
-        alignment: isOn ? Alignment.centerRight : Alignment.centerLeft,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: !isAvailable
-                ? AppColors.outline
-                : (isOn ? AppColors.primary : AppColors.onSurfaceVariant),
-          ),
-          child: const SizedBox(width: 20, height: 20),
         ),
       ),
     );

@@ -2,12 +2,14 @@ import 'package:carnine_frontend/core/logging/app_logging.dart';
 import 'package:carnine_frontend/core/logging/log_viewer_dialog.dart';
 import 'package:carnine_frontend/core/platform/app_window.dart';
 import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart';
+import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/features/settings/presentation/models/settings_option_item.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_controller.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/camera_settings_page.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/system_page.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/language_flag.dart';
+import 'package:carnine_frontend/features/settings/presentation/widgets/map_settings_page.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/settings_choice_button.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
 import 'package:carnine_frontend/l10n/app_language_option.dart';
@@ -27,6 +29,7 @@ class SettingsContent extends StatefulWidget {
     this.onExit,
     this.cameraSettingsStore,
     this.exitPasswordStore,
+    this.announcementSettingsStore,
     this.onShowCamera,
     super.key,
   });
@@ -42,6 +45,10 @@ class SettingsContent extends StatefulWidget {
   /// (tests, no backend) the exit is refused and the password cannot be
   /// changed.
   final ExitPasswordStore? exitPasswordStore;
+
+  /// Where the settings of the spoken announcements are kept. Without one
+  /// (tests, no backend) the map settings stay a placeholder.
+  final AnnouncementSettingsStore? announcementSettingsStore;
 
   /// Opens the Kamera page, so a changed setting can be looked at.
   final VoidCallback? onShowCamera;
@@ -114,6 +121,7 @@ class _SettingsContentState extends State<SettingsContent> {
       onCloseDevicePage: _controller.closeDevicePage,
       cameraSettingsStore: widget.cameraSettingsStore,
       exitPasswordStore: widget.exitPasswordStore,
+      announcementSettingsStore: widget.announcementSettingsStore,
       onShowCamera: widget.onShowCamera,
       onOpenLogs: _openLogViewer,
       onRestart: widget.onRestart ?? AppWindow.restartApplication,
@@ -368,6 +376,7 @@ class _SettingsSectionPage extends StatelessWidget {
     required this.onCloseDevicePage,
     required this.cameraSettingsStore,
     required this.exitPasswordStore,
+    required this.announcementSettingsStore,
     required this.onShowCamera,
     required this.onOpenLogs,
     required this.onRestart,
@@ -383,6 +392,7 @@ class _SettingsSectionPage extends StatelessWidget {
   final VoidCallback onCloseDevicePage;
   final CameraSettingsStore? cameraSettingsStore;
   final ExitPasswordStore? exitPasswordStore;
+  final AnnouncementSettingsStore? announcementSettingsStore;
   final VoidCallback? onShowCamera;
   final VoidCallback onOpenLogs;
   final VoidCallback onRestart;
@@ -426,6 +436,25 @@ class _SettingsSectionPage extends StatelessWidget {
     );
   }
 
+  /// "Karteneinstellungen": the tabs when there is a backend that keeps the
+  /// settings of the announcements, else the old placeholder.
+  Widget _mapBody() {
+    const placeholder = _PlannedPage(
+      icon: Icons.map,
+      titleKey: AppTextKey.settingsMapComingSoonTitle,
+      bodyKey: AppTextKey.settingsMapComingSoonDescription,
+    );
+    final store = announcementSettingsStore;
+    if (store == null) {
+      return placeholder;
+    }
+
+    return MapSettingsPage(
+      announcementSettingsStore: store,
+      mapTab: placeholder,
+    );
+  }
+
   Widget _bodyForSection() {
     return switch (item.section) {
       SettingsSection.appearance => _AppearanceLanguagePage(
@@ -438,11 +467,7 @@ class _SettingsSectionPage extends StatelessWidget {
         onRestart: onRestart,
         onExit: onExit,
       ),
-      SettingsSection.maps => const _PlannedPage(
-        icon: Icons.map,
-        titleKey: AppTextKey.settingsMapComingSoonTitle,
-        bodyKey: AppTextKey.settingsMapComingSoonDescription,
-      ),
+      SettingsSection.maps => _mapBody(),
     };
   }
 }

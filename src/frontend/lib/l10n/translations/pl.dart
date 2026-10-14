@@ -214,6 +214,17 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.settingsMapComingSoonTitle: 'Ustawienia mapy przygotowane',
   AppTextKey.settingsMapComingSoonDescription:
       'Widok mapy i opcje tras będą konfigurowane w tym obszarze.',
+  AppTextKey.settingsMapTabAnnouncements: 'Komunikaty',
+  AppTextKey.settingsMapTabMap: 'Mapa',
+  AppTextKey.settingsAnnouncementsSwitchTitle: 'Komunikaty głosowe',
+  AppTextKey.settingsAnnouncementsSwitchSubtitle:
+      'Wskazówki skrętu są odczytywane podczas nawigacji',
+  AppTextKey.settingsAnnouncementsVolume: 'Głośność komunikatów',
+  AppTextKey.settingsAnnouncementsMusicUnder: 'Muzyka podczas komunikatu',
+  AppTextKey.settingsAnnouncementsMusicHint:
+      'Przy 0 % muzyka jest wstrzymywana na czas komunikatu i potem wznawiana w tym samym miejscu. Przy 100 % pozostaje tak samo głośna.',
+  AppTextKey.settingsAnnouncementsUnavailable: 'Nie zainstalowano głosu',
+  AppTextKey.settingsAnnouncementsTest: 'Przetestuj komunikat',
   AppTextKey.settingsMockDescription:
       'Tymczasowy obszar ustawień globalnych opcji frontendu.',
   AppTextKey.languageGerman: 'niemiecki',

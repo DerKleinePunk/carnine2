@@ -16,6 +16,7 @@ import 'package:carnine_frontend/features/dashboard/presentation/widgets/dashboa
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/side_menu.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/thermal_warning_overlay.dart';
 import 'package:carnine_frontend/features/media/presentation/media_controller.dart';
+import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
@@ -34,6 +35,7 @@ class DashboardScreen extends StatefulWidget {
     this.uiStateStore,
     this.cameraSettingsStore,
     this.exitPasswordStore,
+    this.announcementSettingsStore,
     this.controlsRepository,
     this.cameraSourceFactory,
     this.idleReturnAfter = const Duration(seconds: 60),
@@ -56,6 +58,9 @@ class DashboardScreen extends StatefulWidget {
 
   /// Where the password for "Beenden" is checked and changed.
   final ExitPasswordStore? exitPasswordStore;
+
+  /// Where the options keep the settings of the spoken announcements.
+  final AnnouncementSettingsStore? announcementSettingsStore;
 
   /// Where the Technik page gets its controls from; tests leave it out.
   final ControlsRepository? controlsRepository;
@@ -288,6 +293,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   mapsController: _mapsController,
                   cameraSettingsStore: widget.cameraSettingsStore,
                   exitPasswordStore: widget.exitPasswordStore,
+                  announcementSettingsStore: widget.announcementSettingsStore,
                   cameraSourceFactory: widget.cameraSourceFactory,
                   onShowCamera: () => _controller.selectDestination(
                     DashboardDestination.camera,

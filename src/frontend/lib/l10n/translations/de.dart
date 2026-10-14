@@ -221,6 +221,17 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.settingsMapComingSoonTitle: 'Karteneinstellungen vorbereitet',
   AppTextKey.settingsMapComingSoonDescription:
       'Kartenansicht und Routingoptionen folgen in diesem Bereich.',
+  AppTextKey.settingsMapTabAnnouncements: 'Ansagen',
+  AppTextKey.settingsMapTabMap: 'Karte',
+  AppTextKey.settingsAnnouncementsSwitchTitle: 'Sprachansagen',
+  AppTextKey.settingsAnnouncementsSwitchSubtitle:
+      'Abbiegehinweise werden während der Navigation gesprochen',
+  AppTextKey.settingsAnnouncementsVolume: 'Lautstärke der Ansagen',
+  AppTextKey.settingsAnnouncementsMusicUnder: 'Musik während einer Ansage',
+  AppTextKey.settingsAnnouncementsMusicHint:
+      'Bei 0 % hält die Musik während einer Ansage an und läuft danach an derselben Stelle weiter. Bei 100 % bleibt sie gleich laut.',
+  AppTextKey.settingsAnnouncementsUnavailable: 'Keine Stimme installiert',
+  AppTextKey.settingsAnnouncementsTest: 'Ansage testen',
   AppTextKey.settingsMockDescription:
       'Temporärer Einstellungsbereich für globale Frontend-Optionen.',
   AppTextKey.languageGerman: 'Deutsch',

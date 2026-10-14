@@ -211,6 +211,17 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.settingsMapComingSoonTitle: 'Kartinställningar förberedda',
   AppTextKey.settingsMapComingSoonDescription:
       'Kartvy och ruttalternativ kommer att konfigureras här.',
+  AppTextKey.settingsMapTabAnnouncements: 'Aviseringar',
+  AppTextKey.settingsMapTabMap: 'Karta',
+  AppTextKey.settingsAnnouncementsSwitchTitle: 'Röstaviseringar',
+  AppTextKey.settingsAnnouncementsSwitchSubtitle:
+      'Svängbesked läses upp under navigeringen',
+  AppTextKey.settingsAnnouncementsVolume: 'Aviseringarnas volym',
+  AppTextKey.settingsAnnouncementsMusicUnder: 'Musik under en avisering',
+  AppTextKey.settingsAnnouncementsMusicHint:
+      'Vid 0 % pausas musiken under en avisering och fortsätter sedan från samma ställe. Vid 100 % är den lika hög som förut.',
+  AppTextKey.settingsAnnouncementsUnavailable: 'Ingen röst installerad',
+  AppTextKey.settingsAnnouncementsTest: 'Testa avisering',
   AppTextKey.settingsMockDescription:
       'Tillfälligt inställningsområde för globala frontendalternativ.',
   AppTextKey.languageGerman: 'tyska',

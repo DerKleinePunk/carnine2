@@ -214,6 +214,17 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.settingsMapComingSoonTitle: 'Map settings prepared',
   AppTextKey.settingsMapComingSoonDescription:
       'Map view and routing options will be configured in this area.',
+  AppTextKey.settingsMapTabAnnouncements: 'Announcements',
+  AppTextKey.settingsMapTabMap: 'Map',
+  AppTextKey.settingsAnnouncementsSwitchTitle: 'Voice announcements',
+  AppTextKey.settingsAnnouncementsSwitchSubtitle:
+      'Turn instructions are spoken during navigation',
+  AppTextKey.settingsAnnouncementsVolume: 'Announcement volume',
+  AppTextKey.settingsAnnouncementsMusicUnder: 'Music during an announcement',
+  AppTextKey.settingsAnnouncementsMusicHint:
+      'At 0 % the music pauses during an announcement and continues from the same place afterwards. At 100 % it stays as loud as before.',
+  AppTextKey.settingsAnnouncementsUnavailable: 'No voice installed',
+  AppTextKey.settingsAnnouncementsTest: 'Test announcement',
   AppTextKey.settingsMockDescription:
       'Temporary settings area for global frontend options.',
   AppTextKey.languageGerman: 'German',

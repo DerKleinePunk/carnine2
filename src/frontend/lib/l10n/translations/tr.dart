@@ -213,6 +213,17 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.settingsMapComingSoonTitle: 'Harita ayarları hazırlandı',
   AppTextKey.settingsMapComingSoonDescription:
       'Harita görünümü ve rota seçenekleri bu alanda yapılandırılacak.',
+  AppTextKey.settingsMapTabAnnouncements: 'Anonslar',
+  AppTextKey.settingsMapTabMap: 'Harita',
+  AppTextKey.settingsAnnouncementsSwitchTitle: 'Sesli anonslar',
+  AppTextKey.settingsAnnouncementsSwitchSubtitle:
+      'Navigasyon sırasında dönüş talimatları sesli okunur',
+  AppTextKey.settingsAnnouncementsVolume: 'Anons ses düzeyi',
+  AppTextKey.settingsAnnouncementsMusicUnder: 'Anons sırasında müzik',
+  AppTextKey.settingsAnnouncementsMusicHint:
+      'Müzik, 0 % değerinde anons süresince duraklar ve sonra aynı yerden devam eder; 100 % değerinde ses düzeyi aynı kalır.',
+  AppTextKey.settingsAnnouncementsUnavailable: 'Yüklü ses yok',
+  AppTextKey.settingsAnnouncementsTest: 'Anonsu dene',
   AppTextKey.settingsMockDescription:
       'Genel frontend seçenekleri için geçici ayar alanı.',
   AppTextKey.languageGerman: 'Almanca',

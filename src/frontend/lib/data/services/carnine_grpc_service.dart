@@ -3,6 +3,7 @@ import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart
 import 'package:carnine_frontend/features/camera/domain/video_device.dart';
 import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
+import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
 import 'package:carnine_frontend/lib/carnine.pbgrpc.dart';
 import 'package:grpc/grpc.dart';
 import 'package:logging/logging.dart';
@@ -15,7 +16,11 @@ typedef ClientChannelFactory = ClientChannel Function();
 /// The service keeps transport creation isolated in [GrpcEndpoint] so
 /// dashboard widgets don't need to know which transport is active.
 class CarnineGrpcService
-    implements UiStateStore, CameraSettingsStore, ExitPasswordStore {
+    implements
+        UiStateStore,
+        CameraSettingsStore,
+        ExitPasswordStore,
+        AnnouncementSettingsStore {
   CarnineGrpcService({Logger? logger, ClientChannelFactory? channelFactory})
     : _logger = logger ?? Logger('CarnineGrpcService'),
       _channelFactory = channelFactory ?? _createDefaultChannel;
@@ -195,6 +200,92 @@ class CarnineGrpcService
           ? settings.width
           : defaults.width,
     );
+  }
+
+  /// An announcement call that gets no answer in this time failed. A sentence
+  /// the voice has not made yet takes several seconds.
+  static const Duration _voiceCallTimeout = Duration(seconds: 15);
+
+  @override
+  Future<AnnouncementSettings> loadAnnouncementSettings() async {
+    final channel = _channelFactory();
+    try {
+      final settings = await NavigationServiceClient(channel).getVoiceSettings(
+        Empty(),
+        options: CallOptions(timeout: _voiceCallTimeout),
+      );
+      return announcementSettingsFrom(settings);
+    } finally {
+      await channel.shutdown();
+    }
+  }
+
+  @override
+  Future<AnnouncementSettings> saveAnnouncementSettings({
+    bool? enabled,
+    int? volumePercent,
+    int? musicUnderPercent,
+  }) async {
+    final channel = _channelFactory();
+    try {
+      final saved = await NavigationServiceClient(channel).setVoiceSettings(
+        announcementRequestFrom(
+          enabled: enabled,
+          volumePercent: volumePercent,
+          musicUnderPercent: musicUnderPercent,
+        ),
+        options: CallOptions(timeout: _voiceCallTimeout),
+      );
+      return announcementSettingsFrom(saved);
+    } finally {
+      await channel.shutdown();
+    }
+  }
+
+  @override
+  Future<void> announce(String text) async {
+    final channel = _channelFactory();
+    try {
+      await NavigationServiceClient(channel).announce(
+        AnnounceRequest(
+          text: text,
+          priority: AnnouncementPriority.ANNOUNCEMENT_PRIORITY_MANEUVER,
+        ),
+        options: CallOptions(timeout: _voiceCallTimeout),
+      );
+    } finally {
+      await channel.shutdown();
+    }
+  }
+
+  static AnnouncementSettings announcementSettingsFrom(VoiceSettings settings) {
+    return AnnouncementSettings(
+      available: settings.available,
+      enabled: settings.enabled,
+      volumePercent: settings.volumePercent,
+      musicUnderPercent: settings.musicUnderPercent,
+      voice: settings.voice,
+    );
+  }
+
+  /// A request that carries only the fields that are given - the backend
+  /// saves just those.
+  static SetVoiceSettingsRequest announcementRequestFrom({
+    bool? enabled,
+    int? volumePercent,
+    int? musicUnderPercent,
+  }) {
+    final request = SetVoiceSettingsRequest();
+    if (enabled != null) {
+      request.enabled = enabled;
+    }
+    if (volumePercent != null) {
+      request.volumePercent = volumePercent;
+    }
+    if (musicUnderPercent != null) {
+      request.musicUnderPercent = musicUnderPercent;
+    }
+    return request;
   }
 
   /// A password call that gets no answer in this time did not work.

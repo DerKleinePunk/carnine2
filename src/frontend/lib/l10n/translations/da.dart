@@ -215,6 +215,17 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.settingsMapComingSoonTitle: 'Kortindstillinger forberedt',
   AppTextKey.settingsMapComingSoonDescription:
       'Kortvisning og ruteindstillinger konfigureres i dette område.',
+  AppTextKey.settingsMapTabAnnouncements: 'Meddelelser',
+  AppTextKey.settingsMapTabMap: 'Kort',
+  AppTextKey.settingsAnnouncementsSwitchTitle: 'Stemmemeddelelser',
+  AppTextKey.settingsAnnouncementsSwitchSubtitle:
+      'Svandvisninger oplæses under navigationen',
+  AppTextKey.settingsAnnouncementsVolume: 'Meddelelsernes lydstyrke',
+  AppTextKey.settingsAnnouncementsMusicUnder: 'Musik under en meddelelse',
+  AppTextKey.settingsAnnouncementsMusicHint:
+      'Ved 0 % sættes musikken på pause under en meddelelse og fortsætter derefter samme sted. Ved 100 % er den lige høj som før.',
+  AppTextKey.settingsAnnouncementsUnavailable: 'Ingen stemme installeret',
+  AppTextKey.settingsAnnouncementsTest: 'Test meddelelse',
   AppTextKey.settingsMockDescription:
       'Midlertidigt indstillingsområde for globale frontendindstillinger.',
   AppTextKey.languageGerman: 'tysk',

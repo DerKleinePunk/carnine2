@@ -215,6 +215,17 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.settingsMapComingSoonTitle: 'Kaartinstellingen voorbereid',
   AppTextKey.settingsMapComingSoonDescription:
       'Kaartweergave en routeopties worden hier geconfigureerd.',
+  AppTextKey.settingsMapTabAnnouncements: 'Aankondigingen',
+  AppTextKey.settingsMapTabMap: 'Kaart',
+  AppTextKey.settingsAnnouncementsSwitchTitle: 'Gesproken aankondigingen',
+  AppTextKey.settingsAnnouncementsSwitchSubtitle:
+      'Afslaginstructies worden tijdens de navigatie uitgesproken',
+  AppTextKey.settingsAnnouncementsVolume: 'Volume van de aankondigingen',
+  AppTextKey.settingsAnnouncementsMusicUnder: 'Muziek tijdens een aankondiging',
+  AppTextKey.settingsAnnouncementsMusicHint:
+      'Bij 0 % pauzeert de muziek tijdens een aankondiging en gaat daarna op dezelfde plek verder. Bij 100 % blijft ze even luid.',
+  AppTextKey.settingsAnnouncementsUnavailable: 'Geen stem geïnstalleerd',
+  AppTextKey.settingsAnnouncementsTest: 'Aankondiging testen',
   AppTextKey.settingsMockDescription:
       'Tijdelijk instellingengedeelte voor globale frontend-opties.',
   AppTextKey.languageGerman: 'Duits',

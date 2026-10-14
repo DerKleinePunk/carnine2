@@ -192,6 +192,16 @@ const Map<AppTextKey, String> jaTranslations = <AppTextKey, String>{
   AppTextKey.settingsMapComingSoonTitle: '地図設定を準備済み',
   AppTextKey.settingsMapComingSoonDescription:
       '地図表示とルートオプションはこのエリアで設定できるようになります。',
+  AppTextKey.settingsMapTabAnnouncements: '案内',
+  AppTextKey.settingsMapTabMap: '地図',
+  AppTextKey.settingsAnnouncementsSwitchTitle: '音声案内',
+  AppTextKey.settingsAnnouncementsSwitchSubtitle: 'ナビゲーション中に曲がり角の案内を音声で読み上げます',
+  AppTextKey.settingsAnnouncementsVolume: '案内の音量',
+  AppTextKey.settingsAnnouncementsMusicUnder: '案内中の音楽',
+  AppTextKey.settingsAnnouncementsMusicHint:
+      '0 %にすると案内中は音楽が一時停止し、案内の後に同じ位置から再開します。100 %では音量はそのままです。',
+  AppTextKey.settingsAnnouncementsUnavailable: '音声がインストールされていません',
+  AppTextKey.settingsAnnouncementsTest: '案内をテスト',
   AppTextKey.settingsMockDescription: 'フロントエンド全体のオプション用の一時設定エリアです。',
   AppTextKey.languageGerman: 'ドイツ語',
   AppTextKey.languageEnglish: '英語',
