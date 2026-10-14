@@ -47,6 +47,8 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.mediaRepeatOffSemantic: 'Wiederholung: aus',
   AppTextKey.mediaRepeatQueueSemantic: 'Wiederholung: Playlist',
   AppTextKey.mediaRepeatTrackSemantic: 'Wiederholung: aktueller Titel',
+  AppTextKey.mediaShuffleNoEffectHint:
+      'Titel wird wiederholt, Zufall ohne Wirkung',
   AppTextKey.mediaVolumeSemantic: 'Lautstärke {percent} Prozent',
   AppTextKey.mediaMuteSemantic: 'Stummschalten',
   AppTextKey.mediaUnmuteSemantic: 'Stummschaltung aufheben',

@@ -47,6 +47,8 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.mediaRepeatOffSemantic: 'Tekrar: kapalı',
   AppTextKey.mediaRepeatQueueSemantic: 'Tekrar: çalma listesi',
   AppTextKey.mediaRepeatTrackSemantic: 'Tekrar: geçerli parça',
+  AppTextKey.mediaShuffleNoEffectHint:
+      'Parça tekrarlanıyor, karışık çalmanın etkisi yok',
   AppTextKey.mediaVolumeSemantic: 'Ses düzeyi yüzde {percent}',
   AppTextKey.mediaMuteSemantic: 'Sessize al',
   AppTextKey.mediaUnmuteSemantic: 'Sesi aç',

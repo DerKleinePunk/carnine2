@@ -47,6 +47,8 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.mediaRepeatOffSemantic: 'Upprepning: av',
   AppTextKey.mediaRepeatQueueSemantic: 'Upprepning: spellista',
   AppTextKey.mediaRepeatTrackSemantic: 'Upprepning: aktuellt spår',
+  AppTextKey.mediaShuffleNoEffectHint:
+      'Spåret upprepas, blandat läge har ingen effekt',
   AppTextKey.mediaVolumeSemantic: 'Volym {percent} procent',
   AppTextKey.mediaMuteSemantic: 'Tysta',
   AppTextKey.mediaUnmuteSemantic: 'Avtysta',

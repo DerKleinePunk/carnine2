@@ -47,6 +47,8 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.mediaRepeatOffSemantic: 'Opakování: vypnuto',
   AppTextKey.mediaRepeatQueueSemantic: 'Opakování: playlist',
   AppTextKey.mediaRepeatTrackSemantic: 'Opakování: aktuální skladba',
+  AppTextKey.mediaShuffleNoEffectHint:
+      'Skladba se opakuje, náhodné přehrávání nemá účinek',
   AppTextKey.mediaVolumeSemantic: 'Hlasitost {percent} procent',
   AppTextKey.mediaMuteSemantic: 'Ztlumit',
   AppTextKey.mediaUnmuteSemantic: 'Zrušit ztlumení',

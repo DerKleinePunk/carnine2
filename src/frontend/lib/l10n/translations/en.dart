@@ -47,6 +47,7 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.mediaRepeatOffSemantic: 'Repeat: off',
   AppTextKey.mediaRepeatQueueSemantic: 'Repeat: playlist',
   AppTextKey.mediaRepeatTrackSemantic: 'Repeat: current track',
+  AppTextKey.mediaShuffleNoEffectHint: 'Track repeats, shuffle has no effect',
   AppTextKey.mediaVolumeSemantic: 'Volume {percent} percent',
   AppTextKey.mediaMuteSemantic: 'Mute',
   AppTextKey.mediaUnmuteSemantic: 'Unmute',

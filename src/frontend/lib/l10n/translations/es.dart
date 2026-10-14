@@ -47,6 +47,8 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
   AppTextKey.mediaRepeatOffSemantic: 'Repetición: desactivada',
   AppTextKey.mediaRepeatQueueSemantic: 'Repetición: playlist',
   AppTextKey.mediaRepeatTrackSemantic: 'Repetición: pista actual',
+  AppTextKey.mediaShuffleNoEffectHint:
+      'Se repite la pista, el aleatorio no tiene efecto',
   AppTextKey.mediaVolumeSemantic: 'Volumen {percent} por ciento',
   AppTextKey.mediaMuteSemantic: 'Silenciar',
   AppTextKey.mediaUnmuteSemantic: 'Reactivar sonido',

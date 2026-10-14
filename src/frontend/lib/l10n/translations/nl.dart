@@ -47,6 +47,8 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.mediaRepeatOffSemantic: 'Herhalen: uit',
   AppTextKey.mediaRepeatQueueSemantic: 'Herhalen: playlist',
   AppTextKey.mediaRepeatTrackSemantic: 'Herhalen: huidig nummer',
+  AppTextKey.mediaShuffleNoEffectHint:
+      'Nummer wordt herhaald, willekeurig afspelen heeft geen effect',
   AppTextKey.mediaVolumeSemantic: 'Volume {percent} procent',
   AppTextKey.mediaMuteSemantic: 'Dempen',
   AppTextKey.mediaUnmuteSemantic: 'Dempen opheffen',

@@ -47,6 +47,8 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.mediaRepeatOffSemantic: 'Gentagelse: fra',
   AppTextKey.mediaRepeatQueueSemantic: 'Gentagelse: playliste',
   AppTextKey.mediaRepeatTrackSemantic: 'Gentagelse: aktuelt nummer',
+  AppTextKey.mediaShuffleNoEffectHint:
+      'Nummeret gentages, bland afspilning har ingen effekt',
   AppTextKey.mediaVolumeSemantic: 'Lydstyrke {percent} procent',
   AppTextKey.mediaMuteSemantic: 'Slå lyden fra',
   AppTextKey.mediaUnmuteSemantic: 'Slå lyden til',

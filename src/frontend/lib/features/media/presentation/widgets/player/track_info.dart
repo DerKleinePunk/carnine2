@@ -14,6 +14,7 @@ class TrackInfo extends StatelessWidget {
     required this.artist,
     required this.contextLine,
     required this.scale,
+    this.highlightContext = false,
     super.key,
   });
 
@@ -21,6 +22,9 @@ class TrackInfo extends StatelessWidget {
   final String artist;
   final String contextLine;
   final double scale;
+
+  /// The context line is a note that should catch the eye (#143).
+  final bool highlightContext;
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +61,9 @@ class TrackInfo extends StatelessWidget {
         Text(
           contextLine.toUpperCase(),
           style: AppTextStyles.bodyLarge.copyWith(
-            color: AppColors.onSurfaceVariant,
+            color: highlightContext
+                ? AppColors.primary
+                : AppColors.onSurfaceVariant,
             fontSize: 10,
           ),
         ),

@@ -47,6 +47,8 @@ const Map<AppTextKey, String> ptTranslations = <AppTextKey, String>{
   AppTextKey.mediaRepeatOffSemantic: 'Repetição: desativada',
   AppTextKey.mediaRepeatQueueSemantic: 'Repetição: playlist',
   AppTextKey.mediaRepeatTrackSemantic: 'Repetição: faixa atual',
+  AppTextKey.mediaShuffleNoEffectHint:
+      'A faixa repete-se, o aleatório não tem efeito',
   AppTextKey.mediaVolumeSemantic: 'Volume {percent} por cento',
   AppTextKey.mediaMuteSemantic: 'Silenciar',
   AppTextKey.mediaUnmuteSemantic: 'Reativar som',

@@ -45,6 +45,7 @@ const Map<AppTextKey, String> zhTranslations = <AppTextKey, String>{
   AppTextKey.mediaRepeatOffSemantic: '循环播放：关闭',
   AppTextKey.mediaRepeatQueueSemantic: '循环播放：播放列表',
   AppTextKey.mediaRepeatTrackSemantic: '循环播放：当前曲目',
+  AppTextKey.mediaShuffleNoEffectHint: '正在循环当前曲目，随机播放不起作用',
   AppTextKey.mediaVolumeSemantic: '音量 {percent}%',
   AppTextKey.mediaMuteSemantic: '静音',
   AppTextKey.mediaUnmuteSemantic: '取消静音',

@@ -47,6 +47,8 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.mediaRepeatOffSemantic: 'Powtarzanie: wyłączone',
   AppTextKey.mediaRepeatQueueSemantic: 'Powtarzanie: playlista',
   AppTextKey.mediaRepeatTrackSemantic: 'Powtarzanie: bieżący utwór',
+  AppTextKey.mediaShuffleNoEffectHint:
+      'Utwór jest powtarzany, losowe odtwarzanie nie działa',
   AppTextKey.mediaVolumeSemantic: 'Głośność {percent} procent',
   AppTextKey.mediaMuteSemantic: 'Wycisz',
   AppTextKey.mediaUnmuteSemantic: 'Wyłącz wyciszenie',

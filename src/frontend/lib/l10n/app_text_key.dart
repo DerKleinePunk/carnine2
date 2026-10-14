@@ -47,6 +47,7 @@ enum AppTextKey {
   mediaRepeatOffSemantic,
   mediaRepeatQueueSemantic,
   mediaRepeatTrackSemantic,
+  mediaShuffleNoEffectHint,
   mediaVolumeSemantic,
   mediaMuteSemantic,
   mediaUnmuteSemantic,

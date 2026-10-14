@@ -47,6 +47,8 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.mediaRepeatOffSemantic: 'Ismétlés: kikapcsolva',
   AppTextKey.mediaRepeatQueueSemantic: 'Ismétlés: lejátszási lista',
   AppTextKey.mediaRepeatTrackSemantic: 'Ismétlés: aktuális szám',
+  AppTextKey.mediaShuffleNoEffectHint:
+      'A szám ismétlődik, a véletlenszerű lejátszásnak nincs hatása',
   AppTextKey.mediaVolumeSemantic: 'Hangerő {percent} százalék',
   AppTextKey.mediaMuteSemantic: 'Némítás',
   AppTextKey.mediaUnmuteSemantic: 'Némítás feloldása',

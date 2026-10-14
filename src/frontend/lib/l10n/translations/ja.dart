@@ -46,6 +46,7 @@ const Map<AppTextKey, String> jaTranslations = <AppTextKey, String>{
   AppTextKey.mediaRepeatOffSemantic: 'リピート：オフ',
   AppTextKey.mediaRepeatQueueSemantic: 'リピート：プレイリスト',
   AppTextKey.mediaRepeatTrackSemantic: 'リピート：現在の曲',
+  AppTextKey.mediaShuffleNoEffectHint: '現在の曲をリピート中のため、シャッフルは効きません',
   AppTextKey.mediaVolumeSemantic: '音量 {percent}パーセント',
   AppTextKey.mediaMuteSemantic: 'ミュート',
   AppTextKey.mediaUnmuteSemantic: 'ミュート解除',
