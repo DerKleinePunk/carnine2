@@ -166,6 +166,53 @@ names_database = "/var/lib/carnine/maps/germany_names.db"
 
 (Shortened; the file in the repository also explains each key.)
 
+#### Exit password ("Beenden")
+
+**Optionen → System → Beenden** closes the frontend for maintenance and asks
+for a password first (#51). The backend keeps only an Argon2id hash of it
+(`src/backend/src/exit_password.rs`); the frontend stores nothing and has no
+copy of its own since Jonas' 530609a:
+
+- The factory default comes with the configuration as
+  `[exit_password] hash` in `resources/config/carnine.toml`. Without that
+  key, or with a value that is not an Argon2 hash, the backend uses the same
+  built-in default and logs a warning, so a broken entry never locks the user
+  out.
+- `SystemService.VerifyExitPassword` answers `valid = true/false`; a wrong
+  password is not an error. Argon2 is slow on purpose, so the check runs off
+  the async workers; the dialog shows „Wird geprüft …“ meanwhile.
+- `SystemService.SetExitPassword` needs the current password
+  (`PERMISSION_DENIED` when it is wrong) and accepts 4 to 64 characters
+  without control characters (`INVALID_ARGUMENT` otherwise). It writes the new
+  hash to the drop-in `config.d/30-exit-password.toml` beside the
+  configuration, in one step (temporary file, then rename) with mode `0640`,
+  and uses it at once. If there is no `config.d` or the file cannot be
+  written, it answers `INTERNAL` and the old password stays. The name sorts
+  after the image's own drop-ins (`10-…`, `20-…`); no other drop-in sets
+  `[exit_password]`, so the order does not matter for it. `deploy_pi.sh`
+  leaves the file alone, so the password survives restarts and deployments.
+- For that the `carnine` group must be able to write to
+  `/etc/carnine/config.d`: the image creates it `0770`, and the backend
+  package's `postinst` changes an older `0750` directory on every install.
+- Back to the factory default: delete the drop-in and restart the backend,
+  `sudo rm /etc/carnine/config.d/30-exit-password.toml && sudo systemctl
+  restart carnine-backend`.
+
+From the development machine:
+
+```bash
+media_grpc_client <endpoint> verify-exit-password            # prints valid=true/false
+media_grpc_client <endpoint> set-exit-password               # current and new, one per line
+```
+
+Both read missing passwords from stdin, so they stay out of the shell
+history. The user guide deliberately does not name the factory password
+(`optionen.md`, `nach-der-installation.md`); whoever sets up a device should
+change it.
+
+If the backend cannot be reached, the frontend does **not** close: the dialog
+stays open with a hint and a second **Bestätigen** tries again.
+
 #### Volume state on test setups
 
 The backend keeps the volume across restarts in the file named by

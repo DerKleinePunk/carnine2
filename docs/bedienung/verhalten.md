@@ -107,8 +107,18 @@ jemand **Verstanden** tippt.
 ## Messe-Modus
 
 Am Messestand fährt das Gerät die Replay-Tour in Schleife, mit Ansagen und
-Musik, ohne Laptop. Eingeschaltet wird das im Backend, im Drop-in
-`/etc/carnine/config.d/90-messe.toml` (Vorlage: `resources/config/messe/`):
+Musik, ohne Laptop. Eingeschaltet wird das im Backend, mit dem Skript
+`resources/config/messe/messe-einrichten.sh` vom Entwicklungsrechner oder
+Laptop aus:
+
+```bash
+resources/config/messe/messe-einrichten.sh pi@<gerät> an     # einschalten
+resources/config/messe/messe-einrichten.sh pi@<gerät> aus    # ausschalten
+```
+
+`an` kopiert die Tour und den Drop-in `/etc/carnine/config.d/90-messe.toml` auf
+das Gerät und startet Backend und Oberfläche neu. Der Drop-in stellt die
+Positionsquelle auf die Tour in Schleife und setzt dazu unter anderem:
 
 ```toml
 [navigation]
@@ -116,8 +126,9 @@ replay_destination_name = "Kunsthalle Montez"   # Name im Suchfeld
 demo_mode = true                                # Rückkehr zur Karte
 ```
 
-Danach `sudo systemctl restart carnine-backend`. Ausschalten: Datei löschen und
-neu starten. Die Oberfläche merkt den Modus nach spätestens 3 Sekunden.
+Diese zwei Zeilen allein starten keine Tour. `aus` löscht den Drop-in und
+startet neu. Die Einzelheiten (Tour, Schlüssel, feste Adresse) stehen in
+`docs/25-demo-and-touch-tools.md`, Abschnitt „Trade fair mode“.
 
 | Was | Verhalten |
 |---|---|
