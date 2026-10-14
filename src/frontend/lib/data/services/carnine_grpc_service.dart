@@ -2,6 +2,7 @@ import 'package:carnine_frontend/core/platform/grpc_endpoint.dart';
 import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart';
 import 'package:carnine_frontend/features/camera/domain/video_device.dart';
 import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
+import 'package:carnine_frontend/features/maps/data/map_follow_zoom_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
 import 'package:carnine_frontend/lib/carnine.pbgrpc.dart';
@@ -20,7 +21,8 @@ class CarnineGrpcService
         UiStateStore,
         CameraSettingsStore,
         ExitPasswordStore,
-        AnnouncementSettingsStore {
+        AnnouncementSettingsStore,
+        MapFollowZoomStore {
   CarnineGrpcService({Logger? logger, ClientChannelFactory? channelFactory})
     : _logger = logger ?? Logger('CarnineGrpcService'),
       _channelFactory = channelFactory ?? _createDefaultChannel;
@@ -200,6 +202,33 @@ class CarnineGrpcService
           ? settings.width
           : defaults.width,
     );
+  }
+
+  @override
+  Future<int> loadFollowZoom() async {
+    final channel = _channelFactory();
+    try {
+      final state = await SystemServiceClient(channel).getUiState(Empty());
+      return state.hasMapFollowZoom() ? state.mapFollowZoom : 0;
+    } finally {
+      await channel.shutdown();
+    }
+  }
+
+  /// Sends only the zoom, so the saved page and language stay.
+  @override
+  Future<void> saveFollowZoom(int zoom) async {
+    final channel = _channelFactory();
+    try {
+      final response = await SystemServiceClient(
+        channel,
+      ).saveUiState(UiState(mapFollowZoom: zoom));
+      if (!response.success) {
+        throw StateError(response.message);
+      }
+    } finally {
+      await channel.shutdown();
+    }
   }
 
   /// An announcement call that gets no answer in this time failed. A sentence

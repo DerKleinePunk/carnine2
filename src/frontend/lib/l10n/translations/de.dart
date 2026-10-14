@@ -225,6 +225,11 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
       'Kartenansicht und Routingoptionen folgen in diesem Bereich.',
   AppTextKey.settingsMapTabAnnouncements: 'Ansagen',
   AppTextKey.settingsMapTabMap: 'Karte',
+  AppTextKey.settingsFollowZoomTitle: 'Zoom beim Folgen',
+  AppTextKey.settingsFollowZoomDescription:
+      'Wie nah die Karte ist, wenn sie dem Auto folgt. Je höher die Stufe, desto näher. Die Änderung gilt sofort.',
+  AppTextKey.settingsFollowZoomFar: 'weit',
+  AppTextKey.settingsFollowZoomNear: 'nah',
   AppTextKey.settingsAnnouncementsSwitchTitle: 'Sprachansagen',
   AppTextKey.settingsAnnouncementsSwitchSubtitle:
       'Abbiegehinweise werden während der Navigation gesprochen',

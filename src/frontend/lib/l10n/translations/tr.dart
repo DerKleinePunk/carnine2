@@ -217,6 +217,11 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
       'Harita görünümü ve rota seçenekleri bu alanda yapılandırılacak.',
   AppTextKey.settingsMapTabAnnouncements: 'Anonslar',
   AppTextKey.settingsMapTabMap: 'Harita',
+  AppTextKey.settingsFollowZoomTitle: 'Takip sırasında yakınlaştırma',
+  AppTextKey.settingsFollowZoomDescription:
+      'Harita arabayı takip ederken ne kadar yakın olacağı. Düzey yükseldikçe harita yaklaşır. Değişiklik hemen geçerli olur.',
+  AppTextKey.settingsFollowZoomFar: 'uzak',
+  AppTextKey.settingsFollowZoomNear: 'yakın',
   AppTextKey.settingsAnnouncementsSwitchTitle: 'Sesli anonslar',
   AppTextKey.settingsAnnouncementsSwitchSubtitle:
       'Navigasyon sırasında dönüş talimatları sesli okunur',

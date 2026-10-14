@@ -159,8 +159,7 @@ Sichtbar, aber ohne Funktion:
 - Seite **Start** (nur Entwickler-Test)
 - Springen in der Zeitleiste des Players (dafür −30 s / +30 s)
 - **Nach Updates suchen** (#20)
-- Der Reiter **Karte** der Karteneinstellungen und der Reiter **Darstellung** in
-  den Optionen
+- Der Reiter **Darstellung** in den Optionen
 - **Audio-Ausgang**, **Handy-App** und **Netzteil** auf der Seite Geräte (nur
   eine Vorschau, nicht antippbar)
 

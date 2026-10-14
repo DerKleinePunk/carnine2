@@ -16,6 +16,8 @@ import 'package:carnine_frontend/features/dashboard/presentation/widgets/dashboa
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/side_menu.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/thermal_warning_overlay.dart';
 import 'package:carnine_frontend/features/media/presentation/media_controller.dart';
+import 'package:carnine_frontend/features/maps/data/map_follow_zoom_store.dart';
+import 'package:carnine_frontend/features/maps/presentation/map_follow_zoom_controller.dart';
 import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
@@ -36,6 +38,7 @@ class DashboardScreen extends StatefulWidget {
     this.cameraSettingsStore,
     this.exitPasswordStore,
     this.announcementSettingsStore,
+    this.mapFollowZoomStore,
     this.controlsRepository,
     this.cameraSourceFactory,
     this.idleReturnAfter = const Duration(seconds: 60),
@@ -61,6 +64,9 @@ class DashboardScreen extends StatefulWidget {
 
   /// Where the options keep the settings of the spoken announcements.
   final AnnouncementSettingsStore? announcementSettingsStore;
+
+  /// Where the zoom of following the car is kept.
+  final MapFollowZoomStore? mapFollowZoomStore;
 
   /// Where the Technik page gets its controls from; tests leave it out.
   final ControlsRepository? controlsRepository;
@@ -115,6 +121,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   DashboardGrpcStatus _lastHandledGrpcStatus = DashboardGrpcStatus.notConnected;
 
+  // The zoom of following the car (#131): the map page and the options use it.
+  late final MapFollowZoomController _followZoomController =
+      MapFollowZoomController(store: widget.mapFollowZoomStore);
+
   // Trade fair mode (#128): back to the map after a minute without a touch.
   late final IdleReturn _idleReturn = IdleReturn(
     after: widget.idleReturnAfter,
@@ -127,6 +137,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     _controller.addListener(_handleControllerChange);
     _mapsController.addListener(_idleReturn.sync);
+    unawaited(_followZoomController.load());
     // Every touch anywhere counts - also on the keyboard and in dialogs,
     // which are outside of this screen's widget tree.
     GestureBinding.instance.pointerRouter.addGlobalRoute(_handlePointer);
@@ -141,6 +152,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void dispose() {
     _idleReturn.dispose();
+    _followZoomController.dispose();
     GestureBinding.instance.pointerRouter.removeGlobalRoute(_handlePointer);
     _mapsController.removeListener(_idleReturn.sync);
     _controller.removeListener(_handleControllerChange);
@@ -294,6 +306,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   cameraSettingsStore: widget.cameraSettingsStore,
                   exitPasswordStore: widget.exitPasswordStore,
                   announcementSettingsStore: widget.announcementSettingsStore,
+                  followZoomController: _followZoomController,
                   cameraSourceFactory: widget.cameraSourceFactory,
                   onShowCamera: () => _controller.selectDestination(
                     DashboardDestination.camera,

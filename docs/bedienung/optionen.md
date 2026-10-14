@@ -9,7 +9,7 @@ Vier Kacheln; der Pfeil oben links in jeder Unterseite führt zurück zur
 
 | Kachel | Inhalt |
 |---|---|
-| **Karteneinstellungen** | zwei Reiter: **Ansagen** (Sprachansagen der Navigation) und **Karte** (noch leer) |
+| **Karteneinstellungen** | zwei Reiter: **Ansagen** (Sprachansagen der Navigation) und **Karte** (Zoom beim Folgen) |
 | **Darstellung & Sprache** | zwei Reiter: **Darstellung** (noch leer) und **Sprache** (Anzeigesprache wählen) |
 | **Geräte** | **Kamera** einstellen; Audio-Ausgang, Handy-App und Netzteil als Vorschau |
 | **System** | Logs, Updates, Passwort ändern, Neustart, Beenden, Version |
@@ -17,7 +17,6 @@ Vier Kacheln; der Pfeil oben links in jeder Unterseite führt zurück zur
 ## Karteneinstellungen
 
 Oben zwei Reiter: **Ansagen** und **Karte**. Die Seite öffnet auf **Ansagen**.
-Der Reiter **Karte** ist noch leer („… vorbereitet“).
 
 **Ansagen** stellt die gesprochenen Abbiegehinweise der Navigation ein
 ([Karten, Sprachansagen](karte.md#sprachansagen)). Jede Änderung gilt sofort und
@@ -42,6 +41,13 @@ bleibt über Neustarts erhalten, das Backend speichert sie.
 
 Die Ansagen gibt es nur, wenn die Oberfläche auf Deutsch steht, die Einstellungen
 selbst sind in jeder Sprache bedienbar.
+
+**Karte** stellt ein, wie nah die Karte ist, wenn sie dem Auto folgt. Ein Regler
+mit den Stufen **14 bis 17** (14 weit, 17 nah). Ab Werk gilt **16**. Die Karte
+geht beim Loslassen sofort auf die neue Stufe, und das Backend merkt sie sich
+über Neustarts hinweg. Schlägt das Speichern fehl, springt die Karte zurück und
+kurz steht „Befehl fehlgeschlagen“. Mehr zum Folgen steht unter
+[Karten, Zoom beim Folgen](karte.md#karte-bewegen).
 
 ## Darstellung & Sprache
 

@@ -195,6 +195,11 @@ const Map<AppTextKey, String> jaTranslations = <AppTextKey, String>{
       '地図表示とルートオプションはこのエリアで設定できるようになります。',
   AppTextKey.settingsMapTabAnnouncements: '案内',
   AppTextKey.settingsMapTabMap: '地図',
+  AppTextKey.settingsFollowZoomTitle: '追従時のズーム',
+  AppTextKey.settingsFollowZoomDescription:
+      '地図が車を追うときの距離です。レベルが高いほど近くなります。変更はすぐに反映されます。',
+  AppTextKey.settingsFollowZoomFar: '遠い',
+  AppTextKey.settingsFollowZoomNear: '近い',
   AppTextKey.settingsAnnouncementsSwitchTitle: '音声案内',
   AppTextKey.settingsAnnouncementsSwitchSubtitle: 'ナビゲーション中に曲がり角の案内を音声で読み上げます',
   AppTextKey.settingsAnnouncementsVolume: '案内の音量',

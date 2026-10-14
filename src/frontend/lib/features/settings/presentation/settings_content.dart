@@ -2,12 +2,14 @@ import 'package:carnine_frontend/core/logging/app_logging.dart';
 import 'package:carnine_frontend/core/logging/log_viewer_dialog.dart';
 import 'package:carnine_frontend/core/platform/app_window.dart';
 import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart';
+import 'package:carnine_frontend/features/maps/presentation/map_follow_zoom_controller.dart';
 import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/features/settings/presentation/models/settings_option_item.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_controller.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/camera_settings_page.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/system_page.dart';
+import 'package:carnine_frontend/features/settings/presentation/widgets/follow_zoom_tab.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/language_flag.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/map_settings_page.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/settings_choice_button.dart';
@@ -30,6 +32,7 @@ class SettingsContent extends StatefulWidget {
     this.cameraSettingsStore,
     this.exitPasswordStore,
     this.announcementSettingsStore,
+    this.followZoomController,
     this.onShowCamera,
     super.key,
   });
@@ -49,6 +52,10 @@ class SettingsContent extends StatefulWidget {
   /// Where the settings of the spoken announcements are kept. Without one
   /// (tests, no backend) the map settings stay a placeholder.
   final AnnouncementSettingsStore? announcementSettingsStore;
+
+  /// The zoom of following the car (#131); without one the tab "Karte" stays
+  /// a placeholder.
+  final MapFollowZoomController? followZoomController;
 
   /// Opens the Kamera page, so a changed setting can be looked at.
   final VoidCallback? onShowCamera;
@@ -122,6 +129,7 @@ class _SettingsContentState extends State<SettingsContent> {
       cameraSettingsStore: widget.cameraSettingsStore,
       exitPasswordStore: widget.exitPasswordStore,
       announcementSettingsStore: widget.announcementSettingsStore,
+      followZoomController: widget.followZoomController,
       onShowCamera: widget.onShowCamera,
       onOpenLogs: _openLogViewer,
       onRestart: widget.onRestart ?? AppWindow.restartApplication,
@@ -377,6 +385,7 @@ class _SettingsSectionPage extends StatelessWidget {
     required this.cameraSettingsStore,
     required this.exitPasswordStore,
     required this.announcementSettingsStore,
+    required this.followZoomController,
     required this.onShowCamera,
     required this.onOpenLogs,
     required this.onRestart,
@@ -393,6 +402,7 @@ class _SettingsSectionPage extends StatelessWidget {
   final CameraSettingsStore? cameraSettingsStore;
   final ExitPasswordStore? exitPasswordStore;
   final AnnouncementSettingsStore? announcementSettingsStore;
+  final MapFollowZoomController? followZoomController;
   final VoidCallback? onShowCamera;
   final VoidCallback onOpenLogs;
   final VoidCallback onRestart;
@@ -449,9 +459,13 @@ class _SettingsSectionPage extends StatelessWidget {
       return placeholder;
     }
 
+    final followZoom = followZoomController;
+
     return MapSettingsPage(
       announcementSettingsStore: store,
-      mapTab: placeholder,
+      mapTab: followZoom == null
+          ? placeholder
+          : FollowZoomTab(controller: followZoom),
     );
   }
 

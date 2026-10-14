@@ -219,6 +219,11 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
       'Kortvisning og ruteindstillinger konfigureres i dette område.',
   AppTextKey.settingsMapTabAnnouncements: 'Meddelelser',
   AppTextKey.settingsMapTabMap: 'Kort',
+  AppTextKey.settingsFollowZoomTitle: 'Zoom ved følgning',
+  AppTextKey.settingsFollowZoomDescription:
+      'Hvor tæt kortet er, mens det følger bilen. Jo højere niveau, desto tættere. Ændringen gælder med det samme.',
+  AppTextKey.settingsFollowZoomFar: 'langt',
+  AppTextKey.settingsFollowZoomNear: 'tæt',
   AppTextKey.settingsAnnouncementsSwitchTitle: 'Stemmemeddelelser',
   AppTextKey.settingsAnnouncementsSwitchSubtitle:
       'Svandvisninger oplæses under navigationen',

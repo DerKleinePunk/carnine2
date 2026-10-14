@@ -229,6 +229,11 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
       'L’affichage de carte et les options d’itinéraire seront configurés ici.',
   AppTextKey.settingsMapTabAnnouncements: 'Annonces',
   AppTextKey.settingsMapTabMap: 'Carte',
+  AppTextKey.settingsFollowZoomTitle: 'Zoom pendant le suivi',
+  AppTextKey.settingsFollowZoomDescription:
+      'Distance de la carte quand elle suit la voiture. Plus le niveau est élevé, plus la carte est proche. La modification s’applique immédiatement.',
+  AppTextKey.settingsFollowZoomFar: 'loin',
+  AppTextKey.settingsFollowZoomNear: 'près',
   AppTextKey.settingsAnnouncementsSwitchTitle: 'Annonces vocales',
   AppTextKey.settingsAnnouncementsSwitchSubtitle:
       'Les consignes de virage sont énoncées pendant la navigation',

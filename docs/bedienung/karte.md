@@ -39,7 +39,9 @@ Kompass-Knopf die Position zurück.
 
 **Zoom beim Folgen:** Jedes Mal, wenn die Karte anfängt, der eigenen Position
 zu folgen – nach dem Start, nach dem Laden einer Route und mit dem
-Kompass-Knopf –, geht sie auf Zoomstufe 16. Mit zwei Fingern oder Plus/Minus
+Kompass-Knopf –, geht sie auf die eingestellte Zoomstufe, ab Werk 16. Die Stufe
+stellt man unter [Optionen → Karteneinstellungen → Karte](optionen.md#karteneinstellungen)
+ein (14 bis 17). Mit zwei Fingern oder Plus/Minus
 lässt sich weiter zoomen, die Karte folgt dabei weiter; dieser Zoom bleibt,
 bis das Folgen das nächste Mal angeht.
 

@@ -218,6 +218,11 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
       'Widok mapy i opcje tras będą konfigurowane w tym obszarze.',
   AppTextKey.settingsMapTabAnnouncements: 'Komunikaty',
   AppTextKey.settingsMapTabMap: 'Mapa',
+  AppTextKey.settingsFollowZoomTitle: 'Powiększenie podczas śledzenia',
+  AppTextKey.settingsFollowZoomDescription:
+      'Jak blisko jest mapa, gdy podąża za samochodem. Im wyższy poziom, tym bliżej. Zmiana działa od razu.',
+  AppTextKey.settingsFollowZoomFar: 'daleko',
+  AppTextKey.settingsFollowZoomNear: 'blisko',
   AppTextKey.settingsAnnouncementsSwitchTitle: 'Komunikaty głosowe',
   AppTextKey.settingsAnnouncementsSwitchSubtitle:
       'Wskazówki skrętu są odczytywane podczas nawigacji',

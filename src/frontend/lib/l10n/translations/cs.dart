@@ -215,6 +215,11 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
       'Zobrazení mapy a možnosti tras se budou konfigurovat v této části.',
   AppTextKey.settingsMapTabAnnouncements: 'Hlášení',
   AppTextKey.settingsMapTabMap: 'Mapa',
+  AppTextKey.settingsFollowZoomTitle: 'Přiblížení při sledování',
+  AppTextKey.settingsFollowZoomDescription:
+      'Jak blízko je mapa, když sleduje auto. Čím vyšší úroveň, tím blíž. Změna se projeví hned.',
+  AppTextKey.settingsFollowZoomFar: 'daleko',
+  AppTextKey.settingsFollowZoomNear: 'blízko',
   AppTextKey.settingsAnnouncementsSwitchTitle: 'Hlasová hlášení',
   AppTextKey.settingsAnnouncementsSwitchSubtitle:
       'Pokyny k odbočení se během navigace čtou nahlas',

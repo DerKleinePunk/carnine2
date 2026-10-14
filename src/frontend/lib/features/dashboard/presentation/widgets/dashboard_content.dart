@@ -8,6 +8,7 @@ import 'package:carnine_frontend/features/maps/presentation/maps_content.dart';
 import 'package:carnine_frontend/features/maps/presentation/maps_controller.dart';
 import 'package:carnine_frontend/features/media/presentation/media_content.dart';
 import 'package:carnine_frontend/features/media/presentation/media_controller.dart';
+import 'package:carnine_frontend/features/maps/presentation/map_follow_zoom_controller.dart';
 import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_content.dart';
@@ -33,6 +34,7 @@ class DashboardContent extends StatelessWidget {
     this.cameraSettingsStore,
     this.exitPasswordStore,
     this.announcementSettingsStore,
+    this.followZoomController,
     this.cameraSourceFactory,
     this.onShowCamera,
     this.controlsRepository,
@@ -51,6 +53,9 @@ class DashboardContent extends StatelessWidget {
   final CameraSettingsStore? cameraSettingsStore;
   final ExitPasswordStore? exitPasswordStore;
   final AnnouncementSettingsStore? announcementSettingsStore;
+
+  /// The zoom of following the car; shared by the map and the options.
+  final MapFollowZoomController? followZoomController;
   final GrabberSourceFactory? cameraSourceFactory;
 
   /// Selects the Kamera page - from the camera settings, to look at a change.
@@ -67,6 +72,7 @@ class DashboardContent extends StatelessWidget {
         cameraSettingsStore: cameraSettingsStore,
         exitPasswordStore: exitPasswordStore,
         announcementSettingsStore: announcementSettingsStore,
+        followZoomController: followZoomController,
         onShowCamera: onShowCamera,
       );
     }
@@ -76,7 +82,10 @@ class DashboardContent extends StatelessWidget {
     }
 
     if (selectedItem.destination == DashboardDestination.maps) {
-      return MapsContent(controller: mapsController);
+      return MapsContent(
+        controller: mapsController,
+        followZoom: followZoomController,
+      );
     }
 
     // Built only while the page is shown: leaving it closes the stream.

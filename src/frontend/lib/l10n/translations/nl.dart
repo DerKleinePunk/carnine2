@@ -219,6 +219,11 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
       'Kaartweergave en routeopties worden hier geconfigureerd.',
   AppTextKey.settingsMapTabAnnouncements: 'Aankondigingen',
   AppTextKey.settingsMapTabMap: 'Kaart',
+  AppTextKey.settingsFollowZoomTitle: 'Zoom bij volgen',
+  AppTextKey.settingsFollowZoomDescription:
+      'Hoe dichtbij de kaart is terwijl ze de auto volgt. Hoe hoger het niveau, hoe dichterbij. De wijziging geldt direct.',
+  AppTextKey.settingsFollowZoomFar: 'ver',
+  AppTextKey.settingsFollowZoomNear: 'dichtbij',
   AppTextKey.settingsAnnouncementsSwitchTitle: 'Gesproken aankondigingen',
   AppTextKey.settingsAnnouncementsSwitchSubtitle:
       'Afslaginstructies worden tijdens de navigatie uitgesproken',

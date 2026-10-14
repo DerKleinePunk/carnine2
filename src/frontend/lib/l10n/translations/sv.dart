@@ -215,6 +215,11 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
       'Kartvy och ruttalternativ kommer att konfigureras här.',
   AppTextKey.settingsMapTabAnnouncements: 'Aviseringar',
   AppTextKey.settingsMapTabMap: 'Karta',
+  AppTextKey.settingsFollowZoomTitle: 'Zoom vid följning',
+  AppTextKey.settingsFollowZoomDescription:
+      'Hur nära kartan är medan den följer bilen. Ju högre nivå, desto närmare. Ändringen gäller direkt.',
+  AppTextKey.settingsFollowZoomFar: 'långt',
+  AppTextKey.settingsFollowZoomNear: 'nära',
   AppTextKey.settingsAnnouncementsSwitchTitle: 'Röstaviseringar',
   AppTextKey.settingsAnnouncementsSwitchSubtitle:
       'Svängbesked läses upp under navigeringen',

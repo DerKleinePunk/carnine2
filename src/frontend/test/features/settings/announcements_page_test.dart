@@ -2,6 +2,7 @@ import 'package:carnine_frontend/features/settings/data/announcement_settings_st
 import 'package:carnine_frontend/features/settings/presentation/models/settings_option_item.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_content.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_controller.dart';
+import 'package:carnine_frontend/features/settings/presentation/widgets/settings_choice_button.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -318,7 +319,7 @@ void main() {
         }
 
         // The second tab as well.
-        await tester.tap(find.byIcon(Icons.map).first);
+        await tester.tap(find.byType(SettingsChoiceButton).at(1));
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
       });

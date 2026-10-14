@@ -225,6 +225,11 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
       'A térképnézet és az útvonalopciók ebben a részben lesznek beállíthatók.',
   AppTextKey.settingsMapTabAnnouncements: 'Közlések',
   AppTextKey.settingsMapTabMap: 'Térkép',
+  AppTextKey.settingsFollowZoomTitle: 'Nagyítás követéskor',
+  AppTextKey.settingsFollowZoomDescription:
+      'Milyen közel van a térkép, amikor követi az autót. Minél magasabb a szint, annál közelebb. A módosítás azonnal érvénybe lép.',
+  AppTextKey.settingsFollowZoomFar: 'távol',
+  AppTextKey.settingsFollowZoomNear: 'közel',
   AppTextKey.settingsAnnouncementsSwitchTitle: 'Hangos közlések',
   AppTextKey.settingsAnnouncementsSwitchSubtitle:
       'A navigáció közben felolvassa a kanyarodási utasításokat',

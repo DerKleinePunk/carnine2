@@ -217,6 +217,11 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
       'Map view and routing options will be configured in this area.',
   AppTextKey.settingsMapTabAnnouncements: 'Announcements',
   AppTextKey.settingsMapTabMap: 'Map',
+  AppTextKey.settingsFollowZoomTitle: 'Zoom when following',
+  AppTextKey.settingsFollowZoomDescription:
+      'How close the map is while it follows the car. The higher the level, the closer. The change applies at once.',
+  AppTextKey.settingsFollowZoomFar: 'far',
+  AppTextKey.settingsFollowZoomNear: 'near',
   AppTextKey.settingsAnnouncementsSwitchTitle: 'Voice announcements',
   AppTextKey.settingsAnnouncementsSwitchSubtitle:
       'Turn instructions are spoken during navigation',
