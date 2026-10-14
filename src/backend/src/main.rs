@@ -675,6 +675,11 @@ impl MediaServiceImpl {
             RepeatMode::from_str_name(&state.repeat_mode).unwrap_or(RepeatMode::RepeatOff),
         );
         self.player.set_shuffle_mode(state.shuffle_enabled);
+        info!(
+            repeat_mode = %state.repeat_mode,
+            shuffle_enabled = state.shuffle_enabled,
+            "playback modes restored"
+        );
         let Some(playlist_id) = state.playlist_id else {
             // What played last was a loose track (#68): it comes back like a
             // playlist would, at its place.
@@ -1476,6 +1481,9 @@ impl MediaService for MediaServiceImpl {
     ) -> Result<Response<CommandResponse>, Status> {
         let mode = request.into_inner().mode();
         self.player.set_repeat_mode(mode);
+        // In the journal, so a track that plays in a loop can be traced back
+        // to "repeat track" (14.10., jeep-pi).
+        info!(mode = mode.as_str_name(), "repeat mode set");
         self.save_resume_state_after_setting("repeat mode");
         Ok(Response::new(CommandResponse {
             success: true,
@@ -1489,6 +1497,7 @@ impl MediaService for MediaServiceImpl {
     ) -> Result<Response<CommandResponse>, Status> {
         let enabled = request.into_inner().enabled;
         self.player.set_shuffle_mode(enabled);
+        info!(enabled, "shuffle mode set");
         self.save_resume_state_after_setting("shuffle mode");
         Ok(Response::new(CommandResponse {
             success: true,
@@ -4191,6 +4200,99 @@ mod tests {
             .expect("player state should load")
             .into_inner();
         assert_eq!(state.repeat_mode(), RepeatMode::RepeatQueue);
+    }
+
+    /// Collects what `tracing` writes while the returned guard lives, on this
+    /// thread only, so a test can check a journal line.
+    fn capture_logs() -> (
+        Arc<std::sync::Mutex<Vec<u8>>>,
+        tracing::subscriber::DefaultGuard,
+    ) {
+        struct Captured(Arc<std::sync::Mutex<Vec<u8>>>);
+        impl std::io::Write for Captured {
+            fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+                self.0.lock().unwrap().extend_from_slice(bytes);
+                Ok(bytes.len())
+            }
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+        let buffer = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let writer = Arc::clone(&buffer);
+        let subscriber = tracing_subscriber::fmt()
+            .with_ansi(false)
+            .with_writer(move || Captured(Arc::clone(&writer)))
+            .finish();
+        (buffer, tracing::subscriber::set_default(subscriber))
+    }
+
+    fn logged(buffer: &Arc<std::sync::Mutex<Vec<u8>>>) -> String {
+        String::from_utf8_lossy(&buffer.lock().unwrap()).into_owned()
+    }
+
+    // 14.10. on jeep-pi one track played 96 times in a row: "repeat track"
+    // was on, and nothing in the journal said so or when it changed.
+    #[tokio::test]
+    async fn setting_repeat_and_shuffle_writes_the_new_value_to_the_journal() {
+        let database_path =
+            std::env::temp_dir().join(format!("carnine-mode-log-{}.sqlite3", std::process::id()));
+        let service =
+            playlist_test_service(database_path.clone(), PathBuf::from("/tmp/carnine-covers"));
+        let (buffer, _guard) = capture_logs();
+
+        service
+            .set_repeat_mode(Request::new(SetRepeatModeRequest {
+                mode: RepeatMode::RepeatTrack as i32,
+            }))
+            .await
+            .expect("repeat mode should be accepted");
+        service
+            .set_shuffle_mode(Request::new(SetShuffleModeRequest { enabled: true }))
+            .await
+            .expect("shuffle mode should be accepted");
+
+        let journal = logged(&buffer);
+        assert!(
+            journal.contains("repeat mode set mode=\"REPEAT_TRACK\""),
+            "{journal}"
+        );
+        assert!(
+            journal.contains("shuffle mode set enabled=true"),
+            "{journal}"
+        );
+        let _ = std::fs::remove_file(&database_path);
+    }
+
+    #[test]
+    fn the_restored_repeat_and_shuffle_modes_are_in_the_journal() {
+        let (service, database_path, _, _) = service_with_two_track_playlist("mode-restore-log");
+        service.player.set_repeat_mode(RepeatMode::RepeatTrack);
+        service.player.set_shuffle_mode(true);
+        service
+            .save_resume_state()
+            .expect("resume state should save");
+
+        let restarted = MediaServiceImpl::with_player(
+            MediaPlayer::with_engine(Box::new(FakeAudioEngine)),
+            database_path.clone(),
+            Vec::new(),
+            Vec::new(),
+            "restore_paused".to_string(),
+            PathBuf::from("/tmp/carnine-covers"),
+        );
+        let (buffer, _guard) = capture_logs();
+        restarted
+            .restore_resume_state()
+            .expect("resume state should restore");
+
+        let journal = logged(&buffer);
+        assert!(
+            journal
+                .contains("playback modes restored repeat_mode=REPEAT_TRACK shuffle_enabled=true"),
+            "{journal}"
+        );
+        let _ = std::fs::remove_file(database_path);
     }
 
     #[tokio::test]
