@@ -18,6 +18,9 @@ Festplatte.
   braucht nur 3 GB, die Kartendaten für Hessen später aber knapp 8 GB, beim
   Auspacken kurz noch mehr
   ([Kartendaten installieren](nach-der-installation.md#kartendaten-installieren)).
+  Am besten eine **schnelle** Karte (Aufdruck **A1** oder **A2** und **U3**
+  oder **V30**): Auf einer langsamen Karte dauerte das Einrichten der
+  Kartendaten fast eine Stunde.
 - einen Kartenleser am PC
 - einen **Raspberry Pi 4**. Getestet und freigegeben wird nur der Pi 4.
 - die Dateien des Images, für jede Version drei:
