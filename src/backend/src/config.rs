@@ -524,6 +524,10 @@ pub struct PowerSupplyConfig {
     /// The firmware's fixed line speed.
     #[serde(default = "default_power_supply_baud")]
     pub baud: u32,
+    /// Shut the Pi down when the supply goes to POWEROFF (ignition off). Off
+    /// on a bench where the Pi should stay up while the ignition is tried.
+    #[serde(default = "default_true")]
+    pub shutdown_on_poweroff: bool,
 }
 
 fn default_power_supply_device() -> PathBuf {
@@ -534,12 +538,17 @@ fn default_power_supply_baud() -> u32 {
     38400
 }
 
+fn default_true() -> bool {
+    true
+}
+
 impl Default for PowerSupplyConfig {
     fn default() -> Self {
         Self {
             enabled: false,
             device: default_power_supply_device(),
             baud: default_power_supply_baud(),
+            shutdown_on_poweroff: true,
         }
     }
 }
@@ -1148,6 +1157,20 @@ mod tests {
         config.power_supply.baud = 38400;
         config.power_supply.device = std::path::PathBuf::new();
         assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn a_power_supply_drop_in_without_the_key_shuts_down_on_poweroff() {
+        // carnine-pc's 20-power-supply.toml only says `enabled = true`.
+        let section: super::PowerSupplyConfig =
+            toml::from_str("enabled = true").expect("drop-in should parse");
+        assert!(section.shutdown_on_poweroff);
+        assert!(super::PowerSupplyConfig::default().shutdown_on_poweroff);
+
+        let bench: super::PowerSupplyConfig =
+            toml::from_str("enabled = true\nshutdown_on_poweroff = false")
+                .expect("drop-in should parse");
+        assert!(!bench.shutdown_on_poweroff);
     }
 
     #[test]

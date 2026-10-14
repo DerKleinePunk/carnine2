@@ -1,0 +1,12 @@
+// The backend shuts the Pi down when the car power supply goes to POWEROFF
+// (ignition off, docs/23-power-supply.md). It runs as the system user
+// carnine without a login session, so logind asks polkit; this allows
+// exactly the power-off actions, also while someone is logged in over ssh.
+polkit.addRule(function(action, subject) {
+    if (subject.user == "carnine" &&
+        (action.id == "org.freedesktop.login1.power-off" ||
+         action.id == "org.freedesktop.login1.power-off-multiple-sessions" ||
+         action.id == "org.freedesktop.login1.power-off-ignore-inhibit")) {
+        return polkit.Result.YES;
+    }
+});

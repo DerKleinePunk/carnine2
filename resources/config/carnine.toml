@@ -99,6 +99,10 @@ warm_metrics_interval_seconds = 5
 # /dev/powersupply is the link the backend package's udev rule creates (uart5).
 # device = "/dev/powersupply"
 # baud = 38400
+# When the supply goes to POWEROFF (ignition off) the backend shuts the Pi down
+# at once through logind (the package's polkit rule allows it). false keeps the
+# Pi running, e.g. on a bench where the ignition is only tried out.
+# shutdown_on_poweroff = true
 
 # Reversing camera (video grabber on the camera page). These are the defaults;
 # what the settings page saves is kept in the media database and wins

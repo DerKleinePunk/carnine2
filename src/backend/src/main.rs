@@ -1877,6 +1877,14 @@ async fn main() -> Result<()> {
             configuration.power_supply.device.clone(),
             configuration.power_supply.baud,
         );
+        if configuration.power_supply.shutdown_on_poweroff {
+            tokio::spawn(power_supply::shut_down_on_poweroff(
+                power_supply_hub.clone(),
+                power_supply::power_off,
+            ));
+        } else {
+            info!("power supply: shutting down on POWEROFF is off");
+        }
     } else {
         info!("power supply disabled");
     }

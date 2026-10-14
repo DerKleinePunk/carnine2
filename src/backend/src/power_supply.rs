@@ -11,9 +11,10 @@
 //! Every second the supply sends four telegrams `STX <id> <payload> ETX`:
 //! ignition, alive counter, state and input voltage. With its debug output on
 //! (`#`) text lines come in between; they go to the debug log. What the supply
-//! reports is kept in a [`PowerSupplyHub`] for SystemService. Shutting down on
-//! POWEROFF, `$` on a shutdown of our own and the service mode follow later
-//! (#36).
+//! reports is kept in a [`PowerSupplyHub`] for SystemService. When the supply
+//! goes to POWEROFF (ignition off), [`shut_down_on_poweroff`] shuts the Pi
+//! down through logind. `$` on a shutdown of our own and the service mode
+//! follow later (#36).
 
 use std::fs::File;
 use std::io::{Read, Write};
@@ -425,6 +426,44 @@ pub fn spawn(hub: PowerSupplyHub, device: PathBuf, baud: u32) {
         .unwrap_or_else(|err| error!(error = %err, "could not start the power supply thread"));
 }
 
+/// Waits until the supply reports POWEROFF, then runs `shut_down` once.
+///
+/// The firmware finishes POWEROFF even when the ignition comes back and then
+/// takes the power (docs/23, States), so the Pi goes down at once, not after
+/// a delay; the supply allows 15 s and the backend itself needs up to 10 s to
+/// stop. A supply already in POWEROFF when the backend starts counts too.
+pub async fn shut_down_on_poweroff<F>(hub: PowerSupplyHub, shut_down: F)
+where
+    F: FnOnce() -> Result<()> + Send + 'static,
+{
+    let mut updates = hub.subscribe();
+    loop {
+        if updates.borrow_and_update().state == Some(SupplyState::PowerOff) {
+            break;
+        }
+        if updates.changed().await.is_err() {
+            return;
+        }
+    }
+    info!("power supply in POWEROFF (ignition off): shutting the Pi down");
+    match tokio::task::spawn_blocking(shut_down).await {
+        Ok(Ok(())) => {}
+        Ok(Err(err)) => error!(error = %format!("{err:#}"), "shutting the Pi down failed"),
+        Err(err) => error!(error = %err, "shutting the Pi down failed"),
+    }
+}
+
+/// Asks logind to power off. The backend runs as `carnine`; the package's
+/// polkit rule (`60-carnine-backend-power.rules`) allows exactly this.
+pub fn power_off() -> Result<()> {
+    let status = std::process::Command::new("systemctl")
+        .args(["poweroff", "--no-wall"])
+        .status()
+        .context("running systemctl poweroff")?;
+    anyhow::ensure!(status.success(), "systemctl poweroff exited with {status}");
+    Ok(())
+}
+
 /// One connection: a sender thread writes the sign of life every second and
 /// notices silence, while this thread reads telegrams, until either fails.
 fn run_line(hub: &PowerSupplyHub, file: File) -> Result<()> {
@@ -728,5 +767,98 @@ mod tests {
         // The reader returns once the master side sends again after `stop`.
         master.write_all(&[STX, ID_STATE, b'3', ETX]).unwrap();
         reader.join().unwrap().unwrap();
+    }
+
+    fn status_in(state: SupplyState) -> PowerSupplyStatus {
+        PowerSupplyStatus {
+            configured: true,
+            connected: true,
+            state: Some(state),
+            ..PowerSupplyStatus::default()
+        }
+    }
+
+    /// Runs the watcher with a counting stand-in for the real power-off.
+    fn watch_counting(
+        hub: &PowerSupplyHub,
+    ) -> (
+        Arc<std::sync::atomic::AtomicUsize>,
+        tokio::task::JoinHandle<()>,
+    ) {
+        let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let counted = Arc::clone(&calls);
+        let task = tokio::spawn(shut_down_on_poweroff(hub.clone(), move || {
+            counted.fetch_add(1, Ordering::SeqCst);
+            Ok(())
+        }));
+        (calls, task)
+    }
+
+    #[tokio::test]
+    async fn poweroff_shuts_the_pi_down_once() {
+        let hub = PowerSupplyHub::new(true);
+        let (calls, task) = watch_counting(&hub);
+
+        for state in [SupplyState::PowerOn, SupplyState::PiBoot, SupplyState::Run] {
+            hub.set(status_in(state));
+            tokio::task::yield_now().await;
+        }
+        assert_eq!(
+            calls.load(Ordering::SeqCst),
+            0,
+            "no shutdown before POWEROFF"
+        );
+
+        hub.set(status_in(SupplyState::PowerOff));
+        tokio::time::timeout(Duration::from_secs(5), task)
+            .await
+            .expect("the watcher ends after the shutdown")
+            .unwrap();
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn without_poweroff_nothing_shuts_down() {
+        let hub = PowerSupplyHub::new(true);
+        let (calls, task) = watch_counting(&hub);
+
+        // The ignition alone (KL15 off, still RUN) is not the signal: the
+        // supply decides when to go to POWEROFF.
+        hub.set(PowerSupplyStatus {
+            ignition: Some(false),
+            ..status_in(SupplyState::Run)
+        });
+        hub.set(status_in(SupplyState::Idle));
+        tokio::time::sleep(Duration::from_millis(100)).await;
+
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+        assert!(!task.is_finished());
+        task.abort();
+    }
+
+    #[tokio::test]
+    async fn a_supply_already_in_poweroff_at_start_shuts_down() {
+        let hub = PowerSupplyHub::new(true);
+        hub.set(status_in(SupplyState::PowerOff));
+        let (calls, task) = watch_counting(&hub);
+
+        tokio::time::timeout(Duration::from_secs(5), task)
+            .await
+            .expect("the watcher ends after the shutdown")
+            .unwrap();
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn a_failing_shutdown_is_logged_not_a_panic() {
+        let hub = PowerSupplyHub::new(true);
+        hub.set(status_in(SupplyState::PowerOff));
+
+        tokio::time::timeout(
+            Duration::from_secs(5),
+            shut_down_on_poweroff(hub, || anyhow::bail!("polkit said no")),
+        )
+        .await
+        .expect("the watcher ends after the failed shutdown");
     }
 }
