@@ -37,6 +37,17 @@ class MapsContent extends StatelessWidget {
   @visibleForTesting
   static const attribution = '© OpenMapTiles\n© OpenStreetMap-\nMitwirkende';
 
+  /// The room the route overview leaves around the route (local_map 0.8.10).
+  /// Measured on jeep-pi at 1024x600 (2026-10-14): the turn card reaches
+  /// down to 134 px into the map, the search field above it to 64 px, the
+  /// trip bar starts 108 px above the bottom and the zoom and compass buttons
+  /// 76 px from the right. With the library's 44 px all round, start and
+  /// destination of a north-up overview lay under the search field and the
+  /// trip bar. 160 on top leaves room for a turn card with a longer street
+  /// name (150 px with the test fonts).
+  @visibleForTesting
+  static const overviewPadding = EdgeInsets.fromLTRB(44, 160, 80, 130);
+
   @visibleForTesting
   static final MapConfig mapConfig = MapConfig(
     minZoom: 8,
@@ -72,6 +83,7 @@ class MapsContent extends StatelessWidget {
     // one, only broken into lines.
     attributionText: attribution,
     attributionPadding: const EdgeInsets.only(right: 8, bottom: 6),
+    overviewPadding: overviewPadding,
   );
 
   static const _layerStyle = MapLayerStyle(
