@@ -214,3 +214,12 @@ Wie lange das dauert, hängt vor allem von der Leitung ab. Auf dem Test-Pi
 (Pi 4, Kabel, Anschluss mit etwa 300 Mbit/s) hat das Paket für Hessen mit
 Laden und Entpacken knapp 6 Minuten gebraucht. Mit 50 Mbit/s dauert allein
 das Laden der 3,8 GB gut 10 Minuten (gerechnet, nicht gemessen).
+
+Auch die **SD-Karte** zählt: Auf einer langsamen 32-GB-Karte dauerte
+`--dir` mit dem Paket für Hessen 58 Minuten (14.10.2026), davon gut 50 für
+das Entpacken. Während das Programm Backend und Oberfläche anhält, kann
+auf dem Bildschirm eine Kernel-Meldung wie `INFO: task kworker … blocked
+for more than 120 seconds` erscheinen. Das ist nur eine Warnung, weil die
+Karte so lange beschäftigt ist; die Installation läuft weiter. Mit einer
+schnellen Karte (A1/A2, U3/V30) sollte beides nicht vorkommen (noch nicht
+gemessen).
