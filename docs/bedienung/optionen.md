@@ -114,7 +114,7 @@ Zeile, was sie tut.
 - **Beenden** (rot): der **Wartungsmodus**. Fragt nach dem
   [Beenden-Passwort](#beenden-passwort) und beendet dann die Oberfläche.
 - **Version:** zeigt die Versionsnummer der Oberfläche und darunter das Datum
-  des Builds (z. B. `0.17.0` und `2026-10-13`). Die Kachel ist nur eine
+  des Builds (z. B. `0.18.0` und `2026-10-14`). Die Kachel ist nur eine
   Anzeige.
 
 ### Beenden

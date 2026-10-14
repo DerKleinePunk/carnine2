@@ -38,7 +38,7 @@ Grabber und USB-Kamera **direkt an den Pi** stecken, nicht an einen
 USB-Hub, an dem auch die SSD hängt. Auf dem Test-Pi hat der Grabber dort
 den USB-Controller zum Stehen gebracht.
 
-![Seite Kamera mit dem Bild einer USB-Kamera: eine Relaiskarte, Kabel und ein Display, auf dem die Seite Kamera noch einmal zu sehen ist](bilder/cam-usb-kamera.png)
+![Seite Kamera mit dem Bild einer USB-Kamera: Kabel, Klebeband und ein Display, auf dem die Seite Kamera noch einmal zu sehen ist](bilder/cam-usb-kamera.png)
 
 *USB-Kamera direkt am Test-Pi, 640 × 480.*
 

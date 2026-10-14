@@ -69,9 +69,11 @@ bis das Folgen das nächste Mal angeht.
    ![Zielsuche „Alsfeld“ mit Treffern „Ort · 39 km“ und „Ort · Kirtorf · 40 km“, darunter die Bildschirmtastatur](bilder/karte-suche.png)
 3. **Treffer antippen:** Die Route wird von der aktuellen Position aus
    berechnet („Route wird berechnet …“), danach zeigt die Karte die ganze
-   Route im Überblick. Abbiegekarte und Leiste unten erscheinen schon jetzt.
+   Route im Überblick, immer mit Norden oben, auch wenn die Karte vorher in
+   Fahrtrichtung gedreht war. Start und Ziel bleiben frei von Abbiegekarte und
+   Leiste unten, die schon jetzt erscheinen.
 
-   ![Route im Überblick: türkise Linie bis zum Ziel Alsfeld, Abbiegekarte oben links mit dem Start, unten Ankunft, Dauer, Distanz und ABBRECHEN](bilder/karte-route.png)
+   ![Route im Überblick, Norden oben: türkise Linie von Radmühl bis zum Ziel Alsfeld, Abbiegekarte oben links mit dem Start, unten Ankunft, Dauer, Distanz und ABBRECHEN](bilder/karte-route.png)
 4. Für die Fahransicht den **Kompass-Knopf** antippen.
 
 Mögliche Meldungen: „Keine Treffer“, „Keine Route gefunden“, „Keine
@@ -110,7 +112,7 @@ erreichbar“ (Backend weg, rot).
   etwas schräg, weil die Karte für die Beschriftung in 45°-Schritten neu
   gezeichnet wird (flutter_local_map #1).
 
-  ![Navigationsmodus mit gedrehter Karte: Namen wie „Lüder“ und „Rothenbach“ stehen schräg, aber keiner kopfüber](bilder/karte-mitdrehen.png)
+  ![Navigationsmodus mit gedrehter Karte, Fahrtrichtung oben: der Straßenname an der Route steht schräg, aber nicht kopfüber](bilder/karte-mitdrehen.png)
 
 Die Fahranweisungen erscheinen in der unter [Optionen → Darstellung & Sprache](optionen.md#darstellung--sprache)
 gewählten Sprache.
