@@ -143,11 +143,22 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.settingsAppearanceTabTitle: 'Megjelenés',
   AppTextKey.settingsDevicesTitle: 'Eszközök',
   AppTextKey.settingsDevicesSubtitle:
-      'Kamera, hangkimenet, telefonos alkalmazás és tápegység',
+      'Kamera, kijelző, hangkimenet, telefonos alkalmazás és tápegység',
   AppTextKey.settingsDevicesSemantic: 'Eszközbeállítások megnyitása',
   AppTextKey.settingsDevicesCameraTitle: 'Kamera',
   AppTextKey.settingsDevicesCameraSubtitle:
       'Eszköz, videószabvány, bemenet és képszélesség',
+  AppTextKey.settingsDevicesDisplayTitle: 'Kijelző',
+  AppTextKey.settingsDevicesDisplaySubtitle: 'A kijelző fényereje',
+  AppTextKey.settingsDevicesDisplayNotConfigured:
+      'Ennek a kijelzőnek nincs fényerő-szabályozása',
+  AppTextKey.settingsDisplayBrightness: 'Fényerő',
+  AppTextKey.settingsDisplayBrightnessHint:
+      'A legsötétebb fokozat nem kapcsolja ki a kijelzőt.',
+  AppTextKey.settingsDisplayBrightnessUnavailable:
+      'A fényerő jelenleg nem módosítható.',
+  AppTextKey.settingsDisplayDark: 'sötét',
+  AppTextKey.settingsDisplayLight: 'világos',
   AppTextKey.settingsDevicesAudioTitle: 'Hangkimenet',
   AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, jack vagy USB-hangkártya',
   AppTextKey.settingsDevicesPhoneTitle: 'Telefonos alkalmazás',

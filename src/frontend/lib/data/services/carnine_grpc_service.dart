@@ -5,6 +5,7 @@ import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
 import 'package:carnine_frontend/features/maps/data/map_follow_zoom_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
+import 'package:carnine_frontend/features/settings/data/display_brightness_store.dart';
 import 'package:carnine_frontend/lib/carnine.pbgrpc.dart';
 import 'package:grpc/grpc.dart';
 import 'package:logging/logging.dart';
@@ -22,6 +23,7 @@ class CarnineGrpcService
         CameraSettingsStore,
         ExitPasswordStore,
         AnnouncementSettingsStore,
+        DisplayBrightnessStore,
         MapFollowZoomStore {
   CarnineGrpcService({Logger? logger, ClientChannelFactory? channelFactory})
     : _logger = logger ?? Logger('CarnineGrpcService'),
@@ -229,6 +231,46 @@ class CarnineGrpcService
     } finally {
       await channel.shutdown();
     }
+  }
+
+  @override
+  Future<DisplayBrightnessSetting> loadDisplayBrightness() async {
+    final channel = _channelFactory();
+    try {
+      final brightness = await SystemServiceClient(channel)
+          .getDisplayBrightness(
+            Empty(),
+            options: CallOptions(timeout: _passwordCallTimeout),
+          );
+      return displayBrightnessFrom(brightness);
+    } finally {
+      await channel.shutdown();
+    }
+  }
+
+  @override
+  Future<DisplayBrightnessSetting> saveDisplayBrightness(int percent) async {
+    final channel = _channelFactory();
+    try {
+      final brightness = await SystemServiceClient(channel)
+          .setDisplayBrightness(
+            SetDisplayBrightnessRequest(percent: percent),
+            options: CallOptions(timeout: _passwordCallTimeout),
+          );
+      return displayBrightnessFrom(brightness);
+    } finally {
+      await channel.shutdown();
+    }
+  }
+
+  static DisplayBrightnessSetting displayBrightnessFrom(
+    DisplayBrightness brightness,
+  ) {
+    return DisplayBrightnessSetting(
+      configured: brightness.configured,
+      available: brightness.available,
+      percent: brightness.percent,
+    );
   }
 
   /// An announcement call that gets no answer in this time failed. A sentence

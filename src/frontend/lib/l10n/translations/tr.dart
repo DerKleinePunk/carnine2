@@ -140,11 +140,22 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.settingsAppearanceTabTitle: 'Görünüm',
   AppTextKey.settingsDevicesTitle: 'Cihazlar',
   AppTextKey.settingsDevicesSubtitle:
-      'Kamera, ses çıkışı, telefon uygulaması ve güç kaynağı',
+      'Kamera, ekran, ses çıkışı, telefon uygulaması ve güç kaynağı',
   AppTextKey.settingsDevicesSemantic: 'Cihaz ayarlarını aç',
   AppTextKey.settingsDevicesCameraTitle: 'Kamera',
   AppTextKey.settingsDevicesCameraSubtitle:
       'Cihaz, video standardı, giriş ve görüntü genişliği',
+  AppTextKey.settingsDevicesDisplayTitle: 'Ekran',
+  AppTextKey.settingsDevicesDisplaySubtitle: 'Ekran parlaklığı',
+  AppTextKey.settingsDevicesDisplayNotConfigured:
+      'Bu ekranda parlaklık ayarı yok',
+  AppTextKey.settingsDisplayBrightness: 'Parlaklık',
+  AppTextKey.settingsDisplayBrightnessHint:
+      'En karanlık düzey ekranı kapatmaz.',
+  AppTextKey.settingsDisplayBrightnessUnavailable:
+      'Parlaklık şu anda değiştirilemiyor.',
+  AppTextKey.settingsDisplayDark: 'karanlık',
+  AppTextKey.settingsDisplayLight: 'aydınlık',
   AppTextKey.settingsDevicesAudioTitle: 'Ses çıkışı',
   AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, jak veya USB ses kartı',
   AppTextKey.settingsDevicesPhoneTitle: 'Telefon uygulaması',

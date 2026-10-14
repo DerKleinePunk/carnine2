@@ -137,11 +137,22 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.settingsAppearanceTabTitle: 'Appearance',
   AppTextKey.settingsDevicesTitle: 'Devices',
   AppTextKey.settingsDevicesSubtitle:
-      'Camera, audio output, phone app and power supply',
+      'Camera, display, audio output, phone app and power supply',
   AppTextKey.settingsDevicesSemantic: 'Open device settings',
   AppTextKey.settingsDevicesCameraTitle: 'Camera',
   AppTextKey.settingsDevicesCameraSubtitle:
       'Device, video standard, input and picture width',
+  AppTextKey.settingsDevicesDisplayTitle: 'Display',
+  AppTextKey.settingsDevicesDisplaySubtitle: 'Display brightness',
+  AppTextKey.settingsDevicesDisplayNotConfigured:
+      'This display has no brightness control',
+  AppTextKey.settingsDisplayBrightness: 'Brightness',
+  AppTextKey.settingsDisplayBrightnessHint:
+      'The darkest level does not switch the display off.',
+  AppTextKey.settingsDisplayBrightnessUnavailable:
+      'The brightness cannot be changed right now.',
+  AppTextKey.settingsDisplayDark: 'dark',
+  AppTextKey.settingsDisplayLight: 'bright',
   AppTextKey.settingsDevicesAudioTitle: 'Audio output',
   AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, jack or USB sound card',
   AppTextKey.settingsDevicesPhoneTitle: 'Phone app',

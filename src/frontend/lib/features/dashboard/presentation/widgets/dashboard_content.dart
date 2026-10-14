@@ -10,6 +10,7 @@ import 'package:carnine_frontend/features/media/presentation/media_content.dart'
 import 'package:carnine_frontend/features/media/presentation/media_controller.dart';
 import 'package:carnine_frontend/features/maps/presentation/map_follow_zoom_controller.dart';
 import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
+import 'package:carnine_frontend/features/settings/data/display_brightness_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_content.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
@@ -35,6 +36,7 @@ class DashboardContent extends StatelessWidget {
     this.exitPasswordStore,
     this.announcementSettingsStore,
     this.followZoomController,
+    this.displayBrightnessStore,
     this.cameraSourceFactory,
     this.onShowCamera,
     this.controlsRepository,
@@ -56,6 +58,7 @@ class DashboardContent extends StatelessWidget {
 
   /// The zoom of following the car; shared by the map and the options.
   final MapFollowZoomController? followZoomController;
+  final DisplayBrightnessStore? displayBrightnessStore;
   final GrabberSourceFactory? cameraSourceFactory;
 
   /// Selects the Kamera page - from the camera settings, to look at a change.
@@ -73,6 +76,7 @@ class DashboardContent extends StatelessWidget {
         exitPasswordStore: exitPasswordStore,
         announcementSettingsStore: announcementSettingsStore,
         followZoomController: followZoomController,
+        displayBrightnessStore: displayBrightnessStore,
         onShowCamera: onShowCamera,
       );
     }

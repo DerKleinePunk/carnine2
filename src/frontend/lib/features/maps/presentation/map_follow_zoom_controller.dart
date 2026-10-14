@@ -66,14 +66,15 @@ class MapFollowZoomController extends ChangeNotifier {
   /// nor the level changed: the map zooms again whenever it gets another
   /// config, and a rebuild must not do that.
   MapConfig configFor(MapConfig base) {
-    if (_config == null ||
-        !identical(_configBase, base) ||
-        _configZoom != _zoom) {
-      _configBase = base;
-      _configZoom = _zoom;
-      _config = base.copyWith(followZoom: _zoom.toDouble());
+    final cached = _config;
+    if (cached != null &&
+        identical(_configBase, base) &&
+        _configZoom == _zoom) {
+      return cached;
     }
-    return _config!;
+    _configBase = base;
+    _configZoom = _zoom;
+    return _config = base.copyWith(followZoom: _zoom.toDouble());
   }
 
   /// Reads the saved level. While the backend is away it tries again a few

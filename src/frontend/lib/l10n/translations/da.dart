@@ -138,11 +138,22 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.settingsAppearanceTabTitle: 'Udseende',
   AppTextKey.settingsDevicesTitle: 'Enheder',
   AppTextKey.settingsDevicesSubtitle:
-      'Kamera, lydudgang, telefon-app og strømforsyning',
+      'Kamera, skærm, lydudgang, telefon-app og strømforsyning',
   AppTextKey.settingsDevicesSemantic: 'Åbn enhedsindstillinger',
   AppTextKey.settingsDevicesCameraTitle: 'Kamera',
   AppTextKey.settingsDevicesCameraSubtitle:
       'Enhed, videonorm, indgang og billedbredde',
+  AppTextKey.settingsDevicesDisplayTitle: 'Skærm',
+  AppTextKey.settingsDevicesDisplaySubtitle: 'Skærmens lysstyrke',
+  AppTextKey.settingsDevicesDisplayNotConfigured:
+      'Denne skærm har ingen lysstyrkeregulering',
+  AppTextKey.settingsDisplayBrightness: 'Lysstyrke',
+  AppTextKey.settingsDisplayBrightnessHint:
+      'Det mørkeste niveau slukker ikke skærmen.',
+  AppTextKey.settingsDisplayBrightnessUnavailable:
+      'Lysstyrken kan ikke ændres lige nu.',
+  AppTextKey.settingsDisplayDark: 'mørk',
+  AppTextKey.settingsDisplayLight: 'lys',
   AppTextKey.settingsDevicesAudioTitle: 'Lydudgang',
   AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, jackstik eller USB-lydkort',
   AppTextKey.settingsDevicesPhoneTitle: 'Telefon-app',

@@ -53,6 +53,7 @@ Future<void> main() async {
       exitPasswordStore: backend,
       announcementSettingsStore: backend,
       mapFollowZoomStore: backend,
+      displayBrightnessStore: backend,
       controlsRepository: GrpcControlsRepository(),
     ),
   );

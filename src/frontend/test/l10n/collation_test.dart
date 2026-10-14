@@ -103,13 +103,17 @@ void main() {
   });
 
   group('the subtitle of the page Geräte (#92)', () {
-    test('in German it names the four rows, with their titles', () {
+    test('in German it names the five rows, with their titles', () {
       final l10n = AppLocalizations(const Locale('de'));
       final subtitle = l10n.text(AppTextKey.settingsDevicesSubtitle);
 
-      expect(subtitle, 'Kamera, Audio-Ausgang, Handy-App und Netzteil');
+      expect(
+        subtitle,
+        'Kamera, Display, Audio-Ausgang, Handy-App und Netzteil',
+      );
       for (final title in [
         AppTextKey.settingsDevicesCameraTitle,
+        AppTextKey.settingsDevicesDisplayTitle,
         AppTextKey.settingsDevicesAudioTitle,
         AppTextKey.settingsDevicesPhoneTitle,
         AppTextKey.settingsDevicesPowerTitle,
@@ -118,13 +122,13 @@ void main() {
       }
     });
 
-    test('in every language it is a new text with four parts', () {
+    test('in every language it is a text with five parts', () {
       for (final locale in AppLocalizations.supportedLocales) {
         final subtitle = AppLocalizations(
           locale,
         ).text(AppTextKey.settingsDevicesSubtitle);
 
-        // Three separators for four parts, written the way the language does.
+        // Separators for five parts, written the way the language does.
         final separators = RegExp('[,、]|和|と').allMatches(subtitle).length;
         expect(
           separators,

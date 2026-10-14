@@ -138,11 +138,22 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.settingsAppearanceTabTitle: 'Weergave',
   AppTextKey.settingsDevicesTitle: 'Apparaten',
   AppTextKey.settingsDevicesSubtitle:
-      'Camera, audio-uitgang, telefoon-app en voeding',
+      'Camera, display, audio-uitgang, telefoon-app en voeding',
   AppTextKey.settingsDevicesSemantic: 'Apparaatinstellingen openen',
   AppTextKey.settingsDevicesCameraTitle: 'Camera',
   AppTextKey.settingsDevicesCameraSubtitle:
       'Apparaat, videonorm, ingang en beeldbreedte',
+  AppTextKey.settingsDevicesDisplayTitle: 'Display',
+  AppTextKey.settingsDevicesDisplaySubtitle: 'Helderheid van het display',
+  AppTextKey.settingsDevicesDisplayNotConfigured:
+      'Dit display heeft geen helderheidsregeling',
+  AppTextKey.settingsDisplayBrightness: 'Helderheid',
+  AppTextKey.settingsDisplayBrightnessHint:
+      'De donkerste stand zet het display niet uit.',
+  AppTextKey.settingsDisplayBrightnessUnavailable:
+      'De helderheid kan nu niet worden gewijzigd.',
+  AppTextKey.settingsDisplayDark: 'donker',
+  AppTextKey.settingsDisplayLight: 'helder',
   AppTextKey.settingsDevicesAudioTitle: 'Audio-uitgang',
   AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, jack of USB-geluidskaart',
   AppTextKey.settingsDevicesPhoneTitle: 'Telefoon-app',

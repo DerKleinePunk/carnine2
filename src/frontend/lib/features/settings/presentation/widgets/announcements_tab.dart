@@ -320,9 +320,9 @@ class _SliderCard extends StatelessWidget {
                 onChangeEnd: isActive ? (v) => onChangeEnd(v.round()) : null,
               ),
             ),
-            if (hint != null)
+            if (hint case final text?)
               Text(
-                hint!,
+                text,
                 style: AppTextStyles.bodyLarge.copyWith(
                   color: AppColors.onSurfaceVariant,
                   fontSize: 12,

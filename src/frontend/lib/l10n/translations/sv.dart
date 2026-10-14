@@ -138,11 +138,22 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.settingsAppearanceTabTitle: 'Utseende',
   AppTextKey.settingsDevicesTitle: 'Enheter',
   AppTextKey.settingsDevicesSubtitle:
-      'Kamera, ljudutgång, mobilapp och strömförsörjning',
+      'Kamera, skärm, ljudutgång, mobilapp och strömförsörjning',
   AppTextKey.settingsDevicesSemantic: 'Öppna enhetsinställningar',
   AppTextKey.settingsDevicesCameraTitle: 'Kamera',
   AppTextKey.settingsDevicesCameraSubtitle:
       'Enhet, videonorm, ingång och bildbredd',
+  AppTextKey.settingsDevicesDisplayTitle: 'Skärm',
+  AppTextKey.settingsDevicesDisplaySubtitle: 'Skärmens ljusstyrka',
+  AppTextKey.settingsDevicesDisplayNotConfigured:
+      'Den här skärmen saknar ljusstyrkereglering',
+  AppTextKey.settingsDisplayBrightness: 'Ljusstyrka',
+  AppTextKey.settingsDisplayBrightnessHint:
+      'Den mörkaste nivån stänger inte av skärmen.',
+  AppTextKey.settingsDisplayBrightnessUnavailable:
+      'Ljusstyrkan kan inte ändras just nu.',
+  AppTextKey.settingsDisplayDark: 'mörkt',
+  AppTextKey.settingsDisplayLight: 'ljust',
   AppTextKey.settingsDevicesAudioTitle: 'Ljudutgång',
   AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, uttag eller USB-ljudkort',
   AppTextKey.settingsDevicesPhoneTitle: 'Mobilapp',

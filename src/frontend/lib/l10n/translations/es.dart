@@ -141,11 +141,22 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
   AppTextKey.settingsAppearanceTabTitle: 'Apariencia',
   AppTextKey.settingsDevicesTitle: 'Dispositivos',
   AppTextKey.settingsDevicesSubtitle:
-      'Cámara, salida de audio, app del móvil y fuente de alimentación',
+      'Cámara, pantalla, salida de audio, app del móvil y fuente de alimentación',
   AppTextKey.settingsDevicesSemantic: 'Abrir ajustes de dispositivos',
   AppTextKey.settingsDevicesCameraTitle: 'Cámara',
   AppTextKey.settingsDevicesCameraSubtitle:
       'Dispositivo, norma de vídeo, entrada y ancho de imagen',
+  AppTextKey.settingsDevicesDisplayTitle: 'Pantalla',
+  AppTextKey.settingsDevicesDisplaySubtitle: 'Brillo de la pantalla',
+  AppTextKey.settingsDevicesDisplayNotConfigured:
+      'Esta pantalla no tiene control de brillo',
+  AppTextKey.settingsDisplayBrightness: 'Brillo',
+  AppTextKey.settingsDisplayBrightnessHint:
+      'El nivel más bajo no apaga la pantalla.',
+  AppTextKey.settingsDisplayBrightnessUnavailable:
+      'El brillo no se puede cambiar ahora mismo.',
+  AppTextKey.settingsDisplayDark: 'oscuro',
+  AppTextKey.settingsDisplayLight: 'claro',
   AppTextKey.settingsDevicesAudioTitle: 'Salida de audio',
   AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, jack o tarjeta de sonido USB',
   AppTextKey.settingsDevicesPhoneTitle: 'App del móvil',

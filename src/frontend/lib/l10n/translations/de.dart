@@ -142,11 +142,22 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.settingsAppearanceTabTitle: 'Darstellung',
   AppTextKey.settingsDevicesTitle: 'Geräte',
   AppTextKey.settingsDevicesSubtitle:
-      'Kamera, Audio-Ausgang, Handy-App und Netzteil',
+      'Kamera, Display, Audio-Ausgang, Handy-App und Netzteil',
   AppTextKey.settingsDevicesSemantic: 'Geräteeinstellungen öffnen',
   AppTextKey.settingsDevicesCameraTitle: 'Kamera',
   AppTextKey.settingsDevicesCameraSubtitle:
       'Gerät, Videonorm, Eingang und Bildbreite',
+  AppTextKey.settingsDevicesDisplayTitle: 'Display',
+  AppTextKey.settingsDevicesDisplaySubtitle: 'Helligkeit des Displays',
+  AppTextKey.settingsDevicesDisplayNotConfigured:
+      'Dieses Display hat keine Helligkeitsregelung',
+  AppTextKey.settingsDisplayBrightness: 'Helligkeit',
+  AppTextKey.settingsDisplayBrightnessHint:
+      'Die dunkelste Stufe schaltet das Display nicht aus.',
+  AppTextKey.settingsDisplayBrightnessUnavailable:
+      'Die Helligkeit lässt sich gerade nicht ändern.',
+  AppTextKey.settingsDisplayDark: 'dunkel',
+  AppTextKey.settingsDisplayLight: 'hell',
   AppTextKey.settingsDevicesAudioTitle: 'Audio-Ausgang',
   AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, Klinke oder USB-Soundkarte',
   AppTextKey.settingsDevicesPhoneTitle: 'Handy-App',

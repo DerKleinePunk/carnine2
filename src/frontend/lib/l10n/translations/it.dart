@@ -141,11 +141,22 @@ const Map<AppTextKey, String> itTranslations = <AppTextKey, String>{
   AppTextKey.settingsAppearanceTabTitle: 'Aspetto',
   AppTextKey.settingsDevicesTitle: 'Dispositivi',
   AppTextKey.settingsDevicesSubtitle:
-      'Telecamera, uscita audio, app del telefono e alimentatore',
+      'Telecamera, display, uscita audio, app del telefono e alimentatore',
   AppTextKey.settingsDevicesSemantic: 'Apri impostazioni dispositivi',
   AppTextKey.settingsDevicesCameraTitle: 'Telecamera',
   AppTextKey.settingsDevicesCameraSubtitle:
       'Dispositivo, standard video, ingresso e larghezza immagine',
+  AppTextKey.settingsDevicesDisplayTitle: 'Display',
+  AppTextKey.settingsDevicesDisplaySubtitle: 'Luminosità del display',
+  AppTextKey.settingsDevicesDisplayNotConfigured:
+      'Questo display non ha la regolazione della luminosità',
+  AppTextKey.settingsDisplayBrightness: 'Luminosità',
+  AppTextKey.settingsDisplayBrightnessHint:
+      'Il livello più basso non spegne il display.',
+  AppTextKey.settingsDisplayBrightnessUnavailable:
+      'Al momento la luminosità non può essere modificata.',
+  AppTextKey.settingsDisplayDark: 'scuro',
+  AppTextKey.settingsDisplayLight: 'chiaro',
   AppTextKey.settingsDevicesAudioTitle: 'Uscita audio',
   AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, jack o scheda audio USB',
   AppTextKey.settingsDevicesPhoneTitle: 'App del telefono',

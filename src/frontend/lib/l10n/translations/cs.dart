@@ -138,11 +138,21 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.settingsAppearanceTabTitle: 'Vzhled',
   AppTextKey.settingsDevicesTitle: 'Zařízení',
   AppTextKey.settingsDevicesSubtitle:
-      'Kamera, zvukový výstup, aplikace v telefonu a zdroj',
+      'Kamera, displej, zvukový výstup, aplikace v telefonu a zdroj',
   AppTextKey.settingsDevicesSemantic: 'Otevřít nastavení zařízení',
   AppTextKey.settingsDevicesCameraTitle: 'Kamera',
   AppTextKey.settingsDevicesCameraSubtitle:
       'Zařízení, videonorma, vstup a šířka obrazu',
+  AppTextKey.settingsDevicesDisplayTitle: 'Displej',
+  AppTextKey.settingsDevicesDisplaySubtitle: 'Jas displeje',
+  AppTextKey.settingsDevicesDisplayNotConfigured:
+      'Tento displej nemá nastavení jasu',
+  AppTextKey.settingsDisplayBrightness: 'Jas',
+  AppTextKey.settingsDisplayBrightnessHint:
+      'Nejtmavější úroveň displej nevypne.',
+  AppTextKey.settingsDisplayBrightnessUnavailable: 'Jas se teď nedá změnit.',
+  AppTextKey.settingsDisplayDark: 'tmavě',
+  AppTextKey.settingsDisplayLight: 'světle',
   AppTextKey.settingsDevicesAudioTitle: 'Zvukový výstup',
   AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, jack nebo USB zvuková karta',
   AppTextKey.settingsDevicesPhoneTitle: 'Aplikace v telefonu',

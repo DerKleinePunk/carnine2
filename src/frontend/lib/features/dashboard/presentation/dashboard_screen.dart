@@ -19,6 +19,7 @@ import 'package:carnine_frontend/features/media/presentation/media_controller.da
 import 'package:carnine_frontend/features/maps/data/map_follow_zoom_store.dart';
 import 'package:carnine_frontend/features/maps/presentation/map_follow_zoom_controller.dart';
 import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
+import 'package:carnine_frontend/features/settings/data/display_brightness_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
@@ -39,6 +40,7 @@ class DashboardScreen extends StatefulWidget {
     this.exitPasswordStore,
     this.announcementSettingsStore,
     this.mapFollowZoomStore,
+    this.displayBrightnessStore,
     this.controlsRepository,
     this.cameraSourceFactory,
     this.idleReturnAfter = const Duration(seconds: 60),
@@ -67,6 +69,9 @@ class DashboardScreen extends StatefulWidget {
 
   /// Where the zoom of following the car is kept.
   final MapFollowZoomStore? mapFollowZoomStore;
+
+  /// Where the display brightness is read and set.
+  final DisplayBrightnessStore? displayBrightnessStore;
 
   /// Where the Technik page gets its controls from; tests leave it out.
   final ControlsRepository? controlsRepository;
@@ -307,6 +312,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   exitPasswordStore: widget.exitPasswordStore,
                   announcementSettingsStore: widget.announcementSettingsStore,
                   followZoomController: _followZoomController,
+                  displayBrightnessStore: widget.displayBrightnessStore,
                   cameraSourceFactory: widget.cameraSourceFactory,
                   onShowCamera: () => _controller.selectDestination(
                     DashboardDestination.camera,

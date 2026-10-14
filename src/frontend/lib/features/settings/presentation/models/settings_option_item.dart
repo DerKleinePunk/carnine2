@@ -15,6 +15,9 @@ enum SettingsSection {
 enum SettingsDevicePage {
   /// "Geräte" > "Kamera" (#79).
   camera,
+
+  /// "Geräte" > "Display": the brightness of the backlight (#102).
+  display,
 }
 
 /// Immutable tile definition for the automotive options screen.

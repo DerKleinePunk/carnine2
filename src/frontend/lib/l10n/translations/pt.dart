@@ -139,11 +139,22 @@ const Map<AppTextKey, String> ptTranslations = <AppTextKey, String>{
   AppTextKey.settingsAppearanceTabTitle: 'Aparência',
   AppTextKey.settingsDevicesTitle: 'Dispositivos',
   AppTextKey.settingsDevicesSubtitle:
-      'Câmara, saída de áudio, aplicação do telemóvel e fonte de alimentação',
+      'Câmara, ecrã, saída de áudio, aplicação do telemóvel e fonte de alimentação',
   AppTextKey.settingsDevicesSemantic: 'Abrir definições de dispositivos',
   AppTextKey.settingsDevicesCameraTitle: 'Câmara',
   AppTextKey.settingsDevicesCameraSubtitle:
       'Dispositivo, norma de vídeo, entrada e largura da imagem',
+  AppTextKey.settingsDevicesDisplayTitle: 'Ecrã',
+  AppTextKey.settingsDevicesDisplaySubtitle: 'Brilho do ecrã',
+  AppTextKey.settingsDevicesDisplayNotConfigured:
+      'Este ecrã não tem regulação de brilho',
+  AppTextKey.settingsDisplayBrightness: 'Brilho',
+  AppTextKey.settingsDisplayBrightnessHint:
+      'O nível mais baixo não desliga o ecrã.',
+  AppTextKey.settingsDisplayBrightnessUnavailable:
+      'De momento não é possível alterar o brilho.',
+  AppTextKey.settingsDisplayDark: 'escuro',
+  AppTextKey.settingsDisplayLight: 'claro',
   AppTextKey.settingsDevicesAudioTitle: 'Saída de áudio',
   AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, jack ou placa de som USB',
   AppTextKey.settingsDevicesPhoneTitle: 'Aplicação do telemóvel',
