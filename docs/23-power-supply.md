@@ -1,8 +1,9 @@
 # 23 – Vehicle Power Supply (Ignition, Shutdown, Watchdog)
 
 **Status:** partly integrated (v0.9.3). The backend sends the sign of life and
-reports the supply's state since v0.6.0; shutting down on POWEROFF, `$` and the
-service mode are still open (#36, see [What carnine2 needs for it](#what-carnine2-needs-for-it)).
+reports the supply's state since v0.6.0 and shuts the Pi down on POWEROFF
+since e1aa949; `$` and the service mode are still open (#36, see
+[What carnine2 needs for it](#what-carnine2-needs-for-it)).
 The hardware and its firmware
 come from the predecessor project
 [DerKleinePunk/carnine](https://github.com/DerKleinePunk/carnine); the
@@ -326,9 +327,9 @@ stream; a receiver must skip them.
 
 ## What carnine2 needs for it
 
-The image is prepared, the backend sends the sign of life and reports the
-supply's state up to the user interface; shutting down is still to be
-built.
+The image is prepared, the backend sends the sign of life, reports the
+supply's state up to the user interface and shuts the Pi down when the
+supply goes to POWEROFF. `$` and the service mode are still to be built.
 
 - **Image:** done – `uart5`, optional `gpio-poweroff`, `/dev/powersupply`
   (see [Wiring to the Pi 4](#wiring-to-the-pi-4)). The serial console is not
@@ -360,9 +361,43 @@ built.
     it does not answer; ignition off or POWEROFF brings a notice. Without
     a supply none of it appears. According to carnine2 the ignition test
     with Michael passed.
-  - **Still open** (#36): shutting down on POWEROFF, and at once, because
-    the firmware finishes POWEROFF even when the ignition comes back
-    (see [States](#states)); sending `$` when the Pi shuts down on its own;
+  - **Shutdown on POWEROFF** (commit e1aa949, #36): when the supply reports
+    POWEROFF, the backend runs `systemctl poweroff --no-wall` once, **at
+    once**, because the firmware finishes POWEROFF even when the ignition
+    comes back (see [States](#states)) and allows only 15 s, of which the
+    backend itself may need up to 10 s to stop. A supply already in
+    POWEROFF when the backend starts counts too. KL15 off alone is not the
+    signal; the supply decides when it goes from RUN to POWEROFF. The log
+    says `power supply in POWEROFF (ignition off): shutting the Pi down`, a
+    failure `shutting the Pi down failed`. **Tested on carnine-pc on
+    2026-10-14** with the ignition switch: POWEROFF at 07:43:24.445,
+    systemd stopped the backend 0.67 s later, music paused, volume muted,
+    fan PWM off, IO board reset, gRPC closed, all in order. The journal is
+    volatile on image devices (`Storage=volatile`), so after a restart
+    `/var/log/carnine/backend.log` is the place to look.
+    - The backend runs as `carnine` without a login session, so logind asks
+      polkit. The backend package ships
+      `/usr/share/polkit-1/rules.d/60-carnine-backend-power.rules`, which
+      allows `carnine` exactly the power-off actions of login1
+      (`power-off`, `…-multiple-sessions`, `…-ignore-inhibit`), also while
+      someone is logged in over ssh; reboot stays refused. According to
+      carnine2 checked with `pkcheck` on carnine-pc.
+    - `[power_supply] shutdown_on_poweroff` (default `true`) switches it
+      off, for a bench where the ignition is only tried out and the Pi
+      should stay up:
+
+      ```toml
+      # /etc/carnine/config.d/20-power-supply.toml
+      [power_supply]
+      enabled = true
+      shutdown_on_poweroff = false
+      ```
+    - On a bench where the Pi hangs on its **own** power supply instead of
+      the supply's relay, it stays off after the shutdown (red LED) until
+      its power was gone once; ignition on again does not start it. Only
+      when the supply feeds the Pi does KL15 on bring it back (POWERON →
+      PIBOOT).
+  - **Still open** (#36): sending `$` when the Pi shuts down on its own;
     service mode `!`/`?`.
 - **Timing to check on the device:**
   - The alive `+` must start within about 63 s of the Pi getting power
