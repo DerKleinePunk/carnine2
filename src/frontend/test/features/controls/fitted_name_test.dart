@@ -1,8 +1,14 @@
+import 'dart:io';
+
+import 'package:carnine_frontend/app/app_theme.dart';
 import 'package:carnine_frontend/features/controls/domain/control.dart';
 import 'package:carnine_frontend/features/controls/presentation/controls_content.dart';
+import 'package:carnine_frontend/features/controls/presentation/widgets/control_switch_card.dart';
 import 'package:carnine_frontend/features/controls/presentation/widgets/fitted_name.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -129,5 +135,68 @@ void main() {
       expect(sizeOf(tester, 'Zusatzscheinwerferhelligkeit'), lessThan(18));
       expect(tester.takeException(), isNull);
     });
+  });
+
+  // Ahem above is drawn with the style FittedName is given. On the device the
+  // card's Text also inherits the theme's DefaultTextStyle (Material 3 adds
+  // letterSpacing 0.25), so this group draws with the real font and theme:
+  // on carnine-pc "Zusatzscheinwerfer" measured 172 px but was drawn 176.5 px
+  // wide in 175 px and broke into "Zusatzscheinwerfe" / "r" (#96).
+  group('with the real font and theme', () {
+    setUpAll(() async {
+      final loader = FontLoader('SpaceGrotesk');
+      for (final file in Directory('assets/fonts').listSync()) {
+        final path = file.path;
+        if (path.contains('SpaceGrotesk-') && path.endsWith('.ttf')) {
+          final bytes = File(path).readAsBytesSync();
+          loader.addFont(Future.value(ByteData.sublistView(bytes)));
+        }
+      }
+      await loader.load();
+    });
+
+    int linesOf(WidgetTester tester, String name) {
+      final paragraph = tester.renderObject<RenderParagraph>(find.text(name));
+      final boxes = paragraph.getBoxesForSelection(
+        TextSelection(baseOffset: 0, extentOffset: name.length),
+      );
+      return boxes.map((box) => box.top.round()).toSet().length;
+    }
+
+    for (final width in const [200.0, 207.0, 215.0]) {
+      testWidgets('a switch card $width px wide keeps the word whole', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: CarnineTheme.dark,
+            locale: const Locale('de'),
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: Center(
+              child: SizedBox(
+                width: width,
+                height: 175,
+                child: ControlSwitchCard(
+                  name: 'Zusatzscheinwerfer',
+                  isOn: false,
+                  isAvailable: true,
+                  onTap: () {},
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(linesOf(tester, 'Zusatzscheinwerfer'), 1);
+        expect(tester.takeException(), isNull);
+      });
+    }
   });
 }
