@@ -248,6 +248,8 @@ const Map<AppTextKey, String> jaTranslations = <AppTextKey, String>{
   AppTextKey.mapsNavigationModeSemantic: 'ナビモード：進行方向を上に',
   AppTextKey.mapsNorthUpSemantic: '北を上に',
   AppTextKey.mapsRouteCalculating: 'ルートを計算中…',
+  AppTextKey.mapsRerouting: 'ルートを再計算中…',
+  AppTextKey.mapsOffRouteUnavailable: 'ルートから外れました。ナビゲーションを利用できません',
   AppTextKey.mapsRoutingOffline: 'ナビゲーションを利用できません',
   AppTextKey.mapsNoRouteFound: 'ルートが見つかりません',
   AppTextKey.mapsNoPosition: 'GPS 位置がありません',

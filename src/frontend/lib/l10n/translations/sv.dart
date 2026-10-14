@@ -270,6 +270,9 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.mapsNavigationModeSemantic: 'Navigeringsläge: färdriktning uppåt',
   AppTextKey.mapsNorthUpSemantic: 'Norr uppåt',
   AppTextKey.mapsRouteCalculating: 'Beräknar rutt …',
+  AppTextKey.mapsRerouting: 'Beräknar om rutten …',
+  AppTextKey.mapsOffRouteUnavailable:
+      'Utanför rutten – navigering otillgänglig',
   AppTextKey.mapsRoutingOffline: 'Navigering otillgänglig',
   AppTextKey.mapsNoRouteFound: 'Ingen rutt hittades',
   AppTextKey.mapsNoPosition: 'Ingen GPS-position',

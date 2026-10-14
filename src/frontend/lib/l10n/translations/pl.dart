@@ -274,6 +274,9 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
       'Tryb nawigacji: kierunek jazdy u góry',
   AppTextKey.mapsNorthUpSemantic: 'Północ u góry',
   AppTextKey.mapsRouteCalculating: 'Obliczanie trasy …',
+  AppTextKey.mapsRerouting: 'Ponowne obliczanie trasy …',
+  AppTextKey.mapsOffRouteUnavailable:
+      'Zjechano z trasy – nawigacja niedostępna',
   AppTextKey.mapsRoutingOffline: 'Nawigacja niedostępna',
   AppTextKey.mapsNoRouteFound: 'Nie znaleziono trasy',
   AppTextKey.mapsNoPosition: 'Brak pozycji GPS',

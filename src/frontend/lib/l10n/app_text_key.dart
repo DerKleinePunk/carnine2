@@ -239,6 +239,8 @@ enum AppTextKey {
   mapsNavigationModeSemantic,
   mapsNorthUpSemantic,
   mapsRouteCalculating,
+  mapsRerouting,
+  mapsOffRouteUnavailable,
   mapsRoutingOffline,
   mapsNoRouteFound,
   mapsNoPosition,

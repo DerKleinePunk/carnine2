@@ -240,6 +240,8 @@ const Map<AppTextKey, String> zhTranslations = <AppTextKey, String>{
   AppTextKey.mapsNavigationModeSemantic: '导航模式：车头朝上',
   AppTextKey.mapsNorthUpSemantic: '北向朝上',
   AppTextKey.mapsRouteCalculating: '正在计算路线…',
+  AppTextKey.mapsRerouting: '正在重新计算路线…',
+  AppTextKey.mapsOffRouteUnavailable: '已偏离路线，导航不可用',
   AppTextKey.mapsRoutingOffline: '导航不可用',
   AppTextKey.mapsNoRouteFound: '未找到路线',
   AppTextKey.mapsNoPosition: '无 GPS 位置',

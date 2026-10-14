@@ -276,6 +276,9 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
       'Navigationstilstand: kørselsretning op',
   AppTextKey.mapsNorthUpSemantic: 'Nord op',
   AppTextKey.mapsRouteCalculating: 'Beregner rute …',
+  AppTextKey.mapsRerouting: 'Beregner ruten igen …',
+  AppTextKey.mapsOffRouteUnavailable:
+      'Uden for ruten – navigation utilgængelig',
   AppTextKey.mapsRoutingOffline: 'Navigation utilgængelig',
   AppTextKey.mapsNoRouteFound: 'Ingen rute fundet',
   AppTextKey.mapsNoPosition: 'Ingen GPS-position',

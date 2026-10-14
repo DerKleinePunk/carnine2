@@ -272,6 +272,8 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.mapsNavigationModeSemantic: 'Navigation mode: heading up',
   AppTextKey.mapsNorthUpSemantic: 'Align north up',
   AppTextKey.mapsRouteCalculating: 'Calculating route …',
+  AppTextKey.mapsRerouting: 'Recalculating route …',
+  AppTextKey.mapsOffRouteUnavailable: 'Off route – navigation unavailable',
   AppTextKey.mapsRoutingOffline: 'Navigation unavailable',
   AppTextKey.mapsNoRouteFound: 'No route found',
   AppTextKey.mapsNoPosition: 'No GPS position',

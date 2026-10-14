@@ -274,6 +274,9 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.mapsNavigationModeSemantic: 'Navigatiemodus: rijrichting boven',
   AppTextKey.mapsNorthUpSemantic: 'Noorden boven',
   AppTextKey.mapsRouteCalculating: 'Route wordt berekend …',
+  AppTextKey.mapsRerouting: 'Route wordt opnieuw berekend …',
+  AppTextKey.mapsOffRouteUnavailable:
+      'Van de route af – navigatie niet bereikbaar',
   AppTextKey.mapsRoutingOffline: 'Navigatie niet bereikbaar',
   AppTextKey.mapsNoRouteFound: 'Geen route gevonden',
   AppTextKey.mapsNoPosition: 'Geen GPS-positie',

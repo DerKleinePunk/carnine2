@@ -280,6 +280,9 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.mapsNavigationModeSemantic: 'Navigationsmodus: Fahrtrichtung oben',
   AppTextKey.mapsNorthUpSemantic: 'Norden oben ausrichten',
   AppTextKey.mapsRouteCalculating: 'Route wird berechnet …',
+  AppTextKey.mapsRerouting: 'Route wird neu berechnet …',
+  AppTextKey.mapsOffRouteUnavailable:
+      'Route verlassen – Navigation nicht erreichbar',
   AppTextKey.mapsRoutingOffline: 'Navigation nicht erreichbar',
   AppTextKey.mapsNoRouteFound: 'Keine Route gefunden',
   AppTextKey.mapsNoPosition: 'Keine GPS-Position',

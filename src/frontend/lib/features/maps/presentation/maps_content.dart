@@ -4,6 +4,7 @@ import 'package:carnine_frontend/features/maps/presentation/maps_controller.dart
 import 'package:carnine_frontend/features/maps/presentation/widgets/destination_search.dart';
 import 'package:carnine_frontend/features/maps/presentation/widgets/map_icon_button.dart';
 import 'package:carnine_frontend/features/maps/presentation/widgets/map_status_pill.dart';
+import 'package:carnine_frontend/features/maps/presentation/widgets/reroute_notice_card.dart';
 import 'package:carnine_frontend/features/maps/presentation/widgets/trip_status_bar.dart';
 import 'package:carnine_frontend/features/maps/presentation/widgets/turn_by_turn_card.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
@@ -156,6 +157,13 @@ class _Overlays extends StatelessWidget {
     final next = progress?.nextManeuver;
     final toNext = progress?.distanceToNextManeuverMeters;
     final status = _statusText(l10n);
+    final notice = _map.route == null
+        ? null
+        : rerouteNoticeFor(
+            isRerouting: _map.isRerouting,
+            offRoute: _map.offRoute,
+            rerouteError: _map.rerouteError,
+          );
 
     return Stack(
       fit: StackFit.expand,
@@ -173,7 +181,15 @@ class _Overlays extends StatelessWidget {
               ),
             ),
           ),
-        if (next != null && toNext != null)
+        // Off the route the next turn is the old route's: the notice takes
+        // its place until the new route is there (#103).
+        if (notice != null)
+          Positioned(
+            top: 16,
+            left: 24,
+            child: RerouteNoticeCard(notice: notice),
+          )
+        else if (next != null && toNext != null)
           Positioned(
             top: 16,
             left: 24,

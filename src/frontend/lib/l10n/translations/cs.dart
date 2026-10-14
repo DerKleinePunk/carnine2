@@ -270,6 +270,8 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.mapsNavigationModeSemantic: 'Navigační režim: směr jízdy nahoře',
   AppTextKey.mapsNorthUpSemantic: 'Sever nahoře',
   AppTextKey.mapsRouteCalculating: 'Výpočet trasy …',
+  AppTextKey.mapsRerouting: 'Přepočet trasy …',
+  AppTextKey.mapsOffRouteUnavailable: 'Mimo trasu – navigace není dostupná',
   AppTextKey.mapsRoutingOffline: 'Navigace není dostupná',
   AppTextKey.mapsNoRouteFound: 'Trasa nenalezena',
   AppTextKey.mapsNoPosition: 'Žádná poloha GPS',

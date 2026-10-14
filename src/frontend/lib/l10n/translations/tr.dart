@@ -272,6 +272,9 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.mapsNavigationModeSemantic: 'Navigasyon modu: gidiş yönü yukarıda',
   AppTextKey.mapsNorthUpSemantic: 'Kuzeyi yukarıya hizala',
   AppTextKey.mapsRouteCalculating: 'Rota hesaplanıyor …',
+  AppTextKey.mapsRerouting: 'Rota yeniden hesaplanıyor …',
+  AppTextKey.mapsOffRouteUnavailable:
+      'Rotadan çıkıldı – navigasyon kullanılamıyor',
   AppTextKey.mapsRoutingOffline: 'Navigasyon kullanılamıyor',
   AppTextKey.mapsNoRouteFound: 'Rota bulunamadı',
   AppTextKey.mapsNoPosition: 'GPS konumu yok',

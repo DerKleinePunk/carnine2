@@ -107,8 +107,18 @@ erreichbar“ (Backend weg, rot).
   - Höchstens alle 15 s, nach einem Fehler (z. B. Routing nicht erreichbar)
     erst nach 30 s, dann 60 s. Im Stand und nach der Ankunft wird nicht neu
     berechnet, im Replay nie.
-  - Einen Hinweis darauf zeigt die Abbiegekarte noch nicht (#103), die Linie
-    und die Werte unten springen einfach auf die neue Route.
+  - Die Abbiegekarte oben links zeigt dazu einen Hinweis, **statt** der nächsten
+    Abbiegung (die gehört zur alten Route und wäre falsch):
+    - **Route wird neu berechnet …** (zwei kreisende Pfeile, türkis) während der Berechnung.
+    - **Route verlassen – Navigation nicht erreichbar** (Warnsymbol, rot), wenn
+      das Auto neben der Route ist und die Berechnung nicht klappt, z. B. weil
+      der Routing-Dienst fehlt. Die alte Route bleibt stehen. Die Karte
+      versucht es weiter, nach 30 s, dann 60 s.
+    - Ist die neue Route da, steht wieder die nächste Abbiegung auf der Karte,
+      und die Linie und die Werte unten springen auf die neue Route.
+    - Solange die neue Berechnung noch nicht begonnen hat (die 15 s Pause), steht
+      noch die Abbiegung. Gesprochen wird „Die Route wird neu berechnet.“ wie
+      bisher.
 - **Beschriftung:** Mit der Fahrtrichtung oben dreht sich die Karte, und die
   Straßen- und Ortsnamen drehen mit. Sie stehen nie auf dem Kopf, höchstens
   etwas schräg, weil die Karte für die Beschriftung in 45°-Schritten neu

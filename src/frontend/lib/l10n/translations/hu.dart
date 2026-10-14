@@ -280,6 +280,9 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.mapsNavigationModeSemantic: 'Navigációs mód: menetirány felül',
   AppTextKey.mapsNorthUpSemantic: 'Észak felül',
   AppTextKey.mapsRouteCalculating: 'Útvonal számítása …',
+  AppTextKey.mapsRerouting: 'Útvonal újraszámítása …',
+  AppTextKey.mapsOffRouteUnavailable:
+      'Letért az útvonalról – a navigáció nem érhető el',
   AppTextKey.mapsRoutingOffline: 'A navigáció nem érhető el',
   AppTextKey.mapsNoRouteFound: 'Nem található útvonal',
   AppTextKey.mapsNoPosition: 'Nincs GPS-pozíció',

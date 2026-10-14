@@ -284,6 +284,9 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.mapsNavigationModeSemantic: 'Mode navigation : direction en haut',
   AppTextKey.mapsNorthUpSemantic: 'Orienter le nord en haut',
   AppTextKey.mapsRouteCalculating: 'Calcul de l’itinéraire …',
+  AppTextKey.mapsRerouting: 'Recalcul de l’itinéraire …',
+  AppTextKey.mapsOffRouteUnavailable:
+      'Itinéraire quitté – navigation indisponible',
   AppTextKey.mapsRoutingOffline: 'Navigation indisponible',
   AppTextKey.mapsNoRouteFound: 'Aucun itinéraire trouvé',
   AppTextKey.mapsNoPosition: 'Aucune position GPS',
