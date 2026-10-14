@@ -874,6 +874,28 @@ measurements: [26 – Spoken Turn Announcements](26-turn-announcements.md).
     and stores the network for `wpa_supplicant@wlan0`
     (`/etc/wpa_supplicant/wpa_supplicant-wlan0.conf`, root only); `--off` and
     `--on` switch it off and back on across reboots
+  • **Updates.** The image build pulls Debian trixie fresh, adds the
+    Raspberry Pi archive, `trixie-security` and `trixie-updates`, and runs
+    `apt-get dist-upgrade`, so every Debian and Raspberry Pi package is at the
+    state of the build day. The Carnine packages (`carnine-backend`,
+    `carnine-frontend`, `carnine-valhalla`, `carnine-voice`) come in as files
+    and are exactly as old as those files; check the Valhalla and voice
+    packages before building an image. The device itself does not update
+    anything on its own (no `unattended-upgrades`); `sudo apt full-upgrade`
+    by hand brings it up to date.
+  • **Bootloader** (Pi 4 EEPROM, images from 0.18.0): the image
+    contains `rpi-eeprom` (e1c0118). Its `rpi-eeprom-update.service` runs
+    `rpi-eeprom-update -s -a` at every boot, channel `default`, and flashes
+    **only** when the bootloader is older than the package's
+    `BOOTLOADER_AUTO_UPDATE_MIN_VERSION` (2025-05-08 in October 2026).
+    Raspberry Pi raises that minimum only for important fixes that affect
+    most users, such as a security hole; the new bootloader is staged at one
+    boot and written at the next. Newer releases without that step stay a
+    manual job: `sudo rpi-eeprom-update` shows the installed and the
+    available version (also `vcgencmd bootloader_version`),
+    `sudo rpi-eeprom-update -a` and a reboot install it. New bootloader files
+    only arrive with a new image or `apt full-upgrade`. The package adds 28
+    packages, about 78 MB.
 
 #### Runtime Dependencies (on Pi)
 The Debian packages pull in everything they need; the image installs them:
