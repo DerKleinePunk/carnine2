@@ -96,8 +96,17 @@ Nur auf einem Gerät mit Netzteil-Modul im Auto
 
 Schaltet das Netzteil ab, erscheint auf jeder Seite unter der Kopfleiste ein
 roter Streifen: „Zündung aus – das Netzteil schaltet ab“ oder „Das Netzteil
-schaltet ab“. Er sagt nur an, was kommt: Das Gerät fährt dabei noch nicht von
-selbst herunter (#36). Ohne Netzteil-Modul fehlt beides.
+schaltet ab“. Das Gerät fährt dann **sofort von selbst sauber herunter**,
+bevor das Netzteil nach 15 Sekunden den Strom nimmt. Schaltet man die Zündung
+in dieser Zeit wieder ein, fährt es trotzdem herunter. Ohne Netzteil-Modul
+fehlt beides.
+
+Hängt der Pi nicht am Relais des Netzteils, sondern an einem eigenen Netzteil
+(Basteltisch, Vorführung), bleibt er nach dem Herunterfahren aus (rote LED).
+Wieder an geht er erst, wenn er einmal keinen Strom hatte: Stecker kurz
+ziehen. Wer dort nur die Zündung ausprobieren will, schaltet das Herunterfahren
+ab, siehe [docs/23](../23-power-supply.md#what-carnine2-needs-for-it)
+(`shutdown_on_poweroff = false`).
 
 ### Letzte Seite nach dem Start
 

@@ -162,8 +162,6 @@ Sichtbar, aber ohne Funktion:
 - **Karteneinstellungen** und der Reiter **Darstellung** in den Optionen
 - **Audio-Ausgang**, **Handy-App** und **Netzteil** auf der Seite Geräte (nur
   eine Vorschau, nicht antippbar)
-- Herunterfahren, wenn das Netzteil abschaltet: Die Kopfleiste kündigt es nur
-  an (#36, siehe [Kopfleiste](README.md#kopfleiste-oben-rechts))
 
 ## Dauertest einrichten
 
