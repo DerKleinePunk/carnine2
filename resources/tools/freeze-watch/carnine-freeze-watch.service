@@ -1,0 +1,15 @@
+# Freeze and heat watch: one line a minute to /var/log/carnine-freeze-watch.log
+# (resources/tools/freeze-watch/LIESMICH.md). Root for the DRM scanout and
+# vcgencmd. Off unless switched on: systemctl enable --now carnine-freeze-watch
+[Unit]
+Description=Carnine freeze and heat watch (one line a minute)
+After=multi-user.target
+
+[Service]
+ExecStart=/usr/bin/python3 /usr/local/lib/carnine-freeze-watch/freeze_watch.py
+Restart=on-failure
+RestartSec=10
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
