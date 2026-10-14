@@ -296,7 +296,8 @@ guide describes it in `verhalten.md`, section „Messe-Modus“, and `karte.md`)
 - **Zoom in the log**
   ([#130](https://github.com/DerKleinePunk/carnine2/issues/130)): each change
   of the whole zoom level writes a line like `[map] Zoom 16 (15.7)` to the
-  frontend log (Optionen → System → Logansicht öffnen).
+  frontend log: the log viewer (Optionen → System → Logansicht öffnen) and
+  `/var/log/carnine/frontend.log` on the Pi, not the journal.
 - **No replay route** ([#100](https://github.com/DerKleinePunk/carnine2/issues/100)):
   when `GetReplayRoute` fails (for example `NOT_FOUND` while Valhalla still
   starts), the frontend waits 3, 6, 15, 30 and then 60 s between tries
