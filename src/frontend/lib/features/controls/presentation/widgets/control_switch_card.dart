@@ -8,13 +8,14 @@ import 'package:flutter/material.dart';
 /// A switch of the Technik page: the whole card toggles. The little switch
 /// and the text "AN" or "AUS" only show the state. On, the card glows in the
 /// primary color; off, it is dimmed; without its module it is greyed out and
-/// does not react.
+/// does not react. [compact] is the smaller one of the start page.
 class ControlSwitchCard extends StatelessWidget {
   const ControlSwitchCard({
     required this.name,
     required this.isOn,
     required this.isAvailable,
     required this.onTap,
+    this.compact = false,
     super.key,
   });
 
@@ -23,6 +24,7 @@ class ControlSwitchCard extends StatelessWidget {
   final bool isOn;
   final bool isAvailable;
   final VoidCallback onTap;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -71,14 +73,18 @@ class ControlSwitchCard extends StatelessWidget {
                   : null,
             ),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(compact ? 12 : 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(Icons.power_settings_new, color: accent, size: 34),
+                      Icon(
+                        Icons.power_settings_new,
+                        color: accent,
+                        size: compact ? 28 : 34,
+                      ),
                       MiniSwitch(isOn: isOn, isAvailable: isAvailable),
                     ],
                   ),
@@ -89,7 +95,7 @@ class ControlSwitchCard extends StatelessWidget {
                       color: isAvailable
                           ? AppColors.onSurface
                           : AppColors.onSurfaceVariant,
-                      fontSize: 18,
+                      fontSize: compact ? 16 : 18,
                     ),
                   ),
                   const SizedBox(height: 4),

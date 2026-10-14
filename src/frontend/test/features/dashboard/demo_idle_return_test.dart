@@ -4,8 +4,10 @@ import 'dart:io';
 import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_controller.dart';
 import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_overlay.dart';
 import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_scope.dart';
+import 'package:carnine_frontend/features/dashboard/data/cpu_temperature_source.dart';
 import 'package:carnine_frontend/features/dashboard/data/power_supply_source.dart';
 import 'package:carnine_frontend/features/dashboard/data/thermal_status_source.dart';
+import 'package:carnine_frontend/features/dashboard/presentation/cpu_temperature_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/models/dashboard_nav_item.dart';
@@ -116,6 +118,14 @@ class _QuietThermal implements ThermalStatusSource {
   Future<void> dispose() async {}
 }
 
+class _QuietCpu implements CpuTemperatureSource {
+  @override
+  Stream<double?> get temperatures => const Stream.empty();
+
+  @override
+  Future<void> dispose() async {}
+}
+
 void main() {
   const minute = Duration(seconds: 60);
 
@@ -173,12 +183,14 @@ void main() {
     keyboard = OnScreenKeyboardController();
     final power = PowerSupplyController(source: _QuietPowerSupply());
     final thermal = ThermalWarningController(source: _QuietThermal());
+    final cpu = CpuTemperatureController(source: _QuietCpu());
     addTearDown(() async {
       media.dispose();
       dashboard.dispose();
       keyboard.dispose();
       power.dispose();
       thermal.dispose();
+      cpu.dispose();
       await tester.runAsync(() async {
         maps.dispose();
         await server.shutdown();
@@ -211,6 +223,7 @@ void main() {
           mapsController: maps,
           powerSupplyController: power,
           thermalWarningController: thermal,
+          cpuTemperatureController: cpu,
         ),
       ),
     );

@@ -64,7 +64,7 @@ Oben das Logo „CarNine / V8-ACTIVE“ (ohne Funktion), darunter die Seiten:
 
 | Menüpunkt | Inhalt |
 |---|---|
-| **Start** | Platzhalter für Entwickler (siehe unten) |
+| **Start** | Übersicht: Uhr, Navigation, Musik, Schnellschalter, Fahrzeug (siehe unten) |
 | **Karten** | [Offline-Karte mit Navigation](karte.md) |
 | **Medien** | [Musik-Player](medien.md) |
 | **Kamera** | [Bild der Rückfahrkamera](kamera.md) |
@@ -120,7 +120,54 @@ das Backend nicht, bleibt sie ohne Meldung auf **Start** (#52).
 
 ### Start
 
-Entwickler-Platzhalter: Text „Dashboard-Inhalt für …“, der gRPC-Status und der
-Knopf **gRPC testen**. Der fragt einen CAN-Wert (`engine_temp`) beim Backend ab
-und zeigt das Ergebnis als Liste; schlägt es fehl, erscheint der Dialog
-**Verbindungsfehler**.
+Oben stehen die Uhrzeit groß und rechts daneben das Datum, ausgeschrieben und in
+der Sprache der Oberfläche („Mittwoch, 14. Oktober 2026“). Die Uhrzeit springt
+zum Minutenwechsel um, wie die in der Kopfleiste. Darunter vier Kacheln:
+
+| Kachel | Zeigt | Antippen |
+|---|---|---|
+| **NAVIGATION** (links oben, die größte) | siehe unten | öffnet **Karten** |
+| **SCHNELLSCHALTER** (links unten) | die ersten vier Schalter der Seite [Technik](technik.md) | schaltet den einzelnen Schalter |
+| **MUSIK** (rechts oben) | Cover, Titel, Interpret, Fortschritt | öffnet **Medien** |
+| **FAHRZEUG** (rechts unten) | Zündung, Spannung, CPU-Temperatur | nichts, nur Anzeige |
+
+**Navigation.** Mit Route zeigt die Kachel dasselbe wie die Karte: links den
+Pfeil der nächsten Abbiegung, daneben die Entfernung bis dorthin und die
+Straße (hat die Straße keinen Namen, die Anweisung), darunter **ANKUNFT**
+(Uhrzeit, nach Mitternacht „ANKUNFT MORGEN“) und **DISTANZ** (Rest der Strecke).
+Verlässt das Auto die Route, steht an Stelle der Abbiegung „Route wird neu
+berechnet …“, bei nicht erreichbarer Navigation rot „Route verlassen –
+Navigation nicht erreichbar“. Ohne Route steht dort **Ziel eingeben**, solange
+eine Route berechnet wird „Route wird berechnet …“. Das Ziel sucht man auf der
+Karte: ein Tipp auf die Kachel öffnet sie.
+
+Oben rechts in der Kachel zeigt ein Punkt, ob das Auto weiß, wo es ist:
+
+| Anzeige | Bedeutung |
+|---|---|
+| Punkt in der Primärfarbe, **GPS** | gültige Position |
+| roter Punkt, **Keine GPS-Position** | die GPS-Quelle ist da, hat aber noch keine Position |
+| nichts | keine GPS-Quelle eingerichtet, oder das Backend antwortet nicht |
+
+**Musik.** Die Kachel zeigt den aktuellen Titel (auch pausiert), darunter einen
+Fortschrittsbalken (nur Anzeige, zum Springen dient der Player) und die Knöpfe
+**Vorheriger Titel**, **Wiedergabe/Pause** und **Nächster Titel**. Die Knöpfe
+wirken wie im Player; ein Tipp daneben öffnet **Medien**. Läuft nichts, steht
+„Keine Wiedergabe“ und „Medien öffnen“, die drei Knöpfe sind grau.
+
+**Schnellschalter.** Die Kachel zeigt bis zu vier Schalter in der Reihenfolge
+der Seite Technik, Regler überspringt sie. Die Schalter sehen aus und wirken
+wie dort: ein Tipp schaltet, ein Schalter, dessen Modul nicht antwortet, ist
+grau und reagiert nicht. Gibt es keinen Schalter, oder ist das Backend nicht
+erreichbar, fehlt die Kachel ganz und die Navigation nimmt ihren Platz ein.
+
+**Fahrzeug.** Nur auf einem Gerät mit Netzteil-Modul stehen dort **Zündung**
+(An/Aus) und **Spannung** (z. B. „12,6 V“); schaltet das Netzteil gerade ab,
+sind beide rot. Antwortet das Netzteil nicht, steht „Netzteil antwortet nicht“
+in Rot. Darunter steht die **CPU**-Temperatur in °C, die sich alle paar
+Sekunden aktualisiert; sie wird rot, sobald die Warnung vor Überhitzung gilt
+([Verhalten](verhalten.md)). Hat das Gerät kein Netzteil-Modul und keinen
+Temperaturfühler, fehlt die Kachel und die Musik nimmt ihren Platz ein.
+
+Die Seite hat keinen Entwickler-Test mehr: den Knopf **gRPC testen** und den
+Dialog **Verbindungsfehler** gibt es nicht mehr.

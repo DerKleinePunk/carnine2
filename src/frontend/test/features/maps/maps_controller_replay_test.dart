@@ -491,4 +491,51 @@ void main() {
       expect(lines, ['[map] Zoom 14 (14.2)', '[map] Zoom 16 (16.0)']);
     });
   });
+  group('the GPS dot of the start page (#94)', () {
+    test('while the backend has not answered there is nothing to say', () {
+      expect(controller.gps, GpsState.none);
+    });
+
+    test('a serial source with a fix', () async {
+      service.status = pb.NavigationStatus(
+        positionSource: pb.PositionSourceKind.POSITION_SOURCE_SERIAL,
+        fixState: pb.FixState.FIX_STATE_FIX,
+      );
+
+      await controller.refreshStatus();
+
+      expect(controller.gps, GpsState.fix);
+    });
+
+    test('a serial source that has no fix yet', () async {
+      service.status = pb.NavigationStatus(
+        positionSource: pb.PositionSourceKind.POSITION_SOURCE_SERIAL,
+        fixState: pb.FixState.FIX_STATE_NO_FIX,
+      );
+
+      await controller.refreshStatus();
+
+      expect(controller.gps, GpsState.noFix);
+    });
+
+    test('the replay drives like a source with a fix', () async {
+      service.replay(lap: 1);
+      service.status.fixState = pb.FixState.FIX_STATE_FIX;
+
+      await controller.refreshStatus();
+
+      expect(controller.gps, GpsState.fix);
+    });
+
+    test('without a source there is no dot, whatever the fix says', () async {
+      service.status = pb.NavigationStatus(
+        positionSource: pb.PositionSourceKind.POSITION_SOURCE_NONE,
+        fixState: pb.FixState.FIX_STATE_NO_FIX,
+      );
+
+      await controller.refreshStatus();
+
+      expect(controller.gps, GpsState.none);
+    });
+  });
 }
