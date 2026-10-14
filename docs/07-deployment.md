@@ -186,9 +186,11 @@ copy of its own since Jonas' 530609a:
   without control characters (`INVALID_ARGUMENT` otherwise). It writes the new
   hash to the drop-in `config.d/30-exit-password.toml` beside the
   configuration, in one step (temporary file, then rename) with mode `0640`,
-  and uses it at once. The name sorts after the image's drop-ins, so it wins
-  over them; `deploy_pi.sh` leaves it alone, so the password survives restarts
-  and deployments.
+  and uses it at once. If there is no `config.d` or the file cannot be
+  written, it answers `INTERNAL` and the old password stays. The name sorts
+  after the image's own drop-ins (`10-…`, `20-…`); no other drop-in sets
+  `[exit_password]`, so the order does not matter for it. `deploy_pi.sh`
+  leaves the file alone, so the password survives restarts and deployments.
 - For that the `carnine` group must be able to write to
   `/etc/carnine/config.d`: the image creates it `0770`, and the backend
   package's `postinst` changes an older `0750` directory on every install.
