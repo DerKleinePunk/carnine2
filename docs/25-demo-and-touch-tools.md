@@ -270,16 +270,44 @@ installs `/etc/systemd/network/wired.network.d/50-messe.conf`
 nothing and prints the `nmcli` line to do it by hand. carnine-pc uses `.2`,
 jeep-pi `.3`.
 
-**Still open in the frontend** (Jonas): take up the route again with the next
-round after "Abbrechen"
-([#126](https://github.com/DerKleinePunk/carnine2/issues/126)), the
-destination in the search field
-([#127](https://github.com/DerKleinePunk/carnine2/issues/127)), back to the
-map after 60 s without a touch while `demo_mode` is on, not with the keyboard,
-a dialog or the media picker open
-([#128](https://github.com/DerKleinePunk/carnine2/issues/128)), and the
-password before leaving the app
-([#51](https://github.com/DerKleinePunk/carnine2/issues/51)).
+**What the frontend does with it** (Jonas, eaa6317 and c8ebf8a; the user
+guide describes it in `verhalten.md`, section „Messe-Modus“, and `karte.md`):
+
+- **"Abbrechen" lasts until the round ends**
+  ([#126](https://github.com/DerKleinePunk/carnine2/issues/126)). When
+  `replay_lap` rises, the map fetches `GetReplayRoute` again and follows with
+  the heading up, as at the start. When `replay_lap` falls below the last value
+  seen (backend restarted, trade fair mode switched on by drop-in), the old
+  replay route is dropped and the new one fetched, also after "Abbrechen", so
+  a stale "Ziel erreicht" no longer comes. A route the user picked is left
+  alone. There is no `setRoute` per round (local_map 0.8.8).
+- **Destination in the search field**
+  ([#127](https://github.com/DerKleinePunk/carnine2/issues/127)):
+  `Route.destination_name` stands there like a chosen destination, without a
+  search, with **X** to clear it; typing goes to the search as before. After
+  "Abbrechen" the field is empty again; a destination the user picked is not
+  overwritten.
+- **Back to the map after 60 s without a touch** while `demo_mode` is on
+  ([#128](https://github.com/DerKleinePunk/carnine2/issues/128),
+  `idle_return.dart`). Every touch, also on the keyboard and in dialogs,
+  starts the 60 s again. While the on-screen keyboard, a dialog or one of the
+  playlist flows in Medien (create, add titles, rename) is open, the page
+  stays and waits another minute. Without `demo_mode` nothing changes.
+- **Zoom in the log**
+  ([#130](https://github.com/DerKleinePunk/carnine2/issues/130)): each change
+  of the whole zoom level writes a line like `[map] Zoom 16 (15.7)` to the
+  frontend log (Optionen → System → Logansicht öffnen).
+- **No replay route** ([#100](https://github.com/DerKleinePunk/carnine2/issues/100)):
+  when `GetReplayRoute` fails (for example `NOT_FOUND` while Valhalla still
+  starts), the frontend waits 3, 6, 15, 30 and then 60 s between tries
+  (`MapsController.defaultReplayRetryDelays`) and logs the reason once
+  („No replay route yet: …“). A new round, a backend restart or another
+  position source tries again at once; after "Abbrechen" it does not ask.
+
+The password before leaving the app
+([#51](https://github.com/DerKleinePunk/carnine2/issues/51), 530609a) is
+checked by the backend:
+[07 – Deployment, "Exit password"](07-deployment.md#exit-password-beenden).
 
 Tests: `sh resources/config/messe/tests/messe-einrichten-test.sh` (also in CI,
 with shellcheck), the `nmea` tests in `test_demo_gps.py`, and backend tests for
