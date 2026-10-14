@@ -136,6 +136,12 @@ actions:
       - wireless-regdb
       # vcgencmd, for get_throttled when looking into power or heat trouble.
       - raspi-utils-core
+      # Bootloader updates (Michael 14.10.: in case a CVE turns up). Its
+      # rpi-eeprom-update.service runs "rpi-eeprom-update -s -a" at boot, which
+      # flashes only when the EEPROM is older than the package's
+      # BOOTLOADER_AUTO_UPDATE_MIN_VERSION - raised by Raspberry Pi for
+      # important fixes. Newer releases stay a manual "rpi-eeprom-update -a".
+      - rpi-eeprom
 
   - action: run
     description: Defer automatic Dracut kernel hook
