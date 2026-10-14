@@ -893,7 +893,12 @@ measurements: [26 – Spoken Turn Announcements](26-turn-announcements.md).
     boot and written at the next. Newer releases without that step stay a
     manual job: `sudo rpi-eeprom-update` shows the installed and the
     available version (also `vcgencmd bootloader_version`),
-    `sudo rpi-eeprom-update -a` and a reboot install it. New bootloader files
+    `sudo rpi-eeprom-update -a` and a reboot install it. `rpi-eeprom-update`
+    ends by suggesting `sudo raspi-config`; the image has no `raspi-config`,
+    `-a` is the way. On carnine-pc with the 0.18.0 image (2026-10-14) the
+    service logged „Skipping automatic bootloader upgrade. current … >= min …“
+    and staged nothing (bootloader 2026-05-17, 2026-09-23 available by
+    hand). New bootloader files
     only arrive with a new image or `apt full-upgrade`. The package adds 28
     packages, about 78 MB.
 
