@@ -144,6 +144,12 @@ side (pin header at the top):
 | 12 | Masse | **KL31**, vehicle ground |
 | 13–15 | +5 V | converter output, 5.1 V (measured), up to 6 A in total |
 
+The +5 V terminals sit before the relays. Besides Rel1 and Rel2 they feed
+Michael's IO board, whose fan output JP10 carries the two case fans, about
+0.36 A together (2 × 0.9 W at 5 V from the ebm-papst 405 FH datasheet, not
+measured; see [07 – Deployment](07-deployment.md)). That current flows
+through the converter only, not through Rel2.
+
 Pin header, from left to right: RXD, TXD, Dig1, Dig2, Dig3, GND, +5 V,
 Analog1, Analog2, Analog3. RXD, TXD, Dig3 and GND go to the Pi (see
 [Wiring to the Pi 4](#wiring-to-the-pi-4)); Dig3 carries the Pi's halt
