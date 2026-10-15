@@ -135,6 +135,8 @@ zum Minutenwechsel um, wie die in der Kopfleiste. Darunter vier Kacheln:
 Pfeil der nächsten Abbiegung, daneben die Entfernung bis dorthin und die
 Straße (hat die Straße keinen Namen, die Anweisung), darunter **ANKUNFT**
 (Uhrzeit, nach Mitternacht „ANKUNFT MORGEN“) und **DISTANZ** (Rest der Strecke).
+Nach der letzten Abbiegung zeigt sie die Zielflagge, die Entfernung bis zum
+Ziel und die Anweisung, z. B. „Ziel erreicht.“
 Verlässt das Auto die Route, steht an Stelle der Abbiegung „Route wird neu
 berechnet …“, bei nicht erreichbarer Navigation rot „Route verlassen –
 Navigation nicht erreichbar“. Ohne Route steht dort **Ziel eingeben**, solange
@@ -168,6 +170,3 @@ in Rot. Darunter steht die **CPU**-Temperatur in °C, die sich alle paar
 Sekunden aktualisiert; sie wird rot, sobald die Warnung vor Überhitzung gilt
 ([Verhalten](verhalten.md)). Hat das Gerät kein Netzteil-Modul und keinen
 Temperaturfühler, fehlt die Kachel und die Musik nimmt ihren Platz ein.
-
-Die Seite hat keinen Entwickler-Test mehr: den Knopf **gRPC testen** und den
-Dialog **Verbindungsfehler** gibt es nicht mehr.
