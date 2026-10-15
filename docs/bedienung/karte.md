@@ -117,8 +117,7 @@ erreichbar“ (Backend weg, rot).
     - Ist die neue Route da, steht wieder die nächste Abbiegung auf der Karte,
       und die Linie und die Werte unten springen auf die neue Route.
     - Solange die neue Berechnung noch nicht begonnen hat (die 15 s Pause), steht
-      noch die Abbiegung. Gesprochen wird „Die Route wird neu berechnet.“ wie
-      bisher.
+      noch die Abbiegung. Gesprochen wird „Die Route wird neu berechnet.“
 - **Beschriftung:** Mit der Fahrtrichtung oben dreht sich die Karte, und die
   Straßen- und Ortsnamen drehen mit. Sie stehen nie auf dem Kopf, höchstens
   etwas schräg, weil die Karte für die Beschriftung in 45°-Schritten neu

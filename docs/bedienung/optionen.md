@@ -18,6 +18,8 @@ Vier Kacheln; der Pfeil oben links in jeder Unterseite führt zurück zur
 
 Oben zwei Reiter: **Ansagen** und **Karte**. Die Seite öffnet auf **Ansagen**.
 
+![Karteneinstellungen, Reiter Ansagen: Schalter Sprachansagen an, Ansage testen, Regler Lautstärke der Ansagen 100 % und Musik während einer Ansage 30 % mit Hinweis](bilder/optionen-ansagen.png)
+
 **Ansagen** stellt die gesprochenen Abbiegehinweise der Navigation ein
 ([Karten, Sprachansagen](karte.md#sprachansagen)). Jede Änderung gilt sofort und
 bleibt über Neustarts erhalten, das Backend speichert sie.
@@ -41,6 +43,8 @@ bleibt über Neustarts erhalten, das Backend speichert sie.
 
 Die Ansagen gibt es nur, wenn die Oberfläche auf Deutsch steht, die Einstellungen
 selbst sind in jeder Sprache bedienbar.
+
+![Karteneinstellungen, Reiter Karte: Regler Zoom beim Folgen mit den Stufen 14 (weit) bis 17 (nah), auf 16](bilder/optionen-karte-zoom.png)
 
 **Karte** stellt ein, wie nah die Karte ist, wenn sie dem Auto folgt. Ein Regler
 mit den Stufen **14 bis 17** (14 weit, 17 nah). Ab Werk gilt **16**. Die Karte
@@ -75,7 +79,7 @@ Wer die Seite verlässt und wieder öffnet, landet wieder auf **Sprache**.
 
 ## Geräte
 
-![Geräte: Zeilen Kamera (mit Pfeil), Audio-Ausgang, Handy-App und Netzteil (ausgegraut)](bilder/optionen-geraete.png)
+![Geräte: Zeilen Kamera (mit Pfeil), Display mit dem Hinweis „Dieses Display hat keine Helligkeitsregelung“, Audio-Ausgang, Handy-App und Netzteil (ausgegraut)](bilder/optionen-geraete.png)
 
 Die Seite zeigt fünf Geräte-Bereiche. Jede Zeile hat ein Symbol, einen Namen
 und eine Kurzbeschreibung. **Kamera** und **Display** haben eine Seite; sie

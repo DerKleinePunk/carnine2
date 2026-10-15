@@ -50,22 +50,30 @@ The deployment architecture emphasizes reliability and minimal resource consumpt
   package's udev rule `61-carnine-pwm.rules` gives the `gpio` group the sysfs
   files. The backend drives them with `chip = "pwm"` in `[[controls]]` and
   with `[display.backlight]`; examples in `resources/config/carnine.toml`.
-  - Channel 0 is the case fan: a 5 V fan with two wires on JP10 of Michael's
-    IO board, whose fan stage switches the 5 V with the signal "Sig" from
-    GPIO 18. The duty cycle sets the speed (100 Hz by default, because the
+  - Channel 0 drives the case fans: two 5 V fans with two wires each, in
+    parallel on JP10 of Michael's IO board, whose fan stage switches the 5 V
+    with the signal "Sig" from GPIO 18. In the enclosure draft (air in at the
+    front, out at the back, 2026-10-15) one sits behind the front and blows
+    over the Pi, the other sits inside the rear wall and blows out; both run
+    at the same speed. Together they draw about 0.36 A (2 × 0.9 W at 5 V
+    from the datasheet, not measured). Whether the stage carries that depends
+    on its transistor T2 and diode D1, whose parts the schematic does not
+    name (open). The duty cycle sets the speed (100 Hz by default, because the
     stage switches slowly); `min_level` is where the fan still turns,
-    `kick_ms` gives full duty when it starts from off. It shows up as a
-    slider on the Technik page and stops when the backend exits. With
-    `boost_on_overheat = true` it runs at 100 % while the CPU overheat
-    warning is on and goes back to its own value once it clears (see
+    `kick_ms` gives full duty when it starts from off. The channel shows up
+    as one slider on the Technik page and stops when the backend exits. With
+    `boost_on_overheat = true` they run at 100 % while the CPU overheat
+    warning is on and go back to the set value once it clears (see
     [06 – Runtime View](06-runtime.md)). Mind the
-    polarity at JP10: pin 1 is +5 V (red wire), pin 2 ground. The fan has
+    polarity at JP10: pin 1 is +5 V (red wires), pin 2 ground. The 405 FH has
     reverse polarity protection, so plugged in the wrong way round it simply
     does not turn (seen on carnine-pc on 2026-10-06).
     Tried on carnine-pc with the ebm-papst 405 FH at 100 Hz (2026-10-06),
     in duty cycle: below 30 % its noise is not bearable, at 30 % it starts
     from standstill by itself, and 50 % is fine. Hence `min_level = 30`, no
-    `kick_ms` needed, and 50 % duty as the everyday value. The slider's
+    `kick_ms` needed, and 50 % duty as the everyday value. That was one fan;
+    whether both of a pair start at 30 % is not tried yet, otherwise
+    `min_level` goes up. The slider's
     levels 1–100 spread over `min_level`..100 % duty (0 is off), so with
     `min_level = 30` the slider shows about 29 for 50 % duty and cannot go
     below the bearable 30 %.
@@ -92,8 +100,8 @@ The deployment architecture emphasizes reliability and minimal resource consumpt
 ### System Integration
 - **Cooling**: Active cooling (fan) required for automotive environment; passive heatsink insufficient for sustained operation in vehicle.
   Both test units, carnine-pc and jeep-pi, have a CPU fan fed from header pins 4 (5 V) and 6 (GND). It runs
-  whenever the Pi has power; carnine2 does not switch it. The case fan in the enclosure is a second fan
-  (ebm-papst 405 FH) on the IO board, speed set over PWM (see the hardware list above). Keep those two pins free for other wiring
+  whenever the Pi has power; carnine2 does not switch it. The enclosure adds two case fans
+  (ebm-papst 405 FH, air in at the front, out at the back) on the IO board, speed set over PWM (see the hardware list above). Keep those two pins free for other wiring
   (pin list in [24 – CAN Adapter](24-can-adapter-mcp2515.md#pins-on-the-pi-4)).
 - **Mounting**: DIN‑rail or vehicle‑specific enclosure with vibration damping
 - **Environmental**: automotive temp range (0 °C–50 °C); mitigate electrical noise with shielded CAN harnesses
