@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:carnine_frontend/app/app_theme.dart';
 import 'package:carnine_frontend/features/controls/domain/control.dart';
 import 'package:carnine_frontend/features/dashboard/data/cpu_temperature_source.dart';
 import 'package:carnine_frontend/features/dashboard/data/power_supply_source.dart';
@@ -23,6 +24,8 @@ import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:carnine_frontend/styles/colors.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:grpc/grpc.dart';
@@ -119,8 +122,9 @@ class _Rig {
   late final CpuTemperatureController cpu;
   final List<DashboardDestination> opened = [];
 
-  Widget app({Locale locale = const Locale('de')}) {
+  Widget app({Locale locale = const Locale('de'), ThemeData? theme}) {
     return MaterialApp(
+      theme: theme,
       locale: locale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: const [
@@ -166,6 +170,7 @@ Future<_Rig> _open(
   WidgetTester tester, {
   FakeControlsRepository? controls,
   Locale locale = const Locale('de'),
+  ThemeData? theme,
 }) async {
   tester.view.physicalSize = const Size(1024, 600);
   tester.view.devicePixelRatio = 1;
@@ -173,7 +178,7 @@ Future<_Rig> _open(
   addTearDown(tester.view.resetDevicePixelRatio);
   final rig = _current = _Rig(controls: controls);
   await withClock(Clock.fixed(DateTime(2026, 10, 14, 13, 27)), () async {
-    await tester.pumpWidget(rig.app(locale: locale));
+    await tester.pumpWidget(rig.app(locale: locale, theme: theme));
     await tester.pumpAndSettle();
   });
   return rig;
@@ -279,9 +284,7 @@ void main() {
       expect(rig.opened, [DashboardDestination.media]);
     });
 
-    _test('title, artist and play/pause of the current track', (
-      tester,
-    ) async {
+    _test('title, artist and play/pause of the current track', (tester) async {
       final rig = await _open(tester);
       await rig.media.start();
       rig.mediaRepository.playerEventsController.add(
@@ -316,9 +319,7 @@ void main() {
   });
 
   group('the quick switches', () {
-    _test('the first four switches, the sliders left out', (
-      tester,
-    ) async {
+    _test('the first four switches, the sliders left out', (tester) async {
       final controls = FakeControlsRepository(
         controls: [
           const ControlDefinition(
@@ -374,9 +375,7 @@ void main() {
       expect(find.text('SCHNELLSCHALTER'), findsNothing);
     });
 
-    _test('with only sliders the tile is not there either', (
-      tester,
-    ) async {
+    _test('with only sliders the tile is not there either', (tester) async {
       final controls = FakeControlsRepository(
         controls: const [
           ControlDefinition(
@@ -397,9 +396,7 @@ void main() {
       expect(find.text('SCHNELLSCHALTER'), findsNothing);
     });
 
-    _test('the backend is away: no tile, and it comes back', (
-      tester,
-    ) async {
+    _test('the backend is away: no tile, and it comes back', (tester) async {
       final controls = _switches(2)..loadError = StateError('down');
       await _open(tester, controls: controls);
       expect(find.text('SCHNELLSCHALTER'), findsNothing);
@@ -521,6 +518,72 @@ void main() {
 
       expect(rig.opened, isEmpty);
     });
+  });
+
+  // Drawn with the real font and theme, like the cards of the Technik page
+  // (#96): on jeep-pi "Rundumleuchte" broke into "Rundumleucht" / "e" on the
+  // card, four to a row (#94).
+  group('long switch names with the real font', () {
+    setUpAll(() async {
+      final loader = FontLoader('SpaceGrotesk');
+      for (final file in Directory('assets/fonts').listSync()) {
+        final path = file.path;
+        if (path.contains('SpaceGrotesk-') && path.endsWith('.ttf')) {
+          final bytes = File(path).readAsBytesSync();
+          loader.addFont(Future.value(ByteData.sublistView(bytes)));
+        }
+      }
+      await loader.load();
+    });
+
+    /// The words of [name] that the card breaks across two lines.
+    List<String> brokenWords(WidgetTester tester, String name) {
+      final paragraph = tester.renderObject<RenderParagraph>(find.text(name));
+      return [
+        for (final word in RegExp(r'\S+').allMatches(name))
+          if (paragraph
+                  .getBoxesForSelection(
+                    TextSelection(
+                      baseOffset: word.start,
+                      extentOffset: word.end,
+                    ),
+                  )
+                  .map((box) => box.top.round())
+                  .toSet()
+                  .length >
+              1)
+            word.group(0)!,
+      ];
+    }
+
+    for (final names in const [
+      ['Arbeitslicht', 'Innenlicht', 'Scheinwerfer', 'Rundumleuchte'],
+      ['Zusatzscheinwerfer', 'Demo-Licht', 'Relais GPA0', 'Rundumleuchte'],
+    ]) {
+      _test('${names.join(', ')}: every word whole', (tester) async {
+        final controls = [
+          for (final name in names)
+            ControlDefinition(id: name, name: name, kind: ControlKind.toggle),
+        ];
+        await _open(
+          tester,
+          controls: FakeControlsRepository(
+            controls: controls,
+            values: allOff(controls),
+          ),
+          theme: CarnineTheme.dark,
+        );
+
+        for (final name in names) {
+          expect(brokenWords(tester, name), isEmpty, reason: name);
+          final paragraph = tester.renderObject<RenderParagraph>(
+            find.text(name),
+          );
+          expect(paragraph.didExceedMaxLines, isFalse, reason: name);
+        }
+        expect(tester.takeException(), isNull);
+      });
+    }
   });
 
   group('every language fits at 1024x600', () {
