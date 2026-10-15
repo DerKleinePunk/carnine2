@@ -156,10 +156,9 @@ Sichtbar, aber ohne Funktion:
 
 - **NOTFALL** im Seitenmenü (#34)
 - Symbole Mobilfunk, Akku, Sonne in der Kopfleiste (#34)
-- Seite **Start** (nur Entwickler-Test)
 - Springen in der Zeitleiste des Players (dafür −30 s / +30 s)
 - **Nach Updates suchen** (#20)
-- **Karteneinstellungen** und der Reiter **Darstellung** in den Optionen
+- Der Reiter **Darstellung** in den Optionen
 - **Audio-Ausgang**, **Handy-App** und **Netzteil** auf der Seite Geräte (nur
   eine Vorschau, nicht antippbar)
 

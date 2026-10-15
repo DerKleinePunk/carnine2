@@ -46,6 +46,8 @@ class PlayerController extends ChangeNotifier {
   bool _pendingStart = false;
   AppTextKey? _transientMessageKey;
   Timer? _transientMessageTimer;
+  bool _modeHintShown = false;
+  Timer? _modeHintTimer;
   int _lastNotifiedPositionSeconds = -1;
   MediaRepeatMode _repeatMode = MediaRepeatMode.off;
   bool _shuffleEnabled = false;
@@ -87,6 +89,16 @@ class PlayerController extends ChangeNotifier {
   AppTextKey? get transientMessageKey => _transientMessageKey;
   MediaRepeatMode get repeatMode => _repeatMode;
   bool get shuffleEnabled => _shuffleEnabled;
+
+  /// Shuffle is on but repeating the track has precedence: the same track
+  /// plays again and again, shuffle changes nothing (#143). The settings stay
+  /// as the user set them; the player only shows it.
+  bool get shuffleHasNoEffect =>
+      _shuffleEnabled && _repeatMode == MediaRepeatMode.track;
+
+  /// The note "track repeats, shuffle has no effect" is on screen: for a few
+  /// seconds after a tap on shuffle or repeat made the two meet.
+  bool get showsModeHint => _modeHintShown && shuffleHasNoEffect;
 
   /// The current track's cover art, once fetched - `null` while loading, not
   /// yet requested, or the track has none. Callers show their icon fallback
@@ -185,12 +197,16 @@ class PlayerController extends ChangeNotifier {
     _subscription?.cancel();
     _stopTicker();
     _transientMessageTimer?.cancel();
+    _modeHintTimer?.cancel();
     super.dispose();
   }
 
   /// How long a failed command's message stays on screen (#32), like the
   /// audio event banner.
   static const transientMessageDuration = Duration(seconds: 4);
+
+  /// How long the note that shuffle does nothing stays on screen (#143).
+  static const modeHintDuration = Duration(seconds: 3);
 
   void _showTransientMessage(AppTextKey key) {
     _transientMessageKey = key;
@@ -276,6 +292,7 @@ class PlayerController extends ChangeNotifier {
     // the source of truth - same reconciliation the backend already forces
     // on every other command in this controller.
     _shuffleEnabled = next;
+    _updateModeHint();
     notifyListeners();
     await _runCommand(() => _repository.setShuffleMode(next));
   }
@@ -287,6 +304,7 @@ class PlayerController extends ChangeNotifier {
       MediaRepeatMode.track => MediaRepeatMode.off,
     };
     _repeatMode = next;
+    _updateModeHint();
     notifyListeners();
     await _runCommand(() => _repository.setRepeatMode(next));
   }
@@ -309,6 +327,21 @@ class PlayerController extends ChangeNotifier {
       _repository.previous,
       preconditionKey: AppTextKey.mediaNoAdjacentTrack,
     );
+  }
+
+  /// A tap on shuffle or repeat: when the two now meet, say so for a few
+  /// seconds; any other tap takes the note away.
+  void _updateModeHint() {
+    _modeHintTimer?.cancel();
+    if (!shuffleHasNoEffect) {
+      _modeHintShown = false;
+      return;
+    }
+    _modeHintShown = true;
+    _modeHintTimer = Timer(modeHintDuration, () {
+      _modeHintShown = false;
+      notifyListeners();
+    });
   }
 
   void dismissTransientMessage() {

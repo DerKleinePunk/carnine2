@@ -9,6 +9,19 @@ import 'package:flutter/foundation.dart';
 import 'package:local_map/local_map.dart';
 import 'package:logging/logging.dart';
 
+/// Whether the car knows where it is.
+enum GpsState {
+  /// No position source is set up (or the backend does not answer): nothing to
+  /// say about it.
+  none,
+
+  /// A source is there but has no valid position yet.
+  noFix,
+
+  /// A valid position.
+  fix,
+}
+
 /// State of the maps page: the map library's controller wired to the
 /// backend's `NavigationService` (ADR-021), plus destination search.
 ///
@@ -120,6 +133,23 @@ class MapsController extends ChangeNotifier {
   /// on its own and returns to the map when nobody touches it (#128). Unknown
   /// while the backend is down.
   bool get demoMode => _status?.demoMode ?? false;
+
+  /// What the position source delivers, for the GPS dot of the start page.
+  /// [GpsState.none] without a source, and while the backend is down.
+  GpsState get gps {
+    final status = _status;
+    if (status == null) {
+      return GpsState.none;
+    }
+    return switch (status.positionSource) {
+      pb.PositionSourceKind.POSITION_SOURCE_SERIAL ||
+      pb.PositionSourceKind.POSITION_SOURCE_REPLAY =>
+        status.fixState == pb.FixState.FIX_STATE_FIX
+            ? GpsState.fix
+            : GpsState.noFix,
+      _ => GpsState.none,
+    };
+  }
 
   /// The name of the end point while the replay's route is on the map, for
   /// the search field (#127); `null` for a route the user chose.

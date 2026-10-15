@@ -1,10 +1,8 @@
-import 'dart:async';
-
+import 'package:carnine_frontend/core/widgets/minute_clock.dart';
 import 'package:carnine_frontend/features/dashboard/data/power_supply_source.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:carnine_frontend/styles/colors.dart';
 import 'package:carnine_frontend/styles/text_styles.dart';
-import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 
 /// Compact top bar with system indicators and the time of day.
@@ -38,61 +36,26 @@ class CarnineTopBar extends StatelessWidget {
 }
 
 /// Time of day in the active locale's format, redrawn on each minute change.
-class TopBarClock extends StatefulWidget {
+class TopBarClock extends StatelessWidget {
   const TopBarClock({super.key});
 
   @override
-  State<TopBarClock> createState() => _TopBarClockState();
+  Widget build(BuildContext context) {
+    return MinuteClock(
+      builder: (context, now) => Text(
+        formatTimeOfDay(context, now),
+        style: AppTextStyles.appBarTitle.copyWith(color: AppColors.primary),
+      ),
+    );
+  }
 }
 
-class _TopBarClockState extends State<TopBarClock> {
-  Timer? _timer;
-  late DateTime _now;
-
-  @override
-  void initState() {
-    super.initState();
-    _now = clock.now();
-    _scheduleNextTick();
-  }
-
-  // One-shot timers aimed at the next minute boundary, so the display neither
-  // drifts nor wakes the UI more than once a minute.
-  void _scheduleNextTick() {
-    final now = clock.now();
-    final nextMinute = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      now.hour,
-      now.minute + 1,
-    );
-    _timer = Timer(nextMinute.difference(now), () {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _now = clock.now());
-      _scheduleNextTick();
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final text = MaterialLocalizations.of(context).formatTimeOfDay(
-      TimeOfDay.fromDateTime(_now),
-      alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
-    );
-    return Text(
-      text,
-      style: AppTextStyles.appBarTitle.copyWith(color: AppColors.primary),
-    );
-  }
+/// [time] as the locale writes the time of day, 12 or 24 hours as set.
+String formatTimeOfDay(BuildContext context, DateTime time) {
+  return MaterialLocalizations.of(context).formatTimeOfDay(
+    TimeOfDay.fromDateTime(time),
+    alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+  );
 }
 
 class _Divider extends StatelessWidget {

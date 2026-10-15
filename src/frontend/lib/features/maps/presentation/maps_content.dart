@@ -1,8 +1,10 @@
 import 'package:carnine_frontend/features/maps/domain/navigation_failure.dart';
+import 'package:carnine_frontend/features/maps/presentation/map_follow_zoom_controller.dart';
 import 'package:carnine_frontend/features/maps/presentation/maps_controller.dart';
 import 'package:carnine_frontend/features/maps/presentation/widgets/destination_search.dart';
 import 'package:carnine_frontend/features/maps/presentation/widgets/map_icon_button.dart';
 import 'package:carnine_frontend/features/maps/presentation/widgets/map_status_pill.dart';
+import 'package:carnine_frontend/features/maps/presentation/widgets/reroute_notice_card.dart';
 import 'package:carnine_frontend/features/maps/presentation/widgets/trip_status_bar.dart';
 import 'package:carnine_frontend/features/maps/presentation/widgets/turn_by_turn_card.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
@@ -18,9 +20,13 @@ import 'package:local_map/local_map.dart';
 /// search, routes and positions come from the backend's NavigationService
 /// through [MapsController].
 class MapsContent extends StatelessWidget {
-  const MapsContent({required this.controller, super.key});
+  const MapsContent({required this.controller, this.followZoom, super.key});
 
   final MapsController controller;
+
+  /// The zoom of following the car, set in the options (#131); without one
+  /// the map follows at the level in [mapConfig].
+  final MapFollowZoomController? followZoom;
 
   /// Where the trip bar sits while a route is active: from the bottom of the
   /// map and, beside it, from its left and right edge.
@@ -55,8 +61,8 @@ class MapsContent extends StatelessWidget {
     initialZoom: 13,
     // Following the car goes to this zoom; loading a route first shows all
     // of it, and without it following kept that zoom - half of Frankfurt on
-    // the trade fair tour (Michael, 2026-10-10). The options will set it
-    // (#131), kept as UiState.map_follow_zoom.
+    // the trade fair tour (Michael, 2026-10-10). The options set it (#131),
+    // kept as UiState.map_follow_zoom; 16 is the default.
     followZoom: 16,
     vectorStyleAssets: const ['assets/maps/style_carnine_dark.json'],
     initialVectorStyleIndex: 0,
@@ -100,21 +106,34 @@ class MapsContent extends StatelessWidget {
     highlightColor: AppColors.secondary,
   );
 
+  Widget _mapView() {
+    final zoom = followZoom;
+    if (zoom == null) {
+      return _mapViewWith(mapConfig);
+    }
+    // A new config makes the map go to the new level at once.
+    return ListenableBuilder(
+      listenable: zoom,
+      builder: (context, child) => _mapViewWith(zoom.configFor(mapConfig)),
+    );
+  }
+
+  Widget _mapViewWith(MapConfig config) {
+    return MapView(
+      mbtilesPath: MapsController.tilesPath(),
+      config: config,
+      controller: controller.map,
+      layerStyle: _layerStyle,
+      errorBuilder: (context, error) => _MapErrorView(error: error),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
       fit: StackFit.expand,
       children: [
-        ColoredBox(
-          color: AppColors.surface,
-          child: MapView(
-            mbtilesPath: MapsController.tilesPath(),
-            config: mapConfig,
-            controller: controller.map,
-            layerStyle: _layerStyle,
-            errorBuilder: (context, error) => _MapErrorView(error: error),
-          ),
-        ),
+        ColoredBox(color: AppColors.surface, child: _mapView()),
         ListenableBuilder(
           listenable: Listenable.merge([controller, controller.map]),
           builder: (context, _) => _Overlays(controller: controller),
@@ -138,6 +157,13 @@ class _Overlays extends StatelessWidget {
     final next = progress?.nextManeuver;
     final toNext = progress?.distanceToNextManeuverMeters;
     final status = _statusText(l10n);
+    final notice = _map.route == null
+        ? null
+        : rerouteNoticeFor(
+            isRerouting: _map.isRerouting,
+            offRoute: _map.offRoute,
+            rerouteError: _map.rerouteError,
+          );
 
     return Stack(
       fit: StackFit.expand,
@@ -155,7 +181,15 @@ class _Overlays extends StatelessWidget {
               ),
             ),
           ),
-        if (next != null && toNext != null)
+        // Off the route the next turn is the old route's: the notice takes
+        // its place until the new route is there (#103).
+        if (notice != null)
+          Positioned(
+            top: 16,
+            left: 24,
+            child: RerouteNoticeCard(notice: notice),
+          )
+        else if (next != null && toNext != null)
           Positioned(
             top: 16,
             left: 24,

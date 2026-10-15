@@ -9,10 +9,45 @@ Vier Kacheln; der Pfeil oben links in jeder Unterseite führt zurück zur
 
 | Kachel | Inhalt |
 |---|---|
-| **Karteneinstellungen** | noch leer („… vorbereitet“) |
+| **Karteneinstellungen** | zwei Reiter: **Ansagen** (Sprachansagen der Navigation) und **Karte** (Zoom beim Folgen) |
 | **Darstellung & Sprache** | zwei Reiter: **Darstellung** (noch leer) und **Sprache** (Anzeigesprache wählen) |
-| **Geräte** | **Kamera** einstellen; Audio-Ausgang, Handy-App und Netzteil als Vorschau |
+| **Geräte** | **Kamera** und **Display** (Helligkeit) einstellen; Audio-Ausgang, Handy-App und Netzteil als Vorschau |
 | **System** | Logs, Updates, Passwort ändern, Neustart, Beenden, Version |
+
+## Karteneinstellungen
+
+Oben zwei Reiter: **Ansagen** und **Karte**. Die Seite öffnet auf **Ansagen**.
+
+**Ansagen** stellt die gesprochenen Abbiegehinweise der Navigation ein
+([Karten, Sprachansagen](karte.md#sprachansagen)). Jede Änderung gilt sofort und
+bleibt über Neustarts erhalten, das Backend speichert sie.
+
+- **Sprachansagen:** Die ganze Karte antippen schaltet die Ansagen an oder aus.
+- **Lautstärke der Ansagen** (0 bis 100 %): Den Griff ziehen, gesendet wird beim
+  Loslassen. Die Stufen sind 5 %.
+- **Musik während einer Ansage** (0 bis 100 %): Wie laut die Musik bleibt,
+  solange gesprochen wird. Bei **0 %** hält die Musik an und läuft danach an
+  derselben Stelle weiter, bei **100 %** bleibt sie gleich laut. Ab Werk 30 %.
+- **Ansage testen** spricht den Satz „In 300 Metern rechts abbiegen.“, damit man
+  Lautstärke und Musik gleich hört. Der Satz ist immer deutsch, weil die Stimme
+  deutsch ist. Beim ersten Mal braucht das Gerät ein paar Sekunden, um ihn zu
+  sprechen. Ausgegraut bei ausgeschalteten Ansagen.
+- **Keine Stimme installiert:** Fehlt das Sprachpaket `carnine-voice` (z. B. in
+  WSL), steht das statt der Erklärung auf der Karte, und nichts auf der Seite
+  lässt sich ändern.
+- Ist das Backend nicht erreichbar, steht „Die Verbindung zum Backend wurde
+  unterbrochen …“ mit **Erneut versuchen**. Schlägt eine Änderung fehl, erscheint
+  kurz „Befehl fehlgeschlagen“, und der Regler springt auf den gespeicherten Wert.
+
+Die Ansagen gibt es nur, wenn die Oberfläche auf Deutsch steht, die Einstellungen
+selbst sind in jeder Sprache bedienbar.
+
+**Karte** stellt ein, wie nah die Karte ist, wenn sie dem Auto folgt. Ein Regler
+mit den Stufen **14 bis 17** (14 weit, 17 nah). Ab Werk gilt **16**. Die Karte
+geht beim Loslassen sofort auf die neue Stufe, und das Backend merkt sie sich
+über Neustarts hinweg. Schlägt das Speichern fehl, springt die Karte zurück und
+kurz steht „Befehl fehlgeschlagen“. Mehr zum Folgen steht unter
+[Karten, Zoom beim Folgen](karte.md#karte-bewegen).
 
 ## Darstellung & Sprache
 
@@ -42,21 +77,22 @@ Wer die Seite verlässt und wieder öffnet, landet wieder auf **Sprache**.
 
 ![Geräte: Zeilen Kamera (mit Pfeil), Audio-Ausgang, Handy-App und Netzteil (ausgegraut)](bilder/optionen-geraete.png)
 
-Die Seite zeigt vier Geräte-Bereiche. Jede Zeile hat ein Symbol, einen Namen
-und eine Kurzbeschreibung. Nur **Kamera** hat eine Seite; sie hat einen Pfeil
-und lässt sich antippen. Die anderen drei sind eine **Vorschau**: ausgegraut,
-ohne Pfeil, **nicht antippbar**:
+Die Seite zeigt fünf Geräte-Bereiche. Jede Zeile hat ein Symbol, einen Namen
+und eine Kurzbeschreibung. **Kamera** und **Display** haben eine Seite; sie
+haben einen Pfeil und lassen sich antippen. Die anderen drei sind eine
+**Vorschau**: ausgegraut, ohne Pfeil, **nicht antippbar**:
 
 | Zeile | Inhalt |
 |---|---|
 | **Kamera** | Gerät, Videonorm, Eingang und Bildbreite (siehe unten) |
+| **Display** | Helligkeit des Displays (siehe unten) |
 | **Audio-Ausgang** | später: HDMI, Klinke oder USB-Soundkarte wählen (#48) |
 | **Handy-App** | später: Bluetooth-Kopplung mit Code am Handy (#72) |
 | **Netzteil** | später: Zündung, Spannung und Service-Modus (#36) |
 
 Den Ton-Ausgang stellt man bis dahin am Gerät um
-([Ton über die Klinke](ton-klinke.md)). Ohne erreichbares Backend ist die Zeile
-Kamera auch nur eine Vorschau.
+([Ton über die Klinke](ton-klinke.md)). Ohne erreichbares Backend sind die
+Zeilen Kamera und Display auch nur eine Vorschau.
 
 ### Kamera
 
@@ -91,6 +127,28 @@ Der Pfeil oben links führt zurück zu **Geräte**. Die Seite hat zwei Spalten:
   Änderung zu sehen.
 - Ist das Backend nicht erreichbar, steht „Die Verbindung zum Backend wurde
   unterbrochen …“ mit **Erneut versuchen**.
+
+### Display
+
+Die Helligkeit des Display-Hintergrunds, 0 bis 100 %. Die Zeile **Display**
+lässt sich nur antippen, wenn das Display dafür **umgebaut** ist (Waveshare 7H:
+ein Widerstand entfernt, das Pad an GPIO 19) und im Backend `[display.backlight]`
+eingerichtet ist ([Konfiguration](../07-deployment.md)). Sonst ist die Zeile
+ausgegraut und sagt „Dieses Display hat keine Helligkeitsregelung“.
+
+- Ein Regler mit großem Griff, in Schritten von 5 %. Das Display folgt dem
+  Griff **schon beim Ziehen** (etwa alle 150 ms) und noch einmal beim Loslassen.
+  Der Wert steht groß daneben, darunter die Enden „dunkel“ und „hell“.
+- **0 %** ist die dunkelste Stufe, die das Backend erlaubt (Vorgabe 10 %
+  Tastgrad), nie schwarz. Das steht auch als Hinweis unter dem Regler. So kann
+  man das Display nicht versehentlich unlesbar machen.
+- Der Wert bleibt über Neustarts erhalten, das Backend speichert ihn. Ohne
+  gespeicherten Wert ist es 100 %.
+- Ist das Display umgebaut, aber der PWM-Kanal gerade nicht ansprechbar
+  (Overlay oder Chip fehlen), ist der Regler ausgegraut und es steht „Die
+  Helligkeit lässt sich gerade nicht ändern.“
+- Schlägt eine Änderung fehl, springt der Regler auf den gespeicherten Wert
+  zurück, und kurz steht „Befehl fehlgeschlagen“.
 
 ## System
 

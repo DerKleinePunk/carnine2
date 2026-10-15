@@ -36,8 +36,11 @@ void main() {
     expect(find.text('CarNine'), findsOneWidget);
     expect(find.text('Technik'), findsOneWidget);
     expect(find.text('CarNiNe'), findsNothing);
-    expect(find.text('Dashboard-Inhalt für Start'), findsOneWidget);
-    expect(find.text('gRPC-Status: Nicht verbunden'), findsOneWidget);
+    // The start page (#94): the tiles that need no backend.
+    expect(find.text('NAVIGATION'), findsOneWidget);
+    expect(find.text('Ziel eingeben'), findsOneWidget);
+    expect(find.text('MUSIK'), findsOneWidget);
+    expect(find.text('Keine Wiedergabe'), findsOneWidget);
   });
 
   testWidgets('starts in the language saved last (#30)', (tester) async {

@@ -1,13 +1,22 @@
+import 'dart:async';
+
 import 'package:carnine_frontend/core/logging/app_logging.dart';
 import 'package:carnine_frontend/core/logging/log_viewer_dialog.dart';
 import 'package:carnine_frontend/core/platform/app_window.dart';
 import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart';
+import 'package:carnine_frontend/features/maps/presentation/map_follow_zoom_controller.dart';
+import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
+import 'package:carnine_frontend/features/settings/data/display_brightness_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
+import 'package:carnine_frontend/features/settings/presentation/display_brightness_controller.dart';
 import 'package:carnine_frontend/features/settings/presentation/models/settings_option_item.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_controller.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/camera_settings_page.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/system_page.dart';
+import 'package:carnine_frontend/features/settings/presentation/widgets/display_brightness_page.dart';
+import 'package:carnine_frontend/features/settings/presentation/widgets/follow_zoom_tab.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/language_flag.dart';
+import 'package:carnine_frontend/features/settings/presentation/widgets/map_settings_page.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/settings_choice_button.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
 import 'package:carnine_frontend/l10n/app_language_option.dart';
@@ -27,6 +36,9 @@ class SettingsContent extends StatefulWidget {
     this.onExit,
     this.cameraSettingsStore,
     this.exitPasswordStore,
+    this.announcementSettingsStore,
+    this.followZoomController,
+    this.displayBrightnessStore,
     this.onShowCamera,
     super.key,
   });
@@ -42,6 +54,18 @@ class SettingsContent extends StatefulWidget {
   /// (tests, no backend) the exit is refused and the password cannot be
   /// changed.
   final ExitPasswordStore? exitPasswordStore;
+
+  /// Where the settings of the spoken announcements are kept. Without one
+  /// (tests, no backend) the map settings stay a placeholder.
+  final AnnouncementSettingsStore? announcementSettingsStore;
+
+  /// The zoom of following the car (#131); without one the tab "Karte" stays
+  /// a placeholder.
+  final MapFollowZoomController? followZoomController;
+
+  /// Where the display brightness is read and set (#102). Without one the
+  /// "Display" row on "Geräte" stays a preview.
+  final DisplayBrightnessStore? displayBrightnessStore;
 
   /// Opens the Kamera page, so a changed setting can be looked at.
   final VoidCallback? onShowCamera;
@@ -60,6 +84,16 @@ class _SettingsContentState extends State<SettingsContent> {
   late final SettingsController _controller =
       widget.controller ?? SettingsController();
 
+  // Owned here, so the list "Geräte" and the page below it share what the
+  // backend said about the backlight.
+  late final DisplayBrightnessController? _displayController =
+      _createDisplayController();
+
+  DisplayBrightnessController? _createDisplayController() {
+    final store = widget.displayBrightnessStore;
+    return store == null ? null : DisplayBrightnessController(store: store);
+  }
+
   bool get _ownsController => widget.controller == null;
   ValueListenable<List<String>> get _logLines =>
       widget.logLines ?? AppLogging.lines;
@@ -69,6 +103,7 @@ class _SettingsContentState extends State<SettingsContent> {
     if (_ownsController) {
       _controller.dispose();
     }
+    _displayController?.dispose();
 
     super.dispose();
   }
@@ -114,6 +149,9 @@ class _SettingsContentState extends State<SettingsContent> {
       onCloseDevicePage: _controller.closeDevicePage,
       cameraSettingsStore: widget.cameraSettingsStore,
       exitPasswordStore: widget.exitPasswordStore,
+      announcementSettingsStore: widget.announcementSettingsStore,
+      followZoomController: widget.followZoomController,
+      displayBrightnessController: _displayController,
       onShowCamera: widget.onShowCamera,
       onOpenLogs: _openLogViewer,
       onRestart: widget.onRestart ?? AppWindow.restartApplication,
@@ -160,6 +198,15 @@ const List<SettingsOptionItem> _options = <SettingsOptionItem>[
     semanticLabelKey: AppTextKey.settingsDiagnosticsSemantic,
   ),
 ];
+
+/// Header of the display page below "Geräte" (#102).
+const SettingsOptionItem _displayPageItem = SettingsOptionItem(
+  section: SettingsSection.devices,
+  icon: Icons.brightness_6,
+  titleKey: AppTextKey.settingsDevicesDisplayTitle,
+  subtitleKey: AppTextKey.settingsDevicesDisplaySubtitle,
+  semanticLabelKey: AppTextKey.settingsDevicesDisplayTitle,
+);
 
 /// Header of the camera page below "Geräte".
 const SettingsOptionItem _cameraPageItem = SettingsOptionItem(
@@ -368,6 +415,9 @@ class _SettingsSectionPage extends StatelessWidget {
     required this.onCloseDevicePage,
     required this.cameraSettingsStore,
     required this.exitPasswordStore,
+    required this.announcementSettingsStore,
+    required this.followZoomController,
+    required this.displayBrightnessController,
     required this.onShowCamera,
     required this.onOpenLogs,
     required this.onRestart,
@@ -383,6 +433,9 @@ class _SettingsSectionPage extends StatelessWidget {
   final VoidCallback onCloseDevicePage;
   final CameraSettingsStore? cameraSettingsStore;
   final ExitPasswordStore? exitPasswordStore;
+  final AnnouncementSettingsStore? announcementSettingsStore;
+  final MapFollowZoomController? followZoomController;
+  final DisplayBrightnessController? displayBrightnessController;
   final VoidCallback? onShowCamera;
   final VoidCallback onOpenLogs;
   final VoidCallback onRestart;
@@ -396,7 +449,11 @@ class _SettingsSectionPage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SettingsPageHeader(
-          item: onDevicePage ? _cameraPageItem : item,
+          item: switch (devicePage) {
+            SettingsDevicePage.camera => _cameraPageItem,
+            SettingsDevicePage.display => _displayPageItem,
+            null => item,
+          },
           onBack: onDevicePage ? onCloseDevicePage : onBack,
           backLabelKey: onDevicePage
               ? AppTextKey.settingsBackToDevices
@@ -412,6 +469,10 @@ class _SettingsSectionPage extends StatelessWidget {
   /// only when there is a backend to keep the settings.
   Widget _devicesBody() {
     final store = cameraSettingsStore;
+    final display = displayBrightnessController;
+    if (devicePage == SettingsDevicePage.display && display != null) {
+      return DisplayBrightnessPage(controller: display);
+    }
     if (devicePage == SettingsDevicePage.camera && store != null) {
       return CameraSettingsPage(
         store: store,
@@ -423,6 +484,31 @@ class _SettingsSectionPage extends StatelessWidget {
       onOpenCamera: store == null
           ? null
           : () => onOpenDevicePage(SettingsDevicePage.camera),
+      displayController: display,
+      onOpenDisplay: () => onOpenDevicePage(SettingsDevicePage.display),
+    );
+  }
+
+  /// "Karteneinstellungen": the tabs when there is a backend that keeps the
+  /// settings of the announcements, else the old placeholder.
+  Widget _mapBody() {
+    const placeholder = _PlannedPage(
+      icon: Icons.map,
+      titleKey: AppTextKey.settingsMapComingSoonTitle,
+      bodyKey: AppTextKey.settingsMapComingSoonDescription,
+    );
+    final store = announcementSettingsStore;
+    if (store == null) {
+      return placeholder;
+    }
+
+    final followZoom = followZoomController;
+
+    return MapSettingsPage(
+      announcementSettingsStore: store,
+      mapTab: followZoom == null
+          ? placeholder
+          : FollowZoomTab(controller: followZoom),
     );
   }
 
@@ -438,11 +524,7 @@ class _SettingsSectionPage extends StatelessWidget {
         onRestart: onRestart,
         onExit: onExit,
       ),
-      SettingsSection.maps => const _PlannedPage(
-        icon: Icons.map,
-        titleKey: AppTextKey.settingsMapComingSoonTitle,
-        bodyKey: AppTextKey.settingsMapComingSoonDescription,
-      ),
+      SettingsSection.maps => _mapBody(),
     };
   }
 }
@@ -694,6 +776,12 @@ const List<_DeviceMockup> _deviceMockups = <_DeviceMockup>[
     page: SettingsDevicePage.camera,
   ),
   _DeviceMockup(
+    icon: Icons.brightness_6,
+    titleKey: AppTextKey.settingsDevicesDisplayTitle,
+    subtitleKey: AppTextKey.settingsDevicesDisplaySubtitle,
+    page: SettingsDevicePage.display,
+  ),
+  _DeviceMockup(
     icon: Icons.speaker,
     titleKey: AppTextKey.settingsDevicesAudioTitle,
     subtitleKey: AppTextKey.settingsDevicesAudioSubtitle,
@@ -713,33 +801,92 @@ const List<_DeviceMockup> _deviceMockups = <_DeviceMockup>[
 /// "Geräte": the areas that get their settings here. A row with a page
 /// opens it; the others only show what is coming - greyed out, without an
 /// arrow, and not tappable.
-class _DevicesPage extends StatelessWidget {
-  const _DevicesPage({required this.onOpenCamera});
+class _DevicesPage extends StatefulWidget {
+  const _DevicesPage({
+    required this.onOpenCamera,
+    required this.displayController,
+    required this.onOpenDisplay,
+  });
 
   /// `null` without a backend that keeps the camera settings: the camera row
   /// is then a preview like the rest.
   final VoidCallback? onOpenCamera;
 
+  /// What the backend says about the display backlight; `null` without a
+  /// backend, where the display row is a preview.
+  final DisplayBrightnessController? displayController;
+  final VoidCallback onOpenDisplay;
+
+  @override
+  State<_DevicesPage> createState() => _DevicesPageState();
+}
+
+class _DevicesPageState extends State<_DevicesPage> {
+  @override
+  void initState() {
+    super.initState();
+    // The display row needs to know whether the display can be set at all.
+    unawaited(widget.displayController?.load());
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      itemCount: _deviceMockups.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final mockup = _deviceMockups[index];
-        return _DeviceRow(
-          mockup: mockup,
-          onTap: mockup.page == SettingsDevicePage.camera ? onOpenCamera : null,
-        );
-      },
+    final display = widget.displayController;
+
+    return ListenableBuilder(
+      listenable: display ?? const _NeverChanges(),
+      builder: (context, child) => ListView.separated(
+        itemCount: _deviceMockups.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final mockup = _deviceMockups[index];
+          return switch (mockup.page) {
+            SettingsDevicePage.camera => _DeviceRow(
+              mockup: mockup,
+              onTap: widget.onOpenCamera,
+            ),
+            // Tappable once the backend said the display can be set; a display
+            // that is not set up says so in the row and stays grey.
+            SettingsDevicePage.display => _DeviceRow(
+              mockup: mockup,
+              subtitleKey: display?.isNotConfigured == true
+                  ? AppTextKey.settingsDevicesDisplayNotConfigured
+                  : null,
+              onTap: display?.setting?.configured == true
+                  ? widget.onOpenDisplay
+                  : null,
+            ),
+            null => _DeviceRow(mockup: mockup, onTap: null),
+          };
+        },
+      ),
     );
   }
 }
 
+/// A [Listenable] that never fires, for a list that has nothing to listen to.
+class _NeverChanges implements Listenable {
+  const _NeverChanges();
+
+  @override
+  void addListener(VoidCallback listener) {}
+
+  @override
+  void removeListener(VoidCallback listener) {}
+}
+
 class _DeviceRow extends StatelessWidget {
-  const _DeviceRow({required this.mockup, required this.onTap});
+  const _DeviceRow({
+    required this.mockup,
+    required this.onTap,
+    this.subtitleKey,
+  });
 
   final _DeviceMockup mockup;
+
+  /// Another line under the title than the one of [mockup], e.g. for a display
+  /// that is not set up.
+  final AppTextKey? subtitleKey;
 
   /// `null`: a preview, not tappable.
   final VoidCallback? onTap;
@@ -748,7 +895,7 @@ class _DeviceRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final title = l10n.text(mockup.titleKey);
-    final subtitle = l10n.text(mockup.subtitleKey);
+    final subtitle = l10n.text(subtitleKey ?? mockup.subtitleKey);
     final isActive = onTap != null;
 
     return Semantics(

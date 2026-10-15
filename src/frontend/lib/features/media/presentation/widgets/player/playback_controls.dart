@@ -57,11 +57,15 @@ class PlaybackControls extends StatelessWidget {
       children: [
         ControlButton(
           icon: Icons.shuffle,
-          semanticLabel: l10n.text(AppTextKey.mediaShuffleSemantic),
+          semanticLabel: controller.shuffleHasNoEffect
+              ? '${l10n.text(AppTextKey.mediaShuffleSemantic)}, '
+                    '${l10n.text(AppTextKey.mediaShuffleNoEffectHint)}'
+              : l10n.text(AppTextKey.mediaShuffleSemantic),
           onTap: controller.toggleShuffle,
           size: buttonSize,
           iconSize: iconSize,
           isActive: controller.shuffleEnabled,
+          isIneffective: controller.shuffleHasNoEffect,
         ),
         outerGapBox,
         ControlButton(

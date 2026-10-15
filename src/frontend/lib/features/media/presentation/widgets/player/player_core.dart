@@ -74,7 +74,10 @@ class PlayerCore extends StatelessWidget {
                       artist:
                           track?.artist ??
                           l10n.text(AppTextKey.mediaUnknownArtist),
-                      contextLine: _contextLine(l10n),
+                      contextLine: controller.showsModeHint
+                          ? l10n.text(AppTextKey.mediaShuffleNoEffectHint)
+                          : _contextLine(l10n),
+                      highlightContext: controller.showsModeHint,
                       scale: scale,
                     ),
                     const SizedBox(height: _gap),

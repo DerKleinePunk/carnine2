@@ -113,22 +113,6 @@ class AppLocalizations {
     ).replaceFirst('{temperature}', temperature);
   }
 
-  String dashboardContentFor(String section) {
-    return text(
-      AppTextKey.dashboardContentFor,
-    ).replaceFirst('{section}', section);
-  }
-
-  String grpcStatus(String status) {
-    return text(AppTextKey.grpcStatus).replaceFirst('{status}', status);
-  }
-
-  String statusConnected(int count) {
-    return text(
-      AppTextKey.statusConnected,
-    ).replaceFirst('{count}', count.toString());
-  }
-
   String mediaQueuePositionLine({required int index, required int count}) {
     return text(AppTextKey.mediaQueuePositionLine)
         .replaceFirst('{index}', index.toString())
@@ -217,17 +201,6 @@ class AppLocalizations {
     return text(
       AppTextKey.keyboardDiacriticOptionsSemantic,
     ).replaceFirst('{letter}', letter);
-  }
-
-  String canDataLine({
-    required String sensor,
-    required double value,
-    required Object timestamp,
-  }) {
-    return text(AppTextKey.canDataLine)
-        .replaceFirst('{sensor}', sensor)
-        .replaceFirst('{value}', value.toString())
-        .replaceFirst('{time}', timestamp.toString());
   }
 }
 

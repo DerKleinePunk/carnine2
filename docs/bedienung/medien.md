@@ -25,7 +25,7 @@ Warteschlange.
 
 | Taste | Wirkung | Hinweise |
 |---|---|---|
-| ![Symbol Zufall](bilder/symbole/shuffle.svg) **Zufall** | Zufallswiedergabe an/aus | an = leuchtet, mit Punkt darunter |
+| ![Symbol Zufall](bilder/symbole/shuffle.svg) **Zufall** | Zufallswiedergabe an/aus | an = leuchtet, mit Punkt darunter. **Blass, mit einem Ring statt des Punkts**: Zufall ist an, hat aber keine Wirkung, weil gleichzeitig **Wiederholung: aktueller Titel** gilt (siehe unten) |
 | ![Symbol Zurück](bilder/symbole/skip_previous.svg) **Zurück** | ab 3 s Spielzeit: Titel von vorn; sonst vorheriger Titel | ab 3 s immer aktiv, auch auf dem ersten Titel und bei Einzeltiteln. Darunter nur, wenn es einen vorherigen gibt: bei Wiederholung des Titels derselbe, bei Wiederholung der Playlist der letzte, bei Zufall der zuvor gespielte (#33) |
 | ![Symbol −30 s](bilder/symbole/replay_30.svg) **−30 s** | 30 Sekunden zurück | am Titelanfang bleibt es bei 0:00 |
 | ![Symbol Wiedergabe](bilder/symbole/play_arrow.svg) ![Symbol Pause](bilder/symbole/pause.svg) **Wiedergabe/Pause** | pausieren bzw. fortsetzen | grau, wenn kein Titel geladen ist |
@@ -39,6 +39,20 @@ kurz gesperrt. Einen Stopp-Knopf gibt es nicht, und keine
 Taste reagiert auf langes Drücken.
 
 Zufall und Wiederholung merkt sich das Backend, auch über einen Neustart.
+
+**Zufall und „aktueller Titel wiederholen“ zusammen:** Die Wiederholung des
+Titels hat Vorrang. Es läuft immer wieder derselbe Titel, der Zufall ändert
+daran nichts. CarNine schaltet nichts um, beide Einstellungen bleiben, wie man
+sie gesetzt hat. Man sieht es an zwei Stellen:
+
+- Das Zufall-Symbol ist **blass** und hat statt des Punkts einen **Ring**.
+- Tippt man Zufall oder Wiederholung so an, dass beide zusammentreffen, steht
+  **3 Sekunden** lang statt „Titel 2 von 5“ der Hinweis „Titel wird wiederholt,
+  Zufall ohne Wirkung“. Danach bleibt das blasse Symbol.
+
+Zufall wirkt wieder, sobald die Wiederholung auf **aus** oder **Playlist**
+steht. Beim Start kommt der Hinweis nicht; dort sieht man nur das blasse
+Symbol.
 
 ### Lautstärke
 

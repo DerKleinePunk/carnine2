@@ -2,35 +2,39 @@ import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart
 import 'package:carnine_frontend/features/camera/presentation/camera_content.dart';
 import 'package:carnine_frontend/features/controls/data/controls_repository.dart';
 import 'package:carnine_frontend/features/controls/presentation/controls_content.dart';
-import 'package:carnine_frontend/features/dashboard/presentation/dashboard_controller.dart';
+import 'package:carnine_frontend/features/dashboard/presentation/cpu_temperature_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/models/dashboard_nav_item.dart';
+import 'package:carnine_frontend/features/dashboard/presentation/power_supply_controller.dart';
+import 'package:carnine_frontend/features/dashboard/presentation/thermal_warning_controller.dart';
+import 'package:carnine_frontend/features/dashboard/presentation/widgets/home/home_content.dart';
 import 'package:carnine_frontend/features/maps/presentation/maps_content.dart';
 import 'package:carnine_frontend/features/maps/presentation/maps_controller.dart';
 import 'package:carnine_frontend/features/media/presentation/media_content.dart';
 import 'package:carnine_frontend/features/media/presentation/media_controller.dart';
+import 'package:carnine_frontend/features/maps/presentation/map_follow_zoom_controller.dart';
+import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
+import 'package:carnine_frontend/features/settings/data/display_brightness_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_content.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
-import 'package:carnine_frontend/l10n/app_localizations.dart';
-import 'package:carnine_frontend/lib/carnine.pb.dart';
-import 'package:carnine_frontend/styles/colors.dart';
-import 'package:carnine_frontend/styles/text_styles.dart';
 import 'package:flutter/material.dart';
 
-/// Dashboard body area that shows the active section and backend probe state.
+/// Dashboard body area that shows the active section.
 class DashboardContent extends StatelessWidget {
   const DashboardContent({
     required this.selectedItem,
-    required this.grpcStatus,
-    required this.receivedCanDataCount,
-    required this.canData,
-    required this.isGrpcLoading,
-    required this.onTestGrpc,
     required this.languageController,
     required this.mediaController,
     required this.mapsController,
+    required this.powerSupplyController,
+    required this.thermalWarningController,
+    required this.cpuTemperatureController,
+    required this.onSelectDestination,
     this.cameraSettingsStore,
     this.exitPasswordStore,
+    this.announcementSettingsStore,
+    this.followZoomController,
+    this.displayBrightnessStore,
     this.cameraSourceFactory,
     this.onShowCamera,
     this.controlsRepository,
@@ -38,16 +42,23 @@ class DashboardContent extends StatelessWidget {
   });
 
   final DashboardNavItem selectedItem;
-  final DashboardGrpcStatus grpcStatus;
-  final int receivedCanDataCount;
-  final List<CanData> canData;
-  final bool isGrpcLoading;
-  final Future<void> Function() onTestGrpc;
   final AppLanguageController languageController;
   final MediaController mediaController;
   final MapsController mapsController;
+  final PowerSupplyController powerSupplyController;
+  final ThermalWarningController thermalWarningController;
+  final CpuTemperatureController cpuTemperatureController;
+
+  /// Opens another page, like a tap in the side menu - the tiles of the start
+  /// page lead to the map and to the media.
+  final ValueChanged<DashboardDestination> onSelectDestination;
   final CameraSettingsStore? cameraSettingsStore;
   final ExitPasswordStore? exitPasswordStore;
+  final AnnouncementSettingsStore? announcementSettingsStore;
+
+  /// The zoom of following the car; shared by the map and the options.
+  final MapFollowZoomController? followZoomController;
+  final DisplayBrightnessStore? displayBrightnessStore;
   final GrabberSourceFactory? cameraSourceFactory;
 
   /// Selects the Kamera page - from the camera settings, to look at a change.
@@ -63,6 +74,9 @@ class DashboardContent extends StatelessWidget {
         languageController: languageController,
         cameraSettingsStore: cameraSettingsStore,
         exitPasswordStore: exitPasswordStore,
+        announcementSettingsStore: announcementSettingsStore,
+        followZoomController: followZoomController,
+        displayBrightnessStore: displayBrightnessStore,
         onShowCamera: onShowCamera,
       );
     }
@@ -72,7 +86,10 @@ class DashboardContent extends StatelessWidget {
     }
 
     if (selectedItem.destination == DashboardDestination.maps) {
-      return MapsContent(controller: mapsController);
+      return MapsContent(
+        controller: mapsController,
+        followZoom: followZoomController,
+      );
     }
 
     // Built only while the page is shown: leaving it closes the stream.
@@ -88,90 +105,14 @@ class DashboardContent extends StatelessWidget {
       );
     }
 
-    final l10n = AppLocalizations.of(context);
-    final selectedLabel = l10n.text(selectedItem.labelKey);
-    final status = _localizedGrpcStatus(l10n);
-
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            l10n.dashboardContentFor(selectedLabel),
-            style: AppTextStyles.bodyLarge.copyWith(color: AppColors.onSurface),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            l10n.grpcStatus(status),
-            style: AppTextStyles.bodyLarge.copyWith(color: AppColors.onSurface),
-          ),
-          const SizedBox(height: 10),
-          ElevatedButton.icon(
-            onPressed: isGrpcLoading ? null : onTestGrpc,
-            icon: const Icon(Icons.cloud_sync, size: 18),
-            label: Text(
-              isGrpcLoading
-                  ? l10n.text(AppTextKey.connecting)
-                  : l10n.text(AppTextKey.testGrpc),
-            ),
-          ),
-          if (canData.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            _CanDataList(canData: canData),
-          ],
-        ],
-      ),
-    );
-  }
-
-  String _localizedGrpcStatus(AppLocalizations l10n) {
-    return switch (grpcStatus) {
-      DashboardGrpcStatus.notConnected => l10n.text(
-        AppTextKey.statusNotConnected,
-      ),
-      DashboardGrpcStatus.connecting => l10n.text(AppTextKey.statusConnecting),
-      DashboardGrpcStatus.connected => l10n.statusConnected(
-        receivedCanDataCount,
-      ),
-      DashboardGrpcStatus.error => l10n.text(AppTextKey.statusError),
-    };
-  }
-}
-
-class _CanDataList extends StatelessWidget {
-  const _CanDataList({required this.canData});
-
-  final List<CanData> canData;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 560,
-      height: 160,
-      child: ListView.builder(
-        itemCount: canData.length,
-        itemBuilder: (context, index) => _CanDataLine(data: canData[index]),
-      ),
-    );
-  }
-}
-
-class _CanDataLine extends StatelessWidget {
-  const _CanDataLine({required this.data});
-
-  final CanData data;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-
-    return Text(
-      l10n.canDataLine(
-        sensor: data.sensorId,
-        value: data.value,
-        timestamp: data.timestamp,
-      ),
-      style: AppTextStyles.bodyLarge.copyWith(color: AppColors.onSurface),
+    return HomeContent(
+      mapsController: mapsController,
+      mediaController: mediaController,
+      powerSupplyController: powerSupplyController,
+      thermalWarningController: thermalWarningController,
+      cpuTemperatureController: cpuTemperatureController,
+      controlsRepository: controlsRepository,
+      onOpen: onSelectDestination,
     );
   }
 }

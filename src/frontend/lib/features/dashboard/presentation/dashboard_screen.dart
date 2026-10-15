@@ -5,6 +5,7 @@ import 'package:carnine_frontend/features/controls/data/controls_repository.dart
 import 'dart:async';
 
 import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
+import 'package:carnine_frontend/features/dashboard/presentation/cpu_temperature_controller.dart';
 import 'package:carnine_frontend/features/maps/presentation/maps_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/idle_return.dart';
@@ -16,9 +17,12 @@ import 'package:carnine_frontend/features/dashboard/presentation/widgets/dashboa
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/side_menu.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/thermal_warning_overlay.dart';
 import 'package:carnine_frontend/features/media/presentation/media_controller.dart';
+import 'package:carnine_frontend/features/maps/data/map_follow_zoom_store.dart';
+import 'package:carnine_frontend/features/maps/presentation/map_follow_zoom_controller.dart';
+import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
+import 'package:carnine_frontend/features/settings/data/display_brightness_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
-import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
@@ -31,9 +35,13 @@ class DashboardScreen extends StatefulWidget {
     this.mapsController,
     this.powerSupplyController,
     this.thermalWarningController,
+    this.cpuTemperatureController,
     this.uiStateStore,
     this.cameraSettingsStore,
     this.exitPasswordStore,
+    this.announcementSettingsStore,
+    this.mapFollowZoomStore,
+    this.displayBrightnessStore,
     this.controlsRepository,
     this.cameraSourceFactory,
     this.idleReturnAfter = const Duration(seconds: 60),
@@ -46,6 +54,7 @@ class DashboardScreen extends StatefulWidget {
   final MapsController? mapsController;
   final PowerSupplyController? powerSupplyController;
   final ThermalWarningController? thermalWarningController;
+  final CpuTemperatureController? cpuTemperatureController;
 
   /// Where the page shown last is kept; without it the dashboard always
   /// starts on the first page. Ignored when [controller] is given.
@@ -56,6 +65,15 @@ class DashboardScreen extends StatefulWidget {
 
   /// Where the password for "Beenden" is checked and changed.
   final ExitPasswordStore? exitPasswordStore;
+
+  /// Where the options keep the settings of the spoken announcements.
+  final AnnouncementSettingsStore? announcementSettingsStore;
+
+  /// Where the zoom of following the car is kept.
+  final MapFollowZoomStore? mapFollowZoomStore;
+
+  /// Where the display brightness is read and set.
+  final DisplayBrightnessStore? displayBrightnessStore;
 
   /// Where the Technik page gets its controls from; tests leave it out.
   final ControlsRepository? controlsRepository;
@@ -102,13 +120,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
   late final ThermalWarningController _thermalWarningController =
       widget.thermalWarningController ?? ThermalWarningController();
 
+  // The live CPU temperature for the vehicle tile of the start page.
+  late final CpuTemperatureController _cpuTemperatureController =
+      widget.cpuTemperatureController ?? CpuTemperatureController();
+
   bool get _ownsMediaController => widget.mediaController == null;
   bool get _ownsMapsController => widget.mapsController == null;
   bool get _ownsPowerSupplyController => widget.powerSupplyController == null;
   bool get _ownsThermalWarningController =>
       widget.thermalWarningController == null;
+  bool get _ownsCpuTemperatureController =>
+      widget.cpuTemperatureController == null;
 
-  DashboardGrpcStatus _lastHandledGrpcStatus = DashboardGrpcStatus.notConnected;
+  // The zoom of following the car (#131): the map page and the options use it.
+  late final MapFollowZoomController _followZoomController =
+      MapFollowZoomController(store: widget.mapFollowZoomStore);
 
   // Trade fair mode (#128): back to the map after a minute without a touch.
   late final IdleReturn _idleReturn = IdleReturn(
@@ -120,14 +146,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _controller.addListener(_handleControllerChange);
     _mapsController.addListener(_idleReturn.sync);
+    unawaited(_followZoomController.load());
     // Every touch anywhere counts - also on the keyboard and in dialogs,
     // which are outside of this screen's widget tree.
     GestureBinding.instance.pointerRouter.addGlobalRoute(_handlePointer);
     unawaited(_controller.restoreLastPage());
     _powerSupplyController.start();
     _thermalWarningController.start();
+    _cpuTemperatureController.start();
     // At once, not only when the media page opens first: the notice about a
     // missing audio output belongs on every page (#56).
     unawaited(_mediaController.start());
@@ -136,9 +163,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void dispose() {
     _idleReturn.dispose();
+    _followZoomController.dispose();
     GestureBinding.instance.pointerRouter.removeGlobalRoute(_handlePointer);
     _mapsController.removeListener(_idleReturn.sync);
-    _controller.removeListener(_handleControllerChange);
     if (_ownsController) {
       _controller.dispose();
     }
@@ -153,6 +180,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
     if (_ownsThermalWarningController) {
       _thermalWarningController.dispose();
+    }
+    if (_ownsCpuTemperatureController) {
+      _cpuTemperatureController.dispose();
     }
 
     super.dispose();
@@ -193,40 +223,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
     return _controller.selectedItem.destination == DashboardDestination.media &&
         _mediaController.isEditingPlaylist;
-  }
-
-  /// Surfaces backend connection failures as a dialog exactly once per
-  /// occurrence, instead of leaking the raw exception into inline UI text.
-  void _handleControllerChange() {
-    final status = _controller.grpcStatus;
-    if (status == DashboardGrpcStatus.error &&
-        _lastHandledGrpcStatus != DashboardGrpcStatus.error) {
-      _showGrpcErrorDialog();
-    }
-
-    _lastHandledGrpcStatus = status;
-  }
-
-  Future<void> _showGrpcErrorDialog() async {
-    if (!mounted) {
-      return;
-    }
-
-    final l10n = AppLocalizations.of(context);
-
-    return showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.text(AppTextKey.grpcConnectionErrorTitle)),
-        content: Text(l10n.text(AppTextKey.grpcConnectionErrorMessage)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(l10n.text(AppTextKey.close)),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -278,16 +274,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Expanded(
                 child: DashboardContent(
                   selectedItem: _controller.selectedItem,
-                  grpcStatus: _controller.grpcStatus,
-                  receivedCanDataCount: _controller.receivedCanDataCount,
-                  canData: _controller.canData,
-                  isGrpcLoading: _controller.isGrpcLoading,
-                  onTestGrpc: _controller.testGrpc,
                   languageController: widget.languageController,
                   mediaController: _mediaController,
                   mapsController: _mapsController,
+                  powerSupplyController: _powerSupplyController,
+                  thermalWarningController: _thermalWarningController,
+                  cpuTemperatureController: _cpuTemperatureController,
+                  onSelectDestination: _controller.selectDestination,
                   cameraSettingsStore: widget.cameraSettingsStore,
                   exitPasswordStore: widget.exitPasswordStore,
+                  announcementSettingsStore: widget.announcementSettingsStore,
+                  followZoomController: _followZoomController,
+                  displayBrightnessStore: widget.displayBrightnessStore,
                   cameraSourceFactory: widget.cameraSourceFactory,
                   onShowCamera: () => _controller.selectDestination(
                     DashboardDestination.camera,

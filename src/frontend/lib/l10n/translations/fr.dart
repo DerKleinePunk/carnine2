@@ -14,25 +14,20 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.navCameraSemantic: 'Caméra de recul',
   AppTextKey.navControlsSemantic: 'Commandes auxiliaires et éclairage',
   AppTextKey.navSettingsSemantic: 'Réglages',
+  AppTextKey.homeNavigationTitle: 'Navigation',
+  AppTextKey.homeGpsFix: 'GPS',
+  AppTextKey.homeSwitchesTitle: 'Commutateurs rapides',
+  AppTextKey.homeVehicleTitle: 'Véhicule',
+  AppTextKey.homeVehicleIgnition: 'Contact',
+  AppTextKey.homeVehicleVoltage: 'Tension',
+  AppTextKey.homeVehicleCpu: 'CPU',
+  AppTextKey.homeMusicTitle: 'Musique',
+  AppTextKey.homeMusicOpenMedia: 'Ouvrir les médias',
   AppTextKey.emergency: 'URGENCE',
   AppTextKey.showFrontendLogs: 'Afficher les journaux frontend',
   AppTextKey.frontendLogs: 'Journaux frontend',
   AppTextKey.noLogEntriesYet: 'Aucune entrée de journal',
   AppTextKey.close: 'Fermer',
-  AppTextKey.dashboardContentFor: 'Contenu du tableau de bord pour {section}',
-  AppTextKey.grpcStatus: 'Statut gRPC : {status}',
-  AppTextKey.statusNotConnected: 'Non connecté',
-  AppTextKey.statusConnecting: 'Connexion en cours …',
-  AppTextKey.statusConnected: 'Connecté - {count} points reçus',
-  AppTextKey.statusError: 'Erreur',
-  AppTextKey.grpcConnectionErrorTitle: 'Erreur de connexion',
-  AppTextKey.grpcConnectionErrorMessage:
-      'Échec de la connexion au backend. Veuillez réessayer ou '
-      'consulter les journaux de diagnostic.',
-  AppTextKey.testGrpc: 'Tester gRPC',
-  AppTextKey.connecting: 'Connexion',
-  AppTextKey.canDataLine:
-      'Capteur : {sensor}, valeur : {value}, heure : {time}',
   AppTextKey.mediaQueueTitle: 'À suivre',
   AppTextKey.mediaCollectionsTitle: 'Collections',
   AppTextKey.mediaPreviousSemantic: 'Piste précédente',
@@ -48,6 +43,8 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.mediaRepeatOffSemantic: 'Répétition : désactivée',
   AppTextKey.mediaRepeatQueueSemantic: 'Répétition : playlist',
   AppTextKey.mediaRepeatTrackSemantic: 'Répétition : titre actuel',
+  AppTextKey.mediaShuffleNoEffectHint:
+      'Le titre est répété, la lecture aléatoire est sans effet',
   AppTextKey.mediaVolumeSemantic: 'Volume {percent} pour cent',
   AppTextKey.mediaMuteSemantic: 'Couper le son',
   AppTextKey.mediaUnmuteSemantic: 'Réactiver le son',
@@ -142,11 +139,22 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.settingsAppearanceTabTitle: 'Apparence',
   AppTextKey.settingsDevicesTitle: 'Appareils',
   AppTextKey.settingsDevicesSubtitle:
-      'Caméra, sortie audio, appli mobile et alimentation',
+      'Caméra, écran, sortie audio, appli mobile et alimentation',
   AppTextKey.settingsDevicesSemantic: 'Ouvrir les réglages des appareils',
   AppTextKey.settingsDevicesCameraTitle: 'Caméra',
   AppTextKey.settingsDevicesCameraSubtitle:
       'Périphérique, norme vidéo, entrée et largeur d’image',
+  AppTextKey.settingsDevicesDisplayTitle: 'Écran',
+  AppTextKey.settingsDevicesDisplaySubtitle: 'Luminosité de l’écran',
+  AppTextKey.settingsDevicesDisplayNotConfigured:
+      'Cet écran n’a pas de réglage de luminosité',
+  AppTextKey.settingsDisplayBrightness: 'Luminosité',
+  AppTextKey.settingsDisplayBrightnessHint:
+      'Le niveau le plus bas n’éteint pas l’écran.',
+  AppTextKey.settingsDisplayBrightnessUnavailable:
+      'La luminosité ne peut pas être modifiée pour le moment.',
+  AppTextKey.settingsDisplayDark: 'sombre',
+  AppTextKey.settingsDisplayLight: 'clair',
   AppTextKey.settingsDevicesAudioTitle: 'Sortie audio',
   AppTextKey.settingsDevicesAudioSubtitle: 'HDMI, prise jack ou carte son USB',
   AppTextKey.settingsDevicesPhoneTitle: 'Appli mobile',
@@ -225,6 +233,22 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.settingsMapComingSoonTitle: 'Réglages de carte préparés',
   AppTextKey.settingsMapComingSoonDescription:
       'L’affichage de carte et les options d’itinéraire seront configurés ici.',
+  AppTextKey.settingsMapTabAnnouncements: 'Annonces',
+  AppTextKey.settingsMapTabMap: 'Carte',
+  AppTextKey.settingsFollowZoomTitle: 'Zoom pendant le suivi',
+  AppTextKey.settingsFollowZoomDescription:
+      'Distance de la carte quand elle suit la voiture. Plus le niveau est élevé, plus la carte est proche. La modification s’applique immédiatement.',
+  AppTextKey.settingsFollowZoomFar: 'loin',
+  AppTextKey.settingsFollowZoomNear: 'près',
+  AppTextKey.settingsAnnouncementsSwitchTitle: 'Annonces vocales',
+  AppTextKey.settingsAnnouncementsSwitchSubtitle:
+      'Les consignes de virage sont énoncées pendant la navigation',
+  AppTextKey.settingsAnnouncementsVolume: 'Volume des annonces',
+  AppTextKey.settingsAnnouncementsMusicUnder: 'Musique pendant une annonce',
+  AppTextKey.settingsAnnouncementsMusicHint:
+      'À 0 %, la musique est mise en pause pendant une annonce et reprend ensuite au même endroit. À 100 %, elle reste au même volume.',
+  AppTextKey.settingsAnnouncementsUnavailable: 'Aucune voix installée',
+  AppTextKey.settingsAnnouncementsTest: 'Tester une annonce',
   AppTextKey.settingsMockDescription:
       'Zone de réglages temporaire pour les options globales du frontend.',
   AppTextKey.languageGerman: 'allemand',
@@ -266,6 +290,9 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.mapsNavigationModeSemantic: 'Mode navigation : direction en haut',
   AppTextKey.mapsNorthUpSemantic: 'Orienter le nord en haut',
   AppTextKey.mapsRouteCalculating: 'Calcul de l’itinéraire …',
+  AppTextKey.mapsRerouting: 'Recalcul de l’itinéraire …',
+  AppTextKey.mapsOffRouteUnavailable:
+      'Itinéraire quitté – navigation indisponible',
   AppTextKey.mapsRoutingOffline: 'Navigation indisponible',
   AppTextKey.mapsNoRouteFound: 'Aucun itinéraire trouvé',
   AppTextKey.mapsNoPosition: 'Aucune position GPS',

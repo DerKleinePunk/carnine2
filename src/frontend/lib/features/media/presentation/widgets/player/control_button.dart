@@ -10,6 +10,7 @@ class ControlButton extends StatelessWidget {
     required this.iconSize,
     this.isActive,
     this.isEnabled = true,
+    this.isIneffective = false,
     super.key,
   });
 
@@ -28,6 +29,11 @@ class ControlButton extends StatelessWidget {
 
   final bool isEnabled;
 
+  /// A toggle that is on but does nothing for the moment (shuffle while one
+  /// track repeats, #143): the icon is pale, without its glow, and the dot
+  /// below it is a ring.
+  final bool isIneffective;
+
   @override
   Widget build(BuildContext context) {
     final isOn = isActive == true;
@@ -39,7 +45,11 @@ class ControlButton extends StatelessWidget {
         ? AppColors.outline
         : isActive == null
         ? AppColors.primaryDim
-        : (isOn ? AppColors.primary : AppColors.outline);
+        : (isOn
+              ? (isIneffective
+                    ? AppColors.primary.withValues(alpha: 0.45)
+                    : AppColors.primary)
+              : AppColors.outline);
 
     return Semantics(
       button: true,
@@ -72,7 +82,7 @@ class ControlButton extends StatelessWidget {
                     icon,
                     color: iconColor,
                     size: iconSize,
-                    shadows: isOn && isEnabled
+                    shadows: isOn && isEnabled && !isIneffective
                         ? const [
                             Shadow(color: AppColors.primary40, blurRadius: 10),
                           ]
@@ -83,6 +93,7 @@ class ControlButton extends StatelessWidget {
                       bottom: size * 0.16,
                       child: ToggleDot(
                         isOn: isOn && isEnabled,
+                        isRing: isIneffective,
                         size: iconSize * 0.22,
                       ),
                     ),
@@ -98,12 +109,20 @@ class ControlButton extends StatelessWidget {
 
 /// Small active-state indicator below a toggle icon, Spotify-style.
 class ToggleDot extends StatelessWidget {
-  const ToggleDot({required this.isOn, required this.size, super.key});
+  const ToggleDot({
+    required this.isOn,
+    required this.size,
+    this.isRing = false,
+    super.key,
+  });
 
   static const Duration _animationDuration = Duration(milliseconds: 200);
 
   final bool isOn;
   final double size;
+
+  /// An outline instead of a filled dot, without its glow.
+  final bool isRing;
 
   @override
   Widget build(BuildContext context) {
@@ -113,11 +132,18 @@ class ToggleDot extends StatelessWidget {
       child: Container(
         width: size,
         height: size,
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          color: AppColors.primary,
-          boxShadow: [BoxShadow(color: AppColors.primary40, blurRadius: 6)],
-        ),
+        decoration: isRing
+            ? BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.primary, width: 1),
+              )
+            : const BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.primary,
+                boxShadow: [
+                  BoxShadow(color: AppColors.primary40, blurRadius: 6),
+                ],
+              ),
       ),
     );
   }

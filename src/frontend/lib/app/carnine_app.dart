@@ -7,6 +7,9 @@ import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_overlay.dart';
 import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_scope.dart';
 import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_screen.dart';
+import 'package:carnine_frontend/features/maps/data/map_follow_zoom_store.dart';
+import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
+import 'package:carnine_frontend/features/settings/data/display_brightness_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
@@ -22,6 +25,9 @@ class CarnineApp extends StatefulWidget {
     this.uiStateStore,
     this.cameraSettingsStore,
     this.exitPasswordStore,
+    this.announcementSettingsStore,
+    this.mapFollowZoomStore,
+    this.displayBrightnessStore,
     this.controlsRepository,
     super.key,
   });
@@ -35,6 +41,16 @@ class CarnineApp extends StatefulWidget {
   /// Where the password for "Beenden" is checked and changed; tests leave
   /// it out.
   final ExitPasswordStore? exitPasswordStore;
+
+  /// Where the options keep the settings of the spoken announcements;
+  /// tests leave it out.
+  final AnnouncementSettingsStore? announcementSettingsStore;
+
+  /// Where the zoom of following the car is kept; tests leave it out.
+  final MapFollowZoomStore? mapFollowZoomStore;
+
+  /// Where the display brightness is read and set; tests leave it out.
+  final DisplayBrightnessStore? displayBrightnessStore;
 
   /// Where the Technik page gets its controls from; tests leave it out.
   final ControlsRepository? controlsRepository;
@@ -109,6 +125,9 @@ class _CarnineAppState extends State<CarnineApp> {
             uiStateStore: widget.uiStateStore,
             cameraSettingsStore: widget.cameraSettingsStore,
             exitPasswordStore: widget.exitPasswordStore,
+            announcementSettingsStore: widget.announcementSettingsStore,
+            mapFollowZoomStore: widget.mapFollowZoomStore,
+            displayBrightnessStore: widget.displayBrightnessStore,
             controlsRepository: widget.controlsRepository,
           ),
         );

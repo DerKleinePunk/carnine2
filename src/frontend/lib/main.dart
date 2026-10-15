@@ -51,6 +51,9 @@ Future<void> main() async {
       uiStateStore: backend,
       cameraSettingsStore: backend,
       exitPasswordStore: backend,
+      announcementSettingsStore: backend,
+      mapFollowZoomStore: backend,
+      displayBrightnessStore: backend,
       controlsRepository: GrpcControlsRepository(),
     ),
   );

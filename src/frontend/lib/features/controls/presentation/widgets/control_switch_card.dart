@@ -1,3 +1,4 @@
+import 'package:carnine_frontend/core/widgets/mini_switch.dart';
 import 'package:carnine_frontend/features/controls/presentation/widgets/fitted_name.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:carnine_frontend/styles/colors.dart';
@@ -7,13 +8,14 @@ import 'package:flutter/material.dart';
 /// A switch of the Technik page: the whole card toggles. The little switch
 /// and the text "AN" or "AUS" only show the state. On, the card glows in the
 /// primary color; off, it is dimmed; without its module it is greyed out and
-/// does not react.
+/// does not react. [compact] is the smaller one of the start page.
 class ControlSwitchCard extends StatelessWidget {
   const ControlSwitchCard({
     required this.name,
     required this.isOn,
     required this.isAvailable,
     required this.onTap,
+    this.compact = false,
     super.key,
   });
 
@@ -22,6 +24,7 @@ class ControlSwitchCard extends StatelessWidget {
   final bool isOn;
   final bool isAvailable;
   final VoidCallback onTap;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -70,15 +73,19 @@ class ControlSwitchCard extends StatelessWidget {
                   : null,
             ),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(compact ? 12 : 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(Icons.power_settings_new, color: accent, size: 34),
-                      _MiniSwitch(isOn: isOn, isAvailable: isAvailable),
+                      Icon(
+                        Icons.power_settings_new,
+                        color: accent,
+                        size: compact ? 28 : 34,
+                      ),
+                      MiniSwitch(isOn: isOn, isAvailable: isAvailable),
                     ],
                   ),
                   const Spacer(),
@@ -88,7 +95,7 @@ class ControlSwitchCard extends StatelessWidget {
                       color: isAvailable
                           ? AppColors.onSurface
                           : AppColors.onSurfaceVariant,
-                      fontSize: 18,
+                      fontSize: compact ? 16 : 18,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -105,46 +112,6 @@ class ControlSwitchCard extends StatelessWidget {
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The switch drawn on the card; it shows the state and takes no touch of
-/// its own.
-class _MiniSwitch extends StatelessWidget {
-  const _MiniSwitch({required this.isOn, required this.isAvailable});
-
-  final bool isOn;
-  final bool isAvailable;
-
-  @override
-  Widget build(BuildContext context) {
-    final isLit = isAvailable && isOn;
-
-    return Container(
-      width: 56,
-      height: 30,
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: isLit ? AppColors.primary40 : AppColors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-          color: isLit ? AppColors.primary : AppColors.outlineVariant20,
-        ),
-      ),
-      child: AnimatedAlign(
-        duration: const Duration(milliseconds: 150),
-        alignment: isOn ? Alignment.centerRight : Alignment.centerLeft,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: !isAvailable
-                ? AppColors.outline
-                : (isOn ? AppColors.primary : AppColors.onSurfaceVariant),
-          ),
-          child: const SizedBox(width: 20, height: 20),
         ),
       ),
     );
