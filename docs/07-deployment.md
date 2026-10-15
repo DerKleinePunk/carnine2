@@ -56,9 +56,9 @@ The deployment architecture emphasizes reliability and minimal resource consumpt
     front, out at the back, 2026-10-15) one sits behind the front and blows
     over the Pi, the other sits inside the rear wall and blows out; both run
     at the same speed. Together they draw about 0.36 A (2 × 0.9 W at 5 V
-    from the datasheet, not measured). Whether the stage carries that depends
-    on its transistor T2 and diode D1, whose parts the schematic does not
-    name (open). The duty cycle sets the speed (100 Hz by default, because the
+    from the datasheet, not measured). The board's developer says its
+    transistor T2 and diode D1 carry that (2026-10-15); the schematic does
+    not name their parts. The duty cycle sets the speed (100 Hz by default, because the
     stage switches slowly); `min_level` is where the fan still turns,
     `kick_ms` gives full duty when it starts from off. The channel shows up
     as one slider on the Technik page and stops when the backend exits. With
