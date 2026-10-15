@@ -91,6 +91,10 @@ class ControlSwitchCard extends StatelessWidget {
                   const Spacer(),
                   FittedName(
                     name: name,
+                    // Four cards to a row on the start page leave about 95 px
+                    // for a name: "Rundumleuchte" fits at 11.5,
+                    // "Zusatzscheinwerfer" only at 9 (#94).
+                    minFontSize: compact ? 9 : 12,
                     style: AppTextStyles.headlineLarge.copyWith(
                       color: isAvailable
                           ? AppColors.onSurface
