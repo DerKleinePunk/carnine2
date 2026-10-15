@@ -60,6 +60,11 @@ class AlbumArt extends StatelessWidget {
               art,
               width: size,
               height: size,
+              // Decoded at the size it is shown, not the file's (a 1000 px
+              // cover is 4 MB decoded, also for the 72 px tile). Width only,
+              // so a cover that is not square keeps its proportions.
+              cacheWidth: (size * MediaQuery.devicePixelRatioOf(context))
+                  .ceil(),
               fit: BoxFit.cover,
               gaplessPlayback: true,
             ),

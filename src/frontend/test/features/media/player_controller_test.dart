@@ -712,6 +712,90 @@ void main() {
     expect(controller.currentTrackCoverArt, [1, 2]);
   });
 
+  // On jeep-pi the soak test of 2026-10-15 played 134 tracks, 101 with
+  // cover art (16 MB together); the controller kept every one of them and the
+  // frontend grew by that much over the day.
+  group('cover art of many tracks', () {
+    final tracks = [
+      for (var i = 1; i <= 40; i++)
+        MediaLibraryTrack(
+          id: 100 + i,
+          sourceId: 1,
+          path: '/music/t$i.mp3',
+          title: 'Titel $i',
+          artist: 'Artist',
+          duration: const Duration(minutes: 4),
+          availability: MediaAvailability.available,
+          hasCoverArt: true,
+        ),
+    ];
+
+    Future<void> play(MediaLibraryTrack track) async {
+      repository.playerEventsController.add(
+        PlayerEventUpdate(
+          kind: PlayerEventKind.playbackStarted,
+          state: PlayerSnapshot(
+            status: PlaybackStatus.playing,
+            mediaPath: track.path,
+            position: Duration.zero,
+          ),
+          message: 'playback started',
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+    }
+
+    setUp(() {
+      repository.library = tracks;
+      for (final track in tracks) {
+        repository.trackCoverArt[track.id] = Uint8List.fromList([track.id]);
+      }
+    });
+
+    test('keep at most the limit, the current track always included', () async {
+      await controller.start();
+
+      for (final track in tracks) {
+        await play(track);
+        expect(controller.currentTrackCoverArt, [
+          track.id,
+        ], reason: track.title);
+      }
+
+      expect(
+        controller.cachedCoverArtCount,
+        lessThanOrEqualTo(PlayerController.coverArtCacheLimit),
+      );
+    });
+
+    test('a track played again shortly after is not fetched again', () async {
+      await controller.start();
+      await play(tracks[0]);
+      await play(tracks[1]);
+      await play(tracks[0]);
+
+      expect(repository.trackCoverArtRequests, [tracks[0].id, tracks[1].id]);
+      expect(controller.currentTrackCoverArt, [tracks[0].id]);
+    });
+
+    test(
+      'a track that dropped out is fetched again when it comes back',
+      () async {
+        await controller.start();
+        for (final track in tracks) {
+          await play(track);
+        }
+        repository.trackCoverArtRequests.clear();
+
+        await play(tracks[0]);
+
+        expect(repository.trackCoverArtRequests, [tracks[0].id]);
+        expect(controller.currentTrackCoverArt, [tracks[0].id]);
+      },
+    );
+  });
+
   test(
     'cover art is never fetched for a track that reports having none',
     () async {

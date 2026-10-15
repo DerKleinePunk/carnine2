@@ -27,6 +27,9 @@ class FakeMediaRepository implements MediaRepository {
   final Map<int, Uint8List?> trackCoverArt = {};
   final Map<int, Uint8List?> playlistCoverArt = {};
 
+  /// The track ids [getTrackCoverArt] was asked for, in order.
+  final List<int> trackCoverArtRequests = [];
+
   /// When set, the next repository call throws this instead of succeeding.
   /// Cleared automatically after firing once.
   MediaBackendException? nextError;
@@ -343,6 +346,7 @@ class FakeMediaRepository implements MediaRepository {
 
   @override
   Future<Uint8List?> getTrackCoverArt(int mediaId) async {
+    trackCoverArtRequests.add(mediaId);
     await _maybeThrow();
     return trackCoverArt[mediaId];
   }

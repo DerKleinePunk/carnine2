@@ -64,11 +64,18 @@ class PlayerController extends ChangeNotifier {
   int _shufflePosition = 0;
   bool _pendingShuffleStepBack = false;
 
-  // Cover art is fetched once per track and kept for the app's lifetime -
-  // the backend cover cache is immutable per file (`database.rs`
-  // `upsert_media` only ever replaces the whole row on rescan), so there is
-  // no staleness to guard against, and re-visiting a track is free.
+  // Cover art is fetched once per track - the backend cover cache is
+  // immutable per file (`database.rs` `upsert_media` only ever replaces the
+  // whole row on rescan), so there is no staleness to guard against.
   final Map<int, Uint8List?> _coverArtCache = {};
+
+  /// How many tracks' cover art the controller keeps at most.
+  @visibleForTesting
+  static const int coverArtCacheLimit = 8;
+
+  /// How many tracks' cover art the controller holds right now.
+  @visibleForTesting
+  int get cachedCoverArtCount => _coverArtCache.length;
   int? _coverArtTrackId;
 
   /// The playlist whose entries were restored before the library knew all
@@ -531,12 +538,17 @@ class PlayerController extends ChangeNotifier {
     );
   }
 
-  /// Fetches and caches [track]'s cover art if it has one and this is the
-  /// first time this controller has seen that track id.
+  /// Fetches and caches [track]'s cover art if it has one and the cache does
+  /// not hold it. The cache keeps the [coverArtCacheLimit] tracks used last:
+  /// a long shuffle through a big library must not keep every cover it ever
+  /// showed (jeep-pi soak test, 2026-10-15).
   Future<void> _ensureCoverArtLoaded(MediaLibraryTrack? track) async {
-    if (track == null ||
-        !track.hasCoverArt ||
-        _coverArtCache.containsKey(track.id)) {
+    if (track == null || !track.hasCoverArt) {
+      return;
+    }
+    if (_coverArtCache.containsKey(track.id)) {
+      // Used again: move it to the end, the newest place.
+      _coverArtCache[track.id] = _coverArtCache.remove(track.id);
       return;
     }
 
@@ -547,9 +559,35 @@ class PlayerController extends ChangeNotifier {
     }
     _coverArtTrackId = track.id;
 
-    final bytes = await _repository.getTrackCoverArt(track.id);
+    final Uint8List? bytes;
+    try {
+      bytes = await _repository.getTrackCoverArt(track.id);
+    } finally {
+      if (_coverArtTrackId == track.id) {
+        _coverArtTrackId = null;
+      }
+    }
     _coverArtCache[track.id] = bytes;
+    _trimCoverArtCache();
     notifyListeners();
+  }
+
+  /// Drops the covers used longest ago beyond [coverArtCacheLimit], never the
+  /// current track's.
+  void _trimCoverArtCache() {
+    final keep = _currentTrack?.id;
+    final ids = _coverArtCache.keys.toList();
+    var excess = ids.length - coverArtCacheLimit;
+    for (final id in ids) {
+      if (excess <= 0) {
+        break;
+      }
+      if (id == keep) {
+        continue;
+      }
+      _coverArtCache.remove(id);
+      excess--;
+    }
   }
 
   Future<void> _restorePlaylistIfNeeded(int? playlistId) async {
