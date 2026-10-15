@@ -120,6 +120,8 @@ das Backend nicht, bleibt sie ohne Meldung auf **Start** (#52).
 
 ### Start
 
+![Start: oben Uhrzeit und Datum, darunter die Kacheln Navigation mit der nächsten Abbiegung, Ankunft und Distanz, Musik mit Cover und Tasten, Schnellschalter mit vier Schaltern und Fahrzeug mit der CPU-Temperatur](bilder/startseite.png)
+
 Oben stehen die Uhrzeit groß und rechts daneben das Datum, ausgeschrieben und in
 der Sprache der Oberfläche („Mittwoch, 14. Oktober 2026“). Die Uhrzeit springt
 zum Minutenwechsel um, wie die in der Kopfleiste. Darunter vier Kacheln:
