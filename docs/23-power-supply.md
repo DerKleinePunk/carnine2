@@ -408,8 +408,7 @@ stream; a receiver must skip them.
   about 3 seconds the supply cuts the Pi hard. After a crash systemd
   restarts the backend after 1 s (`RestartSec=1` in
   `carnine-backend.service`, commit 3c65b77; 5 s before), so it is back
-  within those 3 s (from the next backend package on; carnine-pc still
-  runs one with 5 s). Five crashes within 10 s make systemd give up; then
+  within those 3 s (on carnine-pc since 2026-10-16 19:41). Five crashes within 10 s make systemd give up; then
   the watchdog cuts the Pi and, with the ignition on, it starts again.
 - **KL15** counts as off only after 1 s without a break (V2.4.0); the
   telegram `0x10` reports this debounced value.
@@ -457,6 +456,21 @@ service mode are still to be built.
     it does not answer; ignition off or POWEROFF brings a notice. Without
     a supply none of it appears. According to carnine2 the ignition test
     with Michael passed.
+    - **Firmware version** (commit 709fa5a): when the supply starts talking
+      on a connection, and again after it was silent, the backend sends
+      `v` once besides the `+`. The answer goes to the log as
+      `power supply firmware version=V2.4.1` and into the status as
+      `PowerSupplyStatus.firmware_version` (field 7, empty until the supply
+      answered, and emptied again on a new connection or when it falls
+      silent, so it never shows the version of a module swapped or
+      reflashed meanwhile); `media_grpc_client … power-supply` prints `firmware=…`.
+      Other text lines stay debug output. Without an answer within 5 s
+      the log warns once: `power supply did not report its firmware
+      version (no answer to v)`. On carnine-pc on 2026-10-16 the version
+      came 17 ms after the first telegram; the CLI showed
+      `connected=true ignition=on state=run voltage=13.2V alive=2
+      firmware=V2.4.1`. A module of unknown firmware tells its version
+      this way once it hangs on a Pi with this backend.
   - **Shutdown on POWEROFF** (commit e1aa949, #36): when the supply reports
     POWEROFF, the backend runs `systemctl poweroff --no-wall` once, **at
     once**, because the firmware finishes POWEROFF even when the ignition
