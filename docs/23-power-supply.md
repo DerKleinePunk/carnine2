@@ -256,7 +256,7 @@ drawing current. Without the parameter the line is in `config.txt` commented
 out. `active_low` also pulls GPIO 5 low on a reboot and early in the boot;
 the firmware only looks at Dig3 in POWEROFF, so that does no harm.
 
-## Firmware (V2.3.0)
+## Firmware (V2.4.1)
 
 [firmware/powersupply/](../firmware/powersupply/README.md), taken over from
 the old project (V2.2.12); V2.3.0 gives the Pi more time to boot (see
@@ -264,18 +264,97 @@ the old project (V2.2.12); V2.3.0 gives the Pi more time to boot (see
 Linux (with a container when `avr-gcc` is not installed) into
 `build/RaspberryPower.bin`.
 
+**V2.4.0** (2026-10-16, commits 3cd9fb0 and b71f6f3) closes gaps that could
+cut the Pi's power without a shutdown, and adds a battery protection:
+
+- Ignition off **during PIBOOT** gives the Pi its 15 s to shut down once
+  PIBOOT ends (before: power cut at once, see [States](#states)).
+- KL15 counts as off only after **1 s** without a break; on counts at once.
+  A loose contact or the starter's dip no longer starts the POWEROFF that
+  cannot be cancelled.
+- A lone `*` or `B` (line noise) waits at most 20 ms for each digit, then
+  NACK. Before, `*` waited for ever until the hardware watchdog reset the
+  chip and every relay dropped.
+- `U` is accepted only while the Pi has no power (IDLE, POWERON).
+- [Battery protection](#battery-protection): 60 s below 11.8 V in RUN shut
+  the Pi down.
+- Debug output is **off by default**.
+
+`./build.sh test` compiles the unchanged firmware on Linux against
+stand-ins for the AVR registers and runs tests against it (ignition, Dig3,
+serial line, relays, states, answers; 128 checks); CI runs them too. The
+tests for PIBOOT, `*`, `U` and the debounce turned red against V2.3.0; for
+the new parts (debug default, battery protection) faults built in on purpose
+each turned a test red.
+
+**V2.4.1** (2026-10-16, commit 2404eb1): **PIBOOT ends as soon as the Pi
+has sent two `+`** in it; the backend sends one a second from its start.
+RUN, and with it the watchdog, ignition off with 15 s, the battery
+protection and the amplifier on Rel3, then starts about 25 s after the Pi
+gets power instead of 60 s. Only `+` counts, and only from the start of
+each PIBOOT: the alive counter often still stands at 3 from the last run,
+because the backend sends `+` until it stops, and would otherwise end the
+next PIBOOT before the Pi has booted. Line noise such as `3`, `#` or `v`
+does not end it either. A silent Pi still gets the full 60 s.
+
+**On carnine-pc** (V2.4.0 flashed 2026-10-16, the flashing tool's `v` showed
+V2.4.0): the supply talks, PIBOOT → RUN, Rel3 on 0.6 s after RUN; the debug
+text is gone (UART5 receives 22 bytes/s instead of about 220). Ignition
+off for well under 1 s cannot be done by hand with the ignition switch, so
+the debounce waits for a test in a real car at engine start. Not tried
+yet: ignition off within the first minute (PIBOOT) and the battery
+protection on a bench supply. **V2.4.1**, flashed the same evening: RUN
+2.3 s after the backend first talked to the supply (V2.4.0: 30 s), Rel3 on
+2.0 s after the UI reported ready; from power on to the amplifier about
+35 s instead of 60 s, the rest being the boot of the Pi and the UI.
+
 **Flashing** is done with a Windows program through the bootloader, over the
 board's own USB socket with the jumper towards it: build here, copy the
 `.bin` to Windows, write it from there, set the jumper back. The command `U`
 (or `u`) resets the chip, after which the bootloader runs for a short time;
 according to Michael it answers `GetInfo` plus Enter, not tried yet (see the
-[firmware README](../firmware/powersupply/README.md#flash)). Done on 2026-09-25 on the test board:
+[firmware README](../firmware/powersupply/README.md#flash)).
+Since V2.4.0 the chip takes `U` only in IDLE or POWERON, so **flash with
+the 12 V side off**; the controller then runs from the USB socket, which is
+how Michael flashes anyway. Flashing through the bootloader leaves the
+EEPROM alone, so the stored settings (debug output, power-on delay, battery
+limit) survive it. Done on 2026-09-25 on the test board:
 it ran an older firmware before (a text line every second, no telegrams, no
 reaction to commands); with V2.2.12 the telegrams come and `v` answers. The test board runs V2.3.0
 now; `v` reports it. Which bootloader and
 protocol that is, is being asked; if it is a standard one, flashing and later
 updates could run from the Pi itself. Putting on or updating the bootloader
 itself is separate from the firmware.
+
+### Battery protection
+
+Since V2.4.0. With the ignition on and the engine off, the Pi would drain
+the battery. In **RUN**, **60 s in a row below 11.8 V** start POWEROFF with
+the usual 15 s; the backend sees POWEROFF and shuts the Pi down as on
+ignition off (its log says "ignition off" there too), Rel3 opens.
+
+- With the engine running the voltage stays above about 13.2 V; the
+  starter's dip lasts seconds and starts the count afresh once the voltage
+  rises again.
+- **Lock:** afterwards the supply keeps the Pi off while the ignition stays
+  on, or it would power it up again at once. The lock ends with the
+  ignition off (1 s, debounced) or at **13.0 V** or more (engine started).
+  While it holds, the controller does not sleep: the sleep ends in a
+  watchdog reset, which would forget the lock.
+- **Limit:** `B` plus three digits in 0.1 V (9.0–14.0 V), `B000` switches
+  it off; stored in the EEPROM. The first start of V2.4.0 on a module that
+  ran an older version sets it to 11.8 V and switches the debug output off
+  once; `#` switches the output on again for good.
+- **Measuring error:** with V2.3.0 the supply on carnine-pc reported
+  13.1–13.2 V while a multimeter showed 13.3 V at KL30 (2026-10-16); 11.8 V
+  would then trip at about 12.0 V at the terminal, on the safe side, and
+  `B116` would bring it to about 11.8 V. After flashing V2.4.0 it reports
+  13.3 V on the same bench supply, so the difference may have come from the
+  load of the debug output; not settled yet. Reading the reported value at
+  13.0, 12.0 and 11.5 V on the bench supply will settle it. The next start
+  with V2.4.1 reported 13.2 V, so the reading also varies by about ±0.1 V.
+- **Bench supply** (tests, trade fair): it must deliver more than the limit
+  as the supply reads it, or the Pi shuts down after a minute.
 
 ### Serial line
 
@@ -293,7 +372,8 @@ reports in small binary telegrams `STX <id> <payload> ETX` (STX 0x02, ETX
 | `STX 0x14 … ETX` | supply voltage in 0.1 V, decimal digits |
 
 Every command is answered with `STX 0x13 <ACK 0x06 | NACK 0x15> ETX`. With
-debug output on (a switch kept in the EEPROM, **on by default**) plain text
+debug output on (a switch kept in the EEPROM, **off by default since
+V2.4.0**; on before) plain text
 lines ending in `\n`, partly with VT100 screen codes, are mixed into the same
 stream; a receiver must skip them.
 
@@ -307,24 +387,32 @@ stream; a receiver must skip them.
 | `4` `5` `6` | relay 0 / 1 / 2 off |
 | `!` / `?` | service mode on (watchdog off) / off |
 | `*` + digit | power-on delay 1–9 s, stored in the EEPROM |
+| `B` + three digits | battery protection limit in 0.1 V, 9.0–14.0 V (`B118` = 11.8 V), `B000` = off; stored in the EEPROM (V2.4.0) |
 | `v` | firmware version as text |
 | `#` | toggle debug output (stored in the EEPROM) |
-| `U` | reset into the bootloader |
+| `U` | reset into the bootloader; since V2.4.0 only in IDLE or POWERON, otherwise NACK |
 
 ### States
 
 | State | Entered when | Does | Leaves when |
 |---|---|---|---|
-| IDLE | power-off finished | microcontroller sleeps | KL15 on → POWERON |
+| IDLE | power-off finished | microcontroller sleeps (not while the battery lock holds) | KL15 on → POWERON; not while the battery lock holds |
 | POWERON | KL15 on | relay 0 on (display) | after the power-on delay → PIBOOT; KL15 off → IDLE |
-| PIBOOT | delay over | relay 1 on (Pi power), boot timer 60 s (V2.2.12: 30 s) | timer over → RUN; KL15 off at that point → POWEROFF |
-| RUN | Pi booted | watchdog active | KL15 off → POWEROFF (15 s); no alive → POWEROFF (5 s) |
-| POWEROFF | KL15 off, `$`, or watchdog | amplifier off, count down | timer over **or Dig3 active** → all relays off → IDLE; KL15 coming back does **not** cancel it |
+| PIBOOT | delay over | relay 1 on (Pi power), boot timer 60 s (V2.2.12: 30 s) | two `+` from the Pi (V2.4.1) or timer over → RUN; KL15 off at that point → POWEROFF with 15 s (before V2.4.0: power cut at once) |
+| RUN | Pi booted | watchdog active | KL15 off → POWEROFF (15 s); no alive → POWEROFF (5 s); 60 s below the battery limit → POWEROFF (15 s) and lock |
+| POWEROFF | KL15 off, `$`, watchdog, or battery low | amplifier off, count down | timer over **or Dig3 active** → all relays off → IDLE; KL15 coming back does **not** cancel it |
 
 - **Watchdog:** the alive counter is capped at 3 and drops by one per second
   in RUN (not in service mode). `+` raises it, and so do most other
-  commands (not `4`, `!`, `?`, `*`, `v`). Without a `+` for
-  about 3 seconds the supply cuts the Pi hard.
+  commands (not `4`, `!`, `?`, `*`, `B`, `U`, `v`). Without a `+` for
+  about 3 seconds the supply cuts the Pi hard. After a crash systemd
+  restarts the backend after 1 s (`RestartSec=1` in
+  `carnine-backend.service`, commit 3c65b77; 5 s before), so it is back
+  within those 3 s (from the next backend package on; carnine-pc still
+  runs one with 5 s). Five crashes within 10 s make systemd give up; then
+  the watchdog cuts the Pi and, with the ignition on, it starts again.
+- **KL15** counts as off only after 1 s without a break (V2.4.0); the
+  telegram `0x10` reports this debounced value.
 - **Service mode** (`!`) stops the watchdog until `?` or until the supply
   itself restarts; it is kept in RAM only.
 - **Pi halted:** with `dtoverlay=gpio-poweroff,active_low=1,gpiopin=5` in
@@ -455,13 +543,16 @@ service mode are still to be built.
       POWEROFF at 08:24:24.129 CEST (the log is in UTC), `amplifier (Rel3) off` 0.6 s later (the
       firmware had already opened Rel3, the `6` only confirms it), no `3`
       after it, the Pi shut down; ignition on → UI ready at 08:25:33, RUN at
-      08:26:00.32, `amplifier (Rel3) on` 0.14 s after RUN.
+      08:26:00.32, `amplifier (Rel3) on` 0.14 s after RUN. With firmware
+      V2.4.1 RUN comes before the UI is ready, so Rel3 follows the UI:
+      on 2.0 s after `UI ready` (carnine-pc, 2026-10-16 17:56).
   - **Still open** (#36): sending `$` when the Pi shuts down on its own;
     service mode `!`/`?`.
 - **Timing to check on the device:**
   - The alive `+` must start within about 63 s of the Pi getting power
-    (V2.3.0: 60 s PIBOOT, RUN starts with the alive counter at 3), or the
-    supply cuts a Pi that is still booting. A `+` sent in PIBOOT counts
+    (since V2.3.0: 60 s PIBOOT, RUN starts with the alive counter at 3), or the
+    supply cuts a Pi that is still booting. Since V2.4.1 two `+` end
+    PIBOOT early, so RUN usually starts long before the 60 s. A `+` sent in PIBOOT counts
     too, up to 3. V2.2.12 allowed only about 31 s: 30 s PIBOOT and the
     counter at 1. Measured with V2.2.12 on the test board on 2026-09-25: PIBOOT 30 s → RUN →
     `Alive time out !` 1 s later → POWEROFF 5 s → IDLE → POWERON again,
