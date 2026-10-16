@@ -89,6 +89,7 @@ async fn main() -> Result<()> {
         "brightness" => get_display_brightness(&endpoint).await?,
         "set-brightness" => set_display_brightness(&endpoint).await?,
         "power-supply-stream" => stream_power_supply_status(&endpoint).await?,
+        "ui-ready" => report_ui_ready(&endpoint).await?,
         "thermal" => get_thermal_status(&endpoint).await?,
         "thermal-stream" => stream_thermal_status(&endpoint).await?,
         "ui-state" => get_ui_state(&endpoint).await?,
@@ -924,6 +925,15 @@ async fn get_power_supply_status(endpoint: &str) -> Result<()> {
     let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
     let status = client.get_power_supply_status(Empty {}).await?.into_inner();
     print_power_supply_status(&status);
+    Ok(())
+}
+
+/// Reports the UI ready as the frontend does once it draws; with a power
+/// supply the amplifier on Rel3 comes on after it.
+async fn report_ui_ready(endpoint: &str) -> Result<()> {
+    let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let response = client.report_ui_ready(Empty {}).await?.into_inner();
+    println!("success={} message={}", response.success, response.message);
     Ok(())
 }
 

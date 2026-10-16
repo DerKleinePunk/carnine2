@@ -103,6 +103,10 @@ warm_metrics_interval_seconds = 5
 # at once through logind (the package's polkit rule allows it). false keeps the
 # Pi running, e.g. on a bench where the ignition is only tried out.
 # shutdown_on_poweroff = true
+# Rel3 switches the amplifier's remote input (REM): on once the UI reported
+# ready and the supply runs, off before the audio output closes and whenever
+# the supply leaves RUN. false when Rel3 is used for something else.
+# amplifier_relay = true
 
 # Reversing camera (video grabber on the camera page). These are the defaults;
 # what the settings page saves is kept in the media database and wins

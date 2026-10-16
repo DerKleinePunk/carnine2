@@ -193,6 +193,7 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
         _request: Request<Empty>,
     ) -> Result<Response<CommandResponse>, Status> {
         info!("Carnine UI reported ready");
+        self.power_supply.ui_ready();
         Ok(Response::new(CommandResponse {
             success: true,
             message: "UI ready".to_string(),
@@ -1870,8 +1871,24 @@ async fn main() -> Result<()> {
         .as_ref()
         .map(|address| address.parse())
         .transpose()?;
-    let power_supply_hub = power_supply::PowerSupplyHub::new(configuration.power_supply.enabled);
+    let power_supply_hub = power_supply::PowerSupplyHub::new(configuration.power_supply.enabled)
+        .with_amplifier_relay(
+            configuration.power_supply.enabled && configuration.power_supply.amplifier_relay,
+        );
     if configuration.power_supply.enabled {
+        if configuration.power_supply.amplifier_relay {
+            let hub = power_supply_hub.clone();
+            tokio::task::spawn_blocking(move || {
+                if power_supply::frontend_already_up() {
+                    info!(
+                        "frontend already up (backend restarted alone), counting the UI as ready"
+                    );
+                    hub.ui_ready();
+                }
+            });
+        } else {
+            info!("power supply: switching the amplifier on Rel3 is off");
+        }
         power_supply::spawn(
             power_supply_hub.clone(),
             configuration.power_supply.device.clone(),
@@ -2043,6 +2060,14 @@ async fn main() -> Result<()> {
         _ = shutdown_signal() => {
             if let Err(error) = systemd_notify::notify(systemd_notify::STOPPING) {
                 warn!(%error, "could not tell systemd the backend is stopping");
+            }
+            // The amplifier goes off first, so closing the audio output
+            // below does not click in the speakers.
+            let hub = power_supply_hub.clone();
+            if let Err(error) =
+                tokio::task::spawn_blocking(move || hub.switch_amplifier_off()).await
+            {
+                warn!(%error, "switching the amplifier off failed");
             }
             media_service.cancel_scans();
             if let Err(error) = media_service.save_resume_state() {
@@ -2264,12 +2289,15 @@ mod tests {
 
     #[tokio::test]
     async fn system_service_acknowledges_ui_readiness() {
-        let response =
-            SystemService::report_ui_ready(&SystemServiceImpl::default(), Request::new(Empty {}))
-                .await
-                .expect("UI readiness should be acknowledged");
+        let service = SystemServiceImpl::default();
+        assert!(!service.power_supply.ui_reported());
+        let response = SystemService::report_ui_ready(&service, Request::new(Empty {}))
+            .await
+            .expect("UI readiness should be acknowledged");
 
         assert!(response.into_inner().success);
+        // The amplifier on Rel3 waits for this.
+        assert!(service.power_supply.ui_reported());
     }
 
     #[tokio::test]

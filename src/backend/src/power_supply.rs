@@ -15,13 +15,19 @@
 //! goes to POWEROFF (ignition off), [`shut_down_on_poweroff`] shuts the Pi
 //! down through logind. `$` on a shutdown of our own and the service mode
 //! follow later (#36).
+//!
+//! Rel3 switches the amplifier's remote input (REM). The firmware never
+//! closes it by itself and opens it once when it goes to POWEROFF; a `3`
+//! arriving later would close it again. So the backend closes it (`3`) only
+//! while the supply is in RUN and the UI has reported ready, and opens it
+//! (`6`) when RUN ends or the backend stops, before the audio output closes.
 
 use std::fs::File;
 use std::io::{Read, Write};
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result};
@@ -46,6 +52,18 @@ const MAX_TEXT_LINE: usize = 160;
 
 /// The sign of life.
 const ALIVE: &[u8] = b"+";
+/// Relay 2 (terminal Rel3, the amplifier's REM) on and off. Both count as a
+/// sign of life in the firmware too.
+const AMPLIFIER_ON: &[u8] = b"3";
+const AMPLIFIER_OFF: &[u8] = b"6";
+/// The amplifier comes on this long after the UI reported ready, so it does
+/// not pick up the click of an audio output that has only just opened.
+const AMPLIFIER_ON_DELAY: Duration = Duration::from_secs(2);
+/// A stop waits at most this long for the sender to get `6` out.
+const AMPLIFIER_OFF_WAIT: Duration = Duration::from_secs(2);
+/// After `6` the relay drops and the amplifier mutes before the audio output
+/// closes; amplifiers take some tens of milliseconds.
+const AMPLIFIER_OFF_SETTLE: Duration = Duration::from_millis(300);
 /// The firmware counts the alive counter down once a second.
 const ALIVE_INTERVAL: Duration = Duration::from_secs(1);
 /// Wait before reopening a line that vanished or failed.
@@ -223,6 +241,63 @@ impl PowerSupplyStatus {
 #[derive(Debug, Clone)]
 pub struct PowerSupplyHub {
     sender: Arc<watch::Sender<PowerSupplyStatus>>,
+    amplifier: Arc<Amplifier>,
+}
+
+/// What the backend wants from the amplifier relay and what the line last
+/// got; the sender thread turns the difference into `3` or `6`.
+#[derive(Debug, Default)]
+struct AmplifierRequest {
+    /// `[power_supply] amplifier_relay`; without it neither `3` nor `6`.
+    enabled: bool,
+    /// When the UI reported ready.
+    ready_since: Option<Instant>,
+    /// The backend is stopping: off for good.
+    stopping: bool,
+    /// What the line last got, `None` on a new connection or after the
+    /// supply went silent (it may have restarted with every relay open).
+    sent: Option<bool>,
+}
+
+impl AmplifierRequest {
+    /// Whether the amplifier should be on now.
+    fn wanted(&self, status: &PowerSupplyStatus, now: Instant) -> bool {
+        !self.stopping
+            && status.state == Some(SupplyState::Run)
+            && self
+                .ready_since
+                .is_some_and(|since| now.saturating_duration_since(since) >= AMPLIFIER_ON_DELAY)
+    }
+
+    /// The switch to send now, if any: on or off when that differs from
+    /// what the line last got. A silent supply gets nothing and is switched
+    /// afresh once it talks again.
+    fn decide(&mut self, status: &PowerSupplyStatus, now: Instant) -> Option<bool> {
+        if !self.enabled {
+            return None;
+        }
+        if !status.connected {
+            self.sent = None;
+            return None;
+        }
+        let wanted = self.wanted(status, now);
+        (self.sent != Some(wanted)).then_some(wanted)
+    }
+}
+
+#[derive(Debug, Default)]
+struct Amplifier {
+    request: Mutex<AmplifierRequest>,
+    /// Wakes the sender on a new request and a stop once `6` is out.
+    changed: Condvar,
+}
+
+impl Amplifier {
+    fn lock(&self) -> MutexGuard<'_, AmplifierRequest> {
+        self.request
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
 }
 
 /// A hub for a device without a supply.
@@ -240,7 +315,91 @@ impl PowerSupplyHub {
         });
         Self {
             sender: Arc::new(sender),
+            amplifier: Arc::default(),
         }
+    }
+
+    /// Lets the backend switch the amplifier on Rel3 (`[power_supply]
+    /// amplifier_relay`).
+    pub fn with_amplifier_relay(self, enabled: bool) -> Self {
+        self.amplifier.lock().enabled = enabled;
+        self
+    }
+
+    /// The UI is up: the amplifier may come on once the supply runs.
+    pub fn ui_ready(&self) {
+        let mut request = self.amplifier.lock();
+        if request.ready_since.is_some() || request.stopping {
+            return;
+        }
+        request.ready_since = Some(Instant::now());
+        if request.enabled {
+            info!("UI ready: the amplifier (Rel3) comes on while the power supply runs");
+        }
+        self.amplifier.changed.notify_all();
+    }
+
+    /// Switches the amplifier off for good and waits until `6` is out and
+    /// the amplifier has muted, so the audio output can close without a
+    /// click in the speakers. Blocks for a moment; returns at once when the
+    /// amplifier is not on.
+    pub fn switch_amplifier_off(&self) {
+        let mut request = self.amplifier.lock();
+        request.stopping = true;
+        if !request.enabled || request.sent != Some(true) {
+            return;
+        }
+        self.amplifier.changed.notify_all();
+        let (request, waited) = self
+            .amplifier
+            .changed
+            .wait_timeout_while(request, AMPLIFIER_OFF_WAIT, |request| {
+                request.sent == Some(true)
+            })
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        drop(request);
+        if waited.timed_out() {
+            warn!("amplifier (Rel3) not switched off in time, stopping anyway");
+            return;
+        }
+        std::thread::sleep(AMPLIFIER_OFF_SETTLE);
+    }
+
+    /// The next switch for the line, see [`AmplifierRequest::decide`].
+    fn amplifier_switch(&self) -> Option<bool> {
+        let status = self.current();
+        let mut request = self.amplifier.lock();
+        let before = request.sent;
+        let switch = request.decide(&status, Instant::now());
+        if request.sent != before {
+            self.amplifier.changed.notify_all();
+        }
+        switch
+    }
+
+    /// The line got `3` (`true`) or `6`.
+    fn amplifier_sent(&self, on: bool) {
+        let before = self.amplifier.lock().sent.replace(on);
+        if on {
+            info!("amplifier (Rel3) on");
+        } else if before == Some(true) {
+            info!(state = ?self.current().state, "amplifier (Rel3) off");
+        } else {
+            debug!("amplifier (Rel3) off");
+        }
+        self.amplifier.changed.notify_all();
+    }
+
+    /// A new connection: the relay's state is not known.
+    fn amplifier_unknown(&self) {
+        self.amplifier.lock().sent = None;
+        self.amplifier.changed.notify_all();
+    }
+
+    /// Sleeps up to `interval`; a new request wakes it early.
+    fn wait_for_amplifier_request(&self, interval: Duration) {
+        let request = self.amplifier.lock();
+        let _ = self.amplifier.changed.wait_timeout(request, interval);
     }
 
     pub fn current(&self) -> PowerSupplyStatus {
@@ -249,6 +408,12 @@ impl PowerSupplyHub {
 
     pub fn subscribe(&self) -> watch::Receiver<PowerSupplyStatus> {
         self.sender.subscribe()
+    }
+
+    /// Whether the UI has been reported ready, for tests of the service.
+    #[cfg(test)]
+    pub fn ui_reported(&self) -> bool {
+        self.amplifier.lock().ready_since.is_some()
     }
 
     /// Sets the whole status, for tests of the service on top.
@@ -464,9 +629,22 @@ pub fn power_off() -> Result<()> {
     Ok(())
 }
 
+/// Whether the frontend's unit is already active, i.e. it reported ready
+/// before (Type=notify, it tells systemd after ReportUiReady). It does not
+/// report again when only the backend restarts, e.g. after a package update;
+/// then this stands in for it. Anything but a clear "active" counts as no.
+pub fn frontend_already_up() -> bool {
+    std::process::Command::new("systemctl")
+        .args(["is-active", "--quiet", "carnine-frontend.service"])
+        .stderr(std::process::Stdio::null())
+        .status()
+        .is_ok_and(|status| status.success())
+}
+
 /// One connection: a sender thread writes the sign of life every second and
 /// notices silence, while this thread reads telegrams, until either fails.
 fn run_line(hub: &PowerSupplyHub, file: File) -> Result<()> {
+    hub.amplifier_unknown();
     let writer = file
         .try_clone()
         .context("duplicating the line for sending")?;
@@ -515,7 +693,14 @@ fn send_alive(
 ) -> Result<()> {
     let mut silent = false;
     while !stop.load(Ordering::Relaxed) {
-        line.write_all(ALIVE).context("sending the sign of life")?;
+        match hub.amplifier_switch() {
+            Some(on) => {
+                line.write_all(if on { AMPLIFIER_ON } else { AMPLIFIER_OFF })
+                    .context("switching the amplifier")?;
+                hub.amplifier_sent(on);
+            }
+            None => line.write_all(ALIVE).context("sending the sign of life")?,
+        }
         let quiet = last_heard
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
@@ -526,7 +711,7 @@ fn send_alive(
             hub.update(|status| status.connected = false);
         }
         silent = quiet;
-        std::thread::sleep(ALIVE_INTERVAL);
+        hub.wait_for_amplifier_request(ALIVE_INTERVAL);
     }
     Ok(())
 }
@@ -860,5 +1045,240 @@ mod tests {
         )
         .await
         .expect("the watcher ends after the failed shutdown");
+    }
+
+    fn amplifier_request(enabled: bool) -> AmplifierRequest {
+        AmplifierRequest {
+            enabled,
+            ..AmplifierRequest::default()
+        }
+    }
+
+    #[test]
+    fn the_amplifier_comes_on_only_after_the_ui_and_in_run() {
+        let start = Instant::now();
+        let mut request = amplifier_request(true);
+        let run = status_in(SupplyState::Run);
+
+        // Connected but no UI yet: the relay is set to off once, so its
+        // state is known.
+        assert_eq!(request.decide(&run, start), Some(false));
+        request.sent = Some(false);
+        assert_eq!(request.decide(&run, start), None);
+
+        // UI ready, but the audio output gets a moment first.
+        request.ready_since = Some(start);
+        assert_eq!(
+            request.decide(&run, start + Duration::from_millis(1900)),
+            None
+        );
+        let later = start + AMPLIFIER_ON_DELAY;
+        assert_eq!(request.decide(&run, later), Some(true));
+        request.sent = Some(true);
+        assert_eq!(
+            request.decide(&run, later),
+            None,
+            "sent once, not every second"
+        );
+
+        // Before RUN the supply still boots the Pi: not yet.
+        let mut booting = amplifier_request(true);
+        booting.ready_since = Some(start);
+        booting.sent = Some(false);
+        assert_eq!(booting.decide(&status_in(SupplyState::PiBoot), later), None);
+    }
+
+    #[test]
+    fn the_amplifier_goes_off_when_run_ends_or_the_backend_stops() {
+        let start = Instant::now();
+        let later = start + AMPLIFIER_ON_DELAY;
+        let on = || AmplifierRequest {
+            enabled: true,
+            ready_since: Some(start),
+            stopping: false,
+            sent: Some(true),
+        };
+
+        // The firmware opened Rel3 once in POWEROFF; we say so too, so a `3`
+        // can never follow.
+        assert_eq!(
+            on().decide(&status_in(SupplyState::PowerOff), later),
+            Some(false)
+        );
+
+        let mut stopping = on();
+        stopping.stopping = true;
+        assert_eq!(
+            stopping.decide(&status_in(SupplyState::Run), later),
+            Some(false)
+        );
+    }
+
+    #[test]
+    fn a_silent_supply_is_switched_afresh_when_it_talks_again() {
+        let start = Instant::now();
+        let later = start + AMPLIFIER_ON_DELAY;
+        let mut request = AmplifierRequest {
+            enabled: true,
+            ready_since: Some(start),
+            stopping: false,
+            sent: Some(true),
+        };
+        let silent = PowerSupplyStatus {
+            connected: false,
+            ..status_in(SupplyState::Run)
+        };
+        assert_eq!(
+            request.decide(&silent, later),
+            None,
+            "nothing to a silent line"
+        );
+        assert_eq!(request.sent, None);
+        // It may have restarted with every relay open.
+        assert_eq!(
+            request.decide(&status_in(SupplyState::Run), later),
+            Some(true)
+        );
+    }
+
+    #[test]
+    fn without_the_amplifier_relay_nothing_is_switched() {
+        let start = Instant::now();
+        let mut request = amplifier_request(false);
+        request.ready_since = Some(start);
+        for state in [SupplyState::Run, SupplyState::PowerOff] {
+            assert_eq!(
+                request.decide(&status_in(state), start + AMPLIFIER_ON_DELAY),
+                None
+            );
+        }
+    }
+
+    #[test]
+    fn the_ui_counts_once_and_not_after_a_stop() {
+        let hub = PowerSupplyHub::new(true).with_amplifier_relay(true);
+        hub.ui_ready();
+        let first = hub.amplifier.lock().ready_since;
+        assert!(first.is_some());
+        hub.ui_ready();
+        assert_eq!(
+            hub.amplifier.lock().ready_since,
+            first,
+            "a second report changes nothing"
+        );
+
+        let stopped = PowerSupplyHub::new(true).with_amplifier_relay(true);
+        stopped.switch_amplifier_off();
+        stopped.ui_ready();
+        assert_eq!(stopped.amplifier.lock().ready_since, None);
+    }
+
+    #[test]
+    fn switching_off_returns_at_once_when_the_amplifier_is_not_on() {
+        let hub = PowerSupplyHub::new(true).with_amplifier_relay(true);
+        let started = Instant::now();
+        hub.switch_amplifier_off();
+        assert!(started.elapsed() < AMPLIFIER_OFF_SETTLE);
+        assert!(hub.amplifier.lock().stopping);
+    }
+
+    /// Reads from the master side until `wanted` has come, skipping signs
+    /// of life; everything read goes into `seen`.
+    fn read_until(master: &mut File, wanted: u8, seen: &mut Vec<u8>) {
+        let deadline = Instant::now() + Duration::from_secs(6);
+        let mut buffer = [0u8; 16];
+        while !seen.contains(&wanted) {
+            assert!(
+                Instant::now() < deadline,
+                "no {:?} in {:?}",
+                wanted as char,
+                seen
+            );
+            let read = master.read(&mut buffer).expect("read from the master side");
+            seen.extend_from_slice(&buffer[..read]);
+        }
+    }
+
+    #[test]
+    fn the_line_switches_the_amplifier_on_in_run_and_off_on_stop() {
+        let (mut master, slave_path) = pseudo_terminal();
+        let hub = PowerSupplyHub::new(true).with_amplifier_relay(true);
+        let stop = Arc::new(AtomicBool::new(false));
+        let last_heard = Arc::new(Mutex::new(Instant::now()));
+        let line = open_line(Path::new(&slave_path), 38400).expect("open the pseudo-terminal");
+        let writer = line.try_clone().unwrap();
+        let sender = {
+            let (stop, last_heard, hub) = (Arc::clone(&stop), Arc::clone(&last_heard), hub.clone());
+            std::thread::spawn(move || send_alive(writer, &hub, &last_heard, &stop))
+        };
+        let reader = {
+            let (stop, last_heard, hub) = (Arc::clone(&stop), Arc::clone(&last_heard), hub.clone());
+            std::thread::spawn(move || read_telegrams(line, &hub, &last_heard, &stop))
+        };
+
+        // RUN, UI ready long enough ago: `3` follows.
+        hub.amplifier.lock().ready_since = Some(Instant::now() - AMPLIFIER_ON_DELAY);
+        master
+            .write_all(&status_telegrams(b'1', "3", b'3', "132"))
+            .unwrap();
+        let mut seen = Vec::new();
+        read_until(&mut master, b'3', &mut seen);
+        assert!(!seen.contains(&b'6'), "never off before on here: {seen:?}");
+
+        // The stop waits for `6` and the amplifier to mute.
+        let stopping = {
+            let hub = hub.clone();
+            std::thread::spawn(move || {
+                let started = Instant::now();
+                hub.switch_amplifier_off();
+                started.elapsed()
+            })
+        };
+        let mut after = Vec::new();
+        read_until(&mut master, b'6', &mut after);
+        let took = stopping.join().unwrap();
+        assert!(took >= AMPLIFIER_OFF_SETTLE, "{took:?}");
+        // The sender has just sent `3` and sleeps a second; the stop wakes it.
+        assert!(
+            took < AMPLIFIER_OFF_SETTLE + Duration::from_millis(500),
+            "the sender woke at once: {took:?}"
+        );
+        assert_eq!(hub.amplifier.lock().sent, Some(false));
+
+        stop.store(true, Ordering::Relaxed);
+        sender.join().unwrap().unwrap();
+        master.write_all(&[STX, ID_STATE, b'3', ETX]).unwrap();
+        reader.join().unwrap().unwrap();
+        // Nothing but signs of life after the `6`.
+        assert!(after
+            .iter()
+            .skip_while(|&&b| b != b'6')
+            .skip(1)
+            .all(|&b| b == b'+'));
+    }
+
+    #[test]
+    fn the_line_without_the_amplifier_relay_sends_only_signs_of_life() {
+        let (mut master, slave_path) = pseudo_terminal();
+        let hub = PowerSupplyHub::new(true).with_amplifier_relay(false);
+        hub.ui_ready();
+        hub.amplifier.lock().ready_since = Some(Instant::now() - AMPLIFIER_ON_DELAY);
+        hub.update(|status| *status = status_in(SupplyState::Run));
+        let stop = Arc::new(AtomicBool::new(false));
+        let line = open_line(Path::new(&slave_path), 38400).expect("open the pseudo-terminal");
+        let sender = {
+            let (stop, hub) = (Arc::clone(&stop), hub.clone());
+            let last_heard = Arc::new(Mutex::new(Instant::now()));
+            std::thread::spawn(move || send_alive(line, &hub, &last_heard, &stop))
+        };
+        let mut seen = Vec::new();
+        let mut buffer = [0u8; 16];
+        while seen.len() < 2 {
+            let read = master.read(&mut buffer).unwrap();
+            seen.extend_from_slice(&buffer[..read]);
+        }
+        stop.store(true, Ordering::Relaxed);
+        sender.join().unwrap().unwrap();
+        assert_eq!(seen, b"++");
     }
 }

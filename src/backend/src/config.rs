@@ -528,6 +528,11 @@ pub struct PowerSupplyConfig {
     /// on a bench where the Pi should stay up while the ignition is tried.
     #[serde(default = "default_true")]
     pub shutdown_on_poweroff: bool,
+    /// Switch the amplifier's remote input (REM) on Rel3: on once the UI is
+    /// ready and the supply runs, off before the audio output closes. false
+    /// when Rel3 is used for something else.
+    #[serde(default = "default_true")]
+    pub amplifier_relay: bool,
 }
 
 fn default_power_supply_device() -> PathBuf {
@@ -549,6 +554,7 @@ impl Default for PowerSupplyConfig {
             device: default_power_supply_device(),
             baud: default_power_supply_baud(),
             shutdown_on_poweroff: true,
+            amplifier_relay: true,
         }
     }
 }
@@ -1171,6 +1177,19 @@ mod tests {
             toml::from_str("enabled = true\nshutdown_on_poweroff = false")
                 .expect("drop-in should parse");
         assert!(!bench.shutdown_on_poweroff);
+    }
+
+    #[test]
+    fn the_amplifier_relay_is_switched_unless_turned_off() {
+        let section: super::PowerSupplyConfig =
+            toml::from_str("enabled = true").expect("drop-in should parse");
+        assert!(section.amplifier_relay);
+        assert!(super::PowerSupplyConfig::default().amplifier_relay);
+
+        let other_use: super::PowerSupplyConfig =
+            toml::from_str("enabled = true\namplifier_relay = false")
+                .expect("drop-in should parse");
+        assert!(!other_use.amplifier_relay);
     }
 
     #[test]
