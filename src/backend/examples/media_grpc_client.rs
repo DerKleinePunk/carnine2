@@ -1095,7 +1095,7 @@ fn print_power_supply_status(status: &PowerSupplyStatus) {
         None => "-",
     };
     println!(
-        "connected={} ignition={ignition} state={state} voltage={} alive={}",
+        "connected={} ignition={ignition} state={state} voltage={} alive={} firmware={}",
         status.connected,
         status
             .input_voltage_volts
@@ -1105,6 +1105,7 @@ fn print_power_supply_status(status: &PowerSupplyStatus) {
             .alive_count
             .map(|count| count.to_string())
             .unwrap_or_else(|| "-".to_string()),
+        status.firmware_version.as_deref().unwrap_or("-"),
     );
 }
 

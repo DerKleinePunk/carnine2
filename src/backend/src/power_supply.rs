@@ -21,6 +21,10 @@
 //! arriving later would close it again. So the backend closes it (`3`) only
 //! while the supply is in RUN and the UI has reported ready, and opens it
 //! (`6`) when RUN ends or the backend stops, before the audio output closes.
+//!
+//! Once the supply talks on a connection (again after it fell silent) the
+//! backend asks for the firmware version (`v`); the answer is a text line
+//! such as `V2.4.1`, logged and kept in the status.
 
 use std::fs::File;
 use std::io::{Read, Write};
@@ -56,6 +60,10 @@ const ALIVE: &[u8] = b"+";
 /// sign of life in the firmware too.
 const AMPLIFIER_ON: &[u8] = b"3";
 const AMPLIFIER_OFF: &[u8] = b"6";
+/// Asks for the firmware version; not a sign of life, so it goes with one.
+const VERSION_QUERY: &[u8] = b"v";
+/// The supply answers `v` at once; without an answer this long it is noted.
+const VERSION_ANSWER_TIMEOUT: Duration = Duration::from_secs(5);
 /// The amplifier comes on this long after the UI reported ready, so it does
 /// not pick up the click of an audio output that has only just opened.
 const AMPLIFIER_ON_DELAY: Duration = Duration::from_secs(2);
@@ -208,6 +216,82 @@ fn number(digits: &[u8]) -> Option<u32> {
     std::str::from_utf8(digits).ok()?.parse().ok()
 }
 
+/// The supply's firmware version, as `v` reports it (`V2.4.1`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FirmwareVersion {
+    pub major: u16,
+    pub minor: u16,
+    pub patch: u16,
+}
+
+impl FirmwareVersion {
+    /// A text line that is a version and nothing else, e.g. `V2.4.1`.
+    fn parse(line: &str) -> Option<Self> {
+        let digits = line.trim().strip_prefix('V')?;
+        let mut parts = digits.split('.');
+        let mut part = || -> Option<u16> {
+            let text = parts.next()?;
+            if text.is_empty() || !text.bytes().all(|byte| byte.is_ascii_digit()) {
+                return None;
+            }
+            text.parse().ok()
+        };
+        let version = Self {
+            major: part()?,
+            minor: part()?,
+            patch: part()?,
+        };
+        parts.next().is_none().then_some(version)
+    }
+}
+
+impl std::fmt::Display for FirmwareVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "V{}.{}.{}", self.major, self.minor, self.patch)
+    }
+}
+
+/// When to ask for the firmware version: once a connection talks, and again
+/// after the supply fell silent (it may have restarted or been flashed).
+#[derive(Debug, Default)]
+struct VersionQuery {
+    asked_at: Option<Instant>,
+    warned: bool,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum VersionStep {
+    Nothing,
+    Ask,
+    /// Asked VERSION_ANSWER_TIMEOUT ago and still no answer.
+    NoAnswer,
+}
+
+impl VersionQuery {
+    fn next(&mut self, status: &PowerSupplyStatus, now: Instant) -> VersionStep {
+        let Some(asked_at) = self.asked_at else {
+            if status.connected {
+                self.asked_at = Some(now);
+                return VersionStep::Ask;
+            }
+            return VersionStep::Nothing;
+        };
+        if status.firmware_version.is_none()
+            && !self.warned
+            && now.saturating_duration_since(asked_at) >= VERSION_ANSWER_TIMEOUT
+        {
+            self.warned = true;
+            return VersionStep::NoAnswer;
+        }
+        VersionStep::Nothing
+    }
+
+    /// The supply fell silent: ask again once it talks.
+    fn reset(&mut self) {
+        *self = Self::default();
+    }
+}
+
 /// What the supply last reported. Everything is `None` until it has said so.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct PowerSupplyStatus {
@@ -220,18 +304,31 @@ pub struct PowerSupplyStatus {
     /// Input voltage in tenths of a volt.
     pub voltage_tenths: Option<u16>,
     pub alive: Option<u8>,
+    /// From the answer to `v`, per connection.
+    pub firmware_version: Option<FirmwareVersion>,
 }
 
 impl PowerSupplyStatus {
     /// What a client watches for; the alive counter moves every second and
     /// is left out.
-    fn watched(&self) -> (bool, bool, Option<bool>, Option<SupplyState>, Option<u16>) {
+    #[allow(clippy::type_complexity)]
+    fn watched(
+        &self,
+    ) -> (
+        bool,
+        bool,
+        Option<bool>,
+        Option<SupplyState>,
+        Option<u16>,
+        Option<FirmwareVersion>,
+    ) {
         (
             self.configured,
             self.connected,
             self.ignition,
             self.state,
             self.voltage_tenths,
+            self.firmware_version,
         )
     }
 }
@@ -645,6 +742,7 @@ pub fn frontend_already_up() -> bool {
 /// notices silence, while this thread reads telegrams, until either fails.
 fn run_line(hub: &PowerSupplyHub, file: File) -> Result<()> {
     hub.amplifier_unknown();
+    hub.update(|status| status.firmware_version = None);
     let writer = file
         .try_clone()
         .context("duplicating the line for sending")?;
@@ -692,6 +790,7 @@ fn send_alive(
     stop: &AtomicBool,
 ) -> Result<()> {
     let mut silent = false;
+    let mut version = VersionQuery::default();
     while !stop.load(Ordering::Relaxed) {
         match hub.amplifier_switch() {
             Some(on) => {
@@ -701,6 +800,15 @@ fn send_alive(
             }
             None => line.write_all(ALIVE).context("sending the sign of life")?,
         }
+        match version.next(&hub.current(), Instant::now()) {
+            VersionStep::Ask => line
+                .write_all(VERSION_QUERY)
+                .context("asking for the firmware version")?,
+            VersionStep::NoAnswer => {
+                warn!("power supply did not report its firmware version (no answer to v)")
+            }
+            VersionStep::Nothing => {}
+        }
         let quiet = last_heard
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
@@ -708,7 +816,11 @@ fn send_alive(
             > SILENCE_TIMEOUT;
         if quiet && !silent {
             warn!("power supply silent, no telegram for a while");
-            hub.update(|status| status.connected = false);
+            hub.update(|status| {
+                status.connected = false;
+                status.firmware_version = None;
+            });
+            version.reset();
         }
         silent = quiet;
         hub.wait_for_amplifier_request(ALIVE_INTERVAL);
@@ -736,8 +848,13 @@ fn read_telegrams(
             let Some(telegram) = parser.push(byte) else {
                 continue;
             };
-            if matches!(telegram, Telegram::Text(_)) {
-                log.log(&telegram, &hub.current());
+            if let Telegram::Text(line) = &telegram {
+                if let Some(version) = FirmwareVersion::parse(line) {
+                    info!(version = %version, "power supply firmware");
+                    hub.update(|status| status.firmware_version = Some(version));
+                } else {
+                    log.log(&telegram, &hub.current());
+                }
                 continue;
             }
             *last_heard
@@ -1273,12 +1390,167 @@ mod tests {
         };
         let mut seen = Vec::new();
         let mut buffer = [0u8; 16];
-        while seen.len() < 2 {
+        while seen.iter().filter(|&&b| b == b'+').count() < 2 {
             let read = master.read(&mut buffer).unwrap();
             seen.extend_from_slice(&buffer[..read]);
         }
         stop.store(true, Ordering::Relaxed);
         sender.join().unwrap().unwrap();
-        assert_eq!(seen, b"++");
+        // Signs of life and the version question, never `3` or `6`.
+        assert!(seen.iter().all(|&b| b == b'+' || b == b'v'), "{seen:?}");
+    }
+
+    #[test]
+    fn a_version_line_is_recognised_and_nothing_else() {
+        assert_eq!(
+            FirmwareVersion::parse("V2.4.1"),
+            Some(FirmwareVersion {
+                major: 2,
+                minor: 4,
+                patch: 1
+            })
+        );
+        assert_eq!(
+            FirmwareVersion::parse("  V2.2.12 ")
+                .map(|v| v.to_string())
+                .as_deref(),
+            Some("V2.2.12")
+        );
+        for line in [
+            "Startup V2.4.1",
+            "V2.4",
+            "V2.4.1.0",
+            "v2.4.1",
+            "V2.x.1",
+            "V..",
+            "Command v",
+            "KL15: 1",
+            "Spannung (0,1V): 132",
+        ] {
+            assert_eq!(FirmwareVersion::parse(line), None, "{line:?}");
+        }
+    }
+
+    #[test]
+    fn the_version_is_asked_once_per_talking_connection() {
+        let start = Instant::now();
+        let mut query = VersionQuery::default();
+        let silent = PowerSupplyStatus::default();
+        let talking = status_in(SupplyState::PiBoot);
+
+        assert_eq!(
+            query.next(&silent, start),
+            VersionStep::Nothing,
+            "not before it talks"
+        );
+        assert_eq!(query.next(&talking, start), VersionStep::Ask);
+        assert_eq!(
+            query.next(&talking, start + Duration::from_secs(1)),
+            VersionStep::Nothing
+        );
+
+        // Answered: no warning later.
+        let answered = PowerSupplyStatus {
+            firmware_version: FirmwareVersion::parse("V2.4.1"),
+            ..talking
+        };
+        assert_eq!(
+            query.next(&answered, start + VERSION_ANSWER_TIMEOUT * 2),
+            VersionStep::Nothing
+        );
+
+        // After the supply fell silent it is asked again.
+        query.reset();
+        assert_eq!(
+            query.next(&talking, start + Duration::from_secs(60)),
+            VersionStep::Ask
+        );
+    }
+
+    #[test]
+    fn no_answer_is_noted_once() {
+        let start = Instant::now();
+        let mut query = VersionQuery::default();
+        let talking = status_in(SupplyState::Run);
+        assert_eq!(query.next(&talking, start), VersionStep::Ask);
+        assert_eq!(
+            query.next(
+                &talking,
+                start + VERSION_ANSWER_TIMEOUT - Duration::from_millis(1)
+            ),
+            VersionStep::Nothing
+        );
+        assert_eq!(
+            query.next(&talking, start + VERSION_ANSWER_TIMEOUT),
+            VersionStep::NoAnswer
+        );
+        assert_eq!(
+            query.next(&talking, start + VERSION_ANSWER_TIMEOUT * 3),
+            VersionStep::Nothing
+        );
+    }
+
+    #[test]
+    fn the_line_asks_for_the_version_and_keeps_the_answer() {
+        let (mut master, slave_path) = pseudo_terminal();
+        let hub = PowerSupplyHub::new(true);
+        let stop = Arc::new(AtomicBool::new(false));
+        let last_heard = Arc::new(Mutex::new(Instant::now()));
+        let line = open_line(Path::new(&slave_path), 38400).expect("open the pseudo-terminal");
+        let writer = line.try_clone().unwrap();
+        let sender = {
+            let (stop, last_heard, hub) = (Arc::clone(&stop), Arc::clone(&last_heard), hub.clone());
+            std::thread::spawn(move || send_alive(writer, &hub, &last_heard, &stop))
+        };
+        let reader = {
+            let (stop, last_heard, hub) = (Arc::clone(&stop), Arc::clone(&last_heard), hub.clone());
+            std::thread::spawn(move || read_telegrams(line, &hub, &last_heard, &stop))
+        };
+
+        // Nothing but signs of life until the supply talks.
+        let mut seen = Vec::new();
+        let mut buffer = [0u8; 16];
+        while seen.len() < 2 {
+            let read = master.read(&mut buffer).unwrap();
+            seen.extend_from_slice(&buffer[..read]);
+        }
+        assert!(!seen.contains(&b'v'), "{seen:?}");
+
+        master
+            .write_all(&status_telegrams(b'1', "2", b'2', "132"))
+            .unwrap();
+        read_until(&mut master, b'v', &mut seen);
+
+        // The answer, between debug text as V2.3.0 sends it.
+        let mut answer = b"Command v\r\nKL15: 1\r\nV2.4.1\r\n".to_vec();
+        answer.extend_from_slice(&[STX, ID_COMMAND_RESULT, ACK, ETX]);
+        master.write_all(&answer).unwrap();
+        let deadline = Instant::now() + Duration::from_secs(3);
+        while hub.current().firmware_version.is_none() && Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        assert_eq!(
+            hub.current()
+                .firmware_version
+                .map(|v| v.to_string())
+                .as_deref(),
+            Some("V2.4.1")
+        );
+
+        // Two more seconds: signs of life, no second question.
+        master
+            .write_all(&status_telegrams(b'1', "2", b'3', "132"))
+            .unwrap();
+        let mut more = Vec::new();
+        while more.iter().filter(|&&b| b == b'+').count() < 2 {
+            let read = master.read(&mut buffer).unwrap();
+            more.extend_from_slice(&buffer[..read]);
+        }
+        assert!(!more.contains(&b'v'), "{more:?}");
+
+        stop.store(true, Ordering::Relaxed);
+        sender.join().unwrap().unwrap();
+        master.write_all(&[STX, ID_STATE, b'3', ETX]).unwrap();
+        reader.join().unwrap().unwrap();
     }
 }

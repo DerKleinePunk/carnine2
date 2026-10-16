@@ -564,6 +564,9 @@ message PowerSupplyStatus {
   optional double input_voltage_volts = 5;
   // The watchdog's alive counter, 0..3; in RUN normally 2.
   optional uint32 alive_count = 6;
+  // Firmware version as the supply reports it ("V2.4.1"); asked once per
+  // connection, absent until it answered.
+  optional string firmware_version = 7;
 }
 
 message LatLon {

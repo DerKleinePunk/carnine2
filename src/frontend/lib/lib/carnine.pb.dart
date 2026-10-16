@@ -3783,6 +3783,7 @@ class PowerSupplyStatus extends $pb.GeneratedMessage {
     PowerSupplyState? state,
     $core.double? inputVoltageVolts,
     $core.int? aliveCount,
+    $core.String? firmwareVersion,
   }) {
     final result = create();
     if (configured != null) result.configured = configured;
@@ -3791,6 +3792,7 @@ class PowerSupplyStatus extends $pb.GeneratedMessage {
     if (state != null) result.state = state;
     if (inputVoltageVolts != null) result.inputVoltageVolts = inputVoltageVolts;
     if (aliveCount != null) result.aliveCount = aliveCount;
+    if (firmwareVersion != null) result.firmwareVersion = firmwareVersion;
     return result;
   }
 
@@ -3814,6 +3816,7 @@ class PowerSupplyStatus extends $pb.GeneratedMessage {
         enumValues: PowerSupplyState.values)
     ..aD(5, _omitFieldNames ? '' : 'inputVoltageVolts')
     ..aI(6, _omitFieldNames ? '' : 'aliveCount', fieldType: $pb.PbFieldType.OU3)
+    ..aOS(7, _omitFieldNames ? '' : 'firmwareVersion')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -3893,6 +3896,17 @@ class PowerSupplyStatus extends $pb.GeneratedMessage {
   $core.bool hasAliveCount() => $_has(5);
   @$pb.TagNumber(6)
   void clearAliveCount() => $_clearField(6);
+
+  /// Firmware version as the supply reports it ("V2.4.1"); asked once per
+  /// connection, absent until it answered.
+  @$pb.TagNumber(7)
+  $core.String get firmwareVersion => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set firmwareVersion($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasFirmwareVersion() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearFirmwareVersion() => $_clearField(7);
 }
 
 class LatLon extends $pb.GeneratedMessage {

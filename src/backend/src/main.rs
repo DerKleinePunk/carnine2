@@ -156,6 +156,7 @@ fn power_supply_to_proto(status: &power_supply::PowerSupplyStatus) -> PowerSuppl
         state: state as i32,
         input_voltage_volts: status.voltage_tenths.map(|tenths| f64::from(tenths) / 10.0),
         alive_count: status.alive.map(u32::from),
+        firmware_version: status.firmware_version.map(|version| version.to_string()),
     }
 }
 
@@ -2639,6 +2640,11 @@ mod tests {
             state: Some(crate::power_supply::SupplyState::PowerOff),
             voltage_tenths: Some(134),
             alive: Some(2),
+            firmware_version: Some(crate::power_supply::FirmwareVersion {
+                major: 2,
+                minor: 4,
+                patch: 1,
+            }),
         });
         let changed = stream.next().await.expect("the change").unwrap();
         assert!(changed.configured && changed.connected);
@@ -2646,6 +2652,7 @@ mod tests {
         assert_eq!(changed.state(), crate::PowerSupplyState::PowerOff);
         assert_eq!(changed.input_voltage_volts, Some(13.4));
         assert_eq!(changed.alive_count, Some(2));
+        assert_eq!(changed.firmware_version.as_deref(), Some("V2.4.1"));
     }
 
     #[tokio::test]

@@ -1237,11 +1237,21 @@ const PowerSupplyStatus$json = {
       '10': 'aliveCount',
       '17': true
     },
+    {
+      '1': 'firmware_version',
+      '3': 7,
+      '4': 1,
+      '5': 9,
+      '9': 3,
+      '10': 'firmwareVersion',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_ignition'},
     {'1': '_input_voltage_volts'},
     {'1': '_alive_count'},
+    {'1': '_firmware_version'},
   ],
 };
 
@@ -1251,8 +1261,9 @@ final $typed_data.Uint8List powerSupplyStatusDescriptor = $convert.base64Decode(
     'Nvbm5lY3RlZBgCIAEoCFIJY29ubmVjdGVkEh8KCGlnbml0aW9uGAMgASgISABSCGlnbml0aW9u'
     'iAEBEi8KBXN0YXRlGAQgASgOMhkuY2FybmluZS5Qb3dlclN1cHBseVN0YXRlUgVzdGF0ZRIzCh'
     'NpbnB1dF92b2x0YWdlX3ZvbHRzGAUgASgBSAFSEWlucHV0Vm9sdGFnZVZvbHRziAEBEiQKC2Fs'
-    'aXZlX2NvdW50GAYgASgNSAJSCmFsaXZlQ291bnSIAQFCCwoJX2lnbml0aW9uQhYKFF9pbnB1dF'
-    '92b2x0YWdlX3ZvbHRzQg4KDF9hbGl2ZV9jb3VudA==');
+    'aXZlX2NvdW50GAYgASgNSAJSCmFsaXZlQ291bnSIAQESLgoQZmlybXdhcmVfdmVyc2lvbhgHIA'
+    'EoCUgDUg9maXJtd2FyZVZlcnNpb26IAQFCCwoJX2lnbml0aW9uQhYKFF9pbnB1dF92b2x0YWdl'
+    'X3ZvbHRzQg4KDF9hbGl2ZV9jb3VudEITChFfZmlybXdhcmVfdmVyc2lvbg==');
 
 @$core.Deprecated('Use latLonDescriptor instead')
 const LatLon$json = {
