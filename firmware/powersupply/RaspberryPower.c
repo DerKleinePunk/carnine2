@@ -45,6 +45,11 @@ volatile uint8_t systemState = STATE_IDLE;
 volatile uint8_t powerOnTime = 3;
 // Milliseconds KL15 has been off without a break, up to KL15_OFF_DEBOUNCE_MS.
 volatile uint16_t kl15OffMs = 0;
+// Battery protection: limit in 0.1 V (0 = off), seconds below it in RUN, and
+// the lock that keeps the Pi off after such a shutdown.
+volatile uint8_t lowVoltageLimit = 118;
+volatile uint8_t lowVoltageSeconds = 0;
+volatile bool lowVoltageLock = false;
 
 volatile bool sendDebugMessages = false;
 volatile bool serviceMode = false;
@@ -61,8 +66,9 @@ uint8_t resetDevice[2] = { 0x1B, 'c' };
 
 // declare an eeprom array
 // [0] debug output (0x00 off, 0x01 on), [1] power-on delay in s,
-// [2] EEPROM_LAYOUT once the settings were brought up to V2.4.0.
-uint8_t EEMEM my_eeprom_array[10] = { 0x00, 0x03, 0x02, 0x00 };
+// [2] EEPROM_LAYOUT once the settings were brought up to V2.4.0,
+// [3] battery protection limit in 0.1 V (0 = off).
+uint8_t EEMEM my_eeprom_array[10] = { 0x00, 0x03, 0x02, 118 };
 
 #define forever while(1)
 
@@ -92,6 +98,18 @@ uint8_t EEMEM my_eeprom_array[10] = { 0x00, 0x03, 0x02, 0x00 };
 // Written to my_eeprom_array[2] once the settings were brought up to V2.4.0
 // (debug output off once, see LoadSettings).
 #define EEPROM_LAYOUT 0x02
+// Battery protection: in RUN, this many seconds in a row below the limit
+// (EEPROM [3], 0.1 V, default 11.8 V, 'B' + three digits) start POWEROFF.
+// The engine running keeps the voltage above ~13.2 V, so it only trips with
+// the engine off; the starter's dip lasts seconds. Afterwards the supply
+// stays off until the ignition was off or the voltage reaches
+// LOW_VOLTAGE_UNLOCK (engine started), or it would power the Pi up again at
+// once and drain the battery further.
+#define LOW_VOLTAGE_SECONDS 60
+#define LOW_VOLTAGE_DEFAULT 118
+#define LOW_VOLTAGE_MIN 90
+#define LOW_VOLTAGE_MAX 140
+#define LOW_VOLTAGE_UNLOCK 130
 
 SIGNAL(TIMER0_COMPA_vect) // Global Timer, 1000 Hz
 {
@@ -128,6 +146,8 @@ void InitGlobalVariables()
     idleTimer = 30;
     piAlive = 0;
     kl15OffMs = KL15_OFF_DEBOUNCE_MS; // off until seen on
+    lowVoltageSeconds = 0;
+    lowVoltageLock = false;
     GlobalTime = 0;
     Int1msCount = 0;
     Int1000msCount = 0;
@@ -462,6 +482,18 @@ void Timer1000ms()
 
     RunTime++;
 
+    uint16_t tenths = Get12Volt() / 100;
+    if(systemState == STATE_RUN && lowVoltageLimit > 0 && tenths < lowVoltageLimit) {
+        if(lowVoltageSeconds < 255) {
+            lowVoltageSeconds++;
+        }
+    } else {
+        lowVoltageSeconds = 0;
+    }
+    if(lowVoltageLock && (KL15_On() == 0 || tenths >= LOW_VOLTAGE_UNLOCK)) {
+        lowVoltageLock = false;
+    }
+
     if(systemState == STATE_POWERON && powerOnTimer < powerOnTime) {
         powerOnTimer++;
     } else if(systemState == STATE_RUN) {
@@ -622,6 +654,20 @@ void Interpret(uint8_t Command)
         } else {
             powerOnTime = read_eeprom_byte(&my_eeprom_array[1]);
         }
+    } else if(Command == 'B') {
+        // Battery protection limit: three digits in 0.1 V, "000" = off.
+        uint8_t digits[3];
+        uint16_t limit = 0;
+        bool valid = true;
+        for(uint8_t i = 0; i < 3 && valid; i++) {
+            valid = GetDataInWithin(COMMAND_ARGUMENT_WAIT_MS, &digits[i]) && digits[i] >= '0' && digits[i] <= '9';
+            limit = limit * 10 + (digits[i] - '0');
+        }
+        if(valid && (limit == 0 || (limit >= LOW_VOLTAGE_MIN && limit <= LOW_VOLTAGE_MAX))) {
+            lowVoltageLimit = (uint8_t)limit;
+            update_eeprom_byte(&my_eeprom_array[3], lowVoltageLimit);
+            response = ACK;
+        }
     } else if(Command == '!') {
         serviceMode = true;
         if(sendDebugMessages) {
@@ -672,7 +718,7 @@ void MainLoop()
 
     bool stateChanged = false;
     uint8_t kl15 = KL15_On();
-    if(systemState == STATE_IDLE && kl15 == 1) {
+    if(systemState == STATE_IDLE && kl15 == 1 && !lowVoltageLock) {
         systemState = STATE_POWERON;
         SetRelaisOn(0); // Power On Display and HDMI Spliter
         bootTimer = 0;
@@ -739,6 +785,18 @@ void MainLoop()
             bootTimer = 0;
             powerOffTimer = 15;
             stateChanged = true;
+        } else if(lowVoltageSeconds >= LOW_VOLTAGE_SECONDS) { // Battery low, engine off
+            if(sendDebugMessages) {
+                SendString("Battery low !");
+            }
+            SetRelaisOff(2);
+            systemState = STATE_POWEROFF;
+            powerOnTimer = 0;
+            bootTimer = 0;
+            powerOffTimer = 15;
+            lowVoltageSeconds = 0;
+            lowVoltageLock = true;
+            stateChanged = true;
         }
     } else if(systemState == STATE_POWEROFF && powerOffTimer > 0) {
         if(Dig3On()) {
@@ -752,7 +810,9 @@ void MainLoop()
         systemState = STATE_IDLE;
         idleTimer = 0;
         stateChanged = true;
-    } else if(systemState == STATE_IDLE && idleTimer == 0) {
+    } else if(systemState == STATE_IDLE && idleTimer == 0 && !lowVoltageLock) {
+        // Not while locked: the sleep ends in a watchdog reset, which would
+        // forget the lock.
         if(sendDebugMessages) {
             SendString("Sleep");
             WaitSendBufferEmpty();
@@ -771,14 +831,22 @@ void MainLoop()
 // Reads debug output and power-on delay from the EEPROM, writing defaults
 // where nothing valid is stored. Flashing does not touch the EEPROM, so a
 // module that ran V2.3.0 or older still has debug output on (the old
-// default); the first start of V2.4.0 switches it off once and marks the
-// EEPROM with EEPROM_LAYOUT. '#' switches it on again for good.
+// default); the first start of V2.4.0 switches it off once, sets the
+// battery protection limit to its default and marks the EEPROM with
+// EEPROM_LAYOUT. '#' switches debug output on again for good.
 void LoadSettings()
 {
     if(read_eeprom_byte(&my_eeprom_array[2]) != EEPROM_LAYOUT) {
         update_eeprom_byte(&my_eeprom_array[0], 0x00);
+        update_eeprom_byte(&my_eeprom_array[3], LOW_VOLTAGE_DEFAULT);
         update_eeprom_byte(&my_eeprom_array[2], EEPROM_LAYOUT);
     }
+    uint8_t limit = read_eeprom_byte(&my_eeprom_array[3]);
+    if(limit != 0 && (limit < LOW_VOLTAGE_MIN || limit > LOW_VOLTAGE_MAX)) {
+        limit = LOW_VOLTAGE_DEFAULT;
+        write_eeprom_byte(&my_eeprom_array[3], limit);
+    }
+    lowVoltageLimit = limit;
     // Read Debug Enabe from EEPROM
     if(read_eeprom_byte(&my_eeprom_array[0]) != 0x01 && read_eeprom_byte(&my_eeprom_array[0]) != 0x00) {
         write_eeprom_byte(&my_eeprom_array[0], 0x00);

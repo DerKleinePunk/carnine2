@@ -139,6 +139,12 @@ static uint8_t last_command_result(void)
     return 0;
 }
 
+/* Sets what the firmware reads as input voltage, in tenths of a volt. */
+static void voltage(int tenths)
+{
+    ADCRes[6] = (uint16_t)((tenths * 100 + 34) / 35);
+}
+
 /* A freshly started board with the ignition off, as main() leaves it. */
 static void power_up(void)
 {
@@ -158,6 +164,12 @@ static void power_up(void)
     ms_since_wdt = 0;
     sent_count = 0;
     expect_reset = false;
+    voltage(132);
+#ifndef OLD_FIRMWARE
+    my_eeprom_array[2] = EEPROM_LAYOUT;
+    my_eeprom_array[3] = 118;
+    LoadSettings();
+#endif
 }
 
 static void pass_ms(int ms)
@@ -527,6 +539,197 @@ static void the_version_answers(void)
     CHECK(memmem(sent, sent_count, VERSION, strlen(VERSION)) != NULL);
 }
 
+
+/* --- C3: battery protection -------------------------------------------- */
+
+#ifndef OLD_FIRMWARE
+static void keep_alive_seconds(int seconds)
+{
+    for(int s = 0; s < seconds; s++) {
+        receive('+');
+        second();
+    }
+}
+
+static void the_voltage_reads_as_set(void)
+{
+    power_up();
+    voltage(118);
+    CHECK(Get12Volt() / 100 == 118);
+    voltage(117);
+    CHECK(Get12Volt() / 100 == 117);
+}
+
+static void sixty_seconds_below_the_limit_shut_the_pi_down(void)
+{
+    power_up();
+    boot_to_run();
+    voltage(117);
+    keep_alive_seconds(LOW_VOLTAGE_SECONDS - 2);
+    CHECK(systemState == STATE_RUN);
+    int seconds = 0;
+    while(systemState == STATE_RUN && seconds++ < 4) {
+        keep_alive_seconds(1);
+    }
+    CHECK(systemState == STATE_POWEROFF);
+    CHECK(powerOffTimer >= 14);
+    CHECK(!(PORTB & RELAY_AMPLIFIER));
+    CHECK(PORTB & RELAY_PI);
+}
+
+static void at_the_limit_nothing_happens(void)
+{
+    power_up();
+    boot_to_run();
+    voltage(118);
+    keep_alive_seconds(LOW_VOLTAGE_SECONDS + 10);
+    CHECK(systemState == STATE_RUN);
+}
+
+static void cranking_dips_are_ignored(void)
+{
+    power_up();
+    boot_to_run();
+    for(int round = 0; round < 3; round++) {
+        voltage(95); /* starter */
+        keep_alive_seconds(LOW_VOLTAGE_SECONDS / 2);
+        voltage(141); /* engine runs */
+        keep_alive_seconds(2);
+    }
+    CHECK(systemState == STATE_RUN);
+}
+
+/* After a shutdown for low voltage the supply must not power the Pi up
+ * again while the ignition stays on: that would drain the battery further. */
+static void the_lock_keeps_the_pi_off_while_the_ignition_stays_on(void)
+{
+    power_up();
+    boot_to_run();
+    voltage(115);
+    keep_alive_seconds(LOW_VOLTAGE_SECONDS + 2);
+    CHECK(systemState == STATE_POWEROFF);
+    int seconds = 0;
+    while(systemState == STATE_POWEROFF && seconds++ < 20) {
+        second();
+    }
+    CHECK(systemState == STATE_IDLE);
+    /* Ten minutes later: still off, and the chip stays awake (no sleep,
+     * whose watchdog reset would forget the lock). */
+    for(int s = 0; s < 600; s++) {
+        second();
+    }
+    CHECK(systemState == STATE_IDLE);
+    CHECK((PORTB & 7) == 0);
+}
+
+static void ignition_off_lifts_the_lock(void)
+{
+    power_up();
+    boot_to_run();
+    voltage(115);
+    keep_alive_seconds(LOW_VOLTAGE_SECONDS + 20);
+    CHECK(systemState == STATE_IDLE);
+    ignition(false);
+    /* Unlocked and the ignition off, the chip goes to sleep; with USB power
+     * that ends in a watchdog reset, as on the board. */
+    expect_reset = true;
+    int cause = setjmp(chip_reset);
+    if(cause == NO_RESET) {
+        pass_ms(KL15_OFF_DEBOUNCE_MS + 2100);
+    }
+    CHECK(cause == RESET_BY_CLI);
+    CHECK(!lowVoltageLock);
+    expect_reset = false;
+    Init();
+    LoadSettings();
+    systemState = STATE_IDLE;
+    ignition(true);
+    pass_ms(2);
+    CHECK(systemState == STATE_POWERON);
+}
+
+static void the_engine_running_lifts_the_lock(void)
+{
+    power_up();
+    boot_to_run();
+    voltage(115);
+    keep_alive_seconds(LOW_VOLTAGE_SECONDS + 20);
+    CHECK(systemState == STATE_IDLE);
+    voltage(LOW_VOLTAGE_UNLOCK - 1);
+    for(int s = 0; s < 5; s++) {
+        second();
+    }
+    CHECK(systemState == STATE_IDLE);
+    voltage(LOW_VOLTAGE_UNLOCK);
+    second();
+    second();
+    CHECK(systemState == STATE_POWERON);
+}
+
+static void limit_zero_switches_the_protection_off(void)
+{
+    power_up();
+    receive('B');
+    receive('0');
+    receive('0');
+    CHECK(command('0') == NO_RESET);
+    CHECK(last_command_result() == ACK);
+    CHECK(my_eeprom_array[3] == 0);
+    boot_to_run();
+    voltage(100);
+    keep_alive_seconds(LOW_VOLTAGE_SECONDS + 10);
+    CHECK(systemState == STATE_RUN);
+}
+
+static void the_limit_is_set_with_b_and_three_digits(void)
+{
+    power_up();
+    receive('B');
+    receive('1');
+    receive('2');
+    CHECK(command('0') == NO_RESET);
+    CHECK(last_command_result() == ACK);
+    CHECK(my_eeprom_array[3] == 120);
+    CHECK(lowVoltageLimit == 120);
+    LoadSettings();
+    CHECK(lowVoltageLimit == 120);
+
+    /* Out of range or not digits: refused, nothing changes. */
+    receive('B');
+    receive('2');
+    receive('0');
+    CHECK(command('0') == NO_RESET);
+    CHECK(last_command_result() == NACK);
+    receive('B');
+    receive('1');
+    receive('x');
+    CHECK(command('8') == NO_RESET);
+    CHECK(last_command_result() == NACK);
+    CHECK(my_eeprom_array[3] == 120);
+}
+
+static void a_lone_b_is_refused_without_a_reset(void)
+{
+    power_up();
+    boot_to_run();
+    uint8_t relays = PORTB;
+    CHECK(command('B') == NO_RESET);
+    CHECK(last_command_result() == NACK);
+    CHECK(PORTB == relays);
+    CHECK(my_eeprom_array[3] == 118);
+}
+
+static void an_old_module_gets_the_default_limit(void)
+{
+    power_up();
+    my_eeprom_array[2] = 0xFF;
+    my_eeprom_array[3] = 0xFF;
+    LoadSettings();
+    CHECK(my_eeprom_array[3] == 118);
+    CHECK(lowVoltageLimit == 118);
+}
+#endif
+
 #define RUN(test)                                                                                  \
     do {                                                                                           \
         int before = failures;                                                                     \
@@ -558,6 +761,19 @@ int main(void)
 #ifndef OLD_FIRMWARE
     RUN(an_empty_eeprom_starts_without_debug_output);
     RUN(a_module_flashed_from_v2_3_switches_debug_off_once);
+#endif
+#ifndef OLD_FIRMWARE
+    RUN(the_voltage_reads_as_set);
+    RUN(sixty_seconds_below_the_limit_shut_the_pi_down);
+    RUN(at_the_limit_nothing_happens);
+    RUN(cranking_dips_are_ignored);
+    RUN(the_lock_keeps_the_pi_off_while_the_ignition_stays_on);
+    RUN(ignition_off_lifts_the_lock);
+    RUN(the_engine_running_lifts_the_lock);
+    RUN(limit_zero_switches_the_protection_off);
+    RUN(the_limit_is_set_with_b_and_three_digits);
+    RUN(a_lone_b_is_refused_without_a_reset);
+    RUN(an_old_module_gets_the_default_limit);
 #endif
     RUN(the_watchdog_cuts_a_silent_pi_after_its_grace);
     RUN(signs_of_life_keep_run_going);

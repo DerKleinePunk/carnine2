@@ -23,9 +23,20 @@ instead of 1.
   power; otherwise NACK. **Flash with the ignition off.**
 - KL15 counts as off only after 1 s without a break (on counts at once), so
   a short dip no longer starts the irreversible POWEROFF.
+- Battery protection: in RUN, 60 s in a row below 11.8 V start POWEROFF
+  (15 s, the backend shuts the Pi down as on ignition off). With the engine
+  running the voltage stays above ~13.2 V, and the starter's dip lasts only
+  seconds. Afterwards the supply keeps the Pi off until the ignition was off
+  or the voltage reaches 13.0 V (engine started); without that lock it would
+  power the Pi up again at once. The limit is `B` plus three digits in
+  0.1 V (`B118`, 9.0–14.0 V), `B000` switches it off; stored in EEPROM
+  byte 3. The supply reads about 0.2 V low on carnine-pc (13.1 V reported,
+  13.3 V measured at KL30 on 2026-10-16), so 11.8 V there trips at about
+  12.0 V.
 - Debug output is off by default. The first start of V2.4.0 switches it off
-  once on a module that ran an older version (EEPROM byte 2 = `0x02` marks
-  that); `#` switches it on again for good.
+  once on a module that ran an older version and sets the battery limit to
+  11.8 V (EEPROM byte 2 = `0x02` marks that); `#` switches debug output on
+  again for good.
 
 Authors: Marcus Borst, Michael Nenninger.
 
