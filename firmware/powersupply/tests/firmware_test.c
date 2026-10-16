@@ -179,7 +179,9 @@ static void pass_ms(int ms)
         MainLoop();
         drain();
         if(sent_count > (int)sizeof sent - 64) {
-            sent_count = 0;
+            /* keep the newest bytes, so the last answer stays readable */
+            memmove(sent, sent + sent_count - 32, 32);
+            sent_count = 32;
         }
     }
 }
@@ -208,12 +210,17 @@ static void boot_to_piboot(void)
     }
 }
 
+/* Into RUN, returning right when RUN starts; the Pi sends '+' each second. */
 static void boot_to_run(void)
 {
     boot_to_piboot();
-    while(systemState == STATE_PIBOOT) {
-        receive('+');
-        second();
+    int ms = 0;
+    while(systemState == STATE_PIBOOT && ms < (PI_BOOT_TIME + 5) * 1001) {
+        if(ms % 1001 == 0) {
+            receive('+');
+        }
+        pass_ms(1);
+        ms++;
     }
 }
 
@@ -239,9 +246,9 @@ static void ignition_off_in_piboot_gives_the_pi_its_15_s_to_shut_down(void)
     CHECK(systemState == STATE_PIBOOT);
     ignition(false);
 
-    /* PIBOOT runs to its end, so a booting Pi is never cut off. */
+    /* The Pi is still booting and silent: PIBOOT runs to its end, so it is
+     * never cut off. */
     for(int s = 1; s < PI_BOOT_TIME - 1; s++) {
-        receive('+');
         second();
     }
     CHECK(systemState == STATE_PIBOOT);
@@ -291,7 +298,6 @@ static void ignition_back_on_before_piboot_ends_goes_to_run(void)
     boot_to_piboot();
     ignition(false);
     for(int s = 0; s < 10; s++) {
-        receive('+');
         second();
     }
     ignition(true);
@@ -302,6 +308,102 @@ static void ignition_back_on_before_piboot_ends_goes_to_run(void)
     CHECK(systemState == STATE_RUN);
     CHECK(PORTB & RELAY_PI);
 }
+
+
+/* --- D: PIBOOT ends once the Pi is alive ------------------------------- */
+
+#ifndef OLD_FIRMWARE
+static void two_signs_of_life_end_piboot_early(void)
+{
+    power_up();
+    boot_to_piboot();
+    for(int s = 0; s < 20; s++) {
+        second(); /* booting, silent */
+    }
+    receive('+');
+    second();
+    CHECK(systemState == STATE_PIBOOT); /* one is not enough */
+    receive('+');
+    pass_ms(2);
+    CHECK(systemState == STATE_RUN);
+    CHECK(piAlive >= PI_ALIVE_ON_RUN);
+    CHECK(PORTB & RELAY_PI);
+}
+
+static void a_silent_pi_still_gets_the_full_boot_time(void)
+{
+    power_up();
+    boot_to_piboot();
+    for(int s = 0; s < PI_BOOT_TIME - 2; s++) {
+        second();
+    }
+    CHECK(systemState == STATE_PIBOOT);
+    int seconds = 0;
+    while(systemState == STATE_PIBOOT && seconds++ < 4) {
+        second();
+    }
+    CHECK(systemState == STATE_RUN);
+}
+
+static void other_bytes_do_not_end_piboot(void)
+{
+    power_up();
+    boot_to_piboot();
+    const char noise[] = "33##66vv";
+    for(unsigned i = 0; i < sizeof noise - 1; i++) {
+        receive((uint8_t)noise[i]);
+        pass_ms(2);
+    }
+    second();
+    CHECK(systemState == STATE_PIBOOT);
+}
+
+/* Signs of life from the last run (the backend sends them until it stops)
+ * must not end the next PIBOOT before the Pi has booted, or the watchdog
+ * would cut the booting Pi. */
+static void signs_of_life_from_before_do_not_count(void)
+{
+    power_up();
+    boot_to_run();
+    ignition(false);
+    for(int s = 0; s < 3; s++) {
+        receive('+');
+        second();
+    }
+    CHECK(systemState == STATE_POWEROFF);
+    ignition(true); /* does not cancel POWEROFF */
+    int seconds = 0;
+    while(systemState == STATE_POWEROFF && seconds++ < 20) {
+        receive('+');
+        second();
+    }
+    while(systemState != STATE_PIBOOT && seconds++ < 30) {
+        second();
+    }
+    CHECK(systemState == STATE_PIBOOT);
+    for(int s = 0; s < 5; s++) {
+        second();
+    }
+    CHECK(systemState == STATE_PIBOOT);
+}
+
+static void ignition_off_in_piboot_with_the_pi_alive_shuts_down_at_once(void)
+{
+    power_up();
+    boot_to_piboot();
+    ignition(false);
+    pass_ms(KL15_OFF_DEBOUNCE_MS + 100);
+    CHECK(systemState == STATE_PIBOOT);
+    receive('+');
+    second();
+    receive('+');
+    second();
+    /* Not after the 60 s: the Pi is up and gets its 15 s now. */
+    CHECK(systemState == STATE_POWEROFF);
+    CHECK(powerOffTimer >= 13);
+    CHECK(PORTB & RELAY_PI);
+}
+#endif
 
 /* --- Fault B: one stray byte resets the chip --------------------------- */
 
@@ -747,6 +849,13 @@ int main(void)
     RUN(ignition_off_in_piboot_gives_the_pi_its_15_s_to_shut_down);
     RUN(the_pi_halted_signal_ends_that_poweroff_early);
     RUN(ignition_back_on_before_piboot_ends_goes_to_run);
+#ifndef OLD_FIRMWARE
+    RUN(two_signs_of_life_end_piboot_early);
+    RUN(a_silent_pi_still_gets_the_full_boot_time);
+    RUN(other_bytes_do_not_end_piboot);
+    RUN(signs_of_life_from_before_do_not_count);
+    RUN(ignition_off_in_piboot_with_the_pi_alive_shuts_down_at_once);
+#endif
     RUN(a_lone_star_is_refused_without_a_reset);
     RUN(star_and_digit_still_set_the_power_on_delay);
     RUN(a_digit_a_few_ms_late_still_counts);

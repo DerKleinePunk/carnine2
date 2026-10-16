@@ -41,6 +41,10 @@ volatile uint8_t bootTimer = 0x00;
 volatile uint8_t powerOffTimer = 0x00;
 volatile uint8_t idleTimer = 0x00;
 volatile uint8_t piAlive = 0x00;
+// '+' received in this PIBOOT; only '+' counts, and only from the start of
+// PIBOOT, so signs of life from the last run or line noise cannot end it
+// before the Pi has booted.
+volatile uint8_t piBootAlive = 0x00;
 volatile uint8_t systemState = STATE_IDLE;
 volatile uint8_t powerOnTime = 3;
 // Milliseconds KL15 has been off without a break, up to KL15_OFF_DEBOUNCE_MS.
@@ -83,12 +87,16 @@ uint8_t EEMEM my_eeprom_array[10] = { 0x00, 0x03, 0x02, 118 };
 #define EXTERNVOLTAGE 0x14
 #define NACK 0x15
 
-#define VERSION "V2.4.0"
+#define VERSION "V2.4.1"
 
 // Seconds the Pi gets to boot before the watchdog starts (was 30).
 #define PI_BOOT_TIME 60
 // Alive count on entering RUN: seconds of grace for the first alive (was 1).
 #define PI_ALIVE_ON_RUN 3
+// PIBOOT ends early once the Pi has sent this many '+' in it: the Pi is up,
+// so RUN (watchdog, ignition off with 15 s, battery protection, amplifier)
+// need not wait for the rest of PI_BOOT_TIME, which stays the longest wait.
+#define PI_BOOT_ALIVE_TO_RUN 2
 // KL15 counts as off only after this many milliseconds without a break: a
 // dip from a loose contact or the starter must not shut the Pi down, and
 // POWEROFF cannot be cancelled. On counts at once.
@@ -610,6 +618,9 @@ void Interpret(uint8_t Command)
         response = ACK;
     } else if(Command == '+') {
         piAlive++;
+        if(systemState == STATE_PIBOOT && piBootAlive < 255) {
+            piBootAlive++;
+        }
         response = ACK;
     } else if(Command == '$') {
         SetRelaisOff(2);
@@ -747,9 +758,10 @@ void MainLoop()
             SetRelaisOn(1); // Power Raspberry
             powerOnTimer = 0;
             bootTimer = PI_BOOT_TIME;
+            piBootAlive = 0;
             stateChanged = true;
         }
-    } else if(systemState == STATE_PIBOOT && bootTimer == 0) {
+    } else if(systemState == STATE_PIBOOT && (bootTimer == 0 || piBootAlive >= PI_BOOT_ALIVE_TO_RUN)) {
         if(kl15 == 0) { // Cancel Power on
             // The Pi has booted by now: it gets the same 15 s to shut down
             // as from RUN. powerOffTimer was still 0 from the last POWEROFF,

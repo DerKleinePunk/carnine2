@@ -12,6 +12,14 @@ Taken over from
 (`PI_BOOT_TIME`), and RUN starts with the alive counter at 3 instead of 1
 (`PI_ALIVE_ON_RUN`), so a Pi that has not sent `+` yet has 3 s of grace
 instead of 1.
+**V2.4.1** (2026-10-16): PIBOOT ends as soon as the Pi has sent two `+`
+in it (the backend sends one a second from its start), so RUN, and with it
+the watchdog, ignition off with 15 s, the battery protection and the
+amplifier on Rel3, starts about 25 s after the Pi gets power instead of
+60 s. Only `+` counts, and only from the start of each PIBOOT, so line noise
+or the signs of life of the last run cannot end it before the Pi has
+booted. A silent Pi still gets the full 60 s.
+
 **V2.4.0** (2026-10-16):
 - Ignition off during PIBOOT now gives the Pi its 15 s to shut down once
   PIBOOT ends. Before, `powerOffTimer` was still 0 and the next pass cut the
@@ -30,9 +38,12 @@ instead of 1.
   or the voltage reaches 13.0 V (engine started); without that lock it would
   power the Pi up again at once. The limit is `B` plus three digits in
   0.1 V (`B118`, 9.0–14.0 V), `B000` switches it off; stored in EEPROM
-  byte 3. The supply reads about 0.2 V low on carnine-pc (13.1 V reported,
-  13.3 V measured at KL30 on 2026-10-16), so 11.8 V there trips at about
-  12.0 V.
+  byte 3. Measuring error, not settled: with V2.3.0 carnine-pc's module
+  reported 13.1–13.2 V while the multimeter showed 13.3 V at KL30
+  (2026-10-16); after flashing V2.4.0 it reports 13.3 V on the same bench
+  supply. Whether the debug output's load made the difference is open;
+  comparing reported and measured voltage at a few points on the bench
+  supply settles it.
 - Debug output is off by default. The first start of V2.4.0 switches it off
   once on a module that ran an older version and sets the battery limit to
   11.8 V (EEPROM byte 2 = `0x02` marks that); `#` switches debug output on
