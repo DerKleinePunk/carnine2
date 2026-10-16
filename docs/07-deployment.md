@@ -43,7 +43,10 @@ The deployment architecture emphasizes reliability and minimal resource consumpt
   [Reversing camera](#reversing-camera) below
 - **Vehicle power supply** (optional): the AuPrV1_1 board switches the Pi
   with the ignition and gives it time to shut down; serial line on uart5
-  (`/dev/powersupply`), see [23 – Vehicle Power Supply](23-power-supply.md)
+  (`/dev/powersupply`). Its relay Rel3 turns the amplifier's remote input
+  (REM) on once the user interface is ready and off before the audio output
+  closes (`[power_supply] amplifier_relay`, default `true`), see
+  [23 – Vehicle Power Supply](23-power-supply.md)
 - **Case fan and display backlight** (optional): two hardware PWM channels,
   GPIO 18 (pin 12) and GPIO 19 (pin 35). The image always enables both
   (`dtoverlay=pwm-2chan,pin=18,func=2,pin2=19,func2=2`), and the backend

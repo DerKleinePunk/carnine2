@@ -1,8 +1,9 @@
 # 23 – Vehicle Power Supply (Ignition, Shutdown, Watchdog)
 
 **Status:** partly integrated (v0.9.3). The backend sends the sign of life and
-reports the supply's state since v0.6.0 and shuts the Pi down on POWEROFF
-since e1aa949; `$` and the service mode are still open (#36, see
+reports the supply's state since v0.6.0, shuts the Pi down on POWEROFF
+since e1aa949 and switches the amplifier on Rel3 since 9730edf; `$` and the
+service mode are still open (#36, see
 [What carnine2 needs for it](#what-carnine2-needs-for-it)).
 The hardware and its firmware
 come from the predecessor project
@@ -334,8 +335,9 @@ stream; a receiver must skip them.
 ## What carnine2 needs for it
 
 The image is prepared, the backend sends the sign of life, reports the
-supply's state up to the user interface and shuts the Pi down when the
-supply goes to POWEROFF. `$` and the service mode are still to be built.
+supply's state up to the user interface, shuts the Pi down when the
+supply goes to POWEROFF and switches the amplifier on Rel3. `$` and the
+service mode are still to be built.
 
 - **Image:** done – `uart5`, optional `gpio-poweroff`, `/dev/powersupply`
   (see [Wiring to the Pi 4](#wiring-to-the-pi-4)). The serial console is not
@@ -403,6 +405,57 @@ supply goes to POWEROFF. `$` and the service mode are still to be built.
       its power was gone once; ignition on again does not start it. Only
       when the supply feeds the Pi does KL15 on bring it back (POWERON →
       PIBOOT).
+  - **Amplifier on Rel3** (commit 9730edf): Rel3 is relay 2 of the
+    firmware (counted from 0); `3` closes NO and puts +12 V on the
+    amplifier's remote input (REM), `6` opens it. Both also count as a sign
+    of life. The backend switches the amplifier **on** once all of these
+    hold: the user interface reported ready (`ReportUiReady`, see
+    [06 – Runtime](06-runtime.md)), 2 s have passed since then, so the audio
+    output has settled, and the supply talks and is in RUN. It switches it
+    **off** when the supply leaves RUN (for example POWEROFF) and, **first
+    of all**, when the backend stops: `6`, then 0.3 s for the relay to drop
+    and the amplifier to mute, only then does the audio output pause. The
+    pop of the audio output therefore no longer reaches the speakers.
+    - It sends `3` or `6` only on a change, otherwise `+` as before, and
+      **never `3` outside RUN**: the firmware opens Rel3 only once, on
+      entering POWEROFF, so a late `3` would turn the amplifier back on
+      during the 15 s of POWEROFF.
+    - On a new connection, and when the supply falls silent and talks
+      again (it may have restarted with every relay open), the backend
+      sets Rel3 afresh; before the UI is ready that is one `6`.
+    - **Backend restarted alone** (package update, crash): the frontend
+      does not report again. If `carnine-frontend.service` is already
+      active (it reports to systemd only after `ReportUiReady`), the UI
+      counts as ready; the log says `frontend already up (backend
+      restarted alone), counting the UI as ready`.
+    - The log says `UI ready: the amplifier (Rel3) comes on while the power
+      supply runs`, `amplifier (Rel3) on` and `amplifier (Rel3) off` with
+      the supply's state.
+    - `[power_supply] amplifier_relay` (default `true`, takes effect only
+      with `enabled = true`) set to `false` leaves Rel3 alone, for a board
+      where Rel3 switches something else:
+
+      ```toml
+      # /etc/carnine/config.d/20-power-supply.toml
+      [power_supply]
+      enabled = true
+      amplifier_relay = false
+      ```
+    - `media_grpc_client <endpoint> ui-ready` reports the UI as ready the
+      way the frontend does, for trials without a frontend.
+    - **Tested:** unit tests (two of them over a pseudo-terminal) and a WSL
+      trial with a simulated supply (PIBOOT `6`, RUN `3`, POWEROFF `6`, RUN
+      `3`, SIGTERM `6` 0.3 s before the audio pause). **On carnine-pc on
+      2026-10-16**, with only the relay connected and no amplifier: the
+      backend alone installed while the frontend ran → on 2 s after the
+      start; `systemctl restart carnine-backend` → off before the audio
+      pause, on again 2 s after the start; no NACK, the relay clicked
+      audibly. Ignition switch, same day (from `/var/log/carnine/backend.log`;
+      the volatile journal does not survive the shutdown): ignition off →
+      POWEROFF at 08:24:24.129 CEST (the log is in UTC), `amplifier (Rel3) off` 0.6 s later (the
+      firmware had already opened Rel3, the `6` only confirms it), no `3`
+      after it, the Pi shut down; ignition on → UI ready at 08:25:33, RUN at
+      08:26:00.32, `amplifier (Rel3) on` 0.14 s after RUN.
   - **Still open** (#36): sending `$` when the Pi shuts down on its own;
     service mode `!`/`?`.
 - **Timing to check on the device:**
@@ -418,8 +471,6 @@ supply goes to POWEROFF. `$` and the service mode are still to be built.
   - Shutdown must finish within 15 s, unless Dig3 reports the halt; the
     backend alone may take up to 10 s to stop (`TimeoutStopSec`).
   - The firmware can be changed where these do not fit.
-- **Amplifier relay:** switching the amplifier on after the audio stream is
-  open and off before it closes would hide the HDMI pop on the car radio.
 
 The old C++ implementation (`src/backend/communication/PowerSupplySerial.cpp`
 in the old project) sends `+` on every status telegram and schedules the
