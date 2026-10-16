@@ -25,7 +25,9 @@ RuntimeDirectoryMode=0700
 ExecStart=/usr/bin/carnine-backend
 Environment=CARNINE_CONFIG=/etc/carnine/config.toml
 Restart=on-failure
-RestartSec=5
+# With the car power supply its watchdog cuts the Pi about 3 s after the
+# last sign of life, so a crashed backend has to be back well within that.
+RestartSec=1
 TimeoutStopSec=10s
 
 [Install]
