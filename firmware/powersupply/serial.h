@@ -21,6 +21,7 @@ void SendString(char s[50]);
 void SendString_(char s[50]);
 uint8_t NewDataInAvailable();
 uint8_t GetDataIn();
+bool GetDataInWithin(uint8_t timeoutMs, uint8_t* data);
 void WaitSendBufferEmpty();
 
 #endif /* SERIAL_H_ */

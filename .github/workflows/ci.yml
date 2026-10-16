@@ -158,6 +158,8 @@ jobs:
         run: sh resources/tools/deb/tests/md5sums-test.sh
       - name: Trade fair setup tests (messe-einrichten)
         run: sh resources/config/messe/tests/messe-einrichten-test.sh
+      - name: Power supply firmware tests (host)
+        run: make -C firmware/powersupply test
 
   user-guide:
     name: User guide PDF (pandoc, WeasyPrint)

@@ -46,7 +46,16 @@ $(TARGET).eep: $(TARGET).elf
 $(TARGET).lss: $(TARGET).elf
 	$(OBJDUMP) -h -S $< > $@
 
+# Host tests: the firmware compiled unchanged with the host's gcc against
+# tests/fake/ (registers as plain variables), see tests/firmware_test.c.
+HOSTCC ?= cc
+test: | $(BUILD)
+	$(HOSTCC) -std=gnu99 -Wall -Wno-unused-function -Wno-type-limits \
+		-funsigned-char -Itests/fake $(TEST_FLAGS) \
+		tests/firmware_test.c -o $(BUILD)/firmware_test
+	$(BUILD)/firmware_test
+
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all clean
+.PHONY: all clean test

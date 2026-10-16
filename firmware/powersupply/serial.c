@@ -9,6 +9,7 @@
 
 #include <avr/interrupt.h>
 #include <avr/io.h>
+#include <avr/wdt.h>
 #include <util/delay.h>
 
 #include "helper.h"
@@ -172,6 +173,22 @@ uint8_t GetDataIn()
     }
     // sei();
     return ch;
+}
+
+// Waits at most timeoutMs for the next byte and keeps the hardware watchdog
+// fed meanwhile; false when none came.
+bool GetDataInWithin(uint8_t timeoutMs, uint8_t* data)
+{
+    while(NewDataInAvailable() == 0) {
+        if(timeoutMs == 0) {
+            return false;
+        }
+        _delay_ms(1);
+        wdt_reset();
+        timeoutMs--;
+    }
+    *data = GetDataIn();
+    return true;
 }
 
 void WaitSendBufferEmpty()

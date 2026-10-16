@@ -12,6 +12,21 @@ Taken over from
 (`PI_BOOT_TIME`), and RUN starts with the alive counter at 3 instead of 1
 (`PI_ALIVE_ON_RUN`), so a Pi that has not sent `+` yet has 3 s of grace
 instead of 1.
+**V2.4.0** (2026-10-16):
+- Ignition off during PIBOOT now gives the Pi its 15 s to shut down once
+  PIBOOT ends. Before, `powerOffTimer` was still 0 and the next pass cut the
+  Pi's power without a shutdown.
+- A lone `*` (line noise) waits at most 20 ms for its digit, then NACK.
+  Before, it waited for ever; the hardware watchdog reset the chip and every
+  relay dropped.
+- `U`/`u` enters the bootloader only in IDLE or POWERON, while the Pi has no
+  power; otherwise NACK. **Flash with the ignition off.**
+- KL15 counts as off only after 1 s without a break (on counts at once), so
+  a short dip no longer starts the irreversible POWEROFF.
+- Debug output is off by default. The first start of V2.4.0 switches it off
+  once on a module that ran an older version (EEPROM byte 2 = `0x02` marks
+  that); `#` switches it on again for good.
+
 Authors: Marcus Borst, Michael Nenninger.
 
 ## Build
@@ -30,6 +45,19 @@ The current compiler warns `-Wstringop-overflow` for every `SendString` call,
 because the functions are declared with `char s[50]` parameters. That is
 harmless: an array parameter is a pointer, and the strings are
 zero-terminated. The warnings stay until the code is touched anyway.
+
+## Tests
+
+```sh
+./build.sh test     # or: make test
+```
+
+`tests/firmware_test.c` compiles `RaspberryPower.c` and `serial.c` unchanged
+with the host's `cc` against stand-ins for the AVR headers (`tests/fake/`):
+registers are plain variables, each pass of the main loop gets one
+millisecond tick, and the hardware watchdog (about 125 ms) and `cli()` in
+`ResetTheChip()` count as a chip reset. The tests drive ignition, Dig3 and
+the serial line and check relays, states and answers. CI runs them.
 
 ## Flash
 

@@ -7,6 +7,7 @@ set -euo pipefail
 #
 #   ./build.sh            # build
 #   ./build.sh clean      # remove build/
+#   ./build.sh test       # host tests (tests/firmware_test.c), needs only cc
 #
 # CONTAINER_TOOL picks the container runtime (default: podman, then docker).
 # With podman-remote the directory must be visible to the podman machine,
@@ -14,6 +15,10 @@ set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 IMAGE="docker.io/library/debian:trixie-slim"
+
+if [[ "${1:-}" == "test" ]]; then
+  exec make -C "$DIR" test
+fi
 
 if command -v avr-gcc >/dev/null 2>&1; then
   exec make -C "$DIR" "$@"

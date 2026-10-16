@@ -43,6 +43,8 @@ volatile uint8_t idleTimer = 0x00;
 volatile uint8_t piAlive = 0x00;
 volatile uint8_t systemState = STATE_IDLE;
 volatile uint8_t powerOnTime = 3;
+// Milliseconds KL15 has been off without a break, up to KL15_OFF_DEBOUNCE_MS.
+volatile uint16_t kl15OffMs = 0;
 
 volatile bool sendDebugMessages = false;
 volatile bool serviceMode = false;
@@ -58,7 +60,9 @@ uint8_t resetDevice[2] = { 0x1B, 'c' };
 
 
 // declare an eeprom array
-uint8_t EEMEM my_eeprom_array[10] = { 0x01, 0x03, 0x00, 0x00 };
+// [0] debug output (0x00 off, 0x01 on), [1] power-on delay in s,
+// [2] EEPROM_LAYOUT once the settings were brought up to V2.4.0.
+uint8_t EEMEM my_eeprom_array[10] = { 0x00, 0x03, 0x02, 0x00 };
 
 #define forever while(1)
 
@@ -73,12 +77,21 @@ uint8_t EEMEM my_eeprom_array[10] = { 0x01, 0x03, 0x00, 0x00 };
 #define EXTERNVOLTAGE 0x14
 #define NACK 0x15
 
-#define VERSION "V2.3.0"
+#define VERSION "V2.4.0"
 
 // Seconds the Pi gets to boot before the watchdog starts (was 30).
 #define PI_BOOT_TIME 60
 // Alive count on entering RUN: seconds of grace for the first alive (was 1).
 #define PI_ALIVE_ON_RUN 3
+// KL15 counts as off only after this many milliseconds without a break: a
+// dip from a loose contact or the starter must not shut the Pi down, and
+// POWEROFF cannot be cancelled. On counts at once.
+#define KL15_OFF_DEBOUNCE_MS 1000
+// How long '*' waits for its digit; it follows at once on the line.
+#define COMMAND_ARGUMENT_WAIT_MS 20
+// Written to my_eeprom_array[2] once the settings were brought up to V2.4.0
+// (debug output off once, see LoadSettings).
+#define EEPROM_LAYOUT 0x02
 
 SIGNAL(TIMER0_COMPA_vect) // Global Timer, 1000 Hz
 {
@@ -114,6 +127,7 @@ void InitGlobalVariables()
     powerOnTimer = 0;
     idleTimer = 30;
     piAlive = 0;
+    kl15OffMs = KL15_OFF_DEBOUNCE_MS; // off until seen on
     GlobalTime = 0;
     Int1msCount = 0;
     Int1000msCount = 0;
@@ -198,6 +212,15 @@ uint8_t KL15_Aktiv() // 1 if KL15 is 12V Pin C4
         return (0);
     else
         return (1);
+}
+
+// KL15 debounced: on at once, off only after KL15_OFF_DEBOUNCE_MS.
+uint8_t KL15_On()
+{
+    if(KL15_Aktiv() == 1 || kl15OffMs < KL15_OFF_DEBOUNCE_MS)
+        return (1);
+    else
+        return (0);
 }
 
 bool Dig3On()
@@ -397,7 +420,7 @@ void PrintStatusOnTerminal(bool resetScreen)
 void SendStatusToPi()
 {
     char buffer[10];
-    itoa(KL15_Aktiv(), buffer, 10);
+    itoa(KL15_On(), buffer, 10);
 
     uint8_t telegram[4];
     telegram[0] = STX;
@@ -465,6 +488,12 @@ void Timer1000ms()
 
 void Timer1ms()
 {
+    if(KL15_Aktiv() == 1) {
+        kl15OffMs = 0;
+    } else if(kl15OffMs < KL15_OFF_DEBOUNCE_MS) {
+        kl15OffMs++;
+    }
+
     Int1000msCount++;
     if(Int1000msCount > 1000) {
         Int1000msCount = 0;
@@ -510,7 +539,8 @@ void SwitchToBootLoaderOperation()
 void Interpret(uint8_t Command)
 {
     uint8_t response = NACK;
-    if(Command == 'U' || Command == 'u') {
+    bool bootloaderAllowed = systemState == STATE_IDLE || systemState == STATE_POWERON;
+    if((Command == 'U' || Command == 'u') && bootloaderAllowed) {
         SwitchToBootLoaderOperation();
         return;
         // response = ACK;
@@ -564,9 +594,22 @@ void Interpret(uint8_t Command)
             update_eeprom_byte(&my_eeprom_array[0], 0x00);
         }
         response = ACK;
+    } else if(Command == 'U' || Command == 'u') {
+        // The reset into the bootloader drops every relay. Only while the Pi
+        // has no power (IDLE, POWERON), so a stray 'U' cannot cut it off.
+        if(sendDebugMessages) {
+            SendString("Bootloader only while the Pi is off");
+            WaitSendBufferEmpty();
+        }
     } else if(Command == '*') {
-        powerOnTime = GetDataIn();
-        powerOnTime = powerOnTime - 0x30;
+        // A lone '*' (line noise) must not wait for ever: the hardware
+        // watchdog would reset the chip and drop every relay.
+        uint8_t digit = 0;
+        if(GetDataInWithin(COMMAND_ARGUMENT_WAIT_MS, &digit)) {
+            powerOnTime = digit - 0x30;
+        } else {
+            powerOnTime = 0;
+        }
         if(powerOnTime > 0 && powerOnTime < 10) {
             if(sendDebugMessages) {
                 SendString_("Set Power On Time to ");
@@ -628,7 +671,7 @@ void MainLoop()
     }
 
     bool stateChanged = false;
-    uint8_t kl15 = KL15_Aktiv();
+    uint8_t kl15 = KL15_On();
     if(systemState == STATE_IDLE && kl15 == 1) {
         systemState = STATE_POWERON;
         SetRelaisOn(0); // Power On Display and HDMI Spliter
@@ -662,9 +705,14 @@ void MainLoop()
         }
     } else if(systemState == STATE_PIBOOT && bootTimer == 0) {
         if(kl15 == 0) { // Cancel Power on
+            // The Pi has booted by now: it gets the same 15 s to shut down
+            // as from RUN. powerOffTimer was still 0 from the last POWEROFF,
+            // which cut the Pi's power in the very next pass.
+            SetRelaisOff(2);
             systemState = STATE_POWEROFF;
             powerOnTimer = 0;
             bootTimer = 0;
+            powerOffTimer = 15;
             stateChanged = true;
         } else {
             systemState = STATE_RUN;
@@ -720,27 +768,41 @@ void MainLoop()
     wdt_reset();
 }
 
-int main(void)
+// Reads debug output and power-on delay from the EEPROM, writing defaults
+// where nothing valid is stored. Flashing does not touch the EEPROM, so a
+// module that ran V2.3.0 or older still has debug output on (the old
+// default); the first start of V2.4.0 switches it off once and marks the
+// EEPROM with EEPROM_LAYOUT. '#' switches it on again for good.
+void LoadSettings()
 {
-#ifdef DEBUG
-    wdt_disable();
-#endif
-    Init();
+    if(read_eeprom_byte(&my_eeprom_array[2]) != EEPROM_LAYOUT) {
+        update_eeprom_byte(&my_eeprom_array[0], 0x00);
+        update_eeprom_byte(&my_eeprom_array[2], EEPROM_LAYOUT);
+    }
     // Read Debug Enabe from EEPROM
     if(read_eeprom_byte(&my_eeprom_array[0]) != 0x01 && read_eeprom_byte(&my_eeprom_array[0]) != 0x00) {
-        write_eeprom_byte(&my_eeprom_array[0], 0x01);
+        write_eeprom_byte(&my_eeprom_array[0], 0x00);
     }
     // Read Power On Time from EEPROM
     if(read_eeprom_byte(&my_eeprom_array[1]) < 0x01 || read_eeprom_byte(&my_eeprom_array[1]) > 0x09) {
         write_eeprom_byte(&my_eeprom_array[1], 0x03);
     }
-    systemState = STATE_IDLE;
 
     // Todo How Detect Reset cam from WDT or not ?
     sendDebugMessages = read_eeprom_byte(&my_eeprom_array[0]) == 1;
 
     // Powerup PI Waiting time from Config
     powerOnTime = read_eeprom_byte(&my_eeprom_array[1]);
+}
+
+int main(void)
+{
+#ifdef DEBUG
+    wdt_disable();
+#endif
+    Init();
+    LoadSettings();
+    systemState = STATE_IDLE;
 
     if(sendDebugMessages) {
         SendString_("Startup ");
