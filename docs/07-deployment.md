@@ -1154,6 +1154,30 @@ the steps are listed for provisioning a new build host.
    Never judge performance from a debug build: `executor_lib` and other
    isolate pools fall back to the main isolate in debug.
 
+   **MCP, for trade-fair and test devices only:** MCP is ivi-homescreen's
+   local control socket, through which tests read the widget tree and tap
+   or type on the interface. `CARNINE_FRONTEND_MCP=1 ./build_pi.sh` builds
+   it in (`-D BUILD_ACCESSIBILITY=ON -D BUILD_MCP=ON` besides
+   `DISABLE_PLUGINS`) and marks the frontend version with `+mcp`, for
+   example `0.19.1+git20261017062742.7255dd5cdd14+mcp`, so `dpkg -l` and the version line
+   under Options → System show what is installed. The default `0` leaves it
+   out: **customer packages never carry MCP.**
+   - `emb.lock` pins the build inputs, the defines among them. The MCP build
+     therefore keeps its own lock, `emb.lock.mcp` next to it (pinned on its
+     first run), and puts the customer lock back afterwards, also when the
+     build fails; switching between the two builds causes no lock drift.
+   - After the build, `build_pi.sh` checks that the MCP server is in
+     `lib/libihs_shared.so.1` exactly when it was asked for (marker: the
+     protocol's method name `tools/call`), and stops otherwise.
+   - Built in, MCP is still off until the frontend starts with
+     `--enable-mcp`. The socket is then
+     `$XDG_RUNTIME_DIR/ivi-homescreen/mcp.sock` (on the Pi
+     `/run/user/1000/…`, owner `pi`, mode 0600), local only, not reachable
+     over the network. jeep-pi has the flag in its own frontend unit and
+     has run an MCP build since 2026-10-17 (7255dd5); carnine-pc runs the
+     customer build without it. Without `BUILD_MCP` the flag does nothing
+     but still logs `MCP Surface: … true`.
+
 3. **Install** the resulting `resources/debos/carnine-frontend.deb` with
    `./deploy_pi.sh`. The package installs the bundle to
    `/opt/carnine/frontend`; `/usr/bin/carnine-frontend` starts
