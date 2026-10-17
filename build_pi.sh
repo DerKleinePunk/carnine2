@@ -33,6 +33,20 @@ case "$FRONTEND_BUILD_MODE" in
     exit 1
     ;;
 esac
+# MCP, ivi-homescreen's local control socket that tests drive the interface
+# through (active only with --enable-mcp), is for trade-fair and test devices
+# only: CARNINE_FRONTEND_MCP=1 builds it in and marks the frontend version
+# "+mcp". Customer packages leave it out (the default).
+FRONTEND_MCP="${CARNINE_FRONTEND_MCP:-0}"
+EMB_DEFINES=(-D DISABLE_PLUGINS=ON)
+case "$FRONTEND_MCP" in
+  0) ;;
+  1) EMB_DEFINES+=(-D BUILD_ACCESSIBILITY=ON -D BUILD_MCP=ON) ;;
+  *)
+    echo "[pi] ERROR: Invalid CARNINE_FRONTEND_MCP: $FRONTEND_MCP (expected 0 or 1)"
+    exit 1
+    ;;
+esac
 
 mkdir -p "$LOG_DIR"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
@@ -41,6 +55,10 @@ VERSION="$(tr -d '[:space:]' < "$ROOT_DIR/VERSION")"
 GIT_HASH="$(git -C "$ROOT_DIR" rev-parse --short=12 HEAD)"
 BUILD_TIMESTAMP="$(date -u +%Y%m%d%H%M%S)"
 BUILD_VERSION="${VERSION}+git${BUILD_TIMESTAMP}.${GIT_HASH}"
+FRONTEND_VERSION="$BUILD_VERSION"
+if [[ "$FRONTEND_MCP" == "1" ]]; then
+  FRONTEND_VERSION="${BUILD_VERSION}+mcp"
+fi
 
 exec > >(tee -a "$LOG_FILE") 2>&1
 
@@ -51,6 +69,7 @@ if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
 fi
 echo "[pi] Building Carnine version $VERSION"
 echo "[pi] Build version: $BUILD_VERSION"
+echo "[pi] Frontend version: $FRONTEND_VERSION (MCP $([[ "$FRONTEND_MCP" == "1" ]] && echo on || echo off))"
 
 if [[ ! -f "$SYSROOT/usr/lib/aarch64-linux-gnu/pkgconfig/alsa.pc" ]]; then
   echo "[pi] ERROR: ARM64 sysroot is missing or incomplete: $SYSROOT"
@@ -167,9 +186,9 @@ rsync -a --delete \
 # as the String.fromEnvironment default. build_linux.sh still uses dart-defines.
 sed -i \
   -e "s/defaultValue: 'unknown',/defaultValue: '$VERSION',/" \
-  -e "s/defaultValue: _carnineVersion,/defaultValue: '$BUILD_VERSION',/" \
+  -e "s/defaultValue: _carnineVersion,/defaultValue: '$FRONTEND_VERSION',/" \
   "$FRONTEND_STAGING_DIR/lib/main.dart"
-if ! grep -q "defaultValue: '$BUILD_VERSION'," "$FRONTEND_STAGING_DIR/lib/main.dart"; then
+if ! grep -q "defaultValue: '$FRONTEND_VERSION'," "$FRONTEND_STAGING_DIR/lib/main.dart"; then
   echo "[pi] ERROR: Could not stamp the build version into the staged lib/main.dart"
   exit 1
 fi
@@ -182,6 +201,24 @@ echo "[pi] Preparing frontend dependencies..."
 
 echo "[pi] Building ivi-homescreen bundle ($EMB_TARGET / $EMB_BACKEND, $FRONTEND_BUILD_MODE)..."
 EMB_LOG="$LOG_DIR/pi-${TIMESTAMP}-emb.log"
+# emb.lock pins the build inputs, the defines among them, so an MCP build
+# would drift from the customer one at every switch. The MCP build keeps its
+# own lock (emb.lock.mcp, pinned on its first run) and the customer lock is
+# put back afterwards, also when the build fails.
+EMB_LOCK="$EMB_EMBEDDER_DIR/emb.lock"
+if [[ "$FRONTEND_MCP" == "1" ]]; then
+  cp "$EMB_LOCK" "$EMB_LOCK.customer"
+  restore_customer_lock() {
+    mv "$EMB_LOCK.customer" "$EMB_LOCK"
+  }
+  trap restore_customer_lock EXIT
+  if [[ -f "$EMB_LOCK.mcp" ]]; then
+    cp "$EMB_LOCK.mcp" "$EMB_LOCK"
+  else
+    echo "[pi] First MCP build: pinning its own emb.lock.mcp"
+    EMB_LOCK_ARGS=(--update-lock)
+  fi
+fi
 (
   cd "$EMB_EMBEDDER_DIR"
   # Plugins stay off: the frontend uses no ivi-homescreen plugin on the Pi
@@ -189,9 +226,12 @@ EMB_LOG="$LOG_DIR/pi-${TIMESTAMP}-emb.log"
   # camera view is built on its own below.
   emb cross . --target "$EMB_TARGET" --build --backend "$EMB_BACKEND" \
     --app "$FRONTEND_STAGING_DIR" --mode "$FRONTEND_BUILD_MODE" \
-    -D DISABLE_PLUGINS=ON \
+    "${EMB_DEFINES[@]}" \
     -w "$EMB_WORKSPACE" ${EMB_LOCK_ARGS[@]+"${EMB_LOCK_ARGS[@]}"}
 ) 2>&1 | tee "$EMB_LOG"
+if [[ "$FRONTEND_MCP" == "1" ]]; then
+  cp "$EMB_LOCK" "$EMB_LOCK.mcp"
+fi
 
 # The bundle path carries a hash over the defines, so it is taken from emb's
 # own report rather than predicted.
@@ -199,6 +239,15 @@ FRONTEND_BUNDLE="$(sed -n "s/^.*$EMB_BACKEND: runnable → \([^[:space:]]*\).*/\
 FRONTEND_PACKAGE="$ROOT_DIR/resources/debos/carnine-frontend.deb"
 if [[ -z "$FRONTEND_BUNDLE" || ! -x "$FRONTEND_BUNDLE/homescreen" ]]; then
   echo "[pi] ERROR: ivi-homescreen bundle not found (emb log: $EMB_LOG)"
+  exit 1
+fi
+# The MCP server is in the shell library exactly when it was asked for, so a
+# customer package can never carry it by accident. The marker is the MCP
+# protocol's method name, not a tool name: those differ between versions.
+MCP_MARKERS="$(strings -a "$FRONTEND_BUNDLE/lib/libihs_shared.so.1" | grep -c 'tools/call' || true)"
+if [[ "$FRONTEND_MCP" == "1" && "$MCP_MARKERS" -eq 0 ]] ||
+  [[ "$FRONTEND_MCP" == "0" && "$MCP_MARKERS" -ne 0 ]]; then
+  echo "[pi] ERROR: CARNINE_FRONTEND_MCP=$FRONTEND_MCP, but libihs_shared.so.1 has $MCP_MARKERS MCP markers"
   exit 1
 fi
 # The camera page's platform view (package video_grabber) is no ivi-homescreen
@@ -241,7 +290,7 @@ IHS_LICENSES="$ROOT_DIR/build/ivi-homescreen-licenses.txt"
 rm -f "$IHS_LICENSES"
 python3 -I "$ROOT_DIR/resources/tools/sbom/gen_sbom.py" --repo-root "$EMB_EMBEDDER_DIR" \
   --licenses-output "$IHS_LICENSES"
-"$FRONTEND_DIR/package-deb.sh" "$FRONTEND_BUNDLE" "$FRONTEND_PACKAGE" "$BUILD_VERSION" "$IHS_LICENSES"
+"$FRONTEND_DIR/package-deb.sh" "$FRONTEND_BUNDLE" "$FRONTEND_PACKAGE" "$FRONTEND_VERSION" "$IHS_LICENSES"
 # The listing is read whole first: grep -q stops reading at the match,
 # dpkg-deb then dies of SIGPIPE and pipefail fails the check.
 FRONTEND_CONTENTS="$(dpkg-deb -c "$FRONTEND_PACKAGE")"
