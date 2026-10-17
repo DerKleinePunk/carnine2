@@ -200,6 +200,99 @@ sudo systemctl restart carnine-demo-gps
   first, so the demo types "Frankfurt am Main".
 - The music is audible on the Pi's output at whatever volume is set.
 
+## Screenshots for the user guide
+
+The pictures in `docs/bedienung/bilder/` (and on carnine.de) are taken on the
+test Pi (jeep-pi) with the **release packages**, before the version is tagged
+(CONTRIBUTING, "Release checklist"). flutter-local-map takes them,
+carnine2-docs builds them into the guide.
+
+**Photo straight from the display output.** The tools read the DRM scanout,
+so the result is exactly what the panel shows, 1024×600, no camera, no
+window frame. They need root (DRM handles) and libdrm:
+
+```bash
+sudo python3 drm_shot_planes.py ~/bilder-<version>/optionen.png   # all KMS planes, needs python3-numpy
+sudo python3 drm_shot.py check.png                                 # primary plane only, no numpy
+sudo chown pi:pi ~/bilder-<version>/*.png
+```
+
+`drm_shot_planes.py` stacks every plane by zpos; the camera or a video sits on
+its own plane, so pages with a platform view come out black with
+`drm_shot.py`. Take guide pictures with `drm_shot_planes.py` always;
+`drm_shot.py` is fine for a quick check. `drm_shot_planes.py` comes from
+[video_grabber](https://github.com/DerKleinePunk/video_grabber) (`tools/`);
+both are also kept on the team share (`tools/drm-shot/`), not in this repo
+yet. Both run on jeep-pi; on carnine-pc `drm_shot.py` has been used,
+`drm_shot_planes.py` needs python3-numpy there.
+
+**Getting to the right page.**
+
+- **Touch over uinput** (any build): `sudo python3 touch_load.py tap X Y`
+  (a Python script kept on jeep-pi under `~/freeze/`, not in this repo; the
+  repo has the C tool [touchload](#touchload)) in panel pixels (0..1023,
+  0..599), read off an earlier picture (middle of the
+  button). Each tap leaves a file descriptor open in the frontend, so for
+  many taps use `touchplay` ([Scripted demo](#scripted-demo)). The
+  coordinates follow the layout: check them for each version.
+- **MCP** (only a frontend built with `CARNINE_FRONTEND_MCP=1` and started
+  with `--enable-mcp`, see
+  [07 – Deployment, Build Frontend](07-deployment.md#33-build-frontend-flutter-via-emb_cli--ivi-homescreen);
+  jeep-pi since 2026-10-17, not carnine-pc): a small client `carmcp.py` on
+  the local socket `/run/user/1000/ivi-homescreen/mcp.sock` lists the widget
+  tree with labels and rectangles (`nodes [filter]`), taps by label or
+  position (`tap <label>`, `tapxy X Y`, `long <label>`) and types through
+  the app's own keyboard (`type <text>`; clear the field with its X first).
+- **Start page without tapping:** `media_grpc_client <endpoint> save-ui-state
+  <page>` sets the page the UI opens on.
+- A small helper per version chains the steps, for example
+  `b0191.sh t 46 466 w 2 s optionen-system`: `t X Y` taps and waits 1.5 s,
+  `w SEC` waits, `s NAME` takes the photo `~/bilder-<version>/NAME.png`.
+
+**What is on the picture.** The backend runs with a copy of the current
+`config.toml` that changes only what the picture needs, started by hand with
+`CARNINE_CONFIG=<file>` instead of the unit:
+
+- route pictures: `[navigation] position_source = "serial"` on
+  `~/demo/gps.fifo`, fed by `demo_gps.py feed <track.json>`, so only the
+  route tapped in for the picture is on the map;
+- map and announcements otherwise: the replay source (Schwalmstadt –
+  Alsfeld);
+- the overheat notice: `[system] cpu_temperature_warn_celsius` set low
+  (30, clear 25);
+- the connection notice: stop the backend for a moment (only on a device
+  without the KL15 power supply, see below);
+- music: a fixed playlist, so titles and covers stay the same; volume and
+  playlist are set in the app. Trade fair mode stays off.
+
+Afterwards stop the backend started by hand and start the unit again with
+the normal `config.toml` (`sudo systemctl stop carnine-backend; sudo
+systemctl reset-failed carnine-backend; sudo systemctl start
+carnine-backend`), and stop `demo_gps.py`.
+
+On a device with the KL15 power supply ([23](23-power-supply.md); carnine-pc,
+later jeep-pi), **never leave the backend stopped**: only the backend sends
+the sign of life, and the supply cuts the Pi after about 3 s without it. There
+put the changed keys in a drop-in in `/etc/carnine/config.d/` and run `sudo
+systemctl restart carnine-backend` instead of starting the backend by hand;
+afterwards remove the drop-in and restart again. A drop-in replaces arrays
+such as `[[controls]]` as a whole.
+
+**Rules.**
+
+- No people on any picture; point the camera at an empty scene.
+- No post-processing for the guide: PNG, 1024×600 as the scanout delivers
+  it, covers stay. For the website, covers are pixelated and the pictures
+  carry no version number.
+- Compare each new picture with the old one; if only the clock or status
+  symbols differ, the old one stays.
+- The pictures go to the share first (`anhaenge/bedienung-<version>/` with
+  `SHA256SUMS`, nothing overwritten), then into the guide with mode 644.
+  Set the version in the first line of `docs/bedienung/README.md` and run
+  `docs/bedienung/pdf/build.sh`.
+- jeep-pi drives a 160 W amplifier: do not turn the volume up for a media
+  picture without telling Michael.
+
 ## Trade fair mode
 
 At the trade fair (Kunsthalle Montez, Frankfurt) the device runs on its own,
