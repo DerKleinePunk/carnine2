@@ -2,8 +2,10 @@
 
 **Diese Anleitung gilt ab CarNine 0.19.1.**
 
-Für Entwickler und Tester. Beschreibt, was man auf dem Bildschirm sieht und
-was jedes Bedienelement tut. Die Anleitung für Messebesucher entsteht
+Für alle, die carnine2 bedienen, testen oder einrichten. Beschreibt, was man
+auf dem Bildschirm sieht und was jedes Bedienelement tut. Die hinteren
+Kapitel (ab 9) gehen tiefer in die Technik. Unbekannte Wörter erklärt das
+Kapitel [Begriffe](begriffe.md). Die Anleitung für Messebesucher entsteht
 getrennt.
 
 Wenn sich im Frontend etwas an der Bedienung ändert, gehört die Änderung
@@ -35,6 +37,7 @@ Die Kapitel 2 bis 6 folgen dem Seitenmenü von oben nach unten.
     mitbringt, und was von selbst läuft
 14. [Lizenzen](lizenzen.md) – wo die Lizenztexte auf dem Gerät liegen und
     wie man den Quellcode bekommt
+15. [Begriffe](begriffe.md) – Fachwörter aus dieser Anleitung kurz erklärt
 
 ## Die häufigsten Abläufe
 

@@ -6,7 +6,8 @@ Für Displays **ohne Lautsprecher**, zum Beispiel das **Waveshare 7C** (das 7H
 hat Lautsprecher, das 7C nicht). carnine2 schickt den Ton im
 Auslieferungszustand über HDMI zum Display. Ohne Lautsprecher im Display ist
 dann **nichts zu hören, aber auch kein Fehler zu sehen**. Mit den Schritten
-unten kommt der Ton aus der **3,5-mm-Klinke am Raspberry Pi**. An der Software
+unten kommt der Ton aus der **Kopfhörerbuchse am Raspberry Pi** (3,5 mm, kurz
+„Klinke“, siehe [Begriffe](begriffe.md)). An der Software
 ändert sich nichts. Die technischen Hintergründe stehen in
 [07 – Deployment, „Audio output“](../07-deployment.md#audio-output).
 

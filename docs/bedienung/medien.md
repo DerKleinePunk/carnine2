@@ -63,19 +63,27 @@ Symbol.
 - Nach einem Neustart stellt das Backend den zuletzt gespeicherten Wert
   wieder her, auch 0. Gibt es keinen gespeicherten Wert, beginnt es bei 50 %
   (#47).
-- Die Prozente folgen dem Gehör: Gleiche Werte klingen über HDMI und an der
-  Klinke etwa gleich laut (#65).
+- Die Prozente folgen dem Gehör: Ein Wert klingt über HDMI (Lautsprecher im
+  Display) und über die Kopfhörerbuchse des Pi
+  ([Klinke](begriffe.md)) etwa gleich laut (#65).
 
 ### Warteschlange
 
-- Die schmale Leiste mit dem Pfeil klappt die Warteschlange ein und aus.
-  Alternativ: auf dem Player **nach links wischen** öffnet, **nach rechts
-  wischen** schließt. Eingeklappt wird der Player etwas größer.
+Die Warteschlange steht rechts im Player (Bild oben am Anfang des Kapitels).
 
-  ![Player mit eingeklappter Warteschlange, rechts am Rand nur der Pfeil](bilder/medien-warteschlange.png)
 - **NÄCHSTE TITEL** listet die Warteschlange; der laufende Titel ist
   eingerahmt. **Antippen eines Eintrags springt zu diesem Titel.**
 - Unten zwei Kacheln: **BIBLIOTHEK** und **SAMMLUNGEN**.
+
+Die schmale Leiste mit dem Pfeil klappt die Warteschlange ein und aus.
+Alternativ:
+
+- **Öffnen:** auf dem Player nach links wischen
+- **Schließen:** auf dem Player nach rechts wischen
+
+Eingeklappt wird der Player etwas größer und sieht so aus:
+
+![Player mit eingeklappter Warteschlange, rechts am Rand nur der Pfeil](bilder/medien-warteschlange.png)
 
 ## Bibliothek
 

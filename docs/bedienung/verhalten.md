@@ -65,7 +65,8 @@ Ton hat (das Display meldet in seinem EDID keinen Audioteil), läuft es
 trotzdem: Karte, Navigation, Netzteil-Anzeige und Optionen funktionieren, nur
 Musik nicht (#55). Solange kein Ausgang da ist, steht **auf jeder Seite** unter
 der Kopfleiste die rote Zeile mit durchgestrichenem Lautsprecher „Kein
-Audio-Ausgang – bitte den Tonausgang prüfen (HDMI oder Klinke)“ (#56). Sie hat
+Audio-Ausgang – bitte den Tonausgang prüfen (HDMI oder Klinke)“ (#56);
+[Klinke](begriffe.md) ist die Kopfhörerbuchse des Pi. Sie hat
 keinen Knopf und verschwindet von selbst, sobald wieder ein Ausgang da ist.
 **Wiedergabe** zeigt dann „Befehl fehlgeschlagen“. Bei jedem neuen Start einer
 Wiedergabe versucht das Backend das Gerät noch einmal; ein Ton über HDMI, der

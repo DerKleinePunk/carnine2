@@ -32,6 +32,7 @@ pages=(
   nach-der-installation.md
   befehle.md
   lizenzen.md
+  begriffe.md
 )
 
 # A new page must be added above, or it would be missing from the PDF.
@@ -69,7 +70,7 @@ pandoc --from json --file-scope --to html5 --standalone \
   --template "$here/guide.html" \
   --toc --toc-depth 3 \
   --metadata title="Bedienungsanleitung carnine2" \
-  --metadata subtitle="Für Entwickler und Tester" \
+  --metadata subtitle="Bedienen, testen, einrichten" \
   --metadata version="$version" \
   --metadata date="$date" \
   --metadata lang=de \
