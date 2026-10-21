@@ -54,12 +54,18 @@ jobs:
       # protoc for tonic-prost-build, ALSA headers for cpal. The default feature set
       # does not pull in ffmpeg-next, so no FFmpeg headers are needed - but the
       # metadata and cover-art tests shell out to the ffmpeg and ffprobe
-      # binaries, which the runner image does not ship.
+      # binaries, which the runner image does not ship. numpy is for the
+      # screenshot tool tests below.
       - name: Install build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y \
-            protobuf-compiler libasound2-dev ffmpeg
+            protobuf-compiler libasound2-dev ffmpeg python3-numpy
+
+      # After the apt step: the frame tests need numpy (python3-numpy above).
+      - name: Screenshot tool tests (Python)
+        working-directory: resources/tools/drm-shot
+        run: python3 -m unittest discover -v
 
       - uses: dtolnay/rust-toolchain@stable
         with:

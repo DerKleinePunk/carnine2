@@ -12,6 +12,7 @@ up while it runs, so neither needs a restart of the frontend.
 | `touchload` | `resources/tools/touchload/` | Load: random swipes and pinch-zooms on the map, reproducible by seed. Used for the frame-time measurements and the freeze soak tests. |
 | `demo.sh` + `touchplay` | `resources/tools/demo/` | Show: a scripted sequence of page switches, taps, typing and player commands, for filming the display (social media, trade fair). |
 | `messe-einrichten.sh` | `resources/config/messe/` | Trade fair mode: the device drives a tour in rounds on its own, see [Trade fair mode](#trade-fair-mode). |
+| `drm_shot*.py`, `carmcp.py`, `touch_load.py` | `resources/tools/drm-shot/` | Pictures for the user guide: photo of the display output, getting to the page, see [Screenshots for the user guide](#screenshots-for-the-user-guide). They run on the Pi itself. |
 
 Both run from the development machine (WSL) and reach carnine-pc over SSH
 (`pi@192.168.2.51`, key login; `CARNINE_DEMO_PI` and `CARNINE_DEMO_PORT`
@@ -209,40 +210,52 @@ carnine2-docs builds them into the guide.
 
 **Photo straight from the display output.** The tools read the DRM scanout,
 so the result is exactly what the panel shows, 1024×600, no camera, no
-window frame. They need root (DRM handles) and libdrm:
+window frame. The tools are in `resources/tools/drm-shot/`; copy the
+directory to the Pi as a whole (`carmcp.py shot` calls `drm_shot.py` next to
+it). They need root (DRM handles) and libdrm:
 
 ```bash
-sudo python3 drm_shot_planes.py ~/bilder-<version>/optionen.png   # all KMS planes, needs python3-numpy
-sudo python3 drm_shot.py check.png                                 # primary plane only, no numpy
+scp -r resources/tools/drm-shot pi@<pi>:
+sudo python3 ~/drm-shot/drm_shot_planes.py ~/bilder-<version>/optionen.png   # all KMS planes, needs python3-numpy
+sudo python3 ~/drm-shot/drm_shot.py check.png                                 # primary plane only, no numpy
 sudo chown pi:pi ~/bilder-<version>/*.png
 ```
 
 `drm_shot_planes.py` stacks every plane by zpos; the camera or a video sits on
 its own plane, so pages with a platform view come out black with
 `drm_shot.py`. Take guide pictures with `drm_shot_planes.py` always;
-`drm_shot.py` is fine for a quick check. `drm_shot_planes.py` comes from
-[video_grabber](https://github.com/DerKleinePunk/video_grabber) (`tools/`);
-both are also kept on the team share (`tools/drm-shot/`), not in this repo
-yet. Both run on jeep-pi; on carnine-pc `drm_shot.py` has been used,
+`drm_shot.py` is fine for a quick check. `drm_shot_planes.py` also lives in
+[video_grabber](https://github.com/DerKleinePunk/video_grabber) (`tools/`).
+Both run on jeep-pi; on carnine-pc `drm_shot.py` has been used,
 `drm_shot_planes.py` needs python3-numpy there.
+
+Tests (no DRM device, socket or uinput needed; also in the CI, which installs
+python3-numpy so that none are skipped):
+`cd resources/tools/drm-shot && python3 -m unittest discover -v`.
 
 **Getting to the right page.**
 
-- **Touch over uinput** (any build): `sudo python3 touch_load.py tap X Y`
-  (a Python script kept on jeep-pi under `~/freeze/`, not in this repo; the
-  repo has the C tool [touchload](#touchload)) in panel pixels (0..1023,
-  0..599), read off an earlier picture (middle of the
-  button). Each tap leaves a file descriptor open in the frontend, so for
-  many taps use `touchplay` ([Scripted demo](#scripted-demo)). The
-  coordinates follow the layout: check them for each version.
+- **Touch over uinput** (any build): `sudo python3 ~/drm-shot/touch_load.py tap X Y`
+  in panel pixels (0..1023, 0..599), read off an earlier picture (middle of
+  the button). `hold X Y S [COMMAND]` presses for S seconds and runs COMMAND
+  while held (e.g. a picture of a pressed state). Without arguments it runs
+  map load rounds like the C tool [touchload](#touchload) and logs them to
+  `~/freeze/load.log` of the user behind sudo (`TOUCH_LOAD_LOG` overrides).
+  Each call creates a new input device and the frontend keeps a file
+  descriptor per device, so for many taps use `touchplay`
+  ([Scripted demo](#scripted-demo)). The coordinates follow the layout:
+  check them for each version.
 - **MCP** (only a frontend built with `CARNINE_FRONTEND_MCP=1` and started
   with `--enable-mcp`, see
   [07 – Deployment, Build Frontend](07-deployment.md#33-build-frontend-flutter-via-emb_cli--ivi-homescreen);
-  jeep-pi since 2026-10-17, not carnine-pc): a small client `carmcp.py` on
-  the local socket `/run/user/1000/ivi-homescreen/mcp.sock` lists the widget
-  tree with labels and rectangles (`nodes [filter]`), taps by label or
-  position (`tap <label>`, `tapxy X Y`, `long <label>`) and types through
-  the app's own keyboard (`type <text>`; clear the field with its X first).
+  jeep-pi since 2026-10-17, not carnine-pc): the client `carmcp.py`, run as
+  the user of the frontend (not root), talks to the local socket
+  `/run/user/<uid>/ivi-homescreen/mcp.sock` (`CARMCP_SOCK` overrides). It
+  lists the widget tree with labels and rectangles (`nodes [filter]`), taps
+  by label or position (`tap <label>`, `tapxy X Y`, `long <label>`) and
+  types through the app's own keyboard (`type <text>`; clear the field with
+  its X first). `shot <name>` writes `~/shots/<name>.png` with `drm_shot.py`
+  (primary plane only, so not for pages with a platform view).
 - **Start page without tapping:** `media_grpc_client <endpoint> save-ui-state
   <page>` sets the page the UI opens on.
 - A small helper per version chains the steps, for example
