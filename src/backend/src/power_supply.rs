@@ -6,7 +6,10 @@
 //! seconds or cuts the power. The backend sends one every second from the
 //! moment the line is open, so it also counts while the supply still waits
 //! for the Pi to boot. `+` is harmless in every state; the firmware only
-//! raises its alive counter (capped at 3) and answers ACK.
+//! raises its alive counter (capped at 3) and answers ACK. The one exception
+//! is a silent supply last seen outside PIBOOT and RUN: then the backend
+//! sends nothing, so the module's bootloader can start the firmware (see
+//! [`holds_back`]).
 //!
 //! Every second the supply sends four telegrams `STX <id> <payload> ETX`:
 //! ignition, alive counter, state and input voltage. With its debug output on
@@ -790,25 +793,9 @@ fn send_alive(
     stop: &AtomicBool,
 ) -> Result<()> {
     let mut silent = false;
+    let mut holding_back = false;
     let mut version = VersionQuery::default();
     while !stop.load(Ordering::Relaxed) {
-        match hub.amplifier_switch() {
-            Some(on) => {
-                line.write_all(if on { AMPLIFIER_ON } else { AMPLIFIER_OFF })
-                    .context("switching the amplifier")?;
-                hub.amplifier_sent(on);
-            }
-            None => line.write_all(ALIVE).context("sending the sign of life")?,
-        }
-        match version.next(&hub.current(), Instant::now()) {
-            VersionStep::Ask => line
-                .write_all(VERSION_QUERY)
-                .context("asking for the firmware version")?,
-            VersionStep::NoAnswer => {
-                warn!("power supply did not report its firmware version (no answer to v)")
-            }
-            VersionStep::Nothing => {}
-        }
         let quiet = last_heard
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
@@ -823,9 +810,47 @@ fn send_alive(
             version.reset();
         }
         silent = quiet;
+        let hold_back = holds_back(quiet, hub.current().state);
+        if hold_back && !holding_back {
+            info!("power supply silent outside PIBOOT/RUN: sending nothing until it talks, so its bootloader can start the firmware");
+        }
+        holding_back = hold_back;
+        if !hold_back {
+            match hub.amplifier_switch() {
+                Some(on) => {
+                    line.write_all(if on { AMPLIFIER_ON } else { AMPLIFIER_OFF })
+                        .context("switching the amplifier")?;
+                    hub.amplifier_sent(on);
+                }
+                None => line.write_all(ALIVE).context("sending the sign of life")?,
+            }
+            match version.next(&hub.current(), Instant::now()) {
+                VersionStep::Ask => line
+                    .write_all(VERSION_QUERY)
+                    .context("asking for the firmware version")?,
+                VersionStep::NoAnswer => {
+                    warn!("power supply did not report its firmware version (no answer to v)")
+                }
+                VersionStep::Nothing => {}
+            }
+        }
         hub.wait_for_amplifier_request(ALIVE_INTERVAL);
     }
     Ok(())
+}
+
+/// Whether the sender stays quiet: the supply is silent and was last seen
+/// (if at all) outside PIBOOT and RUN.
+///
+/// After every reset the module first runs its bootloader, which starts the
+/// firmware only once the line has been quiet for a few seconds; a sign of
+/// life every second keeps it there for good (21.10.2026: Pi on USB-C, module
+/// switched on later, silent until the Pi stopped sending). The firmware
+/// reports every second without being asked, so silence costs nothing there.
+/// In PIBOOT and RUN the signs of life go on: if only our receive side failed
+/// (a loose wire), the supply must not miss them and cut the power.
+fn holds_back(quiet: bool, last_state: Option<SupplyState>) -> bool {
+    quiet && !matches!(last_state, Some(SupplyState::PiBoot | SupplyState::Run))
 }
 
 fn read_telegrams(
@@ -1552,5 +1577,142 @@ mod tests {
         sender.join().unwrap().unwrap();
         master.write_all(&[STX, ID_STATE, b'3', ETX]).unwrap();
         reader.join().unwrap().unwrap();
+    }
+
+    #[test]
+    fn only_a_silent_supply_outside_piboot_and_run_is_left_alone() {
+        use SupplyState::*;
+        for state in [None, Some(Idle), Some(PowerOn), Some(PowerOff)] {
+            assert!(holds_back(true, state), "silent, {state:?}");
+            assert!(!holds_back(false, state), "talking, {state:?}");
+        }
+        for state in [Some(PiBoot), Some(Run)] {
+            assert!(!holds_back(true, state), "silent, {state:?}");
+            assert!(!holds_back(false, state), "talking, {state:?}");
+        }
+    }
+
+    /// Everything the master side gets within `window`, without blocking
+    /// past it.
+    fn read_for(master: &mut File, window: Duration) -> Vec<u8> {
+        use std::os::fd::AsRawFd;
+        let deadline = Instant::now() + window;
+        let mut seen = Vec::new();
+        let mut buffer = [0u8; 16];
+        loop {
+            let left = deadline.saturating_duration_since(Instant::now());
+            if left.is_zero() {
+                return seen;
+            }
+            let mut poll = libc::pollfd {
+                fd: master.as_raw_fd(),
+                events: libc::POLLIN,
+                revents: 0,
+            };
+            // SAFETY: one valid pollfd for a descriptor that stays open.
+            let ready = unsafe { libc::poll(&mut poll, 1, left.as_millis() as libc::c_int) };
+            if ready > 0 {
+                let read = master.read(&mut buffer).expect("read from the master side");
+                seen.extend_from_slice(&buffer[..read]);
+            }
+        }
+    }
+
+    /// A sender and reader on a pseudo-terminal; the test plays the supply
+    /// on `master`.
+    struct LineUnderTest {
+        master: File,
+        stop: Arc<AtomicBool>,
+        sender: std::thread::JoinHandle<Result<()>>,
+        reader: std::thread::JoinHandle<Result<()>>,
+    }
+
+    impl LineUnderTest {
+        fn finish(mut self) {
+            self.stop.store(true, Ordering::Relaxed);
+            self.sender.join().unwrap().unwrap();
+            // The reader returns once the master side sends again after `stop`.
+            self.master.write_all(&[STX, ID_STATE, b'3', ETX]).unwrap();
+            self.reader.join().unwrap().unwrap();
+        }
+    }
+
+    /// A line whose supply was last heard `ago` and last seen in `state`.
+    fn silent_line(state: Option<SupplyState>, ago: Duration) -> LineUnderTest {
+        let (master, slave_path) = pseudo_terminal();
+        let hub = PowerSupplyHub::new(true);
+        hub.update(|status| status.state = state);
+        let stop = Arc::new(AtomicBool::new(false));
+        let last_heard = Arc::new(Mutex::new(Instant::now() - ago));
+        let line = open_line(Path::new(&slave_path), 38400).expect("open the pseudo-terminal");
+        let writer = line.try_clone().unwrap();
+        let sender = {
+            let (stop, last_heard, hub) = (Arc::clone(&stop), Arc::clone(&last_heard), hub.clone());
+            std::thread::spawn(move || send_alive(writer, &hub, &last_heard, &stop))
+        };
+        let reader = {
+            let (stop, last_heard, hub) = (Arc::clone(&stop), Arc::clone(&last_heard), hub.clone());
+            std::thread::spawn(move || read_telegrams(line, &hub, &last_heard, &stop))
+        };
+        LineUnderTest {
+            master,
+            stop,
+            sender,
+            reader,
+        }
+    }
+
+    #[test]
+    fn a_silent_supply_in_its_bootloader_gets_nothing_until_it_talks() {
+        let mut line = silent_line(None, SILENCE_TIMEOUT + Duration::from_secs(1));
+
+        let quiet = read_for(&mut line.master, Duration::from_millis(2500));
+        assert!(quiet.is_empty(), "nothing to a silent supply: {quiet:?}");
+
+        // The firmware has started and reports PIBOOT: signs of life again.
+        line.master
+            .write_all(&status_telegrams(b'1', "0", b'2', "133"))
+            .unwrap();
+        let talking = read_for(&mut line.master, Duration::from_millis(2500));
+        assert!(talking.contains(&b'+'), "{talking:?}");
+
+        line.finish();
+    }
+
+    #[test]
+    fn a_silent_supply_last_seen_in_run_keeps_getting_signs_of_life() {
+        let mut line = silent_line(
+            Some(SupplyState::Run),
+            SILENCE_TIMEOUT + Duration::from_secs(1),
+        );
+
+        let seen = read_for(&mut line.master, Duration::from_millis(2500));
+        assert!(
+            seen.iter().filter(|&&b| b == b'+').count() >= 2,
+            "only our side may have lost it: {seen:?}"
+        );
+
+        line.finish();
+    }
+
+    #[test]
+    fn a_new_line_sends_at_once_and_holds_back_once_silence_is_clear() {
+        let mut line = silent_line(None, Duration::ZERO);
+
+        // Unknown supply, just opened: signs of life as before ...
+        let first = read_for(&mut line.master, Duration::from_millis(500));
+        assert_eq!(first, b"+");
+        // ... until SILENCE_TIMEOUT has passed without a telegram.
+        let rest = read_for(
+            &mut line.master,
+            SILENCE_TIMEOUT + Duration::from_millis(500),
+        );
+        let last = read_for(&mut line.master, Duration::from_millis(2500));
+        assert!(
+            last.is_empty(),
+            "silent by now, sent {rest:?} then {last:?}"
+        );
+
+        line.finish();
     }
 }

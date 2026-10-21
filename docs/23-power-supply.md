@@ -326,6 +326,19 @@ protocol that is, is being asked; if it is a standard one, flashing and later
 updates could run from the Pi itself. Putting on or updating the bootloader
 itself is separate from the firmware.
 
+**The bootloader waits for a quiet line** (found 2026-10-21 on carnine-pc):
+after every reset (power on, watchdog) the bootloader runs first and starts
+the firmware only once nothing has come in on RX for a few seconds (about
+4 s measured). A Pi that is already running and sends `+` every second keeps
+it there for good: the module sends nothing, switches nothing and does not
+answer, until the Pi falls quiet (a reboot of the Pi did it by chance). It
+shows when the Pi runs on its own supply (USB-C) and the module is switched
+on later. Since then the backend sends nothing while the supply is silent and
+was last seen outside PIBOOT and RUN (see below); in PIBOOT and RUN the
+signs of life go on, so a loose receive wire on the Pi cannot cost the
+power. A bootloader that stays only on a fixed start sequence would fix it on
+the module's side; that is a question for its author.
+
 ### Battery protection
 
 Since V2.4.0. With the ignition on and the engine off, the Pi would drain
@@ -440,7 +453,10 @@ service mode are still to be built.
     38400); on the device it goes into a drop-in such as
     `/etc/carnine/config.d/20-power-supply.toml`, with an example in
     `resources/config/carnine.toml`. The backend sends `+` every second
-    from the moment the line is open, so it already counts in PIBOOT. It
+    from the moment the line is open, so it already counts in PIBOOT;
+    only a supply silent for 3 s and last seen outside PIBOOT and RUN (or
+    never) gets nothing until it talks, so its bootloader can start the
+    firmware (2026-10-21, see Flashing above). It
     reads the status telegrams, logs KL15 and the state, the voltage at
     info level when it has moved by 0.5 V or more (otherwise in the debug
     log), warns once when the alive counter drops low in RUN, and skips

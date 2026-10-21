@@ -100,6 +100,13 @@ as high, the firmware first sends "Reboot for Bootloader".
 for it. Open, to be tried together with Michael because the supply
 restarts: how long the bootloader window lasts and what `GetInfo` answers.
 
+**The bootloader stays while bytes come in** (2026-10-21, carnine-pc): after
+a reset it starts the firmware only once RX has been quiet for about 4 s, so
+a Pi that keeps sending `+` holds it there; with debug output on, "Startup
+V2.4.1" came about 4 s after the Pi stopped. The backend therefore sends
+nothing to a silent supply last seen outside PIBOOT and RUN
+(docs/23-power-supply.md, Flashing).
+
 Note: the firmware keeps two settings in the EEPROM (debug output, power-on
 delay) and writes defaults there on first start; flashing the program does
 not reset them.
