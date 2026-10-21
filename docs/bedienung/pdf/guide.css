@@ -27,6 +27,18 @@ html {
   color: #1a1a1a;
 }
 
+/* Running text justified, with German hyphenation (lang="de"). Title page,
+   table of contents and tables stay as they are. */
+
+p, li {
+  text-align: justify;
+  hyphens: auto;
+}
+
+.title-page p { text-align: center; }
+
+.toc li { text-align: left; hyphens: manual; }
+
 /* Title page and table of contents */
 
 .title-page {
@@ -150,6 +162,11 @@ th, td {
   padding: 1.2mm 2mm;
   vertical-align: top;
   text-align: left;
+}
+
+td p, th p, td li, th li {
+  text-align: left;
+  hyphens: manual;
 }
 
 th {

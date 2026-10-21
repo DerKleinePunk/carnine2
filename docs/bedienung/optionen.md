@@ -55,8 +55,7 @@ kurz steht „Befehl fehlgeschlagen“. Mehr zum Folgen steht unter
 
 ## Darstellung & Sprache
 
-Oben zwei Reiter: **Darstellung** und **Sprache**. Die Seite öffnet auf
-**Sprache**, dem Teil, der heute funktioniert. Der Reiter **Darstellung** ist noch
+Die Seite öffnet auf **Sprache**, dem Teil, der heute funktioniert. Der Reiter **Darstellung** ist noch
 leer („Darstellung vorbereitet“); dort kommen später Farben und Schrift hin.
 Wer die Seite verlässt und wieder öffnet, landet wieder auf **Sprache**.
 
@@ -90,7 +89,7 @@ haben einen Pfeil und lassen sich antippen. Die anderen drei sind eine
 |---|---|
 | **Kamera** | Gerät, Videonorm, Eingang und Bildbreite (siehe unten) |
 | **Display** | Helligkeit des Displays (siehe unten) |
-| **Audio-Ausgang** | später: HDMI, Klinke oder USB-Soundkarte wählen (#48) |
+| **Audio-Ausgang** | später: HDMI, Kopfhörerbuchse ([Klinke](begriffe.md)) oder USB-Soundkarte wählen (#48) |
 | **Handy-App** | später: Bluetooth-Kopplung mit Code am Handy (#72) |
 | **Netzteil** | später: Zündung, Spannung und Service-Modus (#36) |
 

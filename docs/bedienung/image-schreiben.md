@@ -36,7 +36,7 @@ Festplatte.
 | Variante | Ton | für |
 |---|---|---|
 | `…-waveshare-hdmi` | über HDMI zum Display | Waveshare **7H** (hat Lautsprecher) |
-| `…-waveshare-jack` | aus der 3,5-mm-Klinke des Pi | Waveshare **7H**, Ton lieber über eigene Boxen ([Ton über die Klinke](ton-klinke.md)) |
+| `…-waveshare-jack` | aus der Kopfhörerbuchse des Pi ([Klinke](begriffe.md)) | Waveshare **7H**, Ton lieber über eigene Boxen ([Ton über die Klinke](ton-klinke.md)) |
 | `…-waveshare-7c` | aus der Klinke | Waveshare **7C** (ohne Lautsprecher), siehe [unten](#waveshare-7c) |
 
 Im Zweifel `hdmi`. Umstellen geht später auch noch, siehe
