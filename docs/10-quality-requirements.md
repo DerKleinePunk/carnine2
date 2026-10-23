@@ -77,14 +77,21 @@ On 2026-10-21 in low light, on 2026-10-23 with more light.
 | 10-23 | Camera alone (V4L2, CarNine stopped) | YUYV | 148 ms | 126 ms | 174 ms | 24.8 |
 | 10-23 | Camera → CarNine → display output | YUYV | 154 ms | 132 ms | 177 ms | 24.1 |
 | 10-23 | Camera alone, decoded with ffmpeg | MJPG | 85 ms | 74 ms | 97 ms | 31.2 |
+| 10-23 | Camera → CarNine → display output | MJPG | 57 / 60 / 58 ms | 43–45 ms | 73–78 ms | 30.4–30.5 |
+| 10-23, less light | Camera → CarNine → display output | MJPG | 93 ms | 60 ms | 121 ms | 16.6 |
 
-- **CarNine itself** (video_grabber up to the hardware plane) adds about **10 ms** (6–12 ms in all three pairs).
+- **CarNine itself** (video_grabber up to the hardware plane) adds about **10 ms** (6–12 ms in the three YUYV pairs).
 - Both analog grabbers are equally fast on average, about two frames at NTSC. The Somagic varies less.
   Of the two, CarNine supports only the STK1160 so far; the Somagic is #160.
 - The frame rate does not explain the USB camera's delay: with more light it ran at 25 instead of 12.5 frames/s
   but was slower in YUYV (148 instead of 103 ms). It seems to buffer frames itself in YUYV; the cause is open.
-- In MJPG the same camera was about 60 ms faster than in YUYV, decoding included. CarNine takes YUYV today.
-  The MJPG run used a one-off wrapper around ffmpeg; the tools in the repo read YUYV only.
+- Through CarNine, MJPG took 57–60 ms instead of 154 ms in YUYV, decoding included (the first two runs with a
+  drop-in before and after 30 min on the camera page, the third with the build that has MJPEG as default). So
+  CarNine prefers MJPEG for a USB camera since video_grabber 14e3a66 (carnine2 5ce03e5,
+  [docs/07](07-deployment.md#reversing-camera)). The "camera alone" MJPG run used a one-off wrapper around
+  ffmpeg, which costs time of its own; the tools in the repo read YUYV only.
+- In MJPG less light does cost time: the last row is the build with MJPEG as default, without a drop-in,
+  later the same day in a darker scene. The camera exposed longer and delivered fewer frames.
 - Not included: the way from the display output to the light of the panel, up to 16 ms at 60 Hz.
 
 ### Performance
