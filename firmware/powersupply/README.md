@@ -95,17 +95,20 @@ after the reset the bootloader runs for a short time. The command gets no
 ACK. With debug output on, and only while `USB_Connected()` reads pin PC0
 as high, the firmware first sends "Reboot for Bootloader".
 
-**`GetInfo`:** according to Michael the bootloader understands the command
-`GetInfo` followed by Enter (CR/LF). Not tried yet, and nothing is built
-for it. Open, to be tried together with Michael because the supply
-restarts: how long the bootloader window lasts and what `GetInfo` answers.
+**Bootloader commands** (tried 2026-10-23 on carnine-pc): text lines ending
+in CR at 38400 baud. `GetInfo` answers `CarPC Powerunit`, `ATMega88`, `v0.1`;
+`Start` answers `OK` and starts the firmware at once; an empty line answers
+`Error`. The commands for writing the flash are only known from the Windows
+flashing tool. The bootloader's source is not available; details in
+docs/23-power-supply.md, "The bootloader's commands".
 
 **The bootloader stays while bytes come in** (2026-10-21, carnine-pc): after
 a reset it starts the firmware only once RX has been quiet for about 4 s, so
 a Pi that keeps sending `+` holds it there; with debug output on, "Startup
-V2.4.1" came about 4 s after the Pi stopped. The backend therefore sends
-nothing to a silent supply last seen outside PIBOOT and RUN
-(docs/23-power-supply.md, Flashing).
+V2.4.1" came about 4 s after the Pi stopped. The backend therefore sends no
+`+` to a silent supply last seen outside PIBOOT and RUN, and since
+2026-10-23 it sends every silent supply `Start` at once and then every 5 s,
+which ends the wait (docs/23-power-supply.md, Flashing).
 
 Note: the firmware keeps two settings in the EEPROM (debug output, power-on
 delay) and writes defaults there on first start; flashing the program does

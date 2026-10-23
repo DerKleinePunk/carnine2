@@ -311,8 +311,8 @@ protection on a bench supply. **V2.4.1**, flashed the same evening: RUN
 **Flashing** is done with a Windows program through the bootloader, over the
 board's own USB socket with the jumper towards it: build here, copy the
 `.bin` to Windows, write it from there, set the jumper back. The command `U`
-(or `u`) resets the chip, after which the bootloader runs for a short time;
-according to Michael it answers `GetInfo` plus Enter, not tried yet (see the
+(or `u`) resets the chip, after which the bootloader runs for a short time
+and answers text commands (see "The bootloader's commands" below and the
 [firmware README](../firmware/powersupply/README.md#flash)).
 Since V2.4.0 the chip takes `U` only in IDLE or POWERON, so **flash with
 the 12 V side off**; the controller then runs from the USB socket, which is
@@ -321,10 +321,27 @@ EEPROM alone, so the stored settings (debug output, power-on delay, battery
 limit) survive it. Done on 2026-09-25 on the test board:
 it ran an older firmware before (a text line every second, no telegrams, no
 reaction to commands); with V2.2.12 the telegrams come and `v` answers. The test board runs V2.3.0
-now; `v` reports it. Which bootloader and
-protocol that is, is being asked; if it is a standard one, flashing and later
-updates could run from the Pi itself. Putting on or updating the bootloader
-itself is separate from the firmware.
+now; `v` reports it. The bootloader appears to be the module author's own
+(plain text commands, no standard protocol seen); its source is not
+available. Putting on or updating the
+bootloader itself is separate from the firmware (an ISP programmer, with the
+Pi off).
+
+**The bootloader's commands.** Text lines ending in CR, at 38400 baud like
+the firmware. Tried on 2026-10-23 on carnine-pc (Pi on USB-C, module
+switched on afterwards, nothing flashed):
+
+| Pi sends | Bootloader answers |
+|---|---|
+| an empty line (CR) | `Error`; a line every 0.5 s keeps the bootloader waiting |
+| `GetInfo` | `CarPC Powerunit`, `ATMega88`, `v0.1` (one line each) |
+| `Start` | `OK`; the firmware starts at once and sends its first line 6 ms later |
+
+Flashing uses further commands that only the Windows program sends: one to
+start writing, the program in blocks with a checksum per block, one to end,
+and one to read the flash back. They are known from that program, not tried
+from the Pi. Its read-back only checks that the bootloader answers, not that
+the content matches; the checksum per block while writing does check it.
 
 **The bootloader waits for a quiet line** (found 2026-10-21 on carnine-pc):
 after every reset (power on, watchdog) the bootloader runs first and starts
@@ -333,11 +350,23 @@ the firmware only once nothing has come in on RX for a few seconds (about
 it there for good: the module sends nothing, switches nothing and does not
 answer, until the Pi falls quiet (a reboot of the Pi did it by chance). It
 shows when the Pi runs on its own supply (USB-C) and the module is switched
-on later. Since then the backend sends nothing while the supply is silent and
+on later. Since then the backend sends no `+` while the supply is silent and
 was last seen outside PIBOOT and RUN (see below); in PIBOOT and RUN the
 signs of life go on, so a loose receive wire on the Pi cannot cost the
-power. A bootloader that stays only on a fixed start sequence would fix it on
-the module's side; that is a question for its author.
+power.
+
+**The backend asks the bootloader to start** (since 2026-10-23, 89d30b1):
+a supply silent for 3 s gets `Start` (with a CR before it, which ends
+whatever the bootloader has collected) at once and then every 5 s, in every
+state, until it talks again. None of these characters is a firmware command.
+The bootloader's `OK` shows in the backend log as "power supply bootloader
+answered OK, the firmware starts". This also covers a supply that loses its
+power in RUN while the Pi runs on USB-C: the signs of life would keep its
+bootloader waiting, `Start` ends the wait. Tried on 2026-10-23 on carnine-pc
+with the Pi on USB-C first and the module switched on afterwards: `OK` came,
+the supply was in RUN 4 s later. The case "power lost in RUN" is covered by
+unit tests only, because the 12 V cannot be removed separately from the
+ignition on the test setup.
 
 ### Battery protection
 
@@ -454,9 +483,10 @@ service mode are still to be built.
     `/etc/carnine/config.d/20-power-supply.toml`, with an example in
     `resources/config/carnine.toml`. The backend sends `+` every second
     from the moment the line is open, so it already counts in PIBOOT;
-    only a supply silent for 3 s and last seen outside PIBOOT and RUN (or
-    never) gets nothing until it talks, so its bootloader can start the
-    firmware (2026-10-21, see Flashing above). It
+    a supply silent for 3 s and last seen outside PIBOOT and RUN (or
+    never) gets no `+` until it talks, and every silent supply gets `Start`
+    for its bootloader at once and then every 5 s (2026-10-21 and
+    2026-10-23, see Flashing above). It
     reads the status telegrams, logs KL15 and the state, the voltage at
     info level when it has moved by 0.5 V or more (otherwise in the debug
     log), warns once when the alive counter drops low in RUN, and skips
