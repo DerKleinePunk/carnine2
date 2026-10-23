@@ -350,11 +350,23 @@ the firmware only once nothing has come in on RX for a few seconds (about
 it there for good: the module sends nothing, switches nothing and does not
 answer, until the Pi falls quiet (a reboot of the Pi did it by chance). It
 shows when the Pi runs on its own supply (USB-C) and the module is switched
-on later. Since then the backend sends nothing while the supply is silent and
+on later. Since then the backend sends no `+` while the supply is silent and
 was last seen outside PIBOOT and RUN (see below); in PIBOOT and RUN the
 signs of life go on, so a loose receive wire on the Pi cannot cost the
-power. The wait can also be ended from the Pi: `Start` makes the bootloader
-start the firmware at once (see the table above).
+power.
+
+**The backend asks the bootloader to start** (since 2026-10-23, 89d30b1):
+a supply silent for 3 s gets `Start` (with a CR before it, which ends
+whatever the bootloader has collected) at once and then every 5 s, in every
+state, until it talks again. None of these characters is a firmware command.
+The bootloader's `OK` shows in the backend log as "power supply bootloader
+answered OK, the firmware starts". This also covers a supply that loses its
+power in RUN while the Pi runs on USB-C: the signs of life would keep its
+bootloader waiting, `Start` ends the wait. Tried on 2026-10-23 on carnine-pc
+with the Pi on USB-C first and the module switched on afterwards: `OK` came,
+the supply was in RUN 4 s later. The case "power lost in RUN" is covered by
+unit tests only, because the 12 V cannot be removed separately from the
+ignition on the test setup.
 
 ### Battery protection
 
@@ -471,9 +483,10 @@ service mode are still to be built.
     `/etc/carnine/config.d/20-power-supply.toml`, with an example in
     `resources/config/carnine.toml`. The backend sends `+` every second
     from the moment the line is open, so it already counts in PIBOOT;
-    only a supply silent for 3 s and last seen outside PIBOOT and RUN (or
-    never) gets nothing until it talks, so its bootloader can start the
-    firmware (2026-10-21, see Flashing above). It
+    a supply silent for 3 s and last seen outside PIBOOT and RUN (or
+    never) gets no `+` until it talks, and every silent supply gets `Start`
+    for its bootloader at once and then every 5 s (2026-10-21 and
+    2026-10-23, see Flashing above). It
     reads the status telegrams, logs KL15 and the state, the voltage at
     info level when it has moved by 0.5 V or more (otherwise in the debug
     log), warns once when the alive counter drops low in RUN, and skips
