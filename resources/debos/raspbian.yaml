@@ -7,6 +7,8 @@
 {{- $audio_output := or .audio_output "hdmi" -}}
 {{- /* EDID forced for the Waveshare panel: 7h (default) or none (7C). */ -}}
 {{- $edid := or .edid "7h" -}}
+{{- /* yes lets an MCP frontend ("+mcp") into the image, for test devices only. */ -}}
+{{- $allow_mcp := or .allow_mcp "no" -}}
 {{- $default_image := "raspbian.img" -}}
 {{- if eq $display "waveshare-1024x600" -}}
 {{- $default_image = "raspbian-1024x600.img" -}}
@@ -448,6 +450,11 @@ actions:
     origin: recipe
     packages:
       - carnine-frontend.deb
+
+  - action: run
+    description: Refuse an MCP frontend (allow_mcp {{ $allow_mcp }})
+    chroot: false
+    command: sh "${RECIPEDIR}/carnine-package-check.sh" "${ROOTDIR}" "{{ $allow_mcp }}"
 
   - action: install-deb
     description: Install Valhalla routing (ADR-021)

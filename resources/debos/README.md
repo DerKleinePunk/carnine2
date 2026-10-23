@@ -220,6 +220,12 @@ ist das das dritte Image (`…-waveshare-7c`). Erlaubt sind `7h` (Vorgabe) und
 `none`, ein anderer Wert bricht den Bau ab. Die cmdline schreibt
 `carnine-cmdline.sh`. Tests: `sh tests/carnine-cmdline-test.sh`.
 
+**Kein MCP-Frontend im Image:** `carnine-frontend.deb` ist das, was zuletzt gebaut wurde – auch ein Paket für ein
+Testgerät aus `CARNINE_FRONTEND_MCP=1 ./build_pi.sh` (Version endet auf `+mcp`). Gleich nach dem Einspielen des Frontends
+liest `carnine-package-check.sh` die Version aus `/var/lib/dpkg/status` des Images und bricht den Bau ab, wenn sie `+mcp`
+enthält oder das Frontend fehlt. Abhilfe: Frontend ohne `CARNINE_FRONTEND_MCP` neu bauen. Ein Image ausdrücklich für ein
+Testgerät bekommt `-t allow_mcp:yes` (nur genau `yes` zählt). Tests: `sh tests/carnine-package-check-test.sh`.
+
 **SBOM und CVE-Bericht des Images (#41):** Das Rezept legt die Paketliste des Images (`/var/lib/dpkg/status` und
 `os-release`) neben das Image in `<image>.<audio_output>.sbom-input/`, mit Netzteil zusätzlich `.auprv1`
 (`raspbian-1024x600.img.jack.sbom-input`). So überschreibt der Bau der zweiten Variante die erste nicht. Daraus macht
