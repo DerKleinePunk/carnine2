@@ -38,7 +38,7 @@ The deployment architecture emphasizes reliability and minimal resource consumpt
   receiver on USB or a UART, see [GPS receiver](#gps-receiver) below
 - **Reversing camera** (optional, Kamera page since 0.10.0): an analogue camera
   on a USB grabber with the STK1160 chip, or a USB camera with `uvcvideo`
-  (YUYV or MJPEG); not a `gspca` camera, not on a hub that also carries the
+  (MJPEG or YUYV); not a `gspca` camera, not on a hub that also carries the
   SSD, see
   [Reversing camera](#reversing-camera) below
 - **Vehicle power supply** (optional): the AuPrV1_1 board switches the Pi
@@ -473,19 +473,28 @@ The capture path follows the device's format:
 | Device | Driver | Format | Settings that apply |
 |---|---|---|---|
 | USB grabber with STK1160 (composite/S-Video) | `stk1160` | UYVY | `norm`, `input` (0–3 composite, 4 S-Video), `width` 360 or 720 |
-| USB camera | `uvcvideo` | YUYV, always 640×480 | none of them |
-| USB camera with MJPEG only | `uvcvideo` | MJPEG, decoded on the Pi | none of them |
+| USB camera that offers MJPEG | `uvcvideo` | MJPEG, decoded on the Pi, 640×480 | none of them |
+| USB camera with YUYV only | `uvcvideo` | YUYV, always 640×480 | none of them |
 | older webcam such as the Microsoft LifeCam VX-3000 | `gspca` (`sonixj`) | JPEG, decoded on the Pi | none of them; **freezes the Pi**, see below |
 
-A device that offers several formats is read in the order UYVY, YUYV, then
-MJPEG/JPEG. JPEG frames are decoded with libjpeg-turbo (`libjpeg.so.62`,
+A device that offers several formats is read in the order UYVY, MJPEG/JPEG,
+then YUYV (since video_grabber 14e3a66, carnine2 5ce03e5; before, YUYV came
+before MJPEG). To
+go back to YUYV for a USB camera, set `VG_FORMAT=yuyv` in the environment of
+the frontend with a drop-in such as
+`/etc/systemd/system/carnine-frontend.service.d/50-vg-format.conf`
+(`[Service]` and `Environment=VG_FORMAT=yuyv`), then
+`sudo systemctl daemon-reload` and restart `carnine-frontend`. JPEG frames are decoded with libjpeg-turbo (`libjpeg.so.62`,
 which is why `carnine-frontend` depends on `libjpeg62-turbo`); a cut-off or
 broken frame is dropped, the log names the first error and counts the rest
 when the device is closed. The decoder came with video_grabber a6bc71f
 (carnine2 27d4373). Proven so far with one camera for a short run: the
 LifeCam on carnine-pc gave 12 frames/s, 118 decoded, 0 broken, 7.8 ms per
-frame. An MJPEG camera on `uvcvideo` has not been tried yet (the camera on
-jeep-pi offers MJPEG but delivered no frames in that mode under Linux).
+frame. On 2026-10-23 the USB camera on jeep-pi (Jieli 1224:2a25) ran
+30 min in MJPEG on the camera page: 30 frames/s, one broken frame right
+after opening and none after, the frontend at about 17 % of one core, its
+memory not growing; the picture arrived after 57–60 ms instead of 154 ms in
+YUYV, also with 5ce03e5 and no drop-in (docs/10, "Rear camera latency").
 
 **Do not use `gspca` cameras.** On 2026-10-13 the LifeCam VX-3000 froze
 carnine-pc (Pi 4, kernel 6.18.50) three times after one and a half to two and

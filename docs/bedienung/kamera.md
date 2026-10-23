@@ -22,15 +22,17 @@ kommen aus der Kamera selbst.*
 | Kamera | Anschluss | Bild |
 |---|---|---|
 | Analoge Rückfahrkamera (Composite oder S-Video) | über einen USB-Grabber mit **STK1160**-Chip | 360 Pixel breit (einstellbar auf 720), NTSC oder PAL |
-| **USB-Kamera** (Webcam), unkomprimiert (YUYV) oder als MJPEG | direkt an USB | immer 640 × 480 |
+| **USB-Kamera** (Webcam), als MJPEG oder unkomprimiert (YUYV) | direkt an USB | immer 640 × 480 |
 
-Kann eine Kamera beides, nimmt die Seite das unkomprimierte Bild. MJPEG
-packt der Pi selbst aus. Das ist neu; mit einer MJPEG-Kamera ist es noch
-nicht ausprobiert.
+Kann eine Kamera beides, nimmt die Seite MJPEG, weil das Bild damit
+deutlich schneller ankommt. MJPEG packt der Pi selbst aus. Zeigt eine
+Kamera mit MJPEG Störungen, lässt sich auf das unkomprimierte Bild
+umschalten ([docs/07](../07-deployment.md#reversing-camera)).
 
-Das Bild kommt etwas zu spät auf den Bildschirm: Kamera und analoger Grabber
-brauchen etwa 0,07 Sekunden, eine USB-Kamera etwa 0,1 bis 0,15 Sekunden.
-carnine selbst kommt nur etwa 0,01 Sekunden dazu.
+Das Bild kommt etwas zu spät auf den Bildschirm: mit einem analogen Grabber
+etwa 0,08 Sekunden, mit einer USB-Kamera in MJPEG etwa 0,06 Sekunden, bei
+wenig Licht etwa 0,1 Sekunden. carnine selbst braucht davon nur etwa 0,01
+Sekunden.
 
 **Ältere Webcams nicht benutzen**, z. B. die Microsoft LifeCam VX-3000. Sie
 zeigen zwar ein Bild, aber nach etwa zwei Minuten bleibt der ganze Pi stehen
