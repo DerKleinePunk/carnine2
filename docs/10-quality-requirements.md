@@ -55,7 +55,9 @@ List the quality attributes (performance, security, maintainability, etc.) and h
 
 Measured on a Pi 4 (kernel 6.18.50) with CarNine 0.19.1, without a person in the loop: the Pi switches a trigger
 itself and measures when the change shows up in the picture. Each run takes 60 s with 75–90 changes; every change
-was detected. The table gives two runs as "run 1 / run 2".
+was detected. The table gives two runs as "run 1 / run 2". The tools are in
+[resources/tools/camera-latency/](../resources/tools/camera-latency/LIESMICH.md) (`latency_panel.py` for the
+grabbers, `latency_led.py` for the USB camera).
 
 Analog grabbers. The trigger is the panel turning black or white, the analog camera (NTSC) looks at the panel.
 Measured: panel → camera → grabber → Pi, without CarNine.
