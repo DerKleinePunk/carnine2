@@ -9,7 +9,9 @@
 //! raises its alive counter (capped at 3) and answers ACK. The one exception
 //! is a silent supply last seen outside PIBOOT and RUN: then the backend
 //! sends nothing, so the module's bootloader can start the firmware (see
-//! [`holds_back`]).
+//! [`holds_back`]). A silent supply also gets `Start` every few seconds, which
+//! a waiting bootloader answers with `OK` and starts the firmware at once
+//! (see [`start_due`]).
 //!
 //! Every second the supply sends four telegrams `STX <id> <payload> ETX`:
 //! ignition, alive counter, state and input voltage. With its debug output on
@@ -65,6 +67,14 @@ const AMPLIFIER_ON: &[u8] = b"3";
 const AMPLIFIER_OFF: &[u8] = b"6";
 /// Asks for the firmware version; not a sign of life, so it goes with one.
 const VERSION_QUERY: &[u8] = b"v";
+/// Tells the module's bootloader to start the firmware. The leading CR ends
+/// whatever the bootloader has collected (signs of life) so `Start` stands on
+/// a line of its own; none of these characters is a firmware command.
+const BOOTLOADER_START: &[u8] = b"\rStart\r";
+/// How often a silent supply gets [`BOOTLOADER_START`].
+const START_INTERVAL: Duration = Duration::from_secs(5);
+/// The bootloader's answer to `Start`.
+const BOOTLOADER_STARTED: &str = "OK";
 /// The supply answers `v` at once; without an answer this long it is noted.
 const VERSION_ANSWER_TIMEOUT: Duration = Duration::from_secs(5);
 /// The amplifier comes on this long after the UI reported ready, so it does
@@ -794,6 +804,7 @@ fn send_alive(
 ) -> Result<()> {
     let mut silent = false;
     let mut holding_back = false;
+    let mut start_sent: Option<Instant> = None;
     let mut version = VersionQuery::default();
     while !stop.load(Ordering::Relaxed) {
         let quiet = last_heard
@@ -815,6 +826,16 @@ fn send_alive(
             info!("power supply silent outside PIBOOT/RUN: sending nothing until it talks, so its bootloader can start the firmware");
         }
         holding_back = hold_back;
+        if !quiet {
+            start_sent = None;
+        } else if start_due(start_sent, Instant::now()) {
+            if start_sent.is_none() {
+                info!("power supply silent: asking a waiting bootloader to start the firmware (Start), again every {}s", START_INTERVAL.as_secs());
+            }
+            line.write_all(BOOTLOADER_START)
+                .context("asking the bootloader to start the firmware")?;
+            start_sent = Some(Instant::now());
+        }
         if !hold_back {
             match hub.amplifier_switch() {
                 Some(on) => {
@@ -853,6 +874,18 @@ fn holds_back(quiet: bool, last_state: Option<SupplyState>) -> bool {
     quiet && !matches!(last_state, Some(SupplyState::PiBoot | SupplyState::Run))
 }
 
+/// Whether a silent supply gets `Start` now: at once when it fell silent, then
+/// every [`START_INTERVAL`].
+///
+/// The bootloader reads lines and answers `Start` with `OK`, then starts the
+/// firmware (23.10.2026 on carnine-pc). This covers what holding back cannot:
+/// a supply that lost its power in RUN, whose bootloader the signs of life
+/// would keep for good. Sent also while the module has no power yet, hence
+/// the repetition.
+fn start_due(sent: Option<Instant>, now: Instant) -> bool {
+    sent.is_none_or(|sent| now.duration_since(sent) >= START_INTERVAL)
+}
+
 fn read_telegrams(
     mut line: File,
     hub: &PowerSupplyHub,
@@ -874,7 +907,9 @@ fn read_telegrams(
                 continue;
             };
             if let Telegram::Text(line) = &telegram {
-                if let Some(version) = FirmwareVersion::parse(line) {
+                if line == BOOTLOADER_STARTED {
+                    info!("power supply bootloader answered OK, the firmware starts");
+                } else if let Some(version) = FirmwareVersion::parse(line) {
                     info!(version = %version, "power supply firmware");
                     hub.update(|status| status.firmware_version = Some(version));
                 } else {
@@ -1662,19 +1697,28 @@ mod tests {
         }
     }
 
+    fn contains(haystack: &[u8], needle: &[u8]) -> bool {
+        haystack
+            .windows(needle.len())
+            .any(|window| window == needle)
+    }
+
     #[test]
-    fn a_silent_supply_in_its_bootloader_gets_nothing_until_it_talks() {
+    fn a_silent_supply_in_its_bootloader_gets_only_start_until_it_talks() {
         let mut line = silent_line(None, SILENCE_TIMEOUT + Duration::from_secs(1));
 
         let quiet = read_for(&mut line.master, Duration::from_millis(2500));
-        assert!(quiet.is_empty(), "nothing to a silent supply: {quiet:?}");
+        assert_eq!(quiet, BOOTLOADER_START, "only Start, no sign of life");
 
-        // The firmware has started and reports PIBOOT: signs of life again.
+        // The bootloader answers, the firmware starts and reports PIBOOT:
+        // signs of life again, no more Start.
+        line.master.write_all(b"OK\r\nStartup V2.4.1\r\n").unwrap();
         line.master
             .write_all(&status_telegrams(b'1', "0", b'2', "133"))
             .unwrap();
         let talking = read_for(&mut line.master, Duration::from_millis(2500));
         assert!(talking.contains(&b'+'), "{talking:?}");
+        assert!(!contains(&talking, b"Start"), "{talking:?}");
 
         line.finish();
     }
@@ -1691,6 +1735,8 @@ mod tests {
             seen.iter().filter(|&&b| b == b'+').count() >= 2,
             "only our side may have lost it: {seen:?}"
         );
+        // Or the supply lost its power and its bootloader now waits.
+        assert!(contains(&seen, BOOTLOADER_START), "{seen:?}");
 
         line.finish();
     }
@@ -1702,16 +1748,73 @@ mod tests {
         // Unknown supply, just opened: signs of life as before ...
         let first = read_for(&mut line.master, Duration::from_millis(500));
         assert_eq!(first, b"+");
-        // ... until SILENCE_TIMEOUT has passed without a telegram.
+        // ... until SILENCE_TIMEOUT has passed without a telegram: one Start ...
         let rest = read_for(
             &mut line.master,
-            SILENCE_TIMEOUT + Duration::from_millis(500),
+            SILENCE_TIMEOUT + Duration::from_millis(1500),
         );
+        assert!(rest.ends_with(BOOTLOADER_START), "{rest:?}");
+        // ... then nothing until START_INTERVAL is over.
         let last = read_for(&mut line.master, Duration::from_millis(2500));
         assert!(
             last.is_empty(),
             "silent by now, sent {rest:?} then {last:?}"
         );
+
+        line.finish();
+    }
+
+    #[test]
+    fn start_goes_out_when_silence_begins_then_every_interval() {
+        let now = Instant::now();
+        assert!(start_due(None, now));
+        assert!(!start_due(Some(now), now));
+        assert!(!start_due(
+            Some(now),
+            now + START_INTERVAL - Duration::from_millis(1)
+        ));
+        assert!(start_due(Some(now), now + START_INTERVAL));
+    }
+
+    #[test]
+    fn start_is_one_line_without_a_firmware_command() {
+        // CR first: ends the signs of life the bootloader collected.
+        assert_eq!(BOOTLOADER_START.first(), Some(&b'\r'));
+        assert_eq!(BOOTLOADER_START.last(), Some(&b'\r'));
+        // The firmware's commands (firmware/powersupply, Interpret()).
+        for command in b"123456+$#Uu*B!?v" {
+            assert!(!BOOTLOADER_START.contains(command), "{}", *command as char);
+        }
+    }
+
+    #[test]
+    fn the_bootloader_answers_come_out_as_text_lines() {
+        assert_eq!(
+            parse(b"Error\r\nOK\r\nStartup V2.4.1\r\n"),
+            vec![
+                Telegram::Text("Error".to_string()),
+                Telegram::Text(BOOTLOADER_STARTED.to_string()),
+                Telegram::Text("Startup V2.4.1".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_supply_silent_after_run_gets_start_again_after_the_interval() {
+        let mut line = silent_line(
+            Some(SupplyState::Run),
+            SILENCE_TIMEOUT + Duration::from_secs(1),
+        );
+
+        let seen = read_for(
+            &mut line.master,
+            START_INTERVAL + Duration::from_millis(1500),
+        );
+        let starts = seen
+            .windows(BOOTLOADER_START.len())
+            .filter(|window| *window == BOOTLOADER_START)
+            .count();
+        assert_eq!(starts, 2, "{seen:?}");
 
         line.finish();
     }
