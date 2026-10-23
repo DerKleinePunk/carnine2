@@ -13,13 +13,14 @@
 //! kept, so the announcement itself only plays a file - straight from the
 //! caller's thread, without waiting for a sentence being synthesized.
 //! Fixed sentences (`[voice] fixed_texts`, the rerouting sentence) are
-//! synthesized once the voice is on, when nothing else waits, and stay in
-//! the cache for good, whether or not a prepared list got to them.
+//! synthesized once the voice is on and a first route was prepared (or after
+//! `FIXED_TEXTS_WAIT` without one), when nothing else waits, and stay in the
+//! cache for good, whether or not a prepared list got to them.
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
-use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender, TryRecvError};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
@@ -51,6 +52,14 @@ pub type SynthesizerFactory = Box<dyn FnOnce() -> Result<Box<dyn Synthesizer>> +
 
 /// How many synthesized texts stay on disk.
 const CACHE_ENTRIES: usize = 200;
+
+/// How long fixed texts wait for a first route before they are synthesized
+/// anyway. The rerouting sentence is only spoken on a route, so this is a
+/// safety net, not a deadline.
+#[cfg(not(test))]
+const FIXED_TEXTS_WAIT: std::time::Duration = std::time::Duration::from_secs(20);
+#[cfg(test)]
+const FIXED_TEXTS_WAIT: std::time::Duration = std::time::Duration::from_millis(300);
 
 enum Command {
     Prepare(Vec<String>),
@@ -409,25 +418,46 @@ impl Worker {
 
     fn run(mut self, receiver: Receiver<Command>) {
         let mut pending: VecDeque<String> = VecDeque::new();
-        // Fixed texts come after a route's: those are needed first.
+        // Fixed texts come after a route's: those are needed first. Until the
+        // first route was prepared they also wait (up to FIXED_TEXTS_WAIT):
+        // the voice is often ready a moment before the route after a start,
+        // and a fixed sentence begun then held up the first announcement
+        // past its moment (2026-10-23, 7.5 s late after a cold start).
         let mut fixed: VecDeque<String> = VecDeque::new();
+        let mut route_prepared = false;
+        let mut fixed_since = std::time::Instant::now();
         loop {
+            let fixed_wait =
+                (!route_prepared).then(|| FIXED_TEXTS_WAIT.saturating_sub(fixed_since.elapsed()));
+            let fixed_due = !fixed.is_empty() && fixed_wait.is_none_or(|wait| wait.is_zero());
             // Waits only when there is nothing to prepare.
-            let command = if pending.is_empty() && fixed.is_empty() {
-                match receiver.recv() {
-                    Ok(command) => Some(command),
-                    Err(_) => return,
-                }
-            } else {
+            let command = if !pending.is_empty() || fixed_due {
                 match receiver.try_recv() {
                     Ok(command) => Some(command),
                     Err(TryRecvError::Empty) => None,
                     Err(TryRecvError::Disconnected) => return,
                 }
+            } else if let Some(wait) = fixed_wait.filter(|_| !fixed.is_empty()) {
+                match receiver.recv_timeout(wait) {
+                    Ok(command) => Some(command),
+                    Err(RecvTimeoutError::Timeout) => None,
+                    Err(RecvTimeoutError::Disconnected) => return,
+                }
+            } else {
+                match receiver.recv() {
+                    Ok(command) => Some(command),
+                    Err(_) => return,
+                }
             };
             match command {
-                Some(Command::Prepare(texts)) => pending = texts.into(),
-                Some(Command::Fixed(texts)) => fixed = texts.into(),
+                Some(Command::Prepare(texts)) => {
+                    pending = texts.into();
+                    route_prepared = true;
+                }
+                Some(Command::Fixed(texts)) => {
+                    fixed = texts.into();
+                    fixed_since = std::time::Instant::now();
+                }
                 Some(Command::Spoken(text)) => drop_through(&mut pending, &text),
                 Some(Command::Speak(text, priority, asked, number)) => {
                     // Announcements that queued up while one was synthesized
@@ -435,8 +465,14 @@ impl Worker {
                     let mut newest = (text, priority, asked, number);
                     loop {
                         match receiver.try_recv() {
-                            Ok(Command::Prepare(texts)) => pending = texts.into(),
-                            Ok(Command::Fixed(texts)) => fixed = texts.into(),
+                            Ok(Command::Prepare(texts)) => {
+                                pending = texts.into();
+                                route_prepared = true;
+                            }
+                            Ok(Command::Fixed(texts)) => {
+                                fixed = texts.into();
+                                fixed_since = std::time::Instant::now();
+                            }
                             Ok(Command::Spoken(text)) => drop_through(&mut pending, &text),
                             Ok(Command::Speak(text, priority, asked, number)) => {
                                 if priority >= newest.1 {
@@ -464,7 +500,10 @@ impl Worker {
                 }
                 // One text at a time, so a Speak waits for at most one.
                 None => {
-                    if let Some(text) = pending.pop_front().or_else(|| fixed.pop_front()) {
+                    let next = pending
+                        .pop_front()
+                        .or_else(|| fixed_due.then(|| fixed.pop_front()).flatten());
+                    if let Some(text) = next {
                         self.speech_file(&text);
                     }
                 }
@@ -1127,6 +1166,18 @@ mod tests {
             rig.wait_for_calls(4),
             ["slow first", "Route 1", "Route 2", "fest"]
         );
+    }
+
+    #[test]
+    fn a_route_coming_just_after_the_voice_is_prepared_before_the_fixed_texts() {
+        // After a cold start the voice was ready 0.5 s before the route; the
+        // fixed sentence went first and the first announcement came too late.
+        let rig = Rig::with_fixed("cold-start", vec!["fest".into()]);
+        // Long enough for the idle thread to pick up the fixed text at once,
+        // well inside FIXED_TEXTS_WAIT.
+        thread::sleep(Duration::from_millis(100));
+        rig.voice.prepare(vec!["Route 1".into(), "Route 2".into()]);
+        assert_eq!(rig.wait_for_calls(3), ["Route 1", "Route 2", "fest"]);
     }
 
     #[test]
