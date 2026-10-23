@@ -51,11 +51,11 @@ List the quality attributes (performance, security, maintainability, etc.) and h
 - **Metric:** Connection loss detected and UI updated within 500ms
 - **Testing:** Unit tests + integration tests with simulated network failure
 
-#### Rear camera latency (measured 2026-10-21, jeep-pi)
+#### Rear camera latency (measured 2026-10-21 and 2026-10-23, jeep-pi)
 
 Measured on a Pi 4 (kernel 6.18.50) with CarNine 0.19.1, without a person in the loop: the Pi switches a trigger
 itself and measures when the change shows up in the picture. Each run takes 60 s with 75–90 changes; every change
-was detected. The table gives two runs as "run 1 / run 2". The tools are in
+was detected. Where a row has two runs, they are given as "run 1 / run 2". The tools are in
 [resources/tools/camera-latency/](../resources/tools/camera-latency/LIESMICH.md) (`latency_panel.py` for the
 grabbers, `latency_led.py` for the USB camera).
 
@@ -67,18 +67,24 @@ Measured: panel → camera → grabber → Pi, without CarNine.
 | STK1160 | 68 / 71 ms | 39–40 ms | 98–103 ms | 31.2 |
 | Somagic SMI-2021 (EasyCAP002) | 69 / 70 ms | 50–52 ms | 83–84 ms | 31.0 |
 
-USB camera (Jieli 1224:2a25). The trigger is the green ACT LED of the Pi, the camera looks at it.
+USB camera (Jieli 1224:2a25), 640 × 480. The trigger is the green ACT LED of the Pi, the camera looks at it.
+On 2026-10-21 in low light, on 2026-10-23 with more light.
 
-| Path | Median | 10 % | 90 % | Frames/s |
-|---|---|---|---|---|
-| Camera alone (V4L2, CarNine stopped) | 103 / 103 ms | 46–54 ms | 154–164 ms | 12.5 |
-| Camera → CarNine → display output | 115 / 112 ms | 57–61 ms | 167–173 ms | 12.6 |
+| Date | Path | Format | Median | 10 % | 90 % | Frames/s |
+|---|---|---|---|---|---|---|
+| 10-21 | Camera alone (V4L2, CarNine stopped) | YUYV | 103 / 103 ms | 46–54 ms | 154–164 ms | 12.5 |
+| 10-21 | Camera → CarNine → display output | YUYV | 115 / 112 ms | 57–61 ms | 167–173 ms | 12.6 |
+| 10-23 | Camera alone (V4L2, CarNine stopped) | YUYV | 148 ms | 126 ms | 174 ms | 24.8 |
+| 10-23 | Camera → CarNine → display output | YUYV | 154 ms | 132 ms | 177 ms | 24.1 |
+| 10-23 | Camera alone, decoded with ffmpeg | MJPG | 85 ms | 74 ms | 97 ms | 31.2 |
 
-- **CarNine itself** (video_grabber up to the hardware plane) adds about **10 ms**.
+- **CarNine itself** (video_grabber up to the hardware plane) adds about **10 ms** (6–12 ms in all three pairs).
 - Both analog grabbers are equally fast on average, about two frames at NTSC. The Somagic varies less.
   Of the two, CarNine supports only the STK1160 so far; the Somagic is #160.
-- In low light the USB camera delivered only 12.5 instead of 25 frames/s, which makes it slower. With more light it
-  is expected to be faster (not measured).
+- The frame rate does not explain the USB camera's delay: with more light it ran at 25 instead of 12.5 frames/s
+  but was slower in YUYV (148 instead of 103 ms). It seems to buffer frames itself in YUYV; the cause is open.
+- In MJPG the same camera was about 60 ms faster than in YUYV, decoding included. CarNine takes YUYV today.
+  The MJPG run used a one-off wrapper around ffmpeg; the tools in the repo read YUYV only.
 - Not included: the way from the display output to the light of the panel, up to 16 ms at 60 Hz.
 
 ### Performance

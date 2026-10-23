@@ -29,10 +29,8 @@ packt der Pi selbst aus. Das ist neu; mit einer MJPEG-Kamera ist es noch
 nicht ausprobiert.
 
 Das Bild kommt etwas zu spät auf den Bildschirm: Kamera und analoger Grabber
-brauchen etwa 0,07 Sekunden, eine USB-Kamera bei wenig Licht etwa 0,1
-Sekunden. carnine selbst kommt nur etwa 0,01 Sekunden dazu. Eine USB-Kamera
-wird bei wenig Licht langsamer, weil sie dann weniger Bilder pro Sekunde
-liefert.
+brauchen etwa 0,07 Sekunden, eine USB-Kamera etwa 0,1 bis 0,15 Sekunden.
+carnine selbst kommt nur etwa 0,01 Sekunden dazu.
 
 **Ältere Webcams nicht benutzen**, z. B. die Microsoft LifeCam VX-3000. Sie
 zeigen zwar ein Bild, aber nach etwa zwei Minuten bleibt der ganze Pi stehen
