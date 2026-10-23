@@ -341,7 +341,20 @@ had.
 **The tour** runs from Frankfurt Hauptbahnhof (south side) through Sachsenhausen
 along the Main to the Honsellbrücke at the Kunsthalle Montez (Honsellstraße 7):
 6.2 km, about 9 min a round with 10 s standing at the start and 20 s at the
-destination (533 fixes, 8.9 min). It was planned on carnine-pc's Valhalla
+destination (533 fixes, 8.9 min).
+
+**The first round waits for its route** (since aed6f03): in trade fair mode
+the replay publishes its first fix at once, so the map has the position, and
+stands there until the tour's route is computed, at most 30 s; then it drives
+off. Later rounds, replays without trade fair mode and a GPS mouse drive at
+once. After a cold start the replay used to drive off with the backend while
+the frontend asked for the route about 4.5 s later, and the start
+announcement was ready only after the car had passed its spot (2026-10-23,
+carnine-pc). The backend log says "replay waits at its start for the route",
+then "replay route ready, the tour drives off" with `waited_ms`, or after
+30 s the warning "no replay route in time, the tour drives off anyway". On a cold start on 2026-10-23 it waited
+5.9 s; the start announcement came 1 ms late and the next one 0.8 s late,
+where before it was missing and the next one came 6.5–8.2 s late. It was planned on carnine-pc's Valhalla
 through a tunnel and written as NMEA, with no via point; start and destination
 come from the names database:
 

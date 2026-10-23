@@ -133,6 +133,7 @@ startet neu. Die Einzelheiten (Tour, Schlüssel, feste Adresse) stehen in
 
 | Was | Verhalten |
 |---|---|
+| Nach dem Einschalten | Das Auto steht am Start, bis die Route berechnet ist (höchstens 30 Sekunden), dann fährt es los. So kommt die erste Ansage rechtzeitig. |
 | Ziel im Suchfeld | Während die Tour fährt, steht dort der Name des Ziels. Mit **X** löscht man ihn und kann suchen. |
 | **ABBRECHEN** | Löscht die Route bis zum Ende der Runde. Danach lädt die Karte die Tour wieder. |
 | Zurück zur Karte | Nach **60 Sekunden ohne Berührung** wechselt die Oberfläche zur Seite **Karten**. Jede Berührung, auch auf der Tastatur und in Dialogen, beginnt die 60 Sekunden neu. |
