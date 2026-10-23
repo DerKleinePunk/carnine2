@@ -1018,6 +1018,10 @@ directories and the configuration; there is no manual OS setup with
   5.1 decoder in front of the panel (see
   [Four speakers over AC-3](#four-speakers-over-ac-3-hdmi-ac3))
 - `-t power_supply:auprv1`: car power supply with `gpio-poweroff` (docs/23)
+- `-t allow_mcp:yes`: lets a frontend built with MCP (version ending in
+  `+mcp`) into the image, only for a test device; without it the build stops
+  right after installing such a frontend (see MCP under
+  [3.3](#33-build-frontend-flutter-via-emb_cli--ivi-homescreen))
 - `-t target_hostname:<name>`, `-t "ssh_public_key:…"`; on the device the
   name changes with `sudo carnine-rename <name>` (since the release after
   0.9.5)
@@ -1178,6 +1182,13 @@ the steps are listed for provisioning a new build host.
    - After the build, `build_pi.sh` checks that the MCP server is in
      `lib/libihs_shared.so.1` exactly when it was asked for (marker: the
      protocol's method name `tools/call`), and stops otherwise.
+   - The image build checks it too (since 3e226a0): `build_pi.sh` leaves its
+     package in `resources/debos/carnine-frontend.deb`, whichever build came
+     last. Right after the frontend is installed, `carnine-package-check.sh`
+     reads its version from the image's dpkg status and stops the build on
+     `+mcp` or a missing frontend; the fix is to build the frontend again
+     without `CARNINE_FRONTEND_MCP`. `-t allow_mcp:yes` (exactly `yes`) lets
+     an MCP frontend through, for an image meant for a test device.
    - Built in, MCP is still off until the frontend starts with
      `--enable-mcp`. The socket is then
      `$XDG_RUNTIME_DIR/ivi-homescreen/mcp.sock` (on the Pi
