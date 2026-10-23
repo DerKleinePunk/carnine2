@@ -250,13 +250,19 @@ pub async fn run_replay(
 ) {
     info!(replay = %name, fixes = steps.len(), looped, "position replay started");
     loop {
-        hub.start_replay_lap();
         let mut rest: &[ReplayStep] = &steps;
         if let (Some(gate), Some((first, later))) = (start.take(), steps.split_first()) {
+            // The round counts only once the tour drives: while it stands the
+            // lap is 0, below what a running frontend saw before a backend
+            // restart, so it fetches the route again (it does on a falling
+            // lap) and lets the tour go - otherwise it waited the full 30 s.
             tokio::time::sleep(first.delay).await;
             publish_step(&hub, first);
             wait_for_route(gate, &name).await;
+            hub.start_replay_lap();
             rest = later;
+        } else {
+            hub.start_replay_lap();
         }
         for step in rest {
             tokio::time::sleep(step.delay).await;
@@ -489,6 +495,9 @@ $GPRMC,141502.000,A,5024.5968,N,00921.8742,E,22.35,184.27,010518,,,A*5C
         ));
         tokio::time::sleep(Duration::from_secs(10)).await;
         assert_eq!(latitude(&hub), Some(50.0), "stands at the first fix");
+        // Lap 0 while standing: a frontend that saw lap 1 before a backend
+        // restart sees it fall and fetches the route again.
+        assert_eq!(hub.current().replay_lap, 0, "the round has not begun");
 
         ready.send_replace(true);
         tokio::time::sleep(Duration::from_millis(1500)).await;
@@ -497,6 +506,7 @@ $GPRMC,141502.000,A,5024.5968,N,00921.8742,E,22.35,184.27,010518,,,A*5C
             Some(51.0),
             "drives off once the route is there"
         );
+        assert_eq!(hub.current().replay_lap, 1);
         tokio::time::sleep(Duration::from_secs(1)).await;
         assert_eq!(latitude(&hub), Some(52.0));
         // End of round, 1 s pause: the second round drives without waiting.
