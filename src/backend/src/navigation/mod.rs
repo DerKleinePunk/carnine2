@@ -60,13 +60,27 @@ pub fn start(config: &NavigationConfig, database: &Path) -> NavigationServiceImp
         "track recording configured"
     );
     let mut replay_points = None;
+    let mut replay_route_ready = None;
     if let Some((steps, file)) = replay {
-        replay_points = Some(position::trace_points(&steps));
+        let points = position::trace_points(&steps);
+        // In trade fair mode the tour waits at its start for the route, so
+        // the start announcement still has its spot after a cold start. A
+        // tour without positions gets no route; it drives at once.
+        let start = (config.demo_mode && !points.is_empty()).then(|| {
+            let (ready, route_ready) = tokio::sync::watch::channel(false);
+            replay_route_ready = Some(ready);
+            position::ReplayStart {
+                route_ready,
+                max_wait: position::REPLAY_ROUTE_WAIT,
+            }
+        });
+        replay_points = Some(points);
         tokio::spawn(position::run_replay(
             hub.clone(),
             steps,
             file.display().to_string(),
             config.replay_loop,
+            start,
         ));
     } else if let (SourceKind::Serial, Some(device)) = (source, &config.serial_device) {
         position::spawn_serial(
@@ -78,7 +92,13 @@ pub fn start(config: &NavigationConfig, database: &Path) -> NavigationServiceImp
         );
     }
     // Config::validate rejects a source without its path; nothing to start.
-    NavigationServiceImpl::new(hub, config.valhalla_url.clone(), config.map_region.clone())
+    let service =
+        NavigationServiceImpl::new(hub, config.valhalla_url.clone(), config.map_region.clone());
+    let service = match replay_route_ready {
+        Some(ready) => service.with_replay_route_ready(ready),
+        None => service,
+    };
+    service
         .with_names_database(config.names_database.clone())
         .with_replay_points(replay_points)
         .with_replay_destination(config.replay_destination_name.clone(), config.demo_mode)

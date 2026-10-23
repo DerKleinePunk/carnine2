@@ -224,17 +224,43 @@ pub fn trace_points(steps: &[ReplayStep]) -> Vec<(f64, f64)> {
     points
 }
 
-/// Replays `steps` into `hub`, forever if `looped`.
-pub async fn run_replay(hub: PositionHub, steps: Vec<ReplayStep>, name: String, looped: bool) {
+/// How long a trade fair replay stands at its first fix waiting for the
+/// tour's route before it drives off anyway.
+pub const REPLAY_ROUTE_WAIT: Duration = Duration::from_secs(30);
+
+/// Holds a replay at its first fix until the tour's route is computed. After
+/// a cold start the frontend asks for the route seconds after the backend
+/// began driving, and the start announcement came after the car had passed
+/// its spot (2026-10-23, trade fair mode on carnine-pc).
+pub struct ReplayStart {
+    /// Turns `true` once the replay route is there.
+    pub route_ready: watch::Receiver<bool>,
+    pub max_wait: Duration,
+}
+
+/// Replays `steps` into `hub`, forever if `looped`. With `start`, the first
+/// round stands at its first fix until the route is ready (later rounds and
+/// a replay without `start` drive at once).
+pub async fn run_replay(
+    hub: PositionHub,
+    steps: Vec<ReplayStep>,
+    name: String,
+    looped: bool,
+    mut start: Option<ReplayStart>,
+) {
     info!(replay = %name, fixes = steps.len(), looped, "position replay started");
     loop {
         hub.start_replay_lap();
-        for step in &steps {
+        let mut rest: &[ReplayStep] = &steps;
+        if let (Some(gate), Some((first, later))) = (start.take(), steps.split_first()) {
+            tokio::time::sleep(first.delay).await;
+            publish_step(&hub, first);
+            wait_for_route(gate, &name).await;
+            rest = later;
+        }
+        for step in rest {
             tokio::time::sleep(step.delay).await;
-            let mut fix = step.fix.clone();
-            // A recording's own timestamps are years old.
-            fix.timestamp_utc_ms = now_unix_ms();
-            hub.publish(fix);
+            publish_step(&hub, step);
         }
         if !looped {
             info!(replay = %name, "position replay finished");
@@ -242,6 +268,32 @@ pub async fn run_replay(hub: PositionHub, steps: Vec<ReplayStep>, name: String, 
         }
         info!(replay = %name, "position replay restarting from the beginning");
         tokio::time::sleep(DEFAULT_REPLAY_INTERVAL).await;
+    }
+}
+
+fn publish_step(hub: &PositionHub, step: &ReplayStep) {
+    let mut fix = step.fix.clone();
+    // A recording's own timestamps are years old.
+    fix.timestamp_utc_ms = now_unix_ms();
+    hub.publish(fix);
+}
+
+async fn wait_for_route(mut gate: ReplayStart, name: &str) {
+    info!(replay = %name, max_wait_s = gate.max_wait.as_secs(), "replay waits at its start for the route");
+    let waiting = std::time::Instant::now();
+    match tokio::time::timeout(gate.max_wait, gate.route_ready.wait_for(|ready| *ready)).await {
+        Ok(Ok(_)) => info!(
+            replay = %name,
+            waited_ms = waiting.elapsed().as_millis() as u64,
+            "replay route ready, the tour drives off"
+        ),
+        // The service is gone; nobody will say so.
+        Ok(Err(_)) => warn!(replay = %name, "replay route never coming, the tour drives off"),
+        Err(_) => warn!(
+            replay = %name,
+            waited_s = gate.max_wait.as_secs(),
+            "no replay route in time, the tour drives off anyway"
+        ),
     }
 }
 
@@ -388,7 +440,7 @@ $GPRMC,141502.000,A,5024.5968,N,00921.8742,E,22.35,184.27,010518,,,A*5C
                 ..step
             })
             .collect();
-        tokio::spawn(run_replay(hub.clone(), steps, "test".into(), true));
+        tokio::spawn(run_replay(hub.clone(), steps, "test".into(), true, None));
         tokio::time::sleep(Duration::from_millis(500)).await;
         assert_eq!(hub.current().replay_lap, 1);
         // 1 s round + 1 s pause later the second round has begun.
@@ -398,10 +450,102 @@ $GPRMC,141502.000,A,5024.5968,N,00921.8742,E,22.35,184.27,010518,,,A*5C
         assert_eq!(hub.current().replay_lap, 3);
     }
 
+    /// Three fixes a second apart, told apart by latitude.
+    fn three_steps() -> Vec<ReplayStep> {
+        let template = replay_steps(LOG).remove(0);
+        (0..3)
+            .map(|n| ReplayStep {
+                delay: if n == 0 {
+                    Duration::ZERO
+                } else {
+                    Duration::from_secs(1)
+                },
+                fix: Fix {
+                    latitude: 50.0 + f64::from(n),
+                    ..template.fix.clone()
+                },
+            })
+            .collect()
+    }
+
+    fn latitude(hub: &PositionHub) -> Option<f64> {
+        hub.current().fix.map(|fix| fix.latitude)
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_trade_fair_replay_stands_at_its_start_until_the_route_is_ready() {
+        let hub = PositionHub::new(SourceKind::Replay);
+        let (ready, route_ready) = watch::channel(false);
+        let start = ReplayStart {
+            route_ready,
+            max_wait: Duration::from_secs(30),
+        };
+        tokio::spawn(run_replay(
+            hub.clone(),
+            three_steps(),
+            "test".into(),
+            true,
+            Some(start),
+        ));
+        tokio::time::sleep(Duration::from_secs(10)).await;
+        assert_eq!(latitude(&hub), Some(50.0), "stands at the first fix");
+
+        ready.send_replace(true);
+        tokio::time::sleep(Duration::from_millis(1500)).await;
+        assert_eq!(
+            latitude(&hub),
+            Some(51.0),
+            "drives off once the route is there"
+        );
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        assert_eq!(latitude(&hub), Some(52.0));
+        // End of round, 1 s pause: the second round drives without waiting.
+        tokio::time::sleep(Duration::from_millis(1500)).await;
+        assert_eq!(hub.current().replay_lap, 2);
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        assert_eq!(latitude(&hub), Some(51.0), "no wait in later rounds");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_trade_fair_replay_drives_off_after_its_wait_without_a_route() {
+        let hub = PositionHub::new(SourceKind::Replay);
+        let (_ready, route_ready) = watch::channel(false);
+        let start = ReplayStart {
+            route_ready,
+            max_wait: Duration::from_secs(30),
+        };
+        tokio::spawn(run_replay(
+            hub.clone(),
+            three_steps(),
+            "test".into(),
+            false,
+            Some(start),
+        ));
+        tokio::time::sleep(Duration::from_secs(29)).await;
+        assert_eq!(latitude(&hub), Some(50.0), "still waiting");
+        // 30 s wait, then the second fix's own 1 s.
+        tokio::time::sleep(Duration::from_millis(2500)).await;
+        assert_eq!(latitude(&hub), Some(51.0), "drove off after 30 s");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_replay_without_a_start_gate_drives_at_once() {
+        let hub = PositionHub::new(SourceKind::Replay);
+        tokio::spawn(run_replay(
+            hub.clone(),
+            three_steps(),
+            "test".into(),
+            false,
+            None,
+        ));
+        tokio::time::sleep(Duration::from_millis(1500)).await;
+        assert_eq!(latitude(&hub), Some(51.0));
+    }
+
     #[tokio::test(start_paused = true)]
     async fn a_replay_without_loop_stays_in_its_first_round() {
         let hub = PositionHub::new(SourceKind::Replay);
-        run_replay(hub.clone(), replay_steps(LOG), "test".into(), false).await;
+        run_replay(hub.clone(), replay_steps(LOG), "test".into(), false, None).await;
         assert_eq!(hub.current().replay_lap, 1);
     }
 

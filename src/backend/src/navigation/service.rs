@@ -62,6 +62,9 @@ pub struct NavigationServiceImpl {
     database: Option<PathBuf>,
     /// Spoken turn announcements; `None` leaves the calls without effect.
     voice: Option<Arc<VoiceControl>>,
+    /// Set once the replay route is there; a trade fair replay waits for it
+    /// at its start (`position::ReplayStart`).
+    replay_route_ready: Option<tokio::sync::watch::Sender<bool>>,
 }
 
 impl NavigationServiceImpl {
@@ -80,6 +83,18 @@ impl NavigationServiceImpl {
             demo_mode: false,
             database: None,
             voice: None,
+            replay_route_ready: None,
+        }
+    }
+
+    pub fn with_replay_route_ready(mut self, ready: tokio::sync::watch::Sender<bool>) -> Self {
+        self.replay_route_ready = Some(ready);
+        self
+    }
+
+    fn report_replay_route_ready(&self) {
+        if let Some(ready) = &self.replay_route_ready {
+            ready.send_replace(true);
         }
     }
 
@@ -557,6 +572,7 @@ impl NavigationService for NavigationServiceImpl {
         // first result instead of starting another multi-second match.
         let mut cache = self.replay_routes.lock().await;
         if let Some(route) = cache.get(&language) {
+            self.report_replay_route_ready();
             return Ok(Response::new(route.clone()));
         }
         info!(points = points.len(), %language, "map-matching the replay tour");
@@ -580,6 +596,7 @@ impl NavigationService for NavigationServiceImpl {
             "replay route computed"
         );
         cache.insert(language, route.clone());
+        self.report_replay_route_ready();
         Ok(Response::new(route))
     }
 
@@ -757,6 +774,43 @@ mod tests {
             .expect("the fake answers")
             .into_inner();
         assert_eq!(typed.destination_name, "", "only the replay route is named");
+    }
+
+    #[tokio::test]
+    async fn the_replay_route_lets_a_waiting_tour_drive_off() {
+        let url = answering_valhalla().await;
+        let (ready, route_ready) = tokio::sync::watch::channel(false);
+        let service =
+            NavigationServiceImpl::new(PositionHub::new(SourceKind::Replay), url, String::new())
+                .with_replay_points(Some(vec![(50.10572, 8.66410), (50.10818, 8.71014)]))
+                .with_replay_route_ready(ready);
+        assert!(!*route_ready.borrow(), "no route asked for yet");
+        service
+            .get_replay_route(Request::new(GetReplayRouteRequest { language: None }))
+            .await
+            .expect("the fake answers");
+        assert!(*route_ready.borrow());
+    }
+
+    #[tokio::test]
+    async fn a_failed_replay_route_keeps_the_tour_waiting() {
+        let (ready, route_ready) = tokio::sync::watch::channel(false);
+        // Nothing listens there: Valhalla is not up yet.
+        let service = NavigationServiceImpl::new(
+            PositionHub::new(SourceKind::Replay),
+            "http://127.0.0.1:9".to_string(),
+            String::new(),
+        )
+        .with_replay_points(Some(vec![(50.10572, 8.66410), (50.10818, 8.71014)]))
+        .with_replay_route_ready(ready);
+        assert!(service
+            .get_replay_route(Request::new(GetReplayRouteRequest { language: None }))
+            .await
+            .is_err());
+        assert!(
+            !*route_ready.borrow(),
+            "the tour waits on (at most its wait)"
+        );
     }
 
     async fn route_request(
