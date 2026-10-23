@@ -55,7 +55,7 @@ jobs:
       # does not pull in ffmpeg-next, so no FFmpeg headers are needed - but the
       # metadata and cover-art tests shell out to the ffmpeg and ffprobe
       # binaries, which the runner image does not ship. numpy is for the
-      # screenshot tool tests below.
+      # screenshot and camera latency tool tests below.
       - name: Install build dependencies
         run: |
           sudo apt-get update
@@ -65,6 +65,11 @@ jobs:
       # After the apt step: the frame tests need numpy (python3-numpy above).
       - name: Screenshot tool tests (Python)
         working-directory: resources/tools/drm-shot
+        run: python3 -m unittest discover -v
+
+      # After the apt step (python3-numpy): two frame tests need numpy.
+      - name: Camera latency tool tests (Python)
+        working-directory: resources/tools/camera-latency
         run: python3 -m unittest discover -v
 
       - uses: dtolnay/rust-toolchain@stable
