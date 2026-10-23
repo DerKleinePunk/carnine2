@@ -311,8 +311,8 @@ protection on a bench supply. **V2.4.1**, flashed the same evening: RUN
 **Flashing** is done with a Windows program through the bootloader, over the
 board's own USB socket with the jumper towards it: build here, copy the
 `.bin` to Windows, write it from there, set the jumper back. The command `U`
-(or `u`) resets the chip, after which the bootloader runs for a short time;
-according to Michael it answers `GetInfo` plus Enter, not tried yet (see the
+(or `u`) resets the chip, after which the bootloader runs for a short time
+and answers text commands (see "The bootloader's commands" below and the
 [firmware README](../firmware/powersupply/README.md#flash)).
 Since V2.4.0 the chip takes `U` only in IDLE or POWERON, so **flash with
 the 12 V side off**; the controller then runs from the USB socket, which is
@@ -321,10 +321,27 @@ EEPROM alone, so the stored settings (debug output, power-on delay, battery
 limit) survive it. Done on 2026-09-25 on the test board:
 it ran an older firmware before (a text line every second, no telegrams, no
 reaction to commands); with V2.2.12 the telegrams come and `v` answers. The test board runs V2.3.0
-now; `v` reports it. Which bootloader and
-protocol that is, is being asked; if it is a standard one, flashing and later
-updates could run from the Pi itself. Putting on or updating the bootloader
-itself is separate from the firmware.
+now; `v` reports it. The bootloader appears to be the module author's own
+(plain text commands, no standard protocol seen); its source is not
+available. Putting on or updating the
+bootloader itself is separate from the firmware (an ISP programmer, with the
+Pi off).
+
+**The bootloader's commands.** Text lines ending in CR, at 38400 baud like
+the firmware. Tried on 2026-10-23 on carnine-pc (Pi on USB-C, module
+switched on afterwards, nothing flashed):
+
+| Pi sends | Bootloader answers |
+|---|---|
+| an empty line (CR) | `Error`; a line every 0.5 s keeps the bootloader waiting |
+| `GetInfo` | `CarPC Powerunit`, `ATMega88`, `v0.1` (one line each) |
+| `Start` | `OK`; the firmware starts at once and sends its first line 6 ms later |
+
+Flashing uses further commands that only the Windows program sends: one to
+start writing, the program in blocks with a checksum per block, one to end,
+and one to read the flash back. They are known from that program, not tried
+from the Pi. Its read-back only checks that the bootloader answers, not that
+the content matches; the checksum per block while writing does check it.
 
 **The bootloader waits for a quiet line** (found 2026-10-21 on carnine-pc):
 after every reset (power on, watchdog) the bootloader runs first and starts
@@ -336,8 +353,8 @@ shows when the Pi runs on its own supply (USB-C) and the module is switched
 on later. Since then the backend sends nothing while the supply is silent and
 was last seen outside PIBOOT and RUN (see below); in PIBOOT and RUN the
 signs of life go on, so a loose receive wire on the Pi cannot cost the
-power. A bootloader that stays only on a fixed start sequence would fix it on
-the module's side; that is a question for its author.
+power. The wait can also be ended from the Pi: `Start` makes the bootloader
+start the firmware at once (see the table above).
 
 ### Battery protection
 
