@@ -119,7 +119,13 @@ Announce(text, priority) ──► in the cache? ── yes ──► play now �
   out of date follows.
 - **Fixed sentences:** whenever the voice is on (at start, or when it is
   switched on), the thread synthesizes the sentences of `fixed_texts` when it
-  has nothing else to do; the sentences of a route go first.
+  has nothing else to do; the sentences of a route go first. They also wait
+  until a route has been prepared, at most 20 s when none comes: after a cold
+  start the voice was ready a moment before the first route, began the
+  rerouting sentence (2.3 s, not interruptible), and the start announcement
+  was ready only after the car had passed it (2026-10-23, carnine-pc).
+  When a route is there already (voice switched off and on), they follow its
+  sentences at once.
 - **Cache:** same text, same file. Up to 200 sentences as WAV in
   `cache_dir` (tmpfs), the oldest go first. The fixed sentences are pinned:
   they are never dropped and do not count against the 200.
