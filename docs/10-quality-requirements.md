@@ -51,6 +51,34 @@ List the quality attributes (performance, security, maintainability, etc.) and h
 - **Metric:** Connection loss detected and UI updated within 500ms
 - **Testing:** Unit tests + integration tests with simulated network failure
 
+#### Rear camera latency (measured 2026-10-21, jeep-pi)
+
+Measured on a Pi 4 (kernel 6.18.50) with CarNine 0.19.1, without a person in the loop: the Pi switches a trigger
+itself and measures when the change shows up in the picture. Each run takes 60 s with 75–90 changes; every change
+was detected. The table gives two runs as "run 1 / run 2".
+
+Analog grabbers. The trigger is the panel turning black or white, the analog camera (NTSC) looks at the panel.
+Measured: panel → camera → grabber → Pi, without CarNine.
+
+| Grabber | Median | 10 % | 90 % | Frames/s |
+|---|---|---|---|---|
+| STK1160 | 68 / 71 ms | 39–40 ms | 98–103 ms | 31.2 |
+| Somagic SMI-2021 (EasyCAP002) | 69 / 70 ms | 50–52 ms | 83–84 ms | 31.0 |
+
+USB camera (Jieli 1224:2a25). The trigger is the green ACT LED of the Pi, the camera looks at it.
+
+| Path | Median | 10 % | 90 % | Frames/s |
+|---|---|---|---|---|
+| Camera alone (V4L2, CarNine stopped) | 103 / 103 ms | 46–54 ms | 154–164 ms | 12.5 |
+| Camera → CarNine → display output | 115 / 112 ms | 57–61 ms | 167–173 ms | 12.6 |
+
+- **CarNine itself** (video_grabber up to the hardware plane) adds about **10 ms**.
+- Both analog grabbers are equally fast on average, about two frames at NTSC. The Somagic varies less.
+  Of the two, CarNine supports only the STK1160 so far; the Somagic is #160.
+- In low light the USB camera delivered only 12.5 instead of 25 frames/s, which makes it slower. With more light it
+  is expected to be faster (not measured).
+- Not included: the way from the display output to the light of the panel, up to 16 ms at 60 Hz.
+
 ### Performance
 - **How:** Monitor CPU/Memory usage on RPi4; profile hot paths
 - **Metric:** App startup < 3s; API responses < 200ms; UI frame rate ≥ 60 FPS
