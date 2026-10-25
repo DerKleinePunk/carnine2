@@ -1,4 +1,4 @@
-<p align="center"><img src="resources/images/carnine-logo.jpg" alt="CarNine – made in vogelsberg" width="302"></p>
+<p align="center"><img src="resources/images/rund_256.png" alt="CarNine logo" width="256"></p>
 
 # Build an CarPC Software for Raspberry 4
 Yes i Try Build in with KI this is the Second Reason for create this Repro

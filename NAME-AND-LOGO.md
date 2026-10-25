@@ -3,10 +3,10 @@
 The code of Carnine2 is free software under the
 [GNU General Public License v3](LICENSE). The license covers the code. It
 does not cover the name **CarNine** (also written Carnine or Carnine2) or its
-logos: the logo at the top of the [README](README.md)
-(`resources/images/carnine-logo.jpg`) and the boot logos in
-`resources/images/` (`rund`, `land`, `sport`). They belong to the project
-owner, [DerKleinePunk](https://github.com/DerKleinePunk).
+logos in `resources/images/` (`rund`, `land`, `sport`, each in several
+sizes); `rund` is the one at the top of the [README](README.md) and the boot
+logo of the image. They belong to the project owner,
+[DerKleinePunk](https://github.com/DerKleinePunk).
 
 ## Fine without asking
 
