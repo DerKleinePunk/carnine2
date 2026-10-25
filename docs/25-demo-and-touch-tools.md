@@ -370,12 +370,18 @@ tour drives off" with `waited_ms`, or after 30 s the warning "no replay
 route in time, the tour drives off anyway". On a cold start on 2026-10-23 it
 waited 5.9 s; the start announcement came 1 ms late and the next one 0.8 s
 late, where before it was missing and the next one came 6.5–8.2 s late.
+While the first round stands, `replay_lap` is 0; it becomes 1 only when the
+tour drives off (since 84db1b7). After a restart of only the backend, a
+frontend that still shows lap 1 from before sees the lap fall, fetches the
+new route and so lets the tour go; with lap 1 already during the wait it saw
+no change and the tour stood the full 30 s (2026-10-23, carnine-pc and
+jeep-pi).
 
 **What the backend reports** (`NavigationService`):
 
 | Field | Meaning |
 |---|---|
-| `NavigationStatus.replay_lap` | round of the tour now driving, from 1; 0 without a replay. It rises with every new round, so a map that dropped the route after "Abbrechen" takes it up with the next one. |
+| `NavigationStatus.replay_lap` | round of the tour now driving, from 1; 0 without a replay and while the first round waits at its start for the route. It rises with every new round, so a map that dropped the route after "Abbrechen" takes it up with the next one. |
 | `NavigationStatus.demo_mode` | `[navigation] demo_mode` |
 | `Route.destination_name` | the end of the replay route, for the search field; empty for other routes |
 
