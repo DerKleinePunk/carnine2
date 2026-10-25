@@ -37,7 +37,10 @@ workspace it needs are in `docs/07-deployment.md`, section 3.3.
 
 The package installs the application under `/opt/carnine/frontend` and
 provides `carnine-frontend.service`. It uses DRM/KMS directly, so no X11 or
-Wayland session is required.
+Wayland session is required. A drop-in for `plymouth-quit.service` comes
+along, so the boot logo stays up until the first frame (ADR-026 in
+`docs/09-architecture-decisions.md`); `sh debian/tests/package-deb-test.sh`
+checks it in the built package.
 
 The application fonts `NotoSansSC` and `NotoSansJP` are bundled with the
 application. The image also installs `fontconfig` and `fonts-liberation` as a

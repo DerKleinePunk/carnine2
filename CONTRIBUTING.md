@@ -58,6 +58,7 @@ cd resources/tools/sbom && python3 -m unittest test_gen_sbom.py
 cd resources/tools/speech && python3 -m unittest test_speech_tools.py
 sh resources/tools/deb/tests/md5sums-test.sh
 sh resources/config/messe/tests/messe-einrichten-test.sh
+sh src/frontend/debian/tests/package-deb-test.sh
 ```
 
 The workflow additionally builds the backend in release mode on a native arm64

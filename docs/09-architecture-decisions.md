@@ -755,7 +755,8 @@ its template token from the Debos `version` parameter.
 
 ## ADR-019: Decouple Plymouth Handoff from UI Readiness
 
-**Status:** Accepted (September 2026)
+**Status:** Accepted (September 2026); the Plymouth part is superseded by
+ADR-026 (October 2026), the `getty@tty1` part stays
 
 **Context:**
 ADR-017's design ordered `plymouth-quit.service` after the frontend's
@@ -831,6 +832,9 @@ instead of one, compensating in practice for flutter-pi's missing retry.
   embedder and stays. The frame forcing in `main.dart` answers a flutter-pi
   bug and can go once the display is confirmed to come up reliably without
   it under ivi-homescreen.
+- Since ADR-026 Plymouth no longer quits on its own timing: it lets go of the
+  display before the frontend takes it and quits after the frontend, so the
+  black screen named above is gone.
 
 ---
 
@@ -1277,6 +1281,67 @@ Variant B (Michael, 2026-10-06):
 
 **References:** [26 – Spoken Turn Announcements](26-turn-announcements.md),
 issue #110 (switch and loudness in the options)
+
+---
+
+## ADR-026: Boot Logo Until the First Frame, Frontend Beside the Backend
+
+**Status:** Accepted, implemented (feature/backend 3295d6d and a8c238b,
+2026-10-25; first in the release after 0.20.0). Supersedes the Plymouth part
+of ADR-019.
+
+**Context:**
+Since ADR-019 Plymouth quit as soon as systemd was done, and the frontend
+started only after the backend reported ready. On carnine-pc (v0.20.0 image,
+2026-10-25, seconds after the kernel) the logo showed from 2.2 s, Plymouth
+quit at 6.8 s, the backend was ready at 10.0 s, and the frontend's first
+picture came at 15.5 s: **8.7 s of black panel** between logo and UI.
+
+**Decision:**
+- **Logo until the first frame:** `carnine-frontend.service` runs
+  `plymouth deactivate` before it starts ivi-homescreen (`ExecStartPre=-+`,
+  fails quietly without Plymouth). A drop-in for `plymouth-quit.service`
+  orders it after the frontend and replaces its command with
+  `plymouth quit --retain-splash`. Both ship in the frontend package
+  (`src/frontend/debian/plymouth-quit-carnine-frontend.conf`, installed as
+  `/lib/systemd/system/plymouth-quit.service.d/carnine-frontend.conf`), not
+  in the image build, because they only work together: the drop-in alone
+  would let Plymouth hold the display while the frontend wants it.
+- **Frontend beside the backend:** the frontend unit no longer has
+  `After=carnine-backend.service`; `Wants=` still pulls the backend in. The
+  frontend connects with retries anyway (#52, #54).
+
+**Rationale:**
+- No repeat of the ADR-017 deadlock: there Plymouth kept DRM master until
+  the frontend was ready. `plymouth deactivate` gives DRM master up before
+  the frontend starts and only leaves the picture on the panel; the wait for
+  `plymouth-quit` no longer blocks the frontend from drawing.
+- Measured on carnine-pc (spare SD, three reboots, screenshots of the
+  scanout every 1.5 s): with the logo handover no black picture was seen,
+  start page at 15.7 s (15.5 s before); with the frontend beside the backend
+  as well, start page at 12.9 s (13.2 s with the built package, first
+  picture 12.6 s) and the trade fair map at 17.5 s instead of about 20.9 s.
+  `NRestarts` 0, no failed units.
+- Preloading the graphics libraries (Mesa) was measured and dropped: with an
+  empty cache the frontend set up its graphics in 0.31 s. The about 3 s it
+  takes on the first start after Plymouth come from something else (first
+  full mode change on the monitor, assumed); not followed further.
+
+**Consequences:**
+- The frontend log shows "UNAVAILABLE … retrying" lines once at every start
+  until the backend listens, 0.5–2.5 s later. That is normal.
+- A flicker shorter than the 1.5 s between screenshots at the change from
+  logo to UI is not ruled out by the measurement; that needs an eye on the
+  panel.
+- If the frontend does not become ready, `plymouth-quit` waits at most for
+  its 30-second start timeout (a frontend that fails earlier releases it at
+  once); the `getty@tty1` fallback of ADR-019 is unchanged.
+- The package test `src/frontend/debian/tests/package-deb-test.sh` checks
+  start order and handover in the built `.deb` (7 of 9 checks fail on the old
+  files) and runs in CI.
+
+**References:** [06 – Runtime View](06-runtime.md), scenario 1; ADR-017,
+ADR-019; issue #37 (start under ivi-homescreen)
 
 ---
 

@@ -20,21 +20,39 @@ with the ignition, docs/23), systemd starts both services:
    backend as started. On shutdown it sends `STOPPING=1`. Without
    `NOTIFY_SOCKET` (WSL, started by hand) it sends nothing
    (`src/backend/src/systemd_notify.rs`).
-2. `carnine-frontend.service` (`Type=notify`, after the backend and
-   `plymouth-start.service`) launches ivi-homescreen with the Flutter bundle
-   and connects to the socket. Because the backend reports ready only once
-   the socket listens, the frontend never starts before the socket exists.
+2. `carnine-frontend.service` (`Type=notify`, after `seatd` and
+   `plymouth-start.service`, **not** after the backend) starts beside the
+   backend; `Wants=` still pulls the backend in. Before it takes the display
+   it calls `plymouth deactivate`: Plymouth lets go of the display but leaves
+   the boot logo on the panel. Then it launches ivi-homescreen with the
+   Flutter bundle and connects to the socket. The socket usually listens
+   0.5–2.5 s after the frontend's first attempt; until then the gRPC clients
+   retry on their own (#52, #54), so the frontend log shows "UNAVAILABLE …
+   retrying" lines once at every start. That is normal, not an error. Not
+   waiting for the backend brings the first picture about 3 s sooner
+   (carnine-pc, 2026-10-25, after the kernel: start page at about 13 s
+   instead of 15.5 s – 12.9 s with the probe files, 13.2 s with the built
+   package –, the map of the trade fair mode at 17.5 s instead of about
+   20.9 s).
 3. The UI waits for five rendered frames (it forces a frame every 100 ms and
    stops waiting after 5 s at the latest) and then reports `ReportUiReady` through
    `SystemService`. If the backend answers `UNAVAILABLE` (for example while
    it restarts on its own), `UiReadinessReporter` retries (250 ms, 500 ms,
-   1 s, then every 2 s) for up to 20 s. In a normal start the socket already
-   listens, so no retry is needed.
+   1 s, then every 2 s) for up to 20 s. In a normal start the socket listens
+   by then (measured 0.1–0.6 s before the first frame); if not, the retries
+   cover it.
 4. The frontend sends `READY=1` to systemd, which completes its start.
 
-Plymouth quits on its own timing and is not ordered after the frontend
-(ADR-019). The login console stays hidden because the frontend unit conflicts
-with `getty@tty1`. If the frontend does not report readiness within 30 seconds
+The boot logo stays up until the frontend's first frame (ADR-026): the
+frontend package brings a drop-in for `plymouth-quit.service`
+(`/lib/systemd/system/plymouth-quit.service.d/carnine-frontend.conf`) that
+orders it after the frontend and runs `plymouth quit --retain-splash`, so the
+logo stays on the panel until the frontend draws over it. Before, Plymouth
+quit as soon as systemd was done (about 6.8 s after the kernel) and the panel
+stayed black for some 8.7 s.
+
+The login console stays hidden because the frontend unit conflicts with
+`getty@tty1`. If the frontend does not report readiness within 30 seconds
 (`TimeoutStartSec`), systemd marks its start as failed; when the frontend
 stops, a 5-second fallback timer starts `getty@tty1`, so the virtual console
 becomes usable. The frontend service may be restarted by systemd according to
@@ -228,19 +246,25 @@ Runs for the whole lifetime of the backend, independent of any client:
 ```mermaid
 sequenceDiagram
     participant SD as systemd
+    participant PL as Plymouth
     participant RB as Rust Backend
     participant FF as Flutter Frontend
 
-    SD->>RB: start carnine-backend.service (Type=notify)
-    RB->>RB: open database, power supply, metrics, media, navigation
-    RB->>RB: bind /run/carnine/carnine.sock
-    RB->>SD: sd_notify READY=1 (socket listens)
-    SD->>FF: start carnine-frontend.service (Type=notify)
-    FF->>RB: connect via gRPC
+    par backend and frontend start side by side
+        SD->>RB: start carnine-backend.service (Type=notify)
+        RB->>RB: open database, power supply, metrics, media, navigation
+        RB->>RB: bind /run/carnine/carnine.sock
+        RB->>SD: sd_notify READY=1 (socket listens)
+    and
+        SD->>FF: start carnine-frontend.service (Type=notify)
+        FF->>PL: plymouth deactivate (display free, logo stays)
+        FF->>RB: connect via gRPC (retries until the socket listens)
+    end
     FF->>FF: wait for five rendered frames
     FF->>RB: SystemService.ReportUiReady()
     RB-->>FF: ok (retried only while the backend restarts)
     FF->>SD: sd_notify READY=1
+    SD->>PL: plymouth-quit.service: quit --retain-splash
 ```
 
 ### Sequence Diagram: Relay Control (idea, not implemented)
