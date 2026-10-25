@@ -12,18 +12,23 @@ PACKAGE_ROOT="$(mktemp -d)"
 trap 'rm -rf "$PACKAGE_ROOT"' EXIT
 
 install -d "$PACKAGE_ROOT/DEBIAN" "$PACKAGE_ROOT/opt/carnine/frontend" "$PACKAGE_ROOT/usr/bin" "$PACKAGE_ROOT/lib/systemd/system" \
-  "$PACKAGE_ROOT/usr/share/doc/carnine-frontend"
+  "$PACKAGE_ROOT/lib/systemd/system/plymouth-quit.service.d" "$PACKAGE_ROOT/usr/share/doc/carnine-frontend"
 cp "$ROOT_DIR/debian/control" "$PACKAGE_ROOT/DEBIAN/control"
 sed -i "s/^Version: .*/Version: $VERSION/" "$PACKAGE_ROOT/DEBIAN/control"
 cp "$ROOT_DIR/debian/postinst" "$PACKAGE_ROOT/DEBIAN/postinst"
 cp "$ROOT_DIR/debian/carnine-frontend" "$PACKAGE_ROOT/usr/bin/carnine-frontend"
 cp "$ROOT_DIR/debian/carnine-frontend.service" "$PACKAGE_ROOT/lib/systemd/system/carnine-frontend.service"
+# Belongs with the unit's `plymouth deactivate`: shipped apart, Plymouth would
+# hold the display while the frontend wants it.
+cp "$ROOT_DIR/debian/plymouth-quit-carnine-frontend.conf" \
+  "$PACKAGE_ROOT/lib/systemd/system/plymouth-quit.service.d/carnine-frontend.conf"
 cp -a "$BUNDLE_DIR/." "$PACKAGE_ROOT/opt/carnine/frontend/"
 cp "$ROOT_DIR/debian/copyright" "$PACKAGE_ROOT/usr/share/doc/carnine-frontend/copyright"
 cp "$IHS_LICENSES" "$PACKAGE_ROOT/usr/share/doc/carnine-frontend/ivi-homescreen-licenses.txt"
 
 chmod 0755 "$PACKAGE_ROOT/DEBIAN/postinst" "$PACKAGE_ROOT/usr/bin/carnine-frontend"
 chmod 0644 "$PACKAGE_ROOT/lib/systemd/system/carnine-frontend.service" \
+  "$PACKAGE_ROOT/lib/systemd/system/plymouth-quit.service.d/carnine-frontend.conf" \
   "$PACKAGE_ROOT/usr/share/doc/carnine-frontend/copyright" \
   "$PACKAGE_ROOT/usr/share/doc/carnine-frontend/ivi-homescreen-licenses.txt"
 install -d "$(dirname "$OUTPUT_DEB")"

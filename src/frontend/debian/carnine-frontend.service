@@ -20,6 +20,11 @@ Environment=CARNINE_LOG_PATH=/var/log/carnine/frontend.log
 CacheDirectory=carnine-frontend
 Environment=HOME=/var/cache/carnine-frontend
 ExecStartPre=-+/usr/bin/systemctl stop carnine-getty-fallback.timer
+# The boot logo stays up until the first frame: Plymouth lets go of the
+# display here but leaves its picture, and plymouth-quit waits for this unit
+# (plymouth-quit.service.d/carnine-frontend.conf). Without Plymouth it fails
+# quietly.
+ExecStartPre=-+/usr/bin/plymouth deactivate
 ExecStart=/usr/bin/carnine-frontend
 ExecStopPost=-+/usr/bin/systemd-run --on-active=5s --unit=carnine-getty-fallback -- /usr/bin/systemctl start getty@tty1.service
 Restart=on-failure
