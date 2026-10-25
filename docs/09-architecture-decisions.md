@@ -1331,8 +1331,8 @@ picture came at 15.5 s: **8.7 s of black panel** between logo and UI.
 - The frontend log shows "UNAVAILABLE … retrying" lines once at every start
   until the backend listens, 0.5–2.5 s later. That is normal.
 - A flicker shorter than the 1.5 s between screenshots at the change from
-  logo to UI is not ruled out by the measurement; that needs an eye on the
-  panel.
+  logo to UI is not ruled out by the measurement; watched on the panel of
+  carnine-pc (2026-10-25), nothing flickered.
 - If the frontend does not become ready, `plymouth-quit` waits at most for
   its 30-second start timeout (a frontend that fails earlier releases it at
   once); the `getty@tty1` fallback of ADR-019 is unchanged.
