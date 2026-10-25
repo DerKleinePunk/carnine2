@@ -1,3 +1,5 @@
+<p align="center"><img src="resources/images/rund_256.png" alt="CarNine logo" width="256"></p>
+
 # Build an CarPC Software for Raspberry 4
 Yes i Try Build in with KI this is the Second Reason for create this Repro
 
@@ -47,3 +49,7 @@ The [Bedienungsanleitung](docs/bedienung/README.md) (German, for developers and 
 ## Resources
 
 - [Sound Resources](resources/sounds/README.md) - Audio files for notifications and UI feedback
+
+## License
+
+The code is licensed under the [GNU General Public License v3](LICENSE). The name CarNine and its logos are not covered by it; see [Name and Logo](NAME-AND-LOGO.md) for what you may do with them and when to ask.
