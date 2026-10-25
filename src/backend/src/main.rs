@@ -44,6 +44,7 @@ mod serial_line;
 mod server_transport;
 mod size_capped_log;
 mod storage_events;
+mod stream_stop;
 mod system_metrics;
 mod systemd_notify;
 mod voice;
@@ -2024,7 +2025,9 @@ async fn main() -> Result<()> {
         Err(error) => warn!(%error, "could not tell systemd the backend is ready"),
     }
     let (shutdown_sender, shutdown_receiver) = oneshot::channel();
+    let stream_stop = stream_stop::StreamStop::new();
     let server = Server::builder()
+        .layer(stream_stop.layer())
         .add_service(CarnineServiceServer::new(carnine_service))
         .add_service(MediaServiceServer::new(media_service.clone()))
         .add_service(AudioServiceServer::new(AudioServiceImpl::with_events(
@@ -2082,6 +2085,9 @@ async fn main() -> Result<()> {
             }
             audio_volume.shutdown();
             control_hub.shut_down();
+            // Open streams end with UNAVAILABLE, so the server need not wait
+            // for the frontend to hang up (it never does by itself).
+            stream_stop.stop();
             let _ = shutdown_sender.send(());
             match tokio::time::timeout(Duration::from_secs(5), &mut server).await {
                 Ok(result) => result?,

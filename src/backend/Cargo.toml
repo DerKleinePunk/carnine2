@@ -78,6 +78,12 @@ tonic-prost = "0.14"
 # through tonic; plain http only, the router listens on loopback.
 bytes = "1"
 http-body-util = "0.1"
+# Ending open responses on a stop (stream_stop.rs); all already in the tree
+# through tonic.
+http = "1"
+http-body = "1"
+tower-layer = "0.3"
+tower-service = "0.3"
 hyper = { version = "1", features = ["client", "http1"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "http1", "tokio"] }
 prost = "0.14"
