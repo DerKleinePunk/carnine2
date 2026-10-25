@@ -94,6 +94,8 @@ argon2 = "0.5"
 gpiocdev = "0.8"
 
 [dev-dependencies]
+# Probe only (examples/fst_probe.rs): typo-tolerant place search.
+fst = { version = "0.4", features = ["levenshtein"] }
 # test-util gives the metrics sampler tests a paused clock, so they cover the
 # tick scheduling without sleeping for real.
 tokio = { version = "1.38", features = ["macros", "rt-multi-thread", "test-util"] }
