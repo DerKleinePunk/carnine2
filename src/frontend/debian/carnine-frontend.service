@@ -1,6 +1,9 @@
 [Unit]
 Description=Carnine Flutter Frontend
-After=systemd-udev-settle.service seatd.service carnine-backend.service plymouth-start.service
+# Not after carnine-backend: the frontend starts beside it and connects once
+# it listens (it retries on its own), so the first picture comes about 3 s
+# sooner. Wants= still pulls the backend in.
+After=systemd-udev-settle.service seatd.service plymouth-start.service
 Before=getty@tty1.service
 Conflicts=getty@tty1.service
 Wants=seatd.service carnine-backend.service
