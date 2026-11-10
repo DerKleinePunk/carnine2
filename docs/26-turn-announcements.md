@@ -204,7 +204,7 @@ checks them against pinned SHA-256 values (see
 | `cache_dir` | `/run/carnine/voice` | synthesized sentences (tmpfs) |
 | `volume_percent` | `100` | loudness of the announcements, 0–100 |
 | `music_under_percent` | `30` | music level while a sentence plays, 0–100; 0 holds the track |
-| `fixed_texts` | `["Die Route wird neu berechnet."]` | sentences kept ready for good, see below; `[]` for none |
+| `fixed_texts` | `["Die Route wird neu berechnet.", "In 300 Metern rechts abbiegen."]` | sentences kept ready for good, see below; `[]` for none |
 
 **Fixed sentences.** "Die Route wird neu berechnet." already stands at the
 end of every prepare list. It can still be missing when a new list replaces
@@ -212,9 +212,12 @@ the old one before the voice thread gets to the end, when 200 other sentences
 have pushed it out of the cache, or when no route has been set yet.
 `fixed_texts` is the safeguard for these cases: the backend synthesizes the
 listed sentences whenever the voice is on and pins them in the cache. The
-default is the one fixed sentence the map library speaks today. Each entry
-must be word for word what the library sends (local_map 0.8.3), otherwise the
-cache does not find it. With the voice off nothing is synthesized.
+default is the one fixed sentence the map library speaks today, followed by
+the sentence of "Sprache testen" in the options: nobody prepares that one, so
+after every start the first tap waited for its synthesis (#170). Each entry
+must be word for word what the library or the options send (local_map 0.8.3,
+`AnnouncementSettingsController.testSentence`), otherwise the cache does not
+find it. With the voice off nothing is synthesized.
 
 To switch the voice, put it in a drop-in and restart the backend:
 

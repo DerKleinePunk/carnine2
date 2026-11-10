@@ -193,7 +193,8 @@ hash = "$argon2id$v=19$m=19456,t=2,p=1$Y2FybmluZS1leGl0LXB3$O+DjYmFGfVSWu+fkiM29
 # Synthesis runs on one thread pinned to core 3, away from the map.
 # fixed_texts are kept synthesized for good, a safeguard for sentences that
 # may be missing from the cache when needed (the library prepares the
-# rerouting sentence last); word for word as the map library sends them.
+# rerouting sentence last) and for the options' "Sprache testen" sentence;
+# word for word as the map library and the options send them.
 # The defaults:
 # [voice]
 # enabled = true
@@ -205,4 +206,4 @@ hash = "$argon2id$v=19$m=19456,t=2,p=1$Y2FybmluZS1leGl0LXB3$O+DjYmFGfVSWu+fkiM29
 # cache_dir = "/run/carnine/voice"
 # volume_percent = 100
 # music_under_percent = 30           # the music's level while speaking; 0 holds the track
-# fixed_texts = ["Die Route wird neu berechnet."]   # kept ready, [] for none
+# fixed_texts = ["Die Route wird neu berechnet.", "In 300 Metern rechts abbiegen."]   # kept ready, [] for none

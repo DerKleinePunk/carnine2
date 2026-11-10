@@ -79,6 +79,11 @@ pub struct VoiceConfig {
 /// unsynthesized; then it waits for its synthesis, 1.4 s on a Pi 4.
 pub const REROUTING_TEXT: &str = "Die Route wird neu berechnet.";
 
+/// The sentence of "Sprache testen" in the options (frontend
+/// `AnnouncementSettingsController.testSentence`). Nobody prepares it, so
+/// the first tap after a start waited for its synthesis (#170).
+pub const TEST_TEXT: &str = "In 300 Metern rechts abbiegen.";
+
 impl Default for VoiceConfig {
     fn default() -> Self {
         Self {
@@ -91,7 +96,7 @@ impl Default for VoiceConfig {
             cache_dir: PathBuf::from("/run/carnine/voice"),
             volume_percent: 100,
             music_under_percent: 30,
-            fixed_texts: vec![REROUTING_TEXT.to_string()],
+            fixed_texts: vec![REROUTING_TEXT.to_string(), TEST_TEXT.to_string()],
         }
     }
 }
@@ -813,7 +818,7 @@ fn merge_tables(base: &mut toml::Table, overlay: toml::Table) {
 
 #[cfg(test)]
 mod tests {
-    use super::Config;
+    use super::{Config, TEST_TEXT};
     use std::ffi::OsString;
 
     #[test]
@@ -931,11 +936,17 @@ mod tests {
     }
 
     #[test]
-    fn the_fixed_texts_default_to_the_rerouting_sentence() {
+    fn the_fixed_texts_default_to_the_rerouting_and_test_sentences() {
         let base = std::fs::read_to_string("../../resources/config/carnine.toml")
             .expect("repository config should be readable");
         let config: Config = toml::from_str(&base).expect("repository config parses");
-        assert_eq!(config.voice.fixed_texts, ["Die Route wird neu berechnet."]);
+        assert_eq!(
+            config.voice.fixed_texts,
+            [
+                "Die Route wird neu berechnet.",
+                "In 300 Metern rechts abbiegen."
+            ]
+        );
 
         let config: Config = toml::from_str(&format!(
             "{base}\n[voice]\nfixed_texts = [\"Sie haben Ihr Ziel erreicht.\", \"Achtung.\"]\n"
@@ -949,6 +960,19 @@ mod tests {
         let config: Config = toml::from_str(&format!("{base}\n[voice]\nfixed_texts = []\n"))
             .expect("an empty list parses");
         assert!(config.voice.fixed_texts.is_empty());
+    }
+
+    #[test]
+    fn the_test_sentence_matches_the_options_word_for_word() {
+        // The cache finds a sentence only by its exact text (#170).
+        let options = std::fs::read_to_string(
+            "../frontend/lib/features/settings/presentation/announcement_settings_controller.dart",
+        )
+        .expect("frontend options controller should be readable");
+        assert!(
+            options.contains(&format!("testSentence = '{TEST_TEXT}';")),
+            "TEST_TEXT must match AnnouncementSettingsController.testSentence"
+        );
     }
 
     #[test]
