@@ -92,6 +92,8 @@ ffmpeg-next = { version = "8", optional = true }
 rand = "0.8"
 argon2 = "0.5"
 gpiocdev = "0.8"
+# Word index of the place names, for a search that tolerates typos (#172).
+fst = { version = "0.4", features = ["levenshtein"] }
 
 [dev-dependencies]
 # test-util gives the metrics sampler tests a paused clock, so they cover the

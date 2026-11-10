@@ -313,6 +313,23 @@ takes hours.
 | `valhalla_tiles.tar` | `scripts/valhalla/build_valhalla_from_pbf.sh`, called at the end of `tilemaker.sh` | Routing tiles for the local Valhalla. The current file (5 GB) is from a build on 2026-04-11 (container, an older Valhalla), which Valhalla 3.9.0 reads; on 2026-09-24 only the program was rebuilt. It covers all of Germany: read from its level-2 tile names on 2026-09-25, 895 of 1068 tiles lie in the German bounding box, the rest along ferry lines to Scandinavia and the Baltic, as in a Geofabrik Germany extract. So routes work beyond the Hessen tiles, into areas the map does not draw. |
 | `GPS-Adnan-Tour.txt` | `scripts/GpsTest/` | Recorded NMEA tour replayed on the stand. New tours: record a drive, see [Recording drives](#recording-drives). |
 
+**Word index for typos (#172).** The backend builds a second file from the
+names database itself, so it is not part of the map package: next to
+`germany_names.db` it writes `germany_names.words.fst`, every word of the
+names with how often it occurs. When a search finds nothing ("Frankfrut",
+"Lauterbch", "Bahnhofstrase"), the close words of this index are searched
+instead (edit distance 1 from 4 letters, 2 from 8; two swapped letters count
+2). Written-out umlauts ("Muecke", "Giessen", "Strasse") are searched with
+their umlauts in any case. A fresh index is loaded at start; a missing one, or
+one older than the database by modification or change time (installing a
+package counts as a change), is built 60 s after the start on a thread of low
+priority and saved in the maps folder, which belongs to `carnine`. Until then
+the search works as without it. Measured on the PC on 2026-11-10: Hessen
+190 000 words, 1.3 MB, built in 0.3 s; Germany 840 000 words, 5.8 MB, 2.2 s;
+a search with typos takes 2-24 ms, one spelled right as long as without the
+index. A Pi 4 took about four times as long for the build (probe of
+2026-10-25).
+
 The Valhalla program itself is not part of the data: it is built natively on
 a Pi with `scripts/valhalla/build_valhalla_on_pi.sh` from the map project
 (described in `docs/valhalla-offline-setup.md`, "Stand auf den Test-Pis") and

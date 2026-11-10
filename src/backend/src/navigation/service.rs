@@ -17,6 +17,7 @@ use super::places::{self, PlaceRecord};
 use super::position::{Fix, PositionHub, PositionState, SourceKind};
 use super::track::TrackRecorder;
 use super::valhalla::{RouteData, RoutingError, Valhalla};
+use super::word_index::SharedWordIndex;
 use crate::carnine::navigation_service_server::NavigationService;
 use crate::carnine::{
     AnnounceRequest, AnnouncementPriority as ProtoPriority, ComputeRouteRequest, Empty, FixState,
@@ -46,6 +47,9 @@ pub struct NavigationServiceImpl {
     valhalla_url: String,
     map_region: String,
     names_database: Option<PathBuf>,
+    /// Words of the names database for a search with typos; empty until the
+    /// index is loaded or built (#172).
+    word_index: SharedWordIndex,
     valhalla: Valhalla,
     /// Valid, deduplicated points of the running replay; `None` without one.
     replay_points: Option<Arc<Vec<(f64, f64)>>>,
@@ -75,6 +79,7 @@ impl NavigationServiceImpl {
             valhalla_url,
             map_region,
             names_database: None,
+            word_index: Arc::default(),
             replay_points: None,
             replay_routes: Arc::default(),
             next_route_id: Arc::new(AtomicU64::new(1)),
@@ -208,6 +213,11 @@ impl NavigationServiceImpl {
 
     pub fn with_names_database(mut self, names_database: Option<PathBuf>) -> Self {
         self.names_database = names_database;
+        self
+    }
+
+    pub fn with_word_index(mut self, word_index: SharedWordIndex) -> Self {
+        self.word_index = word_index;
         self
     }
 
@@ -459,14 +469,16 @@ impl NavigationService for NavigationServiceImpl {
             .filter(|(lat, lon)| lat.is_finite() && lon.is_finite());
         let query = request.query;
         let limit = usize::try_from(request.limit).unwrap_or(places::DEFAULT_LIMIT);
-        let hits =
-            tokio::task::spawn_blocking(move || places::search(&database, &query, limit, near))
-                .await
-                .map_err(|err| Status::internal(format!("place search panicked: {err}")))?
-                .map_err(|err| {
-                    warn!(error = %format!("{err:#}"), "place search failed");
-                    Status::unavailable(format!("place search failed: {err:#}"))
-                })?;
+        let index = self.word_index.read().map_or(None, |slot| slot.clone());
+        let hits = tokio::task::spawn_blocking(move || {
+            places::search_with(&database, &query, limit, near, index.as_deref())
+        })
+        .await
+        .map_err(|err| Status::internal(format!("place search panicked: {err}")))?
+        .map_err(|err| {
+            warn!(error = %format!("{err:#}"), "place search failed");
+            Status::unavailable(format!("place search failed: {err:#}"))
+        })?;
         Ok(Response::new(SearchPlacesResponse {
             places: hits.into_iter().map(place).collect(),
         }))

@@ -10,6 +10,10 @@
 //! and a grid cell in the index (`cell`). Only with them "Hauptstraße
 //! Alsfeld" finds the street in Alsfeld and `near` searches the surroundings
 //! first; older ones are searched across the whole country.
+//!
+//! Umlauts written out ("Muecke", "Giessen", "Strasse") also find the names
+//! spelled with them. When a search finds nothing, the word index
+//! (`word_index`) puts close words in for misspelled ones (#172).
 
 use std::collections::HashSet;
 use std::path::Path;
@@ -17,6 +21,8 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use rusqlite::types::Value;
 use rusqlite::{Connection, OpenFlags};
+
+use super::word_index::{fold, WordIndex};
 
 /// Results when the request asks for none in particular.
 pub const DEFAULT_LIMIT: usize = 15;
@@ -78,15 +84,30 @@ struct Schema {
     has_grid: bool,
 }
 
-/// Searches `database` for `query`. An empty query finds nothing.
+/// Searches `database` for `query` without a word index: a misspelled word
+/// finds nothing. The tests compare against it.
+#[cfg(test)]
 pub fn search(
     database: &Path,
     query: &str,
     limit: usize,
     near: Option<(f64, f64)>,
 ) -> Result<Vec<PlaceRecord>> {
+    search_with(database, query, limit, near, None)
+}
+
+/// Searches `database` for `query`. An empty query finds nothing. Only when
+/// nothing is found and `index` is there, misspelled words are searched as
+/// the close words of the index; a query spelled right runs as without it.
+pub fn search_with(
+    database: &Path,
+    query: &str,
+    limit: usize,
+    near: Option<(f64, f64)>,
+    index: Option<&WordIndex>,
+) -> Result<Vec<PlaceRecord>> {
     let query = query.trim();
-    let words = fts_words(query);
+    let words: Vec<&str> = query.split_whitespace().collect();
     if words.is_empty() {
         return Ok(Vec::new());
     }
@@ -101,8 +122,31 @@ pub fn search(
     )
     .with_context(|| format!("opening names database {}", database.display()))?;
     let schema = schema(&connection)?;
-    let expression = match_expression(&words, schema.has_area);
+    let terms: Vec<Vec<String>> = words.iter().map(|word| word_terms(word)).collect();
+    let expression = match_expression(&terms, schema.has_area);
+    let candidates = find_candidates(&connection, &schema, &expression, query, near, fetch)?;
+    if !candidates.is_empty() {
+        return Ok(ranked(candidates, query, near, limit));
+    }
+    let Some((terms, corrected)) = index.and_then(|index| with_typos(index, &words, terms)) else {
+        return Ok(Vec::new());
+    };
+    let expression = match_expression(&terms, schema.has_area);
+    let candidates = find_candidates(&connection, &schema, &expression, query, near, fetch)?;
+    // Ranked as if the most common close word had been typed: "Frankfrut"
+    // as "Frankfurt" finds the city first.
+    Ok(ranked(candidates, &corrected, near, limit))
+}
 
+/// The hits for `expression` per type, those around `near` first.
+fn find_candidates(
+    connection: &Connection,
+    schema: &Schema,
+    expression: &str,
+    query: &str,
+    near: Option<(f64, f64)>,
+    fetch: usize,
+) -> Result<Vec<PlaceRecord>> {
     // FTS returns hits without distance or ranking. With `near` the ones from
     // the surroundings come first, or of a thousand "Hauptstraße" an
     // arbitrary selection would be fetched.
@@ -112,9 +156,9 @@ pub fn search(
     {
         for kind in TYPE_PRIORITY {
             candidates.extend(query_names(
-                &connection,
-                &schema,
-                &expression,
+                connection,
+                schema,
+                expression,
                 kind,
                 Some(origin),
                 fetch,
@@ -127,14 +171,7 @@ pub fn search(
         if fetched >= fetch {
             break;
         }
-        let records = query_names(
-            &connection,
-            &schema,
-            &expression,
-            kind,
-            None,
-            fetch - fetched,
-        )?;
+        let records = query_names(connection, schema, expression, kind, None, fetch - fetched)?;
         fetched += records.len();
         for record in records {
             if seen.insert(identity(&record)) {
@@ -142,7 +179,37 @@ pub fn search(
             }
         }
     }
-    Ok(ranked(candidates, query, near, limit))
+    Ok(candidates)
+}
+
+/// Misspelled words of `words` (not the start of any word in the index, 4
+/// characters or more) get the close words of the index as alternatives in
+/// `terms`. Returns them with the query as if the most common close word had
+/// been typed, or `None` when no word could be corrected.
+fn with_typos(
+    index: &WordIndex,
+    words: &[&str],
+    mut terms: Vec<Vec<String>>,
+) -> Option<(Vec<Vec<String>>, String)> {
+    let mut corrected = Vec::with_capacity(words.len());
+    let mut any = false;
+    for (word, alternatives) in words.iter().zip(terms.iter_mut()) {
+        let folded = fold(word);
+        let similar = if index.has_prefix(&folded) {
+            Vec::new()
+        } else {
+            index.similar(&folded)
+        };
+        match similar.first() {
+            Some(best) => {
+                corrected.push(best.clone());
+                alternatives.extend(similar.iter().map(|word| quoted(word)));
+                any = true;
+            }
+            None => corrected.push((*word).to_string()),
+        }
+    }
+    any.then(|| (terms, corrected.join(" ")))
 }
 
 /// Exact hits first ("Fulda" before "Fulda-Galerie", "Hauptstraße Alsfeld"
@@ -158,7 +225,7 @@ fn ranked(
     near: Option<(f64, f64)>,
     limit: usize,
 ) -> Vec<PlaceRecord> {
-    let wanted = query.to_lowercase();
+    let wanted = spellings(&fold(query));
     let street_key = |record: &PlaceRecord| (record.name.to_lowercase(), record.area.clone());
     // A POI named exactly like a street in the same locality (bus stop, info
     // board, car park "Hauptstraße") goes behind the streets. Only in the
@@ -172,13 +239,16 @@ fn ranked(
     let mut keyed: Vec<_> = candidates
         .into_iter()
         .map(|record| {
-            let name = record.name.to_lowercase();
-            let exact = name == wanted
-                || record
-                    .area
-                    .as_ref()
-                    .is_some_and(|area| format!("{name} {}", area.to_lowercase()) == wanted)
-                || (is_city_or_town(&record) && starts_with_word(&name, &wanted));
+            let name = fold(&record.name);
+            let with_area = record
+                .area
+                .as_ref()
+                .map(|area| format!("{name} {}", fold(area)));
+            let exact = wanted.iter().any(|wanted| {
+                name == *wanted
+                    || with_area.as_ref() == Some(wanted)
+                    || (is_city_or_town(&record) && starts_with_word(&name, wanted))
+            });
             let type_rank = if record.kind == "poi" && streets.contains(&street_key(&record)) {
                 5
             } else {
@@ -358,14 +428,39 @@ fn cells_around(lat: f64, lon: f64, d_lat: f64, d_lon: f64) -> Vec<String> {
     cells
 }
 
-/// Every word of the input as a quoted prefix term. Quoting keeps `-`, `:`
-/// and friends from being read as FTS syntax; the prefix finds "Frank" while
-/// it is still being typed.
-fn fts_words(query: &str) -> Vec<String> {
-    query
-        .split_whitespace()
-        .map(|word| format!("{}*", quoted(word)))
-        .collect()
+/// A word of the input as FTS terms: quoted as a prefix, so "Frank" finds
+/// while it is still being typed, and its spellings with umlauts as whole
+/// words ("muecke" also as "mücke", which the index holds as "mucke").
+/// Quoting keeps `-`, `:` and friends from being read as FTS syntax.
+fn word_terms(word: &str) -> Vec<String> {
+    let mut terms = vec![format!("{}*", quoted(word))];
+    terms.extend(
+        spellings(&fold(word))
+            .iter()
+            .skip(1)
+            .map(|spelling| quoted(spelling)),
+    );
+    terms
+}
+
+/// `text` (folded) and its spellings with umlauts and ß for written-out
+/// ae/oe/ue and ss, as far as they differ; `text` first.
+fn spellings(text: &str) -> Vec<String> {
+    let plain = text
+        .replace("ae", "a")
+        .replace("oe", "o")
+        .replace("ue", "u");
+    let mut spellings = vec![text.to_string()];
+    for spelling in [
+        plain.clone(),
+        plain.replace("ss", "ß"),
+        text.replace("ss", "ß"),
+    ] {
+        if !spellings.contains(&spelling) {
+            spellings.push(spelling);
+        }
+    }
+    spellings
 }
 
 fn quoted(text: &str) -> String {
@@ -374,13 +469,34 @@ fn quoted(text: &str) -> String {
 
 /// All words anywhere in name or area, but at least one in the name. So
 /// "Hauptstraße Alsfeld" finds the Hauptstraße in Alsfeld, while "Alsfeld"
-/// alone does not find every street there.
-fn match_expression(words: &[String], has_area: bool) -> String {
-    if words.len() == 1 || !has_area {
-        return format!("name : ({})", words.join(" "));
+/// alone does not find every street there. Each word is one of its `terms`.
+fn match_expression(terms: &[Vec<String>], has_area: bool) -> String {
+    let in_name = |alternatives: &[String]| -> Vec<String> {
+        alternatives
+            .iter()
+            .map(|term| format!("name : {term}"))
+            .collect()
+    };
+    if terms.len() == 1 || !has_area {
+        let words: Vec<String> = terms
+            .iter()
+            .map(|alternatives| format!("({})", in_name(alternatives).join(" OR ")))
+            .collect();
+        return words.join(" AND ");
     }
-    let in_name: Vec<String> = words.iter().map(|word| format!("name : {word}")).collect();
-    format!("({}) AND ({})", words.join(" "), in_name.join(" OR "))
+    let anywhere: Vec<String> = terms
+        .iter()
+        .map(|alternatives| format!("({})", alternatives.join(" OR ")))
+        .collect();
+    let in_name: Vec<String> = terms
+        .iter()
+        .flat_map(|alternatives| in_name(alternatives))
+        .collect();
+    format!(
+        "({}) AND ({})",
+        anywhere.join(" AND "),
+        in_name.join(" OR ")
+    )
 }
 
 fn identity(record: &PlaceRecord) -> (String, String, u64, u64) {
@@ -407,11 +523,11 @@ pub(super) mod tests {
     use super::*;
 
     /// Row of a test database: name, lat, lng, type, detail, area.
-    type Row<'a> = (&'a str, f64, f64, &'a str, &'a str, Option<&'a str>);
+    pub(in crate::navigation) type Row<'a> = (&'a str, f64, f64, &'a str, &'a str, Option<&'a str>);
 
     /// A names database in today's schema: area in `context`, type and grid
     /// cell in the index, rowid = id.
-    fn names_db(rows: &[Row]) -> TempDb {
+    pub(in crate::navigation) fn names_db(rows: &[Row]) -> TempDb {
         let db = TempDb::new();
         let connection = Connection::open(&db.path).expect("create db");
         connection
@@ -846,6 +962,146 @@ pub(super) mod tests {
     fn a_missing_database_is_an_error() {
         let missing = std::env::temp_dir().join("carnine-names-does-not-exist.db");
         assert!(search(&missing, "Alsfeld", 0, None).is_err());
+    }
+
+    /// Names of the examples in #172; the shop "Muecke Moden" was all that
+    /// "Muecke" found before.
+    fn typo_db() -> (TempDb, WordIndex) {
+        // In DACH "frankfurt" is in thousands of names, "frankruti" in one;
+        // the close word "frankruti" counts ten times, so it takes more than
+        // ten Frankfurts here to outweigh it, as in the real data.
+        let districts: Vec<String> = (0..12).map(|i| format!("Frankfurt-Ort {i}")).collect();
+        let mut rows: Vec<Row> = districts
+            .iter()
+            .map(|name| {
+                (
+                    name.as_str(),
+                    50.1,
+                    8.6,
+                    "place",
+                    "suburb",
+                    Some("Frankfurt am Main"),
+                )
+            })
+            .collect();
+        rows.extend([
+            ("Frankfurt am Main", 50.111, 8.682, "place", "city", None),
+            ("Frankrüti", 47.36, 8.86, "place", "hamlet", Some("Bauma")),
+            ("Lauterbach", 50.637, 9.395, "place", "town", None),
+            (
+                "Lauterbacher Straße",
+                50.64,
+                9.40,
+                "transportation_name",
+                "minor",
+                Some("Lauterbach"),
+            ),
+            (
+                "Bahnhofstraße",
+                50.636,
+                9.398,
+                "transportation_name",
+                "secondary",
+                Some("Lauterbach"),
+            ),
+            (
+                "Bahnhofstraße",
+                50.75,
+                9.27,
+                "transportation_name",
+                "secondary",
+                Some("Alsfeld"),
+            ),
+            (
+                "Muecke Moden",
+                50.10,
+                8.68,
+                "poi",
+                "clothes",
+                Some("Frankfurt am Main"),
+            ),
+            (
+                "Mücke",
+                50.61,
+                9.03,
+                "place",
+                "village",
+                Some("Vogelsbergkreis"),
+            ),
+            ("Gießen", 50.584, 8.678, "place", "town", None),
+            (
+                "Giessen",
+                51.79,
+                4.87,
+                "place",
+                "village",
+                Some("Woudrichem"),
+            ),
+            (
+                "Frankfurter Straße",
+                50.58,
+                8.67,
+                "transportation_name",
+                "primary",
+                Some("Gießen"),
+            ),
+        ]);
+        let db = names_db(&rows);
+        let index = WordIndex::build(&db.path).expect("word index");
+        (db, index)
+    }
+
+    #[test]
+    fn a_misspelled_city_is_found_through_the_word_index() {
+        let (db, index) = typo_db();
+        assert!(search(&db.path, "Frankfrut", 0, None)
+            .expect("search")
+            .is_empty());
+        let hits = search_with(&db.path, "Frankfrut", 0, None, Some(&index)).expect("search");
+        assert_eq!(names(&hits)[0], "Frankfurt am Main");
+        let hits = search_with(&db.path, "Lauterbch", 0, None, Some(&index)).expect("search");
+        assert_eq!(names(&hits)[..2], ["Lauterbach", "Lauterbacher Straße"]);
+    }
+
+    #[test]
+    fn a_misspelled_street_is_found_in_its_town() {
+        let (db, index) = typo_db();
+        let hits = search_with(&db.path, "Bahnhofstrase", 0, None, Some(&index)).expect("search");
+        assert_eq!(names(&hits), ["Bahnhofstraße", "Bahnhofstraße"]);
+        // Only the misspelled word is replaced; the town still narrows it down.
+        let hits = search_with(&db.path, "Bahnhofstrase Lauterbach", 0, None, Some(&index))
+            .expect("search");
+        assert_eq!(names(&hits), ["Bahnhofstraße"]);
+        assert_eq!(hits[0].area.as_deref(), Some("Lauterbach"));
+    }
+
+    #[test]
+    fn a_word_spelled_right_searches_as_without_the_index() {
+        let (db, index) = typo_db();
+        for query in ["Frankfurt", "Lauterb", "Bahnhofstraße Alsfeld", "Frank"] {
+            assert_eq!(
+                search_with(&db.path, query, 0, Some(ALSFELD), Some(&index)).expect("search"),
+                search(&db.path, query, 0, Some(ALSFELD)).expect("search"),
+                "{query}"
+            );
+        }
+        // Nothing close enough: still nothing.
+        assert!(search_with(&db.path, "Xyzzy", 0, None, Some(&index))
+            .expect("search")
+            .is_empty());
+    }
+
+    #[test]
+    fn written_out_umlauts_find_the_names_with_them() {
+        let (db, _) = typo_db();
+        let hits = search(&db.path, "Muecke", 0, None).expect("search");
+        assert_eq!(names(&hits), ["Mücke", "Muecke Moden"]);
+        let hits = search(&db.path, "Giessen", 0, None).expect("search");
+        let mut found = names(&hits);
+        found.sort_unstable();
+        assert_eq!(found, ["Giessen", "Gießen"]);
+        let hits = search(&db.path, "Frankfurter Strasse", 0, None).expect("search");
+        assert_eq!(names(&hits), ["Frankfurter Straße"]);
     }
 
     #[test]

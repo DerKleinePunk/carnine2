@@ -9,6 +9,7 @@ pub mod position;
 pub mod service;
 pub mod track;
 pub mod valhalla;
+pub mod word_index;
 
 use std::path::Path;
 
@@ -98,8 +99,16 @@ pub fn start(config: &NavigationConfig, database: &Path) -> NavigationServiceImp
         Some(ready) => service.with_replay_route_ready(ready),
         None => service,
     };
+    // The index of the names database comes in the background; until then
+    // the search finds no typos (#172).
+    let word_index = config
+        .names_database
+        .clone()
+        .map(|database| word_index::spawn(database, word_index::BUILD_DELAY))
+        .unwrap_or_default();
     service
         .with_names_database(config.names_database.clone())
+        .with_word_index(word_index)
         .with_replay_points(replay_points)
         .with_replay_destination(config.replay_destination_name.clone(), config.demo_mode)
         .with_tracks(tracks, database.to_path_buf())
