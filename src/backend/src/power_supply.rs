@@ -1400,7 +1400,13 @@ mod tests {
             .unwrap();
         let mut seen = Vec::new();
         read_until(&mut master, b'3', &mut seen);
-        assert!(!seen.contains(&b'6'), "never off before on here: {seen:?}");
+        // A `6` may come first when the sender wakes between the KL15 and the
+        // state telegram (see the test below); once on, never off until the
+        // stop.
+        assert!(
+            seen.iter().skip_while(|&&b| b != b'3').all(|&b| b != b'6'),
+            "never off after on before the stop: {seen:?}"
+        );
 
         // The stop waits for `6` and the amplifier to mute.
         let stopping = {
@@ -1432,6 +1438,51 @@ mod tests {
             .skip_while(|&&b| b != b'6')
             .skip(1)
             .all(|&b| b == b'+'));
+    }
+
+    /// The supply talks, but its state has not come yet: the amplifier is
+    /// switched off first and on once RUN comes. CI run 42898087703 hit this
+    /// order by chance, between the KL15 and the state telegram of a second.
+    #[test]
+    fn the_line_switches_off_first_while_the_state_is_unknown() {
+        let (mut master, slave_path) = pseudo_terminal();
+        let hub = PowerSupplyHub::new(true).with_amplifier_relay(true);
+        hub.amplifier.lock().ready_since = Some(Instant::now() - AMPLIFIER_ON_DELAY);
+        let stop = Arc::new(AtomicBool::new(false));
+        let last_heard = Arc::new(Mutex::new(Instant::now()));
+        let line = open_line(Path::new(&slave_path), 38400).expect("open the pseudo-terminal");
+        let writer = line.try_clone().unwrap();
+        let sender = {
+            let (stop, last_heard, hub) = (Arc::clone(&stop), Arc::clone(&last_heard), hub.clone());
+            std::thread::spawn(move || send_alive(writer, &hub, &last_heard, &stop))
+        };
+        let reader = {
+            let (stop, last_heard, hub) = (Arc::clone(&stop), Arc::clone(&last_heard), hub.clone());
+            std::thread::spawn(move || read_telegrams(line, &hub, &last_heard, &stop))
+        };
+
+        let second = status_telegrams(b'1', "3", b'3', "132");
+        let state_at = second
+            .windows(2)
+            .position(|pair| pair == [STX, ID_STATE])
+            .expect("a state telegram");
+        master.write_all(&second[..state_at]).unwrap();
+        let mut seen = Vec::new();
+        read_until(&mut master, b'6', &mut seen);
+        assert!(
+            !seen.contains(&b'3'),
+            "off while the state is unknown: {seen:?}"
+        );
+
+        master.write_all(&second[state_at..]).unwrap();
+        let mut after = Vec::new();
+        read_until(&mut master, b'3', &mut after);
+        assert!(!after.contains(&b'6'), "on once RUN comes: {after:?}");
+
+        stop.store(true, Ordering::Relaxed);
+        sender.join().unwrap().unwrap();
+        master.write_all(&[STX, ID_STATE, b'3', ETX]).unwrap();
+        reader.join().unwrap().unwrap();
     }
 
     #[test]
