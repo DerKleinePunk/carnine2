@@ -21,7 +21,7 @@ use super::word_index::SharedWordIndex;
 use crate::carnine::navigation_service_server::NavigationService;
 use crate::carnine::{
     AnnounceRequest, AnnouncementPriority as ProtoPriority, ComputeRouteRequest, Empty, FixState,
-    GetLocationNameRequest, GetReplayRouteRequest, LatLon, LocationName, Maneuver,
+    GetLocationNameRequest, GetReplayRouteRequest, Lane, LatLon, LocationName, Maneuver,
     NavigationStatus, Place, PlaceType, PositionFix, PositionSourceKind,
     PrepareAnnouncementsRequest, Route, SearchPlacesRequest, SearchPlacesResponse, ServiceVersion,
     SetTrackRecordingRequest, SetVoiceSettingsRequest, VoiceSettings,
@@ -205,6 +205,15 @@ impl NavigationServiceImpl {
                     verbal_alert: maneuver.verbal_alert,
                     verbal_pre: maneuver.verbal_pre,
                     verbal_post: maneuver.verbal_post,
+                    lanes: maneuver
+                        .lanes
+                        .into_iter()
+                        .map(|lane| Lane {
+                            directions: lane.directions,
+                            valid: lane.valid,
+                            active: lane.active,
+                        })
+                        .collect(),
                 })
                 .collect(),
             destination_name: String::new(),
@@ -1043,7 +1052,7 @@ mod tests {
     }
 
     #[test]
-    fn the_route_carries_the_spoken_texts_to_the_client() {
+    fn the_route_carries_the_spoken_texts_and_lanes_to_the_client() {
         let data = RouteData {
             geometry: vec![(50.0, 9.0), (50.1, 9.0)],
             distance_meters: 1000.0,
@@ -1060,6 +1069,18 @@ mod tests {
                     "Links auf Schellengasse abbiegen. Dann weiter auf B 62.".to_string(),
                 ),
                 verbal_post: None,
+                lanes: vec![
+                    crate::navigation::valhalla::LaneData {
+                        directions: 16,
+                        valid: 16,
+                        active: 0,
+                    },
+                    crate::navigation::valhalla::LaneData {
+                        directions: 48,
+                        valid: 0,
+                        active: 16,
+                    },
+                ],
             }],
         };
         let route = service(PositionHub::new(SourceKind::Serial)).route_message(data);
@@ -1073,6 +1094,22 @@ mod tests {
             Some("Links auf Schellengasse abbiegen. Dann weiter auf B 62.")
         );
         assert!(maneuver.verbal_post.is_none());
+        assert_eq!(
+            maneuver.lanes,
+            [
+                Lane {
+                    directions: 16,
+                    valid: 16,
+                    active: 0
+                },
+                Lane {
+                    directions: 48,
+                    valid: 0,
+                    active: 16
+                }
+            ],
+            "the lanes reach the client left to right, untouched"
+        );
     }
 
     #[tokio::test]

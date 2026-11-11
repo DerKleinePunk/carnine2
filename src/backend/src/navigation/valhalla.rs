@@ -51,6 +51,16 @@ pub struct ManeuverData {
     pub verbal_alert: Option<String>,
     pub verbal_pre: Option<String>,
     pub verbal_post: Option<String>,
+    /// Lanes before the maneuver, left to right (`turn_lanes`, #159).
+    pub lanes: Vec<LaneData>,
+}
+
+/// One lane as Valhalla's bit masks of arrows (see `Lane` in the proto).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LaneData {
+    pub directions: u32,
+    pub valid: u32,
+    pub active: u32,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -112,17 +122,7 @@ impl Valhalla {
         points: &[(f64, f64)],
         language: &str,
     ) -> Result<RouteData, RoutingError> {
-        let shape: Vec<Value> = points
-            .iter()
-            .map(|(lat, lon)| json!({"lat": lat, "lon": lon}))
-            .collect();
-        let body = json!({
-            "shape": shape,
-            "costing": "auto",
-            "shape_match": "map_snap",
-            "directions_options": {"units": "kilometers", "language": language},
-        });
-        self.trip("trace_route", body).await
+        self.trip("trace_route", trace_body(points, language)).await
     }
 
     /// Map-matches a whole recorded tour. `/trace_route` matches a trace that
@@ -242,6 +242,7 @@ pub fn parse_trip(answer: &Value) -> Result<RouteData, RoutingError> {
                 verbal_alert: spoken(&maneuver["verbal_transition_alert_instruction"]),
                 verbal_pre: spoken(&maneuver["verbal_pre_transition_instruction"]),
                 verbal_post: spoken(&maneuver["verbal_post_transition_instruction"]),
+                lanes: lanes(&maneuver["lanes"]),
             });
         }
     }
@@ -252,6 +253,28 @@ pub fn parse_trip(answer: &Value) -> Result<RouteData, RoutingError> {
         duration_seconds: trip["summary"]["time"].as_f64().unwrap_or_default(),
         maneuvers,
     })
+}
+
+/// A maneuver's `lanes`, left to right. A lane without arrows (`directions`
+/// missing or 0) carries nothing to show and is left out.
+fn lanes(value: &Value) -> Vec<LaneData> {
+    let mask = |lane: &Value, key: &str| {
+        lane[key]
+            .as_u64()
+            .and_then(|bits| u32::try_from(bits).ok())
+            .unwrap_or_default()
+    };
+    value
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|lane| LaneData {
+            directions: mask(lane, "directions"),
+            valid: mask(lane, "valid"),
+            active: mask(lane, "active"),
+        })
+        .filter(|lane| lane.directions != 0)
+        .collect()
 }
 
 /// Splits `trace` where it drives its own earlier way again: as soon as a
@@ -380,6 +403,23 @@ fn route_body(
         "locations": [start, {"lat": destination.0, "lon": destination.1}],
         "costing": "auto",
         "directions_options": {"units": "kilometers", "language": language},
+        // The lanes before each maneuver (#159); Valhalla sends them only when
+        // asked, at no further cost.
+        "turn_lanes": true,
+    })
+}
+
+fn trace_body(points: &[(f64, f64)], language: &str) -> Value {
+    let shape: Vec<Value> = points
+        .iter()
+        .map(|(lat, lon)| json!({"lat": lat, "lon": lon}))
+        .collect();
+    json!({
+        "shape": shape,
+        "costing": "auto",
+        "shape_match": "map_snap",
+        "directions_options": {"units": "kilometers", "language": language},
+        "turn_lanes": true,
     })
 }
 
@@ -399,6 +439,108 @@ mod tests {
         assert!(body["locations"][0].get("heading").is_none());
         assert!(body["locations"][0].get("heading_tolerance").is_none());
         assert_eq!(body["costing"], json!("auto"));
+    }
+
+    #[test]
+    fn both_requests_ask_for_the_lanes() {
+        let route = route_body((50.11, 8.65), None, (50.08, 8.24), "de-DE");
+        assert_eq!(route["turn_lanes"], json!(true));
+        let trace = trace_body(&[(50.11, 8.65), (50.12, 8.64)], "de-DE");
+        assert_eq!(trace["turn_lanes"], json!(true));
+        assert_eq!(trace["shape"][1], json!({"lat": 50.12, "lon": 8.64}));
+        assert_eq!(trace["shape_match"], json!("map_snap"));
+    }
+
+    /// A real answer of Valhalla 3.9 with `turn_lanes` (the Germany routing
+    /// tiles of the map package), Frankfurt Messe to Wiesbaden over the
+    /// A 648: 20 maneuvers, 11 with lanes.
+    fn frankfurt_wiesbaden() -> Value {
+        serde_json::from_str(include_str!(
+            "testdata/valhalla-route-frankfurt-wiesbaden-lanes.json"
+        ))
+        .expect("valid JSON")
+    }
+
+    fn lane(directions: u32, valid: u32, active: u32) -> LaneData {
+        LaneData {
+            directions,
+            valid,
+            active,
+        }
+    }
+
+    #[test]
+    fn the_lanes_come_along_left_to_right_as_valhalla_sends_them() {
+        let route = parse_trip(&frankfurt_wiesbaden()).expect("parses");
+        assert_eq!(route.maneuvers.len(), 20);
+        let with_lanes = route.maneuvers.iter().filter(|m| !m.lanes.is_empty());
+        assert_eq!(with_lanes.count(), 11);
+        assert!(route.maneuvers[0].lanes.is_empty(), "no lanes at the start");
+
+        // The fork to the Festhalle (#159): left lane valid, middle one right.
+        let fork = &route.maneuvers[8];
+        assert!(
+            fork.instruction.starts_with("Leicht nach links"),
+            "{}",
+            fork.instruction
+        );
+        assert_eq!(
+            fork.lanes,
+            [lane(16, 16, 0), lane(48, 0, 16), lane(32, 0, 0)]
+        );
+
+        // Four lanes right onto the B 8/B 44, the leftmost one wrong.
+        assert_eq!(
+            route.maneuvers[9].lanes,
+            [
+                lane(8, 0, 0),
+                lane(40, 0, 32),
+                lane(32, 0, 32),
+                lane(32, 0, 32),
+                lane(32, 0, 32)
+            ]
+        );
+    }
+
+    #[test]
+    fn lanes_without_a_right_one_are_passed_on_for_the_display_to_drop() {
+        // Valhalla sometimes marks no lane valid or active (#159); whether
+        // to show such lanes is the display's rule, not the backend's.
+        let route = parse_trip(&frankfurt_wiesbaden()).expect("parses");
+        let lanes = &route.maneuvers[17].lanes;
+        assert_eq!(lanes.len(), 4);
+        assert!(lanes.iter().all(|l| l.valid == 0 && l.active == 0));
+    }
+
+    #[test]
+    fn a_lane_without_arrows_is_left_out_and_odd_values_read_as_unset() {
+        let answer = json!({
+            "trip": {
+                "summary": {"length": 1.0, "time": 60.0},
+                "legs": [{
+                    "shape": "_p~iF~ps|U_ulLnnqC",
+                    "maneuvers": [{
+                        "instruction": "Rechts halten.", "type": 23, "begin_shape_index": 0,
+                        "lanes": [
+                            {"directions": 2},
+                            {"valid": 32},
+                            {"directions": 0, "active": 32},
+                            {"directions": 32, "active": 32, "valid": -1},
+                            {"directions": 4_294_967_296_u64}
+                        ]
+                    }]
+                }]
+            }
+        });
+        let route = parse_trip(&answer).expect("parses");
+        assert_eq!(route.maneuvers[0].lanes, [lane(2, 0, 0), lane(32, 0, 32)]);
+    }
+
+    #[test]
+    fn an_answer_without_lanes_gives_empty_lanes() {
+        // As before #159, or where the map knows none.
+        let route = parse_trip(&two_leg_answer()).expect("parses");
+        assert!(route.maneuvers.iter().all(|m| m.lanes.is_empty()));
     }
 
     #[test]
@@ -559,6 +701,7 @@ mod tests {
             verbal_alert: None,
             verbal_pre: None,
             verbal_post: None,
+            lanes: Vec::new(),
         }
     }
 

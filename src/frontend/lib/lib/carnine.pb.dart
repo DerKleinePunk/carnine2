@@ -4874,6 +4874,7 @@ class Maneuver extends $pb.GeneratedMessage {
     $core.String? verbalAlert,
     $core.String? verbalPre,
     $core.String? verbalPost,
+    $core.Iterable<Lane>? lanes,
   }) {
     final result = create();
     if (instruction != null) result.instruction = instruction;
@@ -4885,6 +4886,7 @@ class Maneuver extends $pb.GeneratedMessage {
     if (verbalAlert != null) result.verbalAlert = verbalAlert;
     if (verbalPre != null) result.verbalPre = verbalPre;
     if (verbalPost != null) result.verbalPost = verbalPost;
+    if (lanes != null) result.lanes.addAll(lanes);
     return result;
   }
 
@@ -4911,6 +4913,7 @@ class Maneuver extends $pb.GeneratedMessage {
     ..aOS(7, _omitFieldNames ? '' : 'verbalAlert')
     ..aOS(8, _omitFieldNames ? '' : 'verbalPre')
     ..aOS(9, _omitFieldNames ? '' : 'verbalPost')
+    ..pPM<Lane>(10, _omitFieldNames ? '' : 'lanes', subBuilder: Lane.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5009,6 +5012,93 @@ class Maneuver extends $pb.GeneratedMessage {
   $core.bool hasVerbalPost() => $_has(8);
   @$pb.TagNumber(9)
   void clearVerbalPost() => $_clearField(9);
+
+  /// The lanes before the maneuver, left to right, as Valhalla gives them
+  /// (turn_lanes, #159). Empty where the map knows no lanes. Which lane to
+  /// light up is the display's rule, see Lane.
+  @$pb.TagNumber(10)
+  $pb.PbList<Lane> get lanes => $_getList(9);
+}
+
+/// One lane before a maneuver, raw from Valhalla. Each field is a bit mask of
+/// arrows: 1 none, 2 through, 4 sharp left, 8 left, 16 slight left,
+/// 32 slight right, 64 right, 128 sharp right, 256 U-turn, 512 merge left,
+/// 1024 merge right; 0 = not set. Lanes without arrows are not sent.
+class Lane extends $pb.GeneratedMessage {
+  factory Lane({
+    $core.int? directions,
+    $core.int? valid,
+    $core.int? active,
+  }) {
+    final result = create();
+    if (directions != null) result.directions = directions;
+    if (valid != null) result.valid = valid;
+    if (active != null) result.active = active;
+    return result;
+  }
+
+  Lane._();
+
+  factory Lane.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory Lane.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'Lane',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aI(1, _omitFieldNames ? '' : 'directions', fieldType: $pb.PbFieldType.OU3)
+    ..aI(2, _omitFieldNames ? '' : 'valid', fieldType: $pb.PbFieldType.OU3)
+    ..aI(3, _omitFieldNames ? '' : 'active', fieldType: $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Lane clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Lane copyWith(void Function(Lane) updates) =>
+      super.copyWith((message) => updates(message as Lane)) as Lane;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static Lane create() => Lane._();
+  @$core.override
+  Lane createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static Lane getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Lane>(create);
+  static Lane? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get directions => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set directions($core.int value) => $_setUnsignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasDirections() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDirections() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get valid => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set valid($core.int value) => $_setUnsignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasValid() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearValid() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get active => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set active($core.int value) => $_setUnsignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasActive() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearActive() => $_clearField(3);
 }
 
 class PrepareAnnouncementsRequest extends $pb.GeneratedMessage {

@@ -1710,6 +1710,14 @@ const Maneuver$json = {
       '10': 'verbalPost',
       '17': true
     },
+    {
+      '1': 'lanes',
+      '3': 10,
+      '4': 3,
+      '5': 11,
+      '6': '.carnine.Lane',
+      '10': 'lanes'
+    },
   ],
   '8': [
     {'1': '_verbal_alert'},
@@ -1725,8 +1733,24 @@ final $typed_data.Uint8List maneuverDescriptor = $convert.base64Decode(
     'Y29uZHMSEgoEdHlwZRgEIAEoDVIEdHlwZRIqChFiZWdpbl9zaGFwZV9pbmRleBgFIAEoDVIPYm'
     'VnaW5TaGFwZUluZGV4EiEKDHN0cmVldF9uYW1lcxgGIAMoCVILc3RyZWV0TmFtZXMSJgoMdmVy'
     'YmFsX2FsZXJ0GAcgASgJSABSC3ZlcmJhbEFsZXJ0iAEBEiIKCnZlcmJhbF9wcmUYCCABKAlIAV'
-    'IJdmVyYmFsUHJliAEBEiQKC3ZlcmJhbF9wb3N0GAkgASgJSAJSCnZlcmJhbFBvc3SIAQFCDwoN'
-    'X3ZlcmJhbF9hbGVydEINCgtfdmVyYmFsX3ByZUIOCgxfdmVyYmFsX3Bvc3Q=');
+    'IJdmVyYmFsUHJliAEBEiQKC3ZlcmJhbF9wb3N0GAkgASgJSAJSCnZlcmJhbFBvc3SIAQESIwoF'
+    'bGFuZXMYCiADKAsyDS5jYXJuaW5lLkxhbmVSBWxhbmVzQg8KDV92ZXJiYWxfYWxlcnRCDQoLX3'
+    'ZlcmJhbF9wcmVCDgoMX3ZlcmJhbF9wb3N0');
+
+@$core.Deprecated('Use laneDescriptor instead')
+const Lane$json = {
+  '1': 'Lane',
+  '2': [
+    {'1': 'directions', '3': 1, '4': 1, '5': 13, '10': 'directions'},
+    {'1': 'valid', '3': 2, '4': 1, '5': 13, '10': 'valid'},
+    {'1': 'active', '3': 3, '4': 1, '5': 13, '10': 'active'},
+  ],
+};
+
+/// Descriptor for `Lane`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List laneDescriptor = $convert.base64Decode(
+    'CgRMYW5lEh4KCmRpcmVjdGlvbnMYASABKA1SCmRpcmVjdGlvbnMSFAoFdmFsaWQYAiABKA1SBX'
+    'ZhbGlkEhYKBmFjdGl2ZRgDIAEoDVIGYWN0aXZl');
 
 @$core.Deprecated('Use prepareAnnouncementsRequestDescriptor instead')
 const PrepareAnnouncementsRequest$json = {

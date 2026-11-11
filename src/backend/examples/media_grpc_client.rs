@@ -827,7 +827,30 @@ fn print_route(route: &Route) {
                 println!("           {label:<5} \"{text}\"");
             }
         }
+        if !maneuver.lanes.is_empty() {
+            println!("           lanes {}", lanes_line(&maneuver.lanes));
+        }
     }
+}
+
+/// Lanes left to right as their arrow masks (#159): `*` = the right lane
+/// (active), `+` = a lane that follows the route (valid), e.g.
+/// `16+ | 48* | 32`.
+fn lanes_line(lanes: &[carnine::Lane]) -> String {
+    lanes
+        .iter()
+        .map(|lane| {
+            let mark = if lane.active != 0 {
+                "*"
+            } else if lane.valid != 0 {
+                "+"
+            } else {
+                ""
+            };
+            format!("{}{mark}", lane.directions)
+        })
+        .collect::<Vec<_>>()
+        .join(" | ")
 }
 
 /// `places <query> [lat,lon]`: place search, optionally ranked around a point.

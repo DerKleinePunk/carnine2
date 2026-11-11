@@ -921,6 +921,13 @@ Add `NavigationService` to `carnine.proto`:
   from the same recording. A configured replay whose tour cannot be read
   (the image before the map data is installed) runs no source: status and
   fixes report `POSITION_SOURCE_NONE`, not a replay the map keeps asking for.
+
+  Both ask Valhalla with `turn_lanes` (#159): each `Maneuver` carries the
+  lanes before it, left to right, as Valhalla's raw bit masks
+  (`directions`, `valid`, `active`; lanes without arrows left out). Which
+  lane to light up is the map library's rule, not the backend's. No second
+  request is needed; the answer only grows a little (Frankfurt-Wiesbaden:
+  7 %).
 - `StreamPositions` - fixes at the source's rate (1 Hz), heading unsmoothed.
 - `SetTrackRecording` - switches recording of the driven track on or off
   (`[navigation] track_directory`, see docs/07 "Recording drives").

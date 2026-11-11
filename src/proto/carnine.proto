@@ -695,6 +695,20 @@ message Maneuver {
   optional string verbal_alert = 7;
   optional string verbal_pre = 8;
   optional string verbal_post = 9;
+  // The lanes before the maneuver, left to right, as Valhalla gives them
+  // (turn_lanes, #159). Empty where the map knows no lanes. Which lane to
+  // light up is the display's rule, see Lane.
+  repeated Lane lanes = 10;
+}
+
+// One lane before a maneuver, raw from Valhalla. Each field is a bit mask of
+// arrows: 1 none, 2 through, 4 sharp left, 8 left, 16 slight left,
+// 32 slight right, 64 right, 128 sharp right, 256 U-turn, 512 merge left,
+// 1024 merge right; 0 = not set. Lanes without arrows are not sent.
+message Lane {
+  uint32 directions = 1;  // all arrows painted on the lane
+  uint32 valid = 2;       // arrows that follow the route; another change may follow
+  uint32 active = 3;      // the right lane: no further change needed
 }
 
 // A turn instruction cuts an information short; an information never
