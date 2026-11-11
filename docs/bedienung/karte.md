@@ -68,6 +68,15 @@ bis das Folgen das nächste Mal angeht.
    findet die Obergasse in Alsfeld. Eine Haltestelle, die wie eine Straße im
    selben Ort heißt, steht hinter der Straße.
 
+   Tippfehler verzeiht die Suche: Findet sie nichts, sucht sie mit ähnlichen
+   Wörtern aus der Karte weiter („Frankfrut“ findet Frankfurt am Main,
+   „Lauterbch“ Lauterbach). Ab vier Buchstaben darf ein Buchstabe falsch
+   sein, fehlen oder zu viel sein, ab acht Buchstaben zwei; zwei vertauschte
+   Buchstaben zählen als zwei Fehler. Umlaute dürfen ausgeschrieben werden:
+   „Muecke“ findet Mücke, „Giessen“ Gießen, „Strasse“ Straße. Nach dem
+   Einspielen einer neuen Karte oder eines Updates findet CarNine Tippfehler
+   erst etwa eine Minute nach dem Start, Umlaute gleich.
+
    ![Zielsuche „Alsfeld“ mit Treffern „Ort · 39 km“ und „Ort · Kirtorf · 40 km“, darunter die Bildschirmtastatur](bilder/karte-suche.png)
 3. **Treffer antippen:** Die Route wird von der aktuellen Position aus
    berechnet („Route wird berechnet …“), danach zeigt die Karte die ganze
