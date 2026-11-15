@@ -19,6 +19,10 @@ The deployment architecture emphasizes reliability and minimal resource consumpt
   - Root filesystem: microSD card (64 GB minimum; consider industrial‑grade cards for embedded reliability)
   - Optional: SSD via USB 3.0 for extended logging and media cache
 - **RAM**: 4GB minimum (8GB recommended to avoid swap pressure)
+- **Other boards**: the Raspberry Pi 4 is the only target we release and test.
+  CarNine also runs on a BIGTREETECH Pi2 from the arm64 packages on Armbian,
+  set up by hand and not tested regularly: see
+  [27 – BIGTREETECH Pi2](27-bigtreetech-pi2.md).
 
 ### Peripherals and Interfaces
 - **Display**: Waveshare 7" HDMI LCD (H) touchscreen ([product page](https://www.waveshare.com/7inch-hdmi-lcd-h.htm))
