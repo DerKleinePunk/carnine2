@@ -55,3 +55,7 @@ resources/*.sbom-input.*
 
 # Python bytecode (resources/tools/demo/demo_gps.py)
 __pycache__/
+
+# Coverage reports (cargo llvm-cov, lcov_summary.py output; CI keeps them as artifacts)
+src/backend/lcov.info
+/coverage/

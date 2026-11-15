@@ -51,6 +51,10 @@ jobs:
         working-directory: resources/tools/freeze-watch
         run: python3 -m unittest -v test_freeze_watch.py
 
+      - name: Coverage summary script tests (Python)
+        working-directory: resources/tools/coverage
+        run: python3 -m unittest -v test_lcov_summary.py
+
       # protoc for tonic-prost-build, ALSA headers for cpal. The default feature set
       # does not pull in ffmpeg-next, so no FFmpeg headers are needed - but the
       # metadata and cover-art tests shell out to the ffmpeg and ffprobe
@@ -74,11 +78,17 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt, clippy
+          components: rustfmt, clippy, llvm-tools-preview
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src/backend
+
+      # Pinned like syft and grype below: a new release must not turn CI red
+      # on its own.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov@0.9.1
 
       - name: cargo fmt
         working-directory: src/backend
@@ -90,9 +100,26 @@ jobs:
 
       # Config::load_with_env keeps these hermetic, but an empty environment
       # documents the intent for anyone reading the log.
-      - name: cargo test
+      # cargo llvm-cov runs the same tests as cargo test, with line coverage
+      # measured (the backend has no doctests, which it would skip). The
+      # report is for reading only - there is no threshold (2026-11-15).
+      - name: cargo test (with coverage)
         working-directory: src/backend
-        run: cargo test
+        run: cargo llvm-cov --lcov --output-path lcov.info
+
+      - name: Coverage summary
+        run: |
+          mkdir -p coverage
+          python3 resources/tools/coverage/lcov_summary.py src/backend/lcov.info \
+            --title Backend --root src/backend \
+            --output coverage/backend.lcov.info >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the coverage report
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-backend
+          path: coverage/backend.lcov.info
+          retention-days: 30
 
   frontend:
     name: Frontend (analyze, tests)
@@ -119,9 +146,26 @@ jobs:
         working-directory: src/frontend
         run: flutter analyze
 
-      - name: flutter test
+      - name: flutter test (with coverage)
         working-directory: src/frontend
-        run: flutter test
+        run: flutter test --coverage
+
+      # lib/lib/ is the generated gRPC code (protoc), not ours - it would pull
+      # the total down by a quarter. No threshold, report only (2026-11-15).
+      - name: Coverage summary
+        run: |
+          mkdir -p coverage
+          cd src/frontend
+          python3 ../../resources/tools/coverage/lcov_summary.py coverage/lcov.info \
+            --title Frontend --exclude lib/lib/ \
+            --output ../../coverage/frontend.lcov.info >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the coverage report
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-frontend
+          path: coverage/frontend.lcov.info
+          retention-days: 30
 
   image-scripts:
     name: Image scripts (shellcheck, tests)
