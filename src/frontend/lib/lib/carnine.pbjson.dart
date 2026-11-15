@@ -337,11 +337,21 @@ const UiState$json = {
       '10': 'mapFollowZoom',
       '17': true
     },
+    {
+      '1': 'traffic_enabled',
+      '3': 4,
+      '4': 1,
+      '5': 8,
+      '9': 3,
+      '10': 'trafficEnabled',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_last_page'},
     {'1': '_language'},
     {'1': '_map_follow_zoom'},
+    {'1': '_traffic_enabled'},
   ],
 };
 
@@ -349,8 +359,9 @@ const UiState$json = {
 final $typed_data.Uint8List uiStateDescriptor = $convert.base64Decode(
     'CgdVaVN0YXRlEiAKCWxhc3RfcGFnZRgBIAEoCUgAUghsYXN0UGFnZYgBARIfCghsYW5ndWFnZR'
     'gCIAEoCUgBUghsYW5ndWFnZYgBARIrCg9tYXBfZm9sbG93X3pvb20YAyABKA1IAlINbWFwRm9s'
-    'bG93Wm9vbYgBAUIMCgpfbGFzdF9wYWdlQgsKCV9sYW5ndWFnZUISChBfbWFwX2ZvbGxvd196b2'
-    '9t');
+    'bG93Wm9vbYgBARIsCg90cmFmZmljX2VuYWJsZWQYBCABKAhIA1IOdHJhZmZpY0VuYWJsZWSIAQ'
+    'FCDAoKX2xhc3RfcGFnZUILCglfbGFuZ3VhZ2VCEgoQX21hcF9mb2xsb3dfem9vbUISChBfdHJh'
+    'ZmZpY19lbmFibGVk');
 
 @$core.Deprecated('Use canDataRequestDescriptor instead')
 const CanDataRequest$json = {

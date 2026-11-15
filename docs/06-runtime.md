@@ -182,6 +182,11 @@ language chosen last (#30):
    (local_map's `MapConfig.followZoom`, since 0.8.8); saving 0 clears it
    again, above 22 is refused. `media_grpc_client <endpoint> ui-state` shows
    it, `save-follow-zoom <0-22>` sets it.
+7. Traffic from the internet on the map (`traffic_enabled`, schema 15) is
+   **off until the user turns it on**: it is the only part of CarNine that
+   sends requests out of the car. `GetUiState` always answers it, `false`
+   while it was never saved; a database from before schema 15 stays off.
+   `ui-state` shows it, `save-traffic <on|off>` sets it.
 
 ### Scenario 4: Vehicle Data Display (planned)
 

@@ -337,11 +337,13 @@ class UiState extends $pb.GeneratedMessage {
     $core.String? lastPage,
     $core.String? language,
     $core.int? mapFollowZoom,
+    $core.bool? trafficEnabled,
   }) {
     final result = create();
     if (lastPage != null) result.lastPage = lastPage;
     if (language != null) result.language = language;
     if (mapFollowZoom != null) result.mapFollowZoom = mapFollowZoom;
+    if (trafficEnabled != null) result.trafficEnabled = trafficEnabled;
     return result;
   }
 
@@ -362,6 +364,7 @@ class UiState extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'language')
     ..aI(3, _omitFieldNames ? '' : 'mapFollowZoom',
         fieldType: $pb.PbFieldType.OU3)
+    ..aOB(4, _omitFieldNames ? '' : 'trafficEnabled')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -417,6 +420,18 @@ class UiState extends $pb.GeneratedMessage {
   $core.bool hasMapFollowZoom() => $_has(2);
   @$pb.TagNumber(3)
   void clearMapFollowZoom() => $_clearField(3);
+
+  /// Traffic from the internet on the map (Autobahn GmbH), the only part of
+  /// CarNine that sends data out of the car; off until the user turns it on.
+  /// GetUiState always sets it (false while never saved).
+  @$pb.TagNumber(4)
+  $core.bool get trafficEnabled => $_getBF(3);
+  @$pb.TagNumber(4)
+  set trafficEnabled($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasTrafficEnabled() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearTrafficEnabled() => $_clearField(4);
 }
 
 class CanDataRequest extends $pb.GeneratedMessage {

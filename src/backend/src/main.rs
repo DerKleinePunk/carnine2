@@ -262,23 +262,26 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
     }
 
     async fn get_ui_state(&self, _request: Request<Empty>) -> Result<Response<UiState>, Status> {
-        let (last_page, language, map_follow_zoom) = database::Database::open(&self.database_path)
-            .and_then(|database| {
-                Ok((
-                    database.load_last_page()?,
-                    database.load_language()?,
-                    database.load_map_follow_zoom()?,
-                ))
-            })
-            .map_err(|error| {
-                error!(error = %error, "loading UI state failed");
-                Status::internal(error.to_string())
-            })?;
+        let (last_page, language, map_follow_zoom, traffic_enabled) =
+            database::Database::open(&self.database_path)
+                .and_then(|database| {
+                    Ok((
+                        database.load_last_page()?,
+                        database.load_language()?,
+                        database.load_map_follow_zoom()?,
+                        database.load_traffic_enabled()?,
+                    ))
+                })
+                .map_err(|error| {
+                    error!(error = %error, "loading UI state failed");
+                    Status::internal(error.to_string())
+                })?;
         debug!(last_page = %last_page, language = %language, "UI state loaded");
         Ok(Response::new(UiState {
             last_page: Some(last_page),
             language: Some(language),
             map_follow_zoom,
+            traffic_enabled: Some(traffic_enabled),
         }))
     }
 
@@ -373,11 +376,13 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
             last_page,
             language,
             map_follow_zoom,
+            traffic_enabled,
         } = request.into_inner();
         info!(
             ?last_page,
             ?language,
             ?map_follow_zoom,
+            ?traffic_enabled,
             "saving UI state requested"
         );
         if last_page
@@ -412,13 +417,22 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
                     // 0 goes back to the frontend's default.
                     database.save_map_follow_zoom((zoom > 0).then_some(zoom))?;
                 }
+                if let Some(enabled) = traffic_enabled {
+                    database.save_traffic_enabled(enabled)?;
+                }
                 Ok(())
             })
             .map_err(|error| {
                 error!(error = %error, "saving UI state failed");
                 Status::internal(error.to_string())
             })?;
-        info!(?last_page, ?language, ?map_follow_zoom, "UI state saved");
+        info!(
+            ?last_page,
+            ?language,
+            ?map_follow_zoom,
+            ?traffic_enabled,
+            "UI state saved"
+        );
         Ok(Response::new(CommandResponse {
             success: true,
             message: "UI state saved".to_string(),
@@ -2436,6 +2450,7 @@ mod tests {
             last_page: Some("maps".to_string()),
             language: None,
             map_follow_zoom: None,
+            traffic_enabled: None,
         })
         .await
         .expect("UI state should save");
@@ -2445,6 +2460,7 @@ mod tests {
             last_page: None,
             language: Some("en".to_string()),
             map_follow_zoom: None,
+            traffic_enabled: None,
         })
         .await
         .expect("the language should save");
@@ -2452,6 +2468,7 @@ mod tests {
             last_page: Some("media".to_string()),
             language: None,
             map_follow_zoom: None,
+            traffic_enabled: None,
         })
         .await
         .expect("the page should save");
@@ -2460,6 +2477,7 @@ mod tests {
             last_page: Some("x".repeat(65)),
             language: None,
             map_follow_zoom: None,
+            traffic_enabled: None,
         })
         .await
         .expect_err("an overlong page name is rejected");
@@ -2468,6 +2486,7 @@ mod tests {
             last_page: None,
             language: Some("de; DROP".to_string()),
             map_follow_zoom: None,
+            traffic_enabled: None,
         })
         .await
         .expect_err("an invalid language code is rejected");
@@ -2508,6 +2527,7 @@ mod tests {
                     last_page: page.map(str::to_string),
                     language: None,
                     map_follow_zoom: zoom,
+                    traffic_enabled: None,
                 }),
             )
         };
@@ -2535,6 +2555,68 @@ mod tests {
             "0 goes back to the frontend's default"
         );
         let _ = std::fs::remove_file(database_path);
+    }
+
+    #[tokio::test]
+    async fn traffic_is_off_until_switched_on_and_survives_a_restart() {
+        let database_path = std::env::temp_dir().join(format!(
+            "carnine-traffic-switch-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&database_path);
+        let new_service = || {
+            SystemServiceImpl::new(
+                Arc::new(system_metrics::SystemMetricsHandle::new()),
+                database_path.clone(),
+                crate::power_supply::PowerSupplyHub::new(false),
+            )
+        };
+        let service = new_service();
+        let save = |page: Option<&str>, traffic: Option<bool>| {
+            SystemService::save_ui_state(
+                &service,
+                Request::new(UiState {
+                    last_page: page.map(str::to_string),
+                    language: None,
+                    map_follow_zoom: None,
+                    traffic_enabled: traffic,
+                }),
+            )
+        };
+
+        assert_eq!(
+            traffic_setting(&service).await,
+            Some(false),
+            "off and always answered"
+        );
+        save(None, Some(true))
+            .await
+            .expect("switching on should save");
+        // A page save leaves the switch alone.
+        save(Some("maps"), None)
+            .await
+            .expect("the page should save");
+        assert_eq!(traffic_setting(&service).await, Some(true));
+
+        let restarted = new_service();
+        assert_eq!(
+            traffic_setting(&restarted).await,
+            Some(true),
+            "kept across a restart"
+        );
+        save(None, Some(false))
+            .await
+            .expect("switching off should save");
+        assert_eq!(traffic_setting(&restarted).await, Some(false));
+        let _ = std::fs::remove_file(database_path);
+    }
+
+    async fn traffic_setting(service: &SystemServiceImpl) -> Option<bool> {
+        SystemService::get_ui_state(service, Request::new(Empty {}))
+            .await
+            .expect("UI state should load")
+            .into_inner()
+            .traffic_enabled
     }
 
     async fn check(service: &SystemServiceImpl, password: &str) -> bool {

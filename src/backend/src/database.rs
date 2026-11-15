@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use anyhow::{Context, Result};
 use rusqlite::{params, Connection, OptionalExtension};
 
-const CURRENT_SCHEMA_VERSION: i64 = 14;
+const CURRENT_SCHEMA_VERSION: i64 = 15;
 
 /// What the options saved for the turn announcements; `None` where never
 /// set, and then the configuration's `[voice]` value holds.
@@ -350,6 +350,16 @@ impl Database {
             }
             self.connection
                 .execute_batch("INSERT INTO schema_migrations (version) VALUES (14);")?;
+        }
+        if version < 15 {
+            // Traffic from the internet on the map; NULL means "never
+            // switched", which is off.
+            if !self.has_column("ui_state", "traffic_enabled")? {
+                self.connection
+                    .execute_batch("ALTER TABLE ui_state ADD COLUMN traffic_enabled INTEGER;")?;
+            }
+            self.connection
+                .execute_batch("INSERT INTO schema_migrations (version) VALUES (15);")?;
         }
         if version > CURRENT_SCHEMA_VERSION {
             anyhow::bail!(
@@ -799,6 +809,31 @@ impl Database {
             )
             .optional()?
             .flatten())
+    }
+
+    /// Saves whether traffic from the internet is shown on the map.
+    pub fn save_traffic_enabled(&self, enabled: bool) -> Result<()> {
+        self.connection.execute(
+            "INSERT INTO ui_state (id, traffic_enabled) VALUES (1, ?1)
+             ON CONFLICT(id) DO UPDATE SET traffic_enabled = excluded.traffic_enabled",
+            [enabled],
+        )?;
+        Ok(())
+    }
+
+    /// Whether traffic from the internet is on; off while it was never
+    /// switched.
+    pub fn load_traffic_enabled(&self) -> Result<bool> {
+        Ok(self
+            .connection
+            .query_row(
+                "SELECT traffic_enabled FROM ui_state WHERE id = 1",
+                [],
+                |row| row.get::<_, Option<bool>>(0),
+            )
+            .optional()?
+            .flatten()
+            .unwrap_or(false))
     }
 
     /// The language saved last, or an empty string when there is none.
@@ -1783,6 +1818,56 @@ mod tests {
                 music_under_percent: Some(30),
             }
         );
+        drop(database);
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn schema_15_adds_the_traffic_switch_off_and_keeps_the_ui_state() {
+        let path =
+            std::env::temp_dir().join(format!("carnine-schema-15-{}.sqlite3", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+        let database = Database::open(&path).expect("database should open");
+        database.save_last_page("maps").unwrap();
+        database.save_map_follow_zoom(Some(15)).unwrap();
+        // Back to schema 14, as 0.20.1 left it.
+        database
+            .connection
+            .execute_batch(
+                "ALTER TABLE ui_state DROP COLUMN traffic_enabled;
+                 DELETE FROM schema_migrations WHERE version >= 15;",
+            )
+            .unwrap();
+        drop(database);
+
+        let database = Database::open(&path).expect("schema 14 should migrate");
+        assert_eq!(database.schema_version().unwrap(), CURRENT_SCHEMA_VERSION);
+        assert_eq!(database.load_last_page().unwrap(), "maps");
+        assert_eq!(database.load_map_follow_zoom().unwrap(), Some(15));
+        assert!(
+            !database.load_traffic_enabled().unwrap(),
+            "traffic stays off after the update"
+        );
+        database.save_traffic_enabled(true).unwrap();
+        assert!(database.load_traffic_enabled().unwrap());
+        database.save_traffic_enabled(false).unwrap();
+        assert!(!database.load_traffic_enabled().unwrap());
+        drop(database);
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn traffic_is_off_in_a_new_database() {
+        let path = std::env::temp_dir().join(format!(
+            "carnine-traffic-new-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&path);
+        let database = Database::open(&path).expect("database should open");
+        assert!(!database.load_traffic_enabled().unwrap());
+        // A row that exists for another field still reads as off.
+        database.save_language("de").unwrap();
+        assert!(!database.load_traffic_enabled().unwrap());
         drop(database);
         let _ = std::fs::remove_file(&path);
     }

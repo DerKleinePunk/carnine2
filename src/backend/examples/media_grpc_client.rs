@@ -96,6 +96,7 @@ async fn main() -> Result<()> {
         "save-ui-state" => save_ui_state(&endpoint).await?,
         "save-language" => save_language(&endpoint).await?,
         "save-follow-zoom" => save_follow_zoom(&endpoint).await?,
+        "save-traffic" => save_traffic(&endpoint).await?,
         "verify-exit-password" => verify_exit_password(&endpoint).await?,
         "set-exit-password" => set_exit_password(&endpoint).await?,
         "nav-status" => get_navigation_status(&endpoint).await?,
@@ -424,12 +425,13 @@ async fn get_ui_state(endpoint: &str) -> Result<()> {
     let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
     let state = client.get_ui_state(Empty {}).await?.into_inner();
     println!(
-        "last_page={} language={} map_follow_zoom={}",
+        "last_page={} language={} map_follow_zoom={} traffic={}",
         state.last_page(),
         state.language(),
         state
             .map_follow_zoom
-            .map_or_else(|| "-".to_string(), |zoom| zoom.to_string())
+            .map_or_else(|| "-".to_string(), |zoom| zoom.to_string()),
+        if state.traffic_enabled() { "on" } else { "off" }
     );
     Ok(())
 }
@@ -448,6 +450,30 @@ async fn save_follow_zoom(endpoint: &str) -> Result<()> {
             last_page: None,
             language: None,
             map_follow_zoom: Some(zoom),
+            traffic_enabled: None,
+        })
+        .await?
+        .into_inner();
+    println!("{}: {}", response.success, response.message);
+    Ok(())
+}
+
+/// `save-traffic <on|off>`: traffic from the internet on the map; off is
+/// the default, on sends requests out of the car.
+async fn save_traffic(endpoint: &str) -> Result<()> {
+    let usage = "usage: media_grpc_client [endpoint] save-traffic <on|off>";
+    let enabled = match env::args().nth(3).context(usage)?.as_str() {
+        "on" => true,
+        "off" => false,
+        _ => bail!(usage),
+    };
+    let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let response = client
+        .save_ui_state(UiState {
+            last_page: None,
+            language: None,
+            map_follow_zoom: None,
+            traffic_enabled: Some(enabled),
         })
         .await?
         .into_inner();
@@ -533,6 +559,7 @@ async fn save_ui_state(endpoint: &str) -> Result<()> {
             last_page: Some(last_page),
             language: None,
             map_follow_zoom: None,
+            traffic_enabled: None,
         })
         .await?
         .into_inner();
@@ -593,6 +620,7 @@ async fn save_language(endpoint: &str) -> Result<()> {
             last_page: None,
             language: Some(language),
             map_follow_zoom: None,
+            traffic_enabled: None,
         })
         .await?
         .into_inner();
