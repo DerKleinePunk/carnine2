@@ -89,8 +89,9 @@ This section describes architectural principles, patterns, and technologies that
 ## 8.7 Testing and Quality Assurance
 
 ### Unit Testing
-- **Rust**: `cargo test`; hardware is replaced by fakes (for example a listening thread instead of the sound card in the queue tests). Coverage is not measured yet
-- **Flutter**: Widget tests and unit tests with hand-written fakes (`test/fakes/`) and `fake_async`
+- **Rust**: `cargo test`; hardware is replaced by fakes (for example a listening thread instead of the sound card in the queue tests). CI measures line coverage with `cargo llvm-cov` (89.8 % on 2026-11-15, test modules included)
+- **Flutter**: Widget tests and unit tests with hand-written fakes (`test/fakes/`) and `fake_async`. CI measures line coverage with `flutter test --coverage` (88.1 % on 2026-11-15, generated gRPC code in `lib/lib/` left out)
+- **Coverage report**: in the job overview of each CI run and as the artifacts `coverage-backend` and `coverage-frontend` (30 days); no threshold, it never fails a build. Running it locally: `resources/tools/coverage/README.md`
 
 ### Integration Testing
 - **End-to-End** (planned): Automated tests on target hardware. Today the checks on the Pi are done by hand and recorded in the pull request or issue

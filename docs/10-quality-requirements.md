@@ -110,8 +110,8 @@ On 2026-10-21 in low light, on 2026-10-23 with more light.
 
 ### Maintainability
 - **How:** Code style enforcement; comprehensive tests
-- **Metric:** ≥ 80% code coverage (target; coverage is not measured yet); CI checks `cargo fmt`, clippy and `flutter analyze` on each PR
-- **Tools:** `cargo test`; `flutter test`; `cargo fmt`; `dart format` (run locally, not in CI)
+- **Metric:** ≥ 80% line coverage (target; measured in CI since 2026-11-15: backend 89.8 %, frontend 88.1 %; reported, not enforced); CI checks `cargo fmt`, clippy and `flutter analyze` on each PR
+- **Tools:** `cargo llvm-cov`; `flutter test --coverage`; `cargo fmt`; `dart format` (run locally, not in CI)
 
 ### Robustness
 - **How:** Error handling with user-friendly messages; fallback UI states

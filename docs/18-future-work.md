@@ -13,8 +13,9 @@
 - [ ] Align frontend state boundaries between ephemeral UI state and app state
 
 ### Testing Coverage
-- [ ] Reach >= 70% backend test coverage for core services
-- [ ] Reach >= 60% frontend unit/widget coverage for critical screens
+- [x] Reach >= 70% backend test coverage for core services (89.8 % of lines, CI report since 2026-11-15)
+- [x] Reach >= 60% frontend unit/widget coverage for critical screens (88.1 % of lines)
+- [ ] Test the frontend's gRPC adapters against a small test server (today fakes, so they show low coverage)
 - [ ] Add hardware-in-the-loop smoke tests on Raspberry Pi 4 for startup and reconnect
 
 ## Technical Debt

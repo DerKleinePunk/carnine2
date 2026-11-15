@@ -93,7 +93,7 @@ Identify risks and areas of technical debt, along with mitigation strategies.
 |------|-------------|--------|--------|----------|
 | **Error Handling Standardization** | Mix of `.map_err()`, `?`, and `.unwrap()`; no consistent pattern | Medium | Low | Medium |
 | **Logging / Observability** | Done: `tracing` to stdout and `backend.log` (capped at 50 MB) | Medium | Medium | Done |
-| **Test Coverage** | Coverage is not measured yet; many edge cases untested | High | High | High |
+| **Test Coverage** | Measured in CI: 89.8 % of lines (2026-11-15). The gaps are code that needs hardware or the OS (socket start, udev, ALSA, sound card, system clock); that is checked on the device | Medium | Medium | Medium |
 | **API Documentation** | Missing doc comments on public functions; unclear contracts | Medium | Low | Medium |
 | **Module Organization** | May need refactoring as complexity grows (mod.rs structure review) | Low | Medium | Low |
 | **gRPC + Unix Socket Integration** | Done: `tonic` server & client over Unix sockets (`server_transport.rs`) | Medium | Medium | Done |
@@ -107,7 +107,7 @@ Identify risks and areas of technical debt, along with mitigation strategies.
 |------|-------------|--------|--------|----------|
 | **State Management** | Manual ChangeNotifier; may become unwieldy as app grows | Medium | Medium | Medium |
 | **Error UI Patterns** | Error handling in multiple places; inconsistent user messaging | Medium | Low | Medium |
-| **Test Coverage** | Coverage is not measured yet; no integration tests on the device | High | High | High |
+| **Test Coverage** | Measured in CI: 88.1 % of lines (2026-11-15, without generated gRPC code). Gaps: the gRPC adapters, which tests replace with fakes; no integration tests on the device | Medium | Medium | Medium |
 | **Responsive Design** | May need tuning for various screen sizes / orientations | Low | Medium | Low |
 | **Performance Profiling** | No baseline metrics for frame rate, memory on RPi4 | High | Medium | High |
 | **Navigation Structure** | Router/navigation pattern unclear; may need refactoring | Medium | High | Medium |
@@ -144,7 +144,7 @@ Identify risks and areas of technical debt, along with mitigation strategies.
 - [ ] Enforce and test LAN-only inbound policy (firewall + bind-address checks)
 
 ### Phase 2 (Short-term — Next 2-4 Weeks)
-- [ ] Achieve ≥ 70% test coverage (Rust + Flutter)
+- [x] Achieve ≥ 70% test coverage (Rust + Flutter): 89.8 % / 88.1 % of lines, measured in CI since 2026-11-15
 - [x] Set up structured logging (Rust: `tracing`; Flutter: `package:logging`)
 - [x] Implement gRPC over Unix sockets with tonic (custom tower transport)
 - [x] Finalize `.proto` definitions and automate code generation in `build.rs`
