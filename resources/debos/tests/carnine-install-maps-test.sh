@@ -206,6 +206,131 @@ check "unknown file refused" "$(grep -c 'unbekannte Datei' "$tree/out.log")" "1"
 check "unknown file: services untouched" "$(cat "$tree/systemctl.log")" ""
 rm -rf "$tree"
 
+# Country routing packages, made by routing_paket.py from a small tile tree.
+# DE and CH share one border tile, as cut from one build.
+ROUTING_TOOL="$(dirname "$SCRIPT")/../tools/valhalla-pakete"
+DE_TILES="2/000/791/309.gph 2/000/791/310.gph 1/049/507.gph"
+CH_TILES="2/000/790/000.gph 1/049/507.gph"
+SHARED=1/049/507.gph
+
+# routing_package <land> <build> <tiles...>: $tree/pk-<build>/routing-<land>,
+# each tile holding "<build> <path>".
+routing_package() {
+    land=$1 build=$2
+    shift 2
+    for tile in "$@"; do
+        mkdir -p "$(dirname "$tree/src-$build/$tile")"
+        printf '%s %s\n' "$build" "$tile" > "$tree/src-$build/$tile"
+    done
+    python3 -I -c '
+import sys
+sys.path.insert(0, sys.argv[1])
+import routing_paket as rp
+root, land, build, out = sys.argv[2:6]
+rp.write_package(root, sorted(sys.argv[6:]), land, build, "3.9.1", out)' \
+        "$ROUTING_TOOL" "$tree/src-$build" "$land" "$build" "$tree/pk-$build" "$@"
+}
+
+# has_tiles <build> <tiles...>: every tile is there with that build's content.
+has_tiles() {
+    build=$1
+    shift
+    for tile in "$@"; do
+        [ "$(cat "$tree/valhalla/valhalla_tiles/$tile" 2>/dev/null)" = "$build $tile" ] ||
+            { echo "no: $tile"; return; }
+    done
+    echo yes
+}
+
+setup
+# shellcheck disable=SC2086
+routing_package de b1 $DE_TILES
+# shellcheck disable=SC2086
+routing_package ch b1 $CH_TILES
+printf 'whole area' > "$tree/valhalla/valhalla_tiles.tar"
+run 100000000 --dir "$tree/pk-b1/routing-de" --package routing-de
+check "routing: country installs" "$status" "0"
+# shellcheck disable=SC2086
+check "routing: its tiles are in tile_dir" "$(has_tiles b1 $DE_TILES)" "yes"
+check "routing: only valhalla restarted" "$(cat "$tree/systemctl.log")" \
+    "$(printf 'stop valhalla.service\nstart valhalla.service')"
+check "routing: whole-area tar put aside" "$(cat "$tree/valhalla/valhalla_tiles.tar.vor-laenderpaketen")" "whole area"
+check "routing: whole-area tar gone from its place" "$(test -e "$tree/valhalla/valhalla_tiles.tar" && echo there || echo gone)" "gone"
+check "routing: tiles world-readable" "$(stat -c %a "$tree/valhalla/valhalla_tiles/$SHARED")" "644"
+check "routing: tiles belong to root" "$(grep -c "^-R root:root $tree/valhalla/valhalla_tiles\$" "$tree/chown.log")" "1"
+check "routing: no tar kept" "$(count '*.tar' "$tree/valhalla/pakete")" "0"
+
+run 100000000 --dir "$tree/pk-b1/routing-ch" --package routing-ch
+check "routing: second country of the same build installs" "$status" "0"
+# shellcheck disable=SC2086
+check "routing: both countries' tiles there" "$(has_tiles b1 $DE_TILES $CH_TILES)" "yes"
+list_status=0
+CARNINE_VALHALLA_DIR="$tree/valhalla" sh "$SCRIPT" --list-routing > "$tree/out.log" 2>&1 || list_status=$?
+check "routing: list without root" "$list_status" "0"
+check "routing: list names both" "$(cat "$tree/out.log")" \
+    "$(printf 'ch: Bau b1, Valhalla 3.9.1, 2 Kacheln\nde: Bau b1, Valhalla 3.9.1, 3 Kacheln')"
+
+: > "$tree/systemctl.log"
+run 100000000 --dir "$tree/pk-b1/routing-ch" --package routing-ch
+check "routing: same country again: nothing to do" "$(grep -c 'nichts zu tun' "$tree/out.log")" "1"
+check "routing: same country again: valhalla untouched" "$(cat "$tree/systemctl.log")" ""
+
+# A country of another build does not fit at the border and is refused.
+# shellcheck disable=SC2086
+routing_package at b2 2/000/700/000.gph
+run 100000000 --dir "$tree/pk-b2/routing-at" --package routing-at
+check "routing: other build refused" "$status" "4"
+check "routing: other build: message names the fix" "$(grep -c 'remove-routing' "$tree/out.log")" "1"
+check "routing: other build: valhalla untouched" "$(cat "$tree/systemctl.log")" ""
+check "routing: other build: nothing unpacked" "$(test -e "$tree/valhalla/valhalla_tiles/2/000/700/000.gph" && echo there || echo absent)" "absent"
+
+# Removing a country keeps the border tile the other one needs.
+run 100000000 --remove-routing de
+check "routing: remove succeeds" "$status" "0"
+check "routing: removed country's own tiles gone" \
+    "$(find "$tree/valhalla/valhalla_tiles/2/000/791" -type f 2>/dev/null | wc -l | tr -d ' ')" "0"
+# shellcheck disable=SC2086
+check "routing: border tile and the other country stay" "$(has_tiles b1 $CH_TILES)" "yes"
+check "routing: whole-area tar stays aside while a country is left" \
+    "$(test -e "$tree/valhalla/valhalla_tiles.tar" && echo back || echo aside)" "aside"
+check "routing: remove restarts valhalla" "$(tail -n 2 "$tree/systemctl.log")" \
+    "$(printf 'stop valhalla.service\nstart valhalla.service')"
+
+# The last country goes: the tile folder is empty and the whole-area tar is back.
+run 100000000 --remove-routing ch
+check "routing: last country removed" "$status" "0"
+check "routing: tile folder empty" "$(find "$tree/valhalla/valhalla_tiles" -mindepth 1 | wc -l | tr -d ' ')" "0"
+check "routing: whole-area tar back" "$(cat "$tree/valhalla/valhalla_tiles.tar")" "whole area"
+check "routing: nothing left in pakete" "$(find "$tree/valhalla/pakete" -type f | wc -l | tr -d ' ')" "0"
+
+run 100000000 --remove-routing ch
+check "routing: removing a country not installed fails" "$(grep -c 'kein Länderpaket' "$tree/out.log")" "1"
+run 100000000 --remove-routing ../x
+check "routing: odd country name refused" "$(grep -c 'Kleinbuchstaben' "$tree/out.log")" "1"
+rm -rf "$tree"
+
+# A country alone can move to a newer build: its old tiles go.
+setup
+# shellcheck disable=SC2086
+routing_package de b1 $DE_TILES
+routing_package de b2 2/000/791/309.gph 2/000/791/311.gph
+run 100000000 --dir "$tree/pk-b1/routing-de" --package routing-de
+run 100000000 --dir "$tree/pk-b2/routing-de" --package routing-de
+check "routing: newer build of the same country installs" "$status" "0"
+check "routing: newer build's tiles there" "$(has_tiles b2 2/000/791/309.gph 2/000/791/311.gph)" "yes"
+check "routing: tiles only in the old build gone" \
+    "$(($(test -e "$tree/valhalla/valhalla_tiles/2/000/791/310.gph" && echo 1 || echo 0) + $(test -e "$tree/valhalla/valhalla_tiles/$SHARED" && echo 1 || echo 0)))" "0"
+check "routing: info names the new build" "$(grep '^bau=' "$tree/valhalla/pakete/routing-de.info")" "bau=b2"
+rm -rf "$tree"
+
+# A map package's tar file in a routing package is refused.
+setup
+# shellcheck disable=SC2086
+routing_package de b1 $DE_TILES
+run 100000000 --dir "$tree/package-a" --package routing-de
+check "routing: package with map files refused" "$(grep -c 'unbekannte Datei' "$tree/out.log")" "1"
+rm -rf "$tree"
+
 if [ "$failures" -ne 0 ]; then
     echo "$failures failure(s)"
     exit 1
