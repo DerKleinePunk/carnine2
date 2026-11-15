@@ -37,8 +37,8 @@ and never drain the battery. CarNine is built around that:
 
 - **Offline if you want.** Map tiles, routing, place search and the voice all
   run on the device: no account, no API key, no data leaving the car.
-  Anything that needs the internet, like live traffic (planned), will be a
-  switch you turn on yourself.
+  Live traffic is built in and off by default; the switch in the options
+  comes with the next UI update (#179).
 - **It is made for the car, not for the desk.** It starts and shuts down with
   the ignition, protects the battery, survives a cold start in the middle of
   a drive and comes back on the same page, with the music where it left off.
