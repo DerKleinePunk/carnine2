@@ -6,6 +6,19 @@
 > and the only released target stay the **Raspberry Pi 4** (docs/07). If a
 > step below no longer fits, the Pi 4 is not affected.
 
+**Last verified: 2026-11-15**
+
+| | |
+|---|---|
+| CarNine | packages v0.20.1 (arm64), backend from 52ccc8f |
+| System | Armbian 26.8.1 `bigtreetech-cb2`, trixie, current, kernel 6.18.44 |
+| Boot | eMMC + NVMe (the Lite tried once, on 2026-11-15) |
+| Device | one Pi2 with 2 GB RAM |
+
+A newer CarNine or Armbian version is not verified until it is listed under
+[Verified](#verified). Problems on the Pi2 go into a GitHub issue with the
+label `pi2`.
+
 The BIGTREETECH Pi2 is a board in the size of a Raspberry Pi with a Rockchip
 RK3566, an M.2 slot for an NVMe SSD and an onboard eMMC. Our `.deb` packages
 for arm64 run on it unchanged. What differs from the Pi 4 is the operating
@@ -130,3 +143,30 @@ With the eMMC + NVMe way and the replay tour:
 - **Not measured:** the peak while zooming or routing, the time from a cold
   start to the first announcement, the synthesis time per sentence, and
   stutter while zooming.
+
+## When it is checked again
+
+Not with each release, and the Pi2 is not on the release checklist. It is
+checked again when the maintainer asks for it, or when a change touches what
+the Pi2 depends on: the packages and their dependencies, the systemd units,
+the configuration format, display, sound or camera code, or a new Armbian or
+Debian release.
+
+The check takes about 15 minutes on the Pi2, boot way eMMC + NVMe only:
+
+1. Install the packages of the version to check.
+2. The UI comes up full screen at 1024 × 600.
+3. Sound plays over HDMI.
+4. Compute a route and hear an announcement.
+5. Music plays.
+6. Restart: backend and UI come up by themselves.
+7. The backend's log shows no errors.
+
+"Last verified" changes only after this list has passed. Each check adds a
+row below; old rows stay.
+
+### Verified
+
+| Date | CarNine | Armbian, kernel | Boot | Result |
+|---|---|---|---|---|
+| 2026-11-15 | v0.20.1, backend 52ccc8f | 26.8.1, 6.18.44 | eMMC + NVMe | passed, points 1–6 spread over 2026-11-11 to 15, point 7 not checked separately; needs the tmpfiles line for the log folder. The Lite also booted (three restarts). |
