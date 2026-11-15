@@ -8,6 +8,7 @@ import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_scope.dart';
 import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:carnine_frontend/features/maps/data/map_follow_zoom_store.dart';
+import 'package:carnine_frontend/features/maps/data/traffic_setting_store.dart';
 import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
 import 'package:carnine_frontend/features/settings/data/display_brightness_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
@@ -27,6 +28,7 @@ class CarnineApp extends StatefulWidget {
     this.exitPasswordStore,
     this.announcementSettingsStore,
     this.mapFollowZoomStore,
+    this.trafficSettingStore,
     this.displayBrightnessStore,
     this.controlsRepository,
     super.key,
@@ -48,6 +50,10 @@ class CarnineApp extends StatefulWidget {
 
   /// Where the zoom of following the car is kept; tests leave it out.
   final MapFollowZoomStore? mapFollowZoomStore;
+
+  /// Where the switch for traffic from the internet is kept; tests leave it
+  /// out, then traffic stays off.
+  final TrafficSettingStore? trafficSettingStore;
 
   /// Where the display brightness is read and set; tests leave it out.
   final DisplayBrightnessStore? displayBrightnessStore;
@@ -127,6 +133,7 @@ class _CarnineAppState extends State<CarnineApp> {
             exitPasswordStore: widget.exitPasswordStore,
             announcementSettingsStore: widget.announcementSettingsStore,
             mapFollowZoomStore: widget.mapFollowZoomStore,
+            trafficSettingStore: widget.trafficSettingStore,
             displayBrightnessStore: widget.displayBrightnessStore,
             controlsRepository: widget.controlsRepository,
           ),

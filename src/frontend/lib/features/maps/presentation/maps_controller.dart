@@ -34,9 +34,11 @@ class MapsController extends ChangeNotifier {
     LanguageTag? language,
     this.statusInterval = const Duration(seconds: 3),
     this.replayRetryDelays = defaultReplayRetryDelays,
+    TrafficProvider? trafficProvider,
     DateTime Function()? now,
     Logger? logger,
   }) : _channel = channel ?? NavigationChannel(),
+       _ownTraffic = trafficProvider == null ? AutobahnTrafficService() : null,
        _now = now ?? DateTime.now,
        _logger = logger ?? Logger('MapsController') {
     _language = language ?? () => 'de-DE';
@@ -48,6 +50,11 @@ class MapsController extends ChangeNotifier {
       routingProvider: _routing,
       positionSource: _positions,
       reverseGeocoder: GrpcReverseGeocoder(_channel),
+      // Traffic from the internet (Autobahn GmbH) is there but off: the
+      // library asks nothing until setTrafficEnabled(true), which the
+      // TrafficController does only when the user turned it on.
+      trafficProvider: trafficProvider ?? _ownTraffic,
+      trafficPolicy: const TrafficPolicy(enabled: false),
     );
     _loggedZoomStep = map.zoom.value.round();
     map.zoom.addListener(_logZoom);
@@ -83,6 +90,9 @@ class MapsController extends ChangeNotifier {
   final List<Duration> replayRetryDelays;
   final DateTime Function() _now;
   final NavigationChannel _channel;
+
+  /// The traffic source this controller made itself, closed with it.
+  final AutobahnTrafficService? _ownTraffic;
   final Logger _logger;
   late final LanguageTag _language;
   late final GrpcRoutingProvider _routing;
@@ -354,6 +364,19 @@ class MapsController extends ChangeNotifier {
     _logger.info('[map] Zoom $step (${zoom.toStringAsFixed(1)})');
   }
 
+  /// Whether the map fetches traffic for its route.
+  bool get trafficEnabled => map.trafficEnabled;
+
+  /// Switches traffic from the internet on the map; off sends no request.
+  /// Only the `TrafficController` calls it, after the user's choice.
+  void setTrafficEnabled(bool enabled) {
+    if (_disposed || enabled == map.trafficEnabled) {
+      return;
+    }
+    _logger.info('Traffic on the map ${enabled ? 'on' : 'off'}');
+    map.setTrafficEnabled(enabled);
+  }
+
   @override
   void dispose() {
     _disposed = true;
@@ -363,6 +386,7 @@ class MapsController extends ChangeNotifier {
     map.dispose();
     unawaited(_positions.dispose());
     unawaited(_channel.shutdown());
+    _ownTraffic?.close();
     super.dispose();
   }
 }

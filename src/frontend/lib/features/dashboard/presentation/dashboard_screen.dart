@@ -18,7 +18,9 @@ import 'package:carnine_frontend/features/dashboard/presentation/widgets/side_me
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/thermal_warning_overlay.dart';
 import 'package:carnine_frontend/features/media/presentation/media_controller.dart';
 import 'package:carnine_frontend/features/maps/data/map_follow_zoom_store.dart';
+import 'package:carnine_frontend/features/maps/data/traffic_setting_store.dart';
 import 'package:carnine_frontend/features/maps/presentation/map_follow_zoom_controller.dart';
+import 'package:carnine_frontend/features/maps/presentation/traffic_controller.dart';
 import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
 import 'package:carnine_frontend/features/settings/data/display_brightness_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
@@ -41,6 +43,7 @@ class DashboardScreen extends StatefulWidget {
     this.exitPasswordStore,
     this.announcementSettingsStore,
     this.mapFollowZoomStore,
+    this.trafficSettingStore,
     this.displayBrightnessStore,
     this.controlsRepository,
     this.cameraSourceFactory,
@@ -71,6 +74,9 @@ class DashboardScreen extends StatefulWidget {
 
   /// Where the zoom of following the car is kept.
   final MapFollowZoomStore? mapFollowZoomStore;
+
+  /// Where the switch for traffic from the internet is kept.
+  final TrafficSettingStore? trafficSettingStore;
 
   /// Where the display brightness is read and set.
   final DisplayBrightnessStore? displayBrightnessStore;
@@ -136,6 +142,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   late final MapFollowZoomController _followZoomController =
       MapFollowZoomController(store: widget.mapFollowZoomStore);
 
+  // Traffic from the internet on the map, off until the user turns it on.
+  // The switch for it in the options is still to come (UI).
+  late final TrafficController _trafficController = TrafficController(
+    store: widget.trafficSettingStore,
+    apply: _mapsController.setTrafficEnabled,
+  );
+
   // Trade fair mode (#128): back to the map after a minute without a touch.
   late final IdleReturn _idleReturn = IdleReturn(
     after: widget.idleReturnAfter,
@@ -148,6 +161,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     _mapsController.addListener(_idleReturn.sync);
     unawaited(_followZoomController.load());
+    unawaited(_trafficController.load());
     // Every touch anywhere counts - also on the keyboard and in dialogs,
     // which are outside of this screen's widget tree.
     GestureBinding.instance.pointerRouter.addGlobalRoute(_handlePointer);
@@ -164,6 +178,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void dispose() {
     _idleReturn.dispose();
     _followZoomController.dispose();
+    _trafficController.dispose();
     GestureBinding.instance.pointerRouter.removeGlobalRoute(_handlePointer);
     _mapsController.removeListener(_idleReturn.sync);
     if (_ownsController) {

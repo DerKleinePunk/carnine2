@@ -3,6 +3,7 @@ import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart
 import 'package:carnine_frontend/features/camera/domain/video_device.dart';
 import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
 import 'package:carnine_frontend/features/maps/data/map_follow_zoom_store.dart';
+import 'package:carnine_frontend/features/maps/data/traffic_setting_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
 import 'package:carnine_frontend/features/settings/data/display_brightness_store.dart';
@@ -24,7 +25,8 @@ class CarnineGrpcService
         ExitPasswordStore,
         AnnouncementSettingsStore,
         DisplayBrightnessStore,
-        MapFollowZoomStore {
+        MapFollowZoomStore,
+        TrafficSettingStore {
   CarnineGrpcService({Logger? logger, ClientChannelFactory? channelFactory})
     : _logger = logger ?? Logger('CarnineGrpcService'),
       _channelFactory = channelFactory ?? _createDefaultChannel;
@@ -225,6 +227,33 @@ class CarnineGrpcService
       final response = await SystemServiceClient(
         channel,
       ).saveUiState(UiState(mapFollowZoom: zoom));
+      if (!response.success) {
+        throw StateError(response.message);
+      }
+    } finally {
+      await channel.shutdown();
+    }
+  }
+
+  @override
+  Future<bool> loadTrafficEnabled() async {
+    final channel = _channelFactory();
+    try {
+      final state = await SystemServiceClient(channel).getUiState(Empty());
+      return state.trafficEnabled;
+    } finally {
+      await channel.shutdown();
+    }
+  }
+
+  /// Sends only the switch, so the saved page, language and zoom stay.
+  @override
+  Future<void> saveTrafficEnabled(bool enabled) async {
+    final channel = _channelFactory();
+    try {
+      final response = await SystemServiceClient(
+        channel,
+      ).saveUiState(UiState(trafficEnabled: enabled));
       if (!response.success) {
         throw StateError(response.message);
       }
