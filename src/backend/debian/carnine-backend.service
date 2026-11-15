@@ -22,6 +22,12 @@ SupplementaryGroups=audio dialout
 AmbientCapabilities=CAP_SYS_TIME
 RuntimeDirectory=carnine
 RuntimeDirectoryMode=0700
+# systemd makes /var/log/carnine (carnine:carnine) before every start. The
+# image creates it too, but where /var/log is a RAM disk (Armbian's ramlog,
+# docs/27) it can be gone after a restart, and the backend, not root, cannot
+# make it itself.
+LogsDirectory=carnine
+LogsDirectoryMode=0750
 ExecStart=/usr/bin/carnine-backend
 Environment=CARNINE_CONFIG=/etc/carnine/config.toml
 Restart=on-failure
