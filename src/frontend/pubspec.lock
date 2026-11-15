@@ -394,11 +394,11 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/local_map"
-      ref: "local_map-v0.8.10"
-      resolved-ref: fa8493d466f30c616a910beaad7e6d6aca9e1728
+      ref: "local_map-v0.11.0"
+      resolved-ref: fe67b7f58a2db87f7d677a102d32670a30ade3c0
       url: "https://github.com/DerKleinePunk/flutter_local_map.git"
     source: git
-    version: "0.8.10"
+    version: "0.11.0"
   logging:
     dependency: "direct main"
     description:
@@ -535,6 +535,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.0"
+  petitparser:
+    dependency: transitive
+    description:
+      name: petitparser
+      sha256: "2f1564aadb14215e478563b5406cb80729d022158c01dc50c96013c2f7eb4790"
+      url: "https://pub.dev"
+    source: hosted
+    version: "7.1.0"
   platform:
     dependency: transitive
     description:
@@ -960,6 +968,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.0"
+  xml:
+    dependency: transitive
+    description:
+      name: xml
+      sha256: "0fe8cc98946def31cbcbc8734aa4067031e6f65ea3a78a508060bfed2200bfeb"
+      url: "https://pub.dev"
+    source: hosted
+    version: "7.1.0"
   yaml:
     dependency: transitive
     description:
@@ -969,5 +985,5 @@ packages:
     source: hosted
     version: "3.1.4"
 sdks:
-  dart: ">=3.12.2 <4.0.0"
+  dart: ">=3.13.0 <4.0.0"
   flutter: ">=3.44.0"
