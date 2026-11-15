@@ -63,7 +63,8 @@ detection, OTA updates from GitHub releases. Ideas and plans:
 
 ## Hardware
 
-- **Raspberry Pi 4** – the only tested and supported target.
+- **Raspberry Pi 4** – the only tested and supported target. It also runs on
+  a BIGTREETECH Pi2, set up by hand and not tested regularly ([docs/27](docs/27-bigtreetech-pi2.md)).
 - 7" touchscreen with 1024 × 600 (e.g. Waveshare 7", [docs/22](docs/22-waveshare-display-1024x600.md)).
 - Optional: GPS receiver, the CarNine power-supply board for ignition and
   shutdown, USB grabber or webcam for the reversing camera, DS3231 real-time clock.
