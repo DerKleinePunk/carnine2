@@ -5,7 +5,7 @@
 <p align="center">
   <b>Offline car infotainment for the Raspberry Pi 4.</b><br>
   Navigation with spoken directions, your music, the reversing camera –
-  on a 7" touchscreen, without a phone and without the cloud.
+  on a 7" touchscreen, without a phone and offline if you want.
 </p>
 
 <p align="center">
@@ -35,8 +35,10 @@ More at <a href="https://www.carnine.de">carnine.de</a>.</sub></p>
 A car PC has to work where the mobile network ends, start with the ignition
 and never drain the battery. CarNine is built around that:
 
-- **Everything runs on the device.** Map tiles, routing, place search and the
-  voice are all local. No account, no API key, no data leaving the car.
+- **Offline if you want.** Map tiles, routing, place search and the voice all
+  run on the device: no account, no API key, no data leaving the car.
+  Anything that needs the internet, like live traffic (planned), will be a
+  switch you turn on yourself.
 - **It is made for the car, not for the desk.** It starts and shuts down with
   the ignition, protects the battery, survives a cold start in the middle of
   a drive and comes back on the same page, with the music where it left off.
