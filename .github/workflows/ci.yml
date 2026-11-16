@@ -183,7 +183,7 @@ jobs:
 
       - name: shellcheck
         working-directory: resources/debos
-        run: shellcheck carnine-hostname.sh tests/carnine-hostname-test.sh carnine-rename.sh tests/carnine-rename-test.sh carnine-wlan.sh tests/carnine-wlan-test.sh carnine-password-check.sh carnine-password.sh tests/carnine-password-test.sh carnine-install-maps.sh tests/carnine-install-maps-test.sh ../../pack_maps.sh carnine-audio-output.sh tests/carnine-audio-output-test.sh carnine-cmdline.sh tests/carnine-cmdline-test.sh carnine-package-check.sh tests/carnine-package-check-test.sh image-sbom.sh ../voice/package-deb.sh ../valhalla/package-deb.sh ../../src/frontend/package-deb.sh ../../src/frontend/debian/tests/package-deb-test.sh ../tools/deb/md5sums.sh ../tools/deb/tests/md5sums-test.sh ../config/messe/messe-einrichten.sh ../config/messe/tests/messe-einrichten-test.sh
+        run: shellcheck carnine-hostname.sh tests/carnine-hostname-test.sh carnine-rename.sh tests/carnine-rename-test.sh carnine-wlan.sh tests/carnine-wlan-test.sh carnine-password-check.sh carnine-password.sh tests/carnine-password-test.sh carnine-install-maps.sh tests/carnine-install-maps-test.sh apt-cache-arg.sh tests/apt-cache-arg-test.sh ../../pack_maps.sh carnine-audio-output.sh tests/carnine-audio-output-test.sh carnine-cmdline.sh tests/carnine-cmdline-test.sh carnine-package-check.sh tests/carnine-package-check-test.sh image-sbom.sh ../voice/package-deb.sh ../valhalla/package-deb.sh ../../src/frontend/package-deb.sh ../../src/frontend/debian/tests/package-deb-test.sh ../tools/deb/md5sums.sh ../tools/deb/tests/md5sums-test.sh ../config/messe/messe-einrichten.sh ../config/messe/tests/messe-einrichten-test.sh
 
       - name: carnine-hostname tests
         working-directory: resources/debos
@@ -204,6 +204,10 @@ jobs:
       - name: carnine-install-maps tests
         working-directory: resources/debos
         run: sh tests/carnine-install-maps-test.sh
+
+      - name: apt-cache-arg tests (image build)
+        working-directory: resources/debos
+        run: sh tests/apt-cache-arg-test.sh
 
       - name: deploy_maps tests
         run: shellcheck deploy_maps.sh tests/deploy-maps-test.sh && sh tests/deploy-maps-test.sh

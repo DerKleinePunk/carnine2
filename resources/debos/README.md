@@ -8,16 +8,18 @@ set -o pipefail
 mkdir -p build-logs
 
 # Build for all
-podman run --rm -it --cgroups=disabled --device /dev/kvm --mount "type=bind,source=$(pwd),destination=/work" --workdir /work --security-opt label=disable godebos/debos --memory=4G --scratchsize=16G -t version:$(cat ../VERSION) ./debos/raspbian.yaml 2>&1 | tee "build-logs/debos-$(date +%Y%m%d-%H%M%S).log"
+podman run --rm -it --cgroups=disabled --device /dev/kvm --mount "type=bind,source=$(pwd),destination=/work" --workdir /work --security-opt label=disable godebos/debos $(sh debos/apt-cache-arg.sh) --memory=4G --scratchsize=16G -t version:$(cat ../VERSION) ./debos/raspbian.yaml 2>&1 | tee "build-logs/debos-$(date +%Y%m%d-%H%M%S).log"
 
 # Build for Waveshare
-podman run --rm -it --cgroups=disabled --device /dev/kvm --mount "type=bind,source=$(pwd),destination=/work" --workdir /work --security-opt label=disable godebos/debos --memory=4G --scratchsize=16G -t display:waveshare-1024x600 -t version:$(cat ../VERSION) -t "ssh_public_key:$(cat "$HOME/.ssh/id_ed25519.pub")" ./debos/raspbian.yaml 2>&1 | tee "build-logs/debos-$(date +%Y%m%d-%H%M%S).log"
+podman run --rm -it --cgroups=disabled --device /dev/kvm --mount "type=bind,source=$(pwd),destination=/work" --workdir /work --security-opt label=disable godebos/debos $(sh debos/apt-cache-arg.sh) --memory=4G --scratchsize=16G -t display:waveshare-1024x600 -t version:$(cat ../VERSION) -t "ssh_public_key:$(cat "$HOME/.ssh/id_ed25519.pub")" ./debos/raspbian.yaml 2>&1 | tee "build-logs/debos-$(date +%Y%m%d-%H%M%S).log"
 
 # Verify the SSH key in the resulting image
 ./debos/verify-image-ssh.sh raspbian-1024x600.img.gz "$HOME/.ssh/id_ed25519.pub"
 ```
 
 `--memory=4G --scratchsize=16G`: without them debos builds the root file system in the RAM of its build VM (2 GB by default). Since the voice package `carnine-voice` (0.14.0) that no longer fits, and the VM dies during dracut with `Couldn't start fakemachine: .../result: no such file or directory`. `--scratchsize` moves the scratch space to the disk of the Podman machine. Give the memory with a unit: `--memory=4096` means 4096 bytes.
+
+`$(sh debos/apt-cache-arg.sh)`: with `CARNINE_APT_CACHE=http://aptcache:3142` (or wherever an apt-cacher-ng runs) set on the build machine, the apt downloads of the build go through that cache, but only when it answers; otherwise, and without the variable, the build fetches from the mirrors as before. Nothing of it lands in the image. The recipe also turns off apt's HTTP pipelining while building, which stalled about 30 s per apt run against archive.raspberrypi.com. Measured on 2026-11-16 (hdmi image): 1272 s before, 1119 s without pipelining, 1064 s with the cache as well.
 
 `--cgroups=disabled`: since 2026-10-11 (after a restart of the Windows host, WSL kernel 6.18.40; the cause is not known) the Podman machine puts containers below `/sys/fs/cgroup/non-systemd`, which hands no controllers down, and every container fails to start with ``crun: controller `pids` is not available under /sys/fs/cgroup/non-systemd/machine.slice/...``. Restarting the Podman machine does not help. debos needs no cgroups in its container, only `/dev/kvm` for its build VM, so the containers run without them.
 
