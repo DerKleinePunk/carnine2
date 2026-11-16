@@ -85,6 +85,15 @@ actions:
     chroot: true
     command: echo deb http://deb.debian.org/debian trixie-updates main contrib non-free non-free-firmware >> /etc/apt/sources.list
 
+  # apt's HTTP pipelining stalls about 30 s on every apt run against
+  # archive.raspberrypi.com, and once mixed up two answers in an apt cache;
+  # without it a build is 12 % faster (2026-11-16, 1119 s against 1272 s).
+  # Only for the build: the file goes again before the image is packed.
+  - action: run
+    description: No HTTP pipelining in apt while building
+    chroot: true
+    command: echo 'Acquire::http::Pipeline-Depth "0";' > /etc/apt/apt.conf.d/99carnine-build-no-pipelining
+
   - action: run
     description: Update packages due to security and updates repo adds
     chroot: true
@@ -695,6 +704,11 @@ actions:
     description: Force systemd first boot menchanism
     chroot: true
     command: echo uninitialized > /etc/machine-id
+
+  - action: run
+    description: Drop the build-only apt setting
+    chroot: true
+    command: rm -f /etc/apt/apt.conf.d/99carnine-build-no-pipelining
 
   # The image's package list for its SBOM and CVE report (#41): the dpkg
   # status and os-release, next to the image, one folder per variant
