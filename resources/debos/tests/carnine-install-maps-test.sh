@@ -299,9 +299,9 @@ check "routing: remove restarts valhalla" "$(tail -n 2 "$tree/systemctl.log")" \
 # The last country goes: the tile folder is empty and the whole-area tar is back.
 run 100000000 --remove-routing ch
 check "routing: last country removed" "$status" "0"
-check "routing: tile folder empty" "$(find "$tree/valhalla/valhalla_tiles" -mindepth 1 | wc -l | tr -d ' ')" "0"
+check "routing: tile folder gone" "$(test -e "$tree/valhalla/valhalla_tiles" && echo left || echo gone)" "gone"
 check "routing: whole-area tar back" "$(cat "$tree/valhalla/valhalla_tiles.tar")" "whole area"
-check "routing: nothing left in pakete" "$(find "$tree/valhalla/pakete" -type f | wc -l | tr -d ' ')" "0"
+check "routing: pakete folder gone" "$(test -e "$tree/valhalla/pakete" && echo left || echo gone)" "gone"
 
 run 100000000 --remove-routing ch
 check "routing: removing a country not installed fails" "$(grep -c 'kein Länderpaket' "$tree/out.log")" "1"

@@ -151,9 +151,14 @@ if [ -n "$REMOVE_ROUTING" ]; then
     trap '"$SYSTEMCTL" start valhalla.service || true' EXIT
     remove_tiles "$name"
     rm -f "$ROUTING_DIR/$name.info"
-    if [ -z "$(routing_countries)" ] && [ -e "$FULL_TAR_ASIDE" ] && [ ! -e "$FULL_TAR" ]; then
-        mv "$FULL_TAR_ASIDE" "$FULL_TAR"
-        echo "Letztes Land entfernt: das ganze Routing-Paket ($FULL_TAR) gilt wieder."
+    if [ -z "$(routing_countries)" ]; then
+        # The last country: its folders go too, if nothing else is in them.
+        rmdir "$TILE_DIR" 2>/dev/null || true
+        rmdir "$ROUTING_DIR" 2>/dev/null || true
+        if [ -e "$FULL_TAR_ASIDE" ] && [ ! -e "$FULL_TAR" ]; then
+            mv "$FULL_TAR_ASIDE" "$FULL_TAR"
+            echo "Letztes Land entfernt: das ganze Routing-Paket ($FULL_TAR) gilt wieder."
+        fi
     fi
     echo "Fertig: $name entfernt. Valhalla startet neu."
     exit 0
