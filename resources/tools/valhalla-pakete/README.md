@@ -38,7 +38,26 @@ sudo carnine-install-maps --remove-routing de
 
 **Removing a country** deletes only the tiles that no other installed country needs.
 
+## Known limit: loose tiles are slower when warm
+
+Measured on jeep-pi on 2026-11-16 with Germany and Switzerland, 9 routes against Valhalla, 3.9.0:
+
+| | Whole-area tar | Loose tiles |
+|---|---|---|
+| Cold (empty page cache) | 13.4 s | 12.5 s |
+| Warm | 4.2 s | 6.4–7.0 s |
+
+The likely cause is not proven. Valhalla reads loose tiles into its own cache, which is capped by `max_cache_size` at 1 GB while the graph has 6 GB, and drops them again. The tar, by contrast, is memory-mapped and stays in the system's page cache.
+
+There are two ways out, neither built yet:
+- build an indexed tar from the folder after installing,
+- raise `max_cache_size`.
+
 ## Tested
 
 - 2026-11-16, the trial by flutter-local-map: Germany and Switzerland, cut from the DACH graph of 2026-11-02 with this rule and served by Valhalla 3.9.0 on jeep-pi, gave the same routes to the metre as the whole graph. Among them were Zürich–München, Basel–Freiburg and Lugano–Berlin.
+- 2026-11-16, device test of this installer on jeep-pi (flutter-local-map):
+  - Germany (949 tiles, 2:33 min) and Switzerland (134 tiles, 0:16 min) installed, and only Valhalla restarted.
+  - Valhalla used the loose tiles, and all border routes worked.
+  - Removing both countries brought the whole-area tar back.
 - The tests run in CI: `test_routing_paket.py` here, and the routing part of `resources/debos/tests/carnine-install-maps-test.sh`, which installs packages made by this script.
