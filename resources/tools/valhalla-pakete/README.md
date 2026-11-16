@@ -32,8 +32,11 @@ sudo carnine-install-maps --remove-routing de
 
 **What the installer does:**
 - All installed countries together make up one `valhalla_tiles.tar`, which Valhalla reads just as it reads a whole-area one: memory-mapped, and kept in the system's page cache.
-  - **The first country:** its tar takes that place. A whole-area tar is moved aside as `valhalla_tiles.tar.vor-laenderpaketen`.
-  - **A further country:** it is appended with GNU tar (`-A`). First the border tiles it brings again are deleted (`--delete`), so no tile is in the tar twice. Nothing is unpacked.
+  - **The first country:** a whole-area tar is moved aside as `valhalla_tiles.tar.vor-laenderpaketen`.
+  - **Every change rewrites the tar:** each country added or removed writes the tar anew, the way `valhalla_build_extract` writes it, with `index.bin` in front. The index lists each tile's data offset, graph id and size, so Valhalla starts as fast as with a whole-area extract.
+    - The tiles are copied straight from the old tar and the package; nothing is unpacked.
+    - Each tile is in the tar once.
+    - While the new tar is written, there must be room for it next to the old one.
 - Each country's info and tile list go to `/var/lib/valhalla/pakete/`.
 - Only Valhalla restarts.
 
@@ -53,6 +56,8 @@ The first version (#184) put the tiles loose into Valhalla's `tile_dir`. On jeep
 The likely cause, not proven: Valhalla holds loose tiles in its own cache, which `max_cache_size` caps at 1 GB while the graph has 6 GB, and drops them again.
 
 Michael's rule (2026-11-16): country packages must not be slower than the single file. Hence one tar.
+
+**Why the index:** the next version (one tar, still without `index.bin`) was as fast as the whole-area tar once warm, 4.19 s. But Valhalla needed 16.4 s from start to the first route instead of 1.5 s, because without the index it reads every tar header first. With the index, written as `valhalla_build_extract` does it, a DE+CH tar routed warm in 4.24–4.27 s on jeep-pi, against 4.22–4.30 s for the DACH tar.
 
 ## Tested
 

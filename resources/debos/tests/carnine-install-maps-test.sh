@@ -245,6 +245,35 @@ has_tiles() {
     echo yes
 }
 
+# index_ok: checks index.bin of valhalla_tiles.tar the way Valhalla reads it -
+# per tile its data offset, graph id (level | id << 3) and size.
+index_ok() {
+    python3 -I - "$ROUTING_TAR" <<'PYTHON'
+import struct, sys, tarfile
+path = sys.argv[1]
+entry = struct.Struct('<QLL')
+with tarfile.open(path) as tar:
+    members = tar.getmembers()
+    if members[0].name != 'index.bin':
+        sys.exit(print('index.bin not first'))
+    raw = tar.extractfile(members[0]).read()
+    tiles = {m.name: m for m in members[1:]}
+entries = [entry.unpack_from(raw, i) for i in range(0, len(raw), entry.size)]
+with open(path, 'rb') as f:
+    for offset, gid, size in entries:
+        f.seek(offset)
+        data = f.read(size).decode()
+        name = data.split()[1]
+        level, tile = name[:-4].split('/', 1)
+        if gid != int(level) | int(tile.replace('/', '')) << 3 or tiles[name].size != size \
+                or tiles[name].offset_data != offset:
+            sys.exit(print('wrong entry for', name))
+if len(entries) != len(tiles):
+    sys.exit(print(len(entries), 'entries for', len(tiles), 'tiles'))
+print(len(entries), 'tiles ok')
+PYTHON
+}
+
 # in_tar <pattern>: how many members of valhalla_tiles.tar match.
 in_tar() {
     tar -t -f "$ROUTING_TAR" 2>/dev/null | grep -c "$1" || true
@@ -274,7 +303,9 @@ check "routing: second country of the same build installs" "$status" "0"
 # shellcheck disable=SC2086
 check "routing: both countries in the tar" "$(has_tiles b1 $DE_TILES $CH_TILES)" "yes"
 check "routing: border tile only once" "$(in_tar "^$SHARED\$")" "1"
-check "routing: no other members" "$(tar -t -f "$ROUTING_TAR" | wc -l | tr -d ' ')" "4"
+check "routing: index.bin first, then the four tiles" "$(tar -t -f "$ROUTING_TAR" | tr '\n' ' ')" \
+    "index.bin 1/049/507.gph 2/000/790/000.gph 2/000/791/309.gph 2/000/791/310.gph "
+check "routing: index fits the tar" "$(index_ok)" "4 tiles ok"
 list_status=0
 CARNINE_VALHALLA_DIR="$tree/valhalla" sh "$SCRIPT" --list-routing > "$tree/out.log" 2>&1 || list_status=$?
 check "routing: list without root" "$list_status" "0"
@@ -300,6 +331,7 @@ check "routing: remove succeeds" "$status" "0"
 check "routing: removed country's own tiles out of the tar" "$(in_tar '^2/000/791/')" "0"
 # shellcheck disable=SC2086
 check "routing: border tile and the other country stay" "$(has_tiles b1 $CH_TILES)" "yes"
+check "routing: index fits after removing" "$(index_ok)" "2 tiles ok"
 check "routing: whole-area tar stays aside while a country is left" \
     "$(cat "$tree/valhalla/valhalla_tiles.tar.vor-laenderpaketen")" "whole area"
 check "routing: remove restarts valhalla" "$(tail -n 2 "$tree/systemctl.log")" \
@@ -344,6 +376,7 @@ check "routing: newer build of the same country installs" "$status" "0"
 check "routing: newer build's tiles there" "$(has_tiles b2 2/000/791/309.gph 2/000/791/311.gph)" "yes"
 check "routing: tiles only in the old build gone" "$(($(in_tar 2/000/791/310.gph) + $(in_tar "$SHARED")))" "0"
 check "routing: each tile once" "$(tar -t -f "$ROUTING_TAR" | sort | uniq -d | wc -l | tr -d ' ')" "0"
+check "routing: index fits the updated tar" "$(index_ok)" "2 tiles ok"
 check "routing: info names the new build" "$(grep '^bau=' "$tree/valhalla/pakete/routing-de.info")" "bau=b2"
 rm -rf "$tree"
 

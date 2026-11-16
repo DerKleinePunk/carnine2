@@ -21,12 +21,12 @@
 # tiles that touch the country. The countries together make up Valhalla's
 # valhalla_tiles.tar, read the same way as a whole-area one (memory-mapped;
 # loose tiles in tile_dir were slower on jeep-pi once warm, 2026-11-16): the
-# first country's tar takes its place, a whole-area tar is put aside and comes
-# back when the last country goes; a further country is appended with GNU tar
-# (-A) after the border tiles it brings again are deleted (--delete), so
-# nothing is unpacked. Valhalla routes across the border as long as all
-# countries come from the same build, which is checked. Only Valhalla
-# restarts for a country.
+# whole-area tar is put aside and comes back when the last country goes. The
+# tar is written anew with every country added or removed, with index.bin in
+# front as valhalla_build_extract writes it, so Valhalla starts as fast as
+# with a whole-area extract; the tiles are copied, nothing is unpacked.
+# Valhalla routes across the border as long as all countries come from the
+# same build, which is checked. Only Valhalla restarts for a country.
 #
 # Downloads resume: running it again after an abort continues where it
 # stopped. Free space is checked before anything is downloaded. The services
@@ -108,12 +108,74 @@ tile_lists() {
     done
 }
 
-# delete_tiles <file of tile names>: takes them out of valhalla_tiles.tar.
-# Only names in the tar may be given; GNU tar fails on others.
-delete_tiles() {
-    if [ -s "$1" ]; then
-        tar --delete -f "$FULL_TAR" -T "$1"
-    fi
+# write_tar <output> <names to leave out of the last source> <source tar>...: a
+# Valhalla tile extract, as valhalla_build_extract writes it: index.bin first
+# (per tile its data offset, graph id and size, "<QLL"), then the tiles,
+# sorted. Without the index Valhalla reads every tar header at start: 16 s
+# instead of 1.5 s for DE+CH on jeep-pi (2026-11-16). The tiles are copied
+# straight from the sources, nothing is unpacked; a name in more than one
+# source is taken from the first. The last source is the old tar, so only
+# there are tiles left out. The output is written next to it.
+write_tar() {
+    python3 - "$@" <<'PYTHON'
+import io
+import struct
+import sys
+import tarfile
+
+out, leave_out, sources = sys.argv[1], sys.argv[2], sys.argv[3:]
+skip = set()
+if leave_out:
+    with open(leave_out, encoding='utf-8') as f:
+        skip = set(f.read().split())
+tiles = {}
+for n, source in enumerate(sources):
+    left_out = skip if n == len(sources) - 1 else set()
+    with tarfile.open(source) as tar:
+        for member in tar.getmembers():
+            name = member.name
+            if member.isfile() and name.endswith('.gph') and name not in left_out \
+                    and name not in tiles:
+                tiles[name] = (source, member.offset_data, member.size)
+if not tiles:
+    sys.exit('no tiles left for ' + out)
+
+entry = struct.Struct('<QLL')
+
+
+def graph_id(name):
+    level, tile = name[:-4].split('/', 1)
+    return int(level) | (int(tile.replace('/', '')) << 3)
+
+
+def info(name, size):
+    i = tarfile.TarInfo(name)
+    i.size = size
+    i.mode = 0o644
+    return i
+
+
+index = []
+files = {}
+with open(out, 'wb') as raw:
+    with tarfile.open(fileobj=raw, mode='w', format=tarfile.GNU_FORMAT) as tar:
+        tar.addfile(info('index.bin', entry.size * len(tiles)),
+                    io.BytesIO(bytes(entry.size * len(tiles))))
+        for name in sorted(tiles):
+            source, offset, size = tiles[name]
+            tile = info(name, size)
+            data = tar.offset + len(tile.tobuf(tar.format, tar.encoding, tar.errors))
+            f = files.setdefault(source, open(source, 'rb'))
+            f.seek(offset)
+            tar.addfile(tile, f)
+            index.append((data, graph_id(name), size))
+for f in files.values():
+    f.close()
+with open(out, 'r+b') as raw:
+    raw.seek(tarfile.BLOCKSIZE)  # the data of index.bin, the first member
+    for e in index:
+        raw.write(entry.pack(*e))
+PYTHON
 }
 
 # remove_country <routing-land>: takes that country's tiles out of the tar,
@@ -125,7 +187,8 @@ remove_country() {
         other_tiles "$1" > "$ROUTING_DIR/.andere"
         if [ -s "$ROUTING_DIR/.andere" ]; then
             comm -23 "$list" "$ROUTING_DIR/.andere" > "$ROUTING_DIR/.weg"
-            delete_tiles "$ROUTING_DIR/.weg"
+            write_tar "$FULL_TAR.new" "$ROUTING_DIR/.weg" "$FULL_TAR"
+            mv "$FULL_TAR.new" "$FULL_TAR"
         else
             rm -f "$FULL_TAR"
         fi
@@ -431,21 +494,22 @@ while IFS="$(printf '\t')" read -r packed packed_size unpacked_size target; do
                     mv "$FULL_TAR" "$FULL_TAR_ASIDE"
                     echo "Das ganze Routing-Paket liegt jetzt als $FULL_TAR_ASIDE beiseite."
                 fi
-                mv "$target.new" "$FULL_TAR"
+                write_tar "$FULL_TAR.new" "" "$target.new"
             else
-                # Out first: this country's old tiles no other country needs
-                # (an update), and every tile the package brings again (the
-                # border tiles of the same build), so none is in twice.
+                # Left out of the old tar: this country's old tiles no other
+                # country needs (an update). The package comes first, so its
+                # border tiles win over the copies already in the tar.
                 other_tiles "$PACKAGE" > "$ROUTING_DIR/.andere"
-                for old in $(tile_lists); do cat "$old"; done | sort -u > "$ROUTING_DIR/.alle"
-                {
-                    if [ -e "$list" ]; then comm -23 "$list" "$ROUTING_DIR/.andere"; fi
-                    comm -12 "$list.new" "$ROUTING_DIR/.alle"
-                } | sort -u > "$ROUTING_DIR/.weg"
-                delete_tiles "$ROUTING_DIR/.weg"
-                tar -A -f "$FULL_TAR" "$target.new"
-                rm -f "$target.new" "$ROUTING_DIR/.andere" "$ROUTING_DIR/.alle" "$ROUTING_DIR/.weg"
+                if [ -e "$list" ]; then
+                    comm -23 "$list" "$ROUTING_DIR/.andere" > "$ROUTING_DIR/.weg"
+                else
+                    : > "$ROUTING_DIR/.weg"
+                fi
+                write_tar "$FULL_TAR.new" "$ROUTING_DIR/.weg" "$target.new" "$FULL_TAR"
+                rm -f "$ROUTING_DIR/.andere" "$ROUTING_DIR/.weg"
             fi
+            mv "$FULL_TAR.new" "$FULL_TAR"
+            rm -f "$target.new"
             "$CHOWN" root:root "$FULL_TAR"
             chmod 0644 "$FULL_TAR"
             mv "$list.new" "$list"
