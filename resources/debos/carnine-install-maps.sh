@@ -18,12 +18,15 @@
 # A country routing package (routing-<land>, made by
 # resources/tools/valhalla-pakete/routing_paket.py) holds routing-<land>.info
 # (country, build, Valhalla version) and routing-<land>.tar with the Valhalla
-# tiles that touch the country. Its tiles go loose into Valhalla's tile_dir,
-# next to those of the other countries, and Valhalla routes across the border
-# - as long as all countries come from the same build, which is checked. A
-# whole-area valhalla_tiles.tar would win over the loose tiles, so it is put
-# aside and comes back when the last country is removed. Only Valhalla
-# restarts for a country.
+# tiles that touch the country. The countries together make up Valhalla's
+# valhalla_tiles.tar, read the same way as a whole-area one (memory-mapped;
+# loose tiles in tile_dir were slower on jeep-pi once warm, 2026-11-16): the
+# whole-area tar is put aside and comes back when the last country goes. The
+# tar is written anew with every country added or removed, with index.bin in
+# front as valhalla_build_extract writes it, so Valhalla starts as fast as
+# with a whole-area extract; the tiles are copied, nothing is unpacked.
+# Valhalla routes across the border as long as all countries come from the
+# same build, which is checked. Only Valhalla restarts for a country.
 #
 # Downloads resume: running it again after an abort continues where it
 # stopped. Free space is checked before anything is downloaded. The services
@@ -35,6 +38,8 @@
 # scratch tree.
 
 set -eu
+# The tile lists are sorted and compared with comm; the same order every run.
+export LC_ALL=C
 
 MAPS_DIR=${CARNINE_MAPS_DIR:-/var/lib/carnine/maps}
 VALHALLA_DIR=${CARNINE_VALHALLA_DIR:-/var/lib/valhalla}
@@ -46,9 +51,8 @@ CURL=${CARNINE_CURL:-curl}
 # Room left over after the installation, for the database and logs.
 RESERVE=${CARNINE_MAPS_RESERVE:-268435456}
 SERVICES="carnine-frontend.service carnine-backend.service valhalla.service"
-# Country routing packages: tile_dir of resources/valhalla/valhalla.json, and
-# the info and tile list of every country installed.
-TILE_DIR=${CARNINE_VALHALLA_TILE_DIR:-$VALHALLA_DIR/valhalla_tiles}
+# Country routing packages: the info and tile list of every country
+# installed; the tiles themselves are in valhalla_tiles.tar.
 ROUTING_DIR="$VALHALLA_DIR/pakete"
 FULL_TAR="$VALHALLA_DIR/valhalla_tiles.tar"
 FULL_TAR_ASIDE="$FULL_TAR.vor-laenderpaketen"
@@ -97,20 +101,98 @@ other_tiles() {
     done | sort -u
 }
 
-# remove_tiles <routing-land>: deletes the tiles of that country that no other
-# country needs (the border tiles stay), then its tile list. The info stays.
-remove_tiles() {
+# The tile lists of the countries whose tiles are in valhalla_tiles.tar.
+tile_lists() {
+    for list in "$ROUTING_DIR"/routing-*.kacheln; do
+        [ -e "$list" ] && echo "$list"
+    done
+}
+
+# write_tar <output> <names to leave out of the last source> <source tar>...: a
+# Valhalla tile extract, as valhalla_build_extract writes it: index.bin first
+# (per tile its data offset, graph id and size, "<QLL"), then the tiles,
+# sorted. Without the index Valhalla reads every tar header at start: 16 s
+# instead of 1.5 s for DE+CH on jeep-pi (2026-11-16). The tiles are copied
+# straight from the sources, nothing is unpacked; a name in more than one
+# source is taken from the first. The last source is the old tar, so only
+# there are tiles left out. The output is written next to it.
+write_tar() {
+    python3 - "$@" <<'PYTHON'
+import io
+import struct
+import sys
+import tarfile
+
+out, leave_out, sources = sys.argv[1], sys.argv[2], sys.argv[3:]
+skip = set()
+if leave_out:
+    with open(leave_out, encoding='utf-8') as f:
+        skip = set(f.read().split())
+tiles = {}
+for n, source in enumerate(sources):
+    left_out = skip if n == len(sources) - 1 else set()
+    with tarfile.open(source) as tar:
+        for member in tar.getmembers():
+            name = member.name
+            if member.isfile() and name.endswith('.gph') and name not in left_out \
+                    and name not in tiles:
+                tiles[name] = (source, member.offset_data, member.size)
+if not tiles:
+    sys.exit('no tiles left for ' + out)
+
+entry = struct.Struct('<QLL')
+
+
+def graph_id(name):
+    level, tile = name[:-4].split('/', 1)
+    return int(level) | (int(tile.replace('/', '')) << 3)
+
+
+def info(name, size):
+    i = tarfile.TarInfo(name)
+    i.size = size
+    i.mode = 0o644
+    return i
+
+
+index = []
+files = {}
+with open(out, 'wb') as raw:
+    with tarfile.open(fileobj=raw, mode='w', format=tarfile.GNU_FORMAT) as tar:
+        tar.addfile(info('index.bin', entry.size * len(tiles)),
+                    io.BytesIO(bytes(entry.size * len(tiles))))
+        for name in sorted(tiles):
+            source, offset, size = tiles[name]
+            tile = info(name, size)
+            data = tar.offset + len(tile.tobuf(tar.format, tar.encoding, tar.errors))
+            f = files.setdefault(source, open(source, 'rb'))
+            f.seek(offset)
+            tar.addfile(tile, f)
+            index.append((data, graph_id(name), size))
+for f in files.values():
+    f.close()
+with open(out, 'r+b') as raw:
+    raw.seek(tarfile.BLOCKSIZE)  # the data of index.bin, the first member
+    for e in index:
+        raw.write(entry.pack(*e))
+PYTHON
+}
+
+# remove_country <routing-land>: takes that country's tiles out of the tar,
+# except those another country needs (the border tiles), then its tile
+# list; the last country takes the tar with it. The info stays.
+remove_country() {
     list="$ROUTING_DIR/$1.kacheln"
     if [ -e "$list" ]; then
         other_tiles "$1" > "$ROUTING_DIR/.andere"
-        sort -u "$list" | comm -23 - "$ROUTING_DIR/.andere" | while IFS= read -r tile; do
-            case "$tile" in
-                ''|/*|*..*) continue ;;
-            esac
-            rm -f "$TILE_DIR/$tile"
-        done
-        rm -f "$ROUTING_DIR/.andere"
-        [ -d "$TILE_DIR" ] && find "$TILE_DIR" -mindepth 1 -type d -empty -delete
+        if [ -s "$ROUTING_DIR/.andere" ]; then
+            comm -23 "$list" "$ROUTING_DIR/.andere" > "$ROUTING_DIR/.weg"
+            write_tar "$FULL_TAR.new" "$ROUTING_DIR/.weg" "$FULL_TAR"
+            mv "$FULL_TAR.new" "$FULL_TAR"
+        else
+            rm -f "$FULL_TAR"
+        fi
+        rm -f "$ROUTING_DIR/.andere" "$ROUTING_DIR/.weg"
     fi
     rm -f "$list"
 }
@@ -132,7 +214,9 @@ if [ "$LIST_ROUTING" -eq 1 ]; then
             "$(info_value "$info" bau)" "$(info_value "$info" valhalla)" \
             "$(wc -l < "$ROUTING_DIR/$name.kacheln" 2>/dev/null || echo 0)"
     done
-    [ -e "$FULL_TAR" ] && echo "Hinweis: $FULL_TAR ist da und gewinnt vor den Länderpaketen."
+    if [ -e "$FULL_TAR_ASIDE" ]; then
+        echo "Das ganze Routing-Paket liegt beiseite: $FULL_TAR_ASIDE"
+    fi
     exit 0
 fi
 
@@ -149,11 +233,10 @@ if [ -n "$REMOVE_ROUTING" ]; then
         die "kein Länderpaket $name installiert (siehe carnine-install-maps --list-routing)"
     "$SYSTEMCTL" stop valhalla.service
     trap '"$SYSTEMCTL" start valhalla.service || true' EXIT
-    remove_tiles "$name"
+    remove_country "$name"
     rm -f "$ROUTING_DIR/$name.info"
     if [ -z "$(routing_countries)" ]; then
-        # The last country: its folders go too, if nothing else is in them.
-        rmdir "$TILE_DIR" 2>/dev/null || true
+        # The last country: its folder goes too, if nothing else is in it.
         rmdir "$ROUTING_DIR" 2>/dev/null || true
         if [ -e "$FULL_TAR_ASIDE" ] && [ ! -e "$FULL_TAR" ]; then
             mv "$FULL_TAR_ASIDE" "$FULL_TAR"
@@ -269,7 +352,7 @@ gb() {
 }
 
 mkdir -p "$WORK_DIR" "$MAPS_DIR" "$VALHALLA_DIR"
-[ "$ROUTING" -eq 1 ] && mkdir -p "$ROUTING_DIR" "$TILE_DIR"
+[ "$ROUTING" -eq 1 ] && mkdir -p "$ROUTING_DIR"
 echo "Hole die Paketliste von $BASE ..."
 for list in INHALT SHA256SUMS SHA256SUMS.entpackt; do
     rc=0
@@ -353,7 +436,12 @@ if [ "$ROUTING" -eq 1 ]; then
             EXIT_CODE=4 die "$PACKAGE stammt aus dem Bau $build, $(basename "$info" .info) aus $other. Länder aus verschiedenen Bauten passen an der Grenze nicht zusammen. Erst entfernen: sudo carnine-install-maps --remove-routing $(basename "$info" .info | sed 's/^routing-//')"
         fi
     done
-    if [ -e "$FULL_TAR" ] && [ -e "$FULL_TAR_ASIDE" ]; then
+    if [ -n "$(tile_lists)" ]; then
+        # The countries' tiles are in valhalla_tiles.tar; without it there is
+        # nothing to append to.
+        [ -e "$FULL_TAR" ] ||
+            die "$FULL_TAR fehlt, obwohl Länder installiert sind; erst alle Länder entfernen (--remove-routing)"
+    elif [ -e "$FULL_TAR" ] && [ -e "$FULL_TAR_ASIDE" ]; then
         die "$FULL_TAR und $FULL_TAR_ASIDE sind beide da; eins davon bitte von Hand wegräumen"
     fi
 fi
@@ -392,30 +480,47 @@ while IFS="$(printf '\t')" read -r packed packed_size unpacked_size target; do
     esac
     case "$target" in
         "$ROUTING_DIR"/*.tar)
-            # An update of the same country: its old tiles go first, except
-            # those another country needs.
-            remove_tiles "$PACKAGE"
-            tar -t -f "$target.new" | grep '\.gph$' | sort > "${target%.tar}.kacheln.new"
-            if [ ! -s "${target%.tar}.kacheln.new" ] ||
-                grep -q -e '^/' -e '\.\.' "${target%.tar}.kacheln.new"; then
-                rm -f "$target.new" "${target%.tar}.kacheln.new"
-                EXIT_CODE=3 die "$name enthält keine Kacheln oder Pfade außerhalb des Kachelordners"
+            list="${target%.tar}.kacheln"
+            tar -t -f "$target.new" | sort > "$list.new"
+            if [ ! -s "$list.new" ] || grep -q -v '\.gph$' "$list.new" ||
+                grep -q -e '^/' -e '\.\.' "$list.new"; then
+                rm -f "$target.new" "$list.new"
+                EXIT_CODE=3 die "$name enthält keine Kacheln, andere Dateien oder Pfade außerhalb des Kachelordners"
             fi
-            (umask 022 && tar -x -f "$target.new" -C "$TILE_DIR" --no-same-owner --no-same-permissions)
-            "$CHOWN" -R root:root "$TILE_DIR"
-            mv "${target%.tar}.kacheln.new" "${target%.tar}.kacheln"
+            if [ -z "$(tile_lists)" ]; then
+                # The first country: its tar becomes valhalla_tiles.tar, a
+                # whole-area one goes aside until the last country is removed.
+                if [ -e "$FULL_TAR" ]; then
+                    mv "$FULL_TAR" "$FULL_TAR_ASIDE"
+                    echo "Das ganze Routing-Paket liegt jetzt als $FULL_TAR_ASIDE beiseite."
+                fi
+                write_tar "$FULL_TAR.new" "" "$target.new"
+            else
+                # Left out of the old tar: this country's old tiles no other
+                # country needs (an update). The package comes first, so its
+                # border tiles win over the copies already in the tar.
+                other_tiles "$PACKAGE" > "$ROUTING_DIR/.andere"
+                if [ -e "$list" ]; then
+                    comm -23 "$list" "$ROUTING_DIR/.andere" > "$ROUTING_DIR/.weg"
+                else
+                    : > "$ROUTING_DIR/.weg"
+                fi
+                write_tar "$FULL_TAR.new" "$ROUTING_DIR/.weg" "$target.new" "$FULL_TAR"
+                rm -f "$ROUTING_DIR/.andere" "$ROUTING_DIR/.weg"
+            fi
+            mv "$FULL_TAR.new" "$FULL_TAR"
             rm -f "$target.new"
-            # A whole-area tar wins over loose tiles; it comes back with
-            # --remove-routing of the last country.
-            if [ -e "$FULL_TAR" ]; then
-                mv "$FULL_TAR" "$FULL_TAR_ASIDE"
-                echo "Das ganze Routing-Paket liegt jetzt als $FULL_TAR_ASIDE beiseite."
-            fi
+            "$CHOWN" root:root "$FULL_TAR"
+            chmod 0644 "$FULL_TAR"
+            mv "$list.new" "$list"
             ;;
         *)
             mv "$target.new" "$target"
             if [ "$target" = "$FULL_TAR" ] && [ -n "$(routing_countries)" ]; then
-                echo "Hinweis: $FULL_TAR gewinnt vor den Länderpaketen fürs Routing (carnine-install-maps --list-routing)."
+                # A whole-area package replaced the countries' tar: they are
+                # gone, the tar put aside for them is out of date.
+                rm -f "$ROUTING_DIR"/routing-*.info "$ROUTING_DIR"/routing-*.kacheln
+                echo "Hinweis: Das ganze Routing-Paket ersetzt die Länderpakete. $FULL_TAR_ASIDE (falls da) ist veraltet und kann weg."
             fi
             ;;
     esac

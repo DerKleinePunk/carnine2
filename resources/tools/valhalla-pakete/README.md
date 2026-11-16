@@ -31,33 +31,39 @@ sudo carnine-install-maps --remove-routing de
 **Same build only.** All countries must come from the same build. A package from another build is refused (exit code 4), because the border tiles of two separate builds do not fit together.
 
 **What the installer does:**
-- The tiles go loose into Valhalla's `tile_dir` (`/var/lib/valhalla/valhalla_tiles`).
+- All installed countries together make up one `valhalla_tiles.tar`, which Valhalla reads just as it reads a whole-area one: memory-mapped, and kept in the system's page cache.
+  - **The first country:** a whole-area tar is moved aside as `valhalla_tiles.tar.vor-laenderpaketen`.
+  - **Every change rewrites the tar:** each country added or removed writes the tar anew, the way `valhalla_build_extract` writes it, with `index.bin` in front. The index lists each tile's data offset, graph id and size, so Valhalla starts as fast as with a whole-area extract.
+    - The tiles are copied straight from the old tar and the package; nothing is unpacked.
+    - Each tile is in the tar once.
+    - While the new tar is written, there must be room for it next to the old one.
 - Each country's info and tile list go to `/var/lib/valhalla/pakete/`.
-- A whole-area `valhalla_tiles.tar` would win over the loose tiles, so it is moved aside as `valhalla_tiles.tar.vor-laenderpaketen`. It comes back when the last country is removed.
 - Only Valhalla restarts.
 
-**Removing a country** deletes only the tiles that no other installed country needs.
+**Removing a country** takes out only the tiles that no other installed country needs. The last country takes the tar away with it, and the whole-area tar comes back.
 
-## Known limit: loose tiles are slower when warm
+**A whole-area map package installed later** replaces the countries. Their records go, and the tar put aside for them is then out of date.
 
-Measured on jeep-pi on 2026-11-16 with Germany and Switzerland, 9 routes against Valhalla, 3.9.0:
+## Why one tar and not loose tiles
+
+The first version (#184) put the tiles loose into Valhalla's `tile_dir`. On jeep-pi on 2026-11-16 (Germany and Switzerland, 9 routes, Valhalla 3.9.0) that was slower once warm:
 
 | | Whole-area tar | Loose tiles |
 |---|---|---|
 | Cold (empty page cache) | 13.4 s | 12.5 s |
 | Warm | 4.2 s | 6.4–7.0 s |
 
-The likely cause is not proven. Valhalla reads loose tiles into its own cache, which is capped by `max_cache_size` at 1 GB while the graph has 6 GB, and drops them again. The tar, by contrast, is memory-mapped and stays in the system's page cache.
+The likely cause, not proven: Valhalla holds loose tiles in its own cache, which `max_cache_size` caps at 1 GB while the graph has 6 GB, and drops them again.
 
-There are two ways out, neither built yet:
-- build an indexed tar from the folder after installing,
-- raise `max_cache_size`.
+Michael's rule (2026-11-16): country packages must not be slower than the single file. Hence one tar.
+
+**Why the index:** the next version (one tar, still without `index.bin`) was as fast as the whole-area tar once warm, 4.19 s. But Valhalla needed 16.4 s from start to the first route instead of 1.5 s, because without the index it reads every tar header first. With the index, written as `valhalla_build_extract` does it, a DE+CH tar routed warm in 4.24–4.27 s on jeep-pi, against 4.22–4.30 s for the DACH tar.
 
 ## Tested
 
 - 2026-11-16, the trial by flutter-local-map: Germany and Switzerland, cut from the DACH graph of 2026-11-02 with this rule and served by Valhalla 3.9.0 on jeep-pi, gave the same routes to the metre as the whole graph. Among them were Zürich–München, Basel–Freiburg and Lugano–Berlin.
-- 2026-11-16, device test of this installer on jeep-pi (flutter-local-map):
+- 2026-11-16, device test of the loose-tile version (#184) on jeep-pi (flutter-local-map):
   - Germany (949 tiles, 2:33 min) and Switzerland (134 tiles, 0:16 min) installed, and only Valhalla restarted.
-  - Valhalla used the loose tiles, and all border routes worked.
+  - All border routes worked.
   - Removing both countries brought the whole-area tar back.
 - The tests run in CI: `test_routing_paket.py` here, and the routing part of `resources/debos/tests/carnine-install-maps-test.sh`, which installs packages made by this script.
