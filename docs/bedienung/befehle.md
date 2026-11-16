@@ -55,6 +55,20 @@ Ein abgebrochener Download geht beim nächsten Aufruf weiter. Vorher prüft der
 Befehl, ob genug Platz frei ist. Oberfläche, Backend und `valhalla` hält er
 erst an, wenn alle Dateien da und geprüft sind, und startet sie danach wieder.
 
+**Routing je Land** (ab der Version nach 0.21.0): Die Daten für die
+Routenberechnung lassen sich auch Land für Land installieren. Die Karte und
+die Ortssuche bleiben dabei ein Paket.
+
+| Aufruf | Wirkung |
+|---|---|
+| `sudo carnine-install-maps --dir <ordner> --package routing-de` | installiert das Routing für ein Land, hier Deutschland (geht auch mit `--link`) |
+| `carnine-install-maps --list-routing` | zeigt die installierten Länder |
+| `sudo carnine-install-maps --remove-routing de` | nimmt ein Land wieder heraus |
+
+Alle Länder müssen aus demselben Bau stammen, sonst lehnt der Befehl das
+Paket ab. Dabei startet nur `valhalla` neu: Karte und Musik laufen weiter,
+nur eine neue Route lässt sich erst wieder berechnen, wenn `valhalla` läuft.
+
 ## Läuft von selbst
 
 Diese Programme muss man nicht aufrufen. Sie stehen hier, damit man sie
