@@ -66,8 +66,11 @@ die Ortssuche bleiben dabei ein Paket.
 | `sudo carnine-install-maps --remove-routing de` | nimmt ein Land wieder heraus |
 
 Alle Länder müssen aus demselben Bau stammen, sonst lehnt der Befehl das
-Paket ab. Dabei startet nur `valhalla` neu: Karte und Musik laufen weiter,
-nur eine neue Route lässt sich erst wieder berechnen, wenn `valhalla` läuft.
+Paket ab. Hinzufügen und Entfernen dauern bis zu drei Minuten, gemessen
+auf einem Pi 4: Deutschland 2½ Minuten, danach die Schweiz gut 1 Minute,
+die Schweiz wieder entfernen knapp 1 Minute. Dabei startet nur `valhalla`
+neu: Karte und Musik laufen weiter, nur eine neue Route lässt sich erst
+wieder berechnen, wenn `valhalla` läuft.
 
 ## Läuft von selbst
 

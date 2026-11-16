@@ -376,9 +376,9 @@ USB stick. `./pack_maps.sh` builds such a package from the same sources as
 `deploy_maps.sh`; the format is described in `resources/debos/README.md`, the
 steps for the tester in `docs/bedienung/nach-der-installation.md`.
 
-**Routing by country** (since the release after 0.21.0, #184). Instead of
-one `valhalla_tiles.tar` for the whole area, the routing tiles can be loaded
-one country at a time. Map tiles and the names database stay one package per
+**Routing by country** (since the release after 0.21.0, #184, #187). Instead
+of one routing extract for the whole area, the routing tiles can be loaded one
+country at a time. Map tiles and the names database stay one package per
 area; only Valhalla's tiles are split.
 
 - **Making a package:** `resources/tools/valhalla-pakete/routing_paket.py`
@@ -400,26 +400,31 @@ area; only Valhalla's tiles are split.
 - **Same build only.** All installed countries must be cut from the same
   build; a package from another build is refused with exit code 4, because
   the border tiles of two builds do not fit together.
-- **What the installer does:** the tiles go loose into Valhalla's `tile_dir`
-  (`/var/lib/valhalla/valhalla_tiles`), each country's info and tile list
-  into `/var/lib/valhalla/pakete/`. A whole-area `valhalla_tiles.tar` would
-  win over loose tiles, so it is moved aside as
-  `valhalla_tiles.tar.vor-laenderpaketen` and comes back when the last
-  country is removed. Removing a country deletes only the tiles no other
-  installed country needs. Only Valhalla restarts; backend and frontend keep
-  running. Installing a whole-area map package with its own
-  `valhalla_tiles.tar` while countries are installed prints a hint that the
-  tar now wins; the countries stay installed and listed by `--list-routing`
-  (which says so too), but are not used.
-- **Tried on jeep-pi, 2026-11-16:** Germany (949 tiles, 2:33 min) and
-  Switzerland (134 tiles, 0:16 min) from the DACH graph of 2026-11-02 with
-  Valhalla 3.9.0; all routes across the border worked, and removing both
-  brought the whole-area tar back.
-- **Known limit:** with a warm cache, loose tiles are slower than the tar
-  (9 routes: 6.4–7.0 s against 4.2 s; cold both about 13 s). Likely cause,
-  not proven: Valhalla keeps loose tiles in its own cache (`max_cache_size`,
-  1 GB, the graph has 6 GB), while the tar stays in the page cache. Not
-  solved yet.
+- **What the installer does:** all installed countries together make up one
+  `valhalla_tiles.tar` with `index.bin` in front, written the way
+  `valhalla_build_extract` writes it, so Valhalla reads it like a whole-area
+  extract (memory-mapped, kept in the page cache). The first country moves a
+  whole-area tar aside as `valhalla_tiles.tar.vor-laenderpaketen`. Every
+  country added or removed **rewrites the tar**, copying the tiles straight
+  from the old tar and the package, each tile once; while it writes, the new
+  tar needs room next to the old one. Each
+  country's info and tile list go to `/var/lib/valhalla/pakete/`. Removing a
+  country takes out only the tiles no other installed country needs; the last
+  one brings the whole-area tar back. Only Valhalla restarts; backend and
+  frontend keep running. A whole-area map package installed later replaces
+  the countries: their records go, and the tar put aside for them is then out
+  of date.
+- **Measured on jeep-pi, 2026-11-16** (Germany and Switzerland from the DACH
+  graph of 2026-11-02, Valhalla 3.9.0, 9 routes): from start to the first
+  route 1.5 s, warm 4.24 s, cold 12.0 s, against 1.5 s, 4.26 s and 12.3 s
+  with the DACH tar; routes across the border are the same to the metre as
+  with the whole graph. **Waiting time** while the installer works (routing
+  only; map and music keep running): Germany in 156 s, then Switzerland in
+  73 s (the tar is rewritten), removing Switzerland 47 s (rewritten again),
+  removing Germany as the last country 1 s (the tar is just deleted and the
+  DACH tar comes back). Why one tar with index and not loose tiles (the first
+  version was slower once warm, one tar without index slow to start): the
+  README in `resources/tools/valhalla-pakete/`.
 - Loading and removing countries from the user interface is not built.
 
 **Our own test devices run with DACH** (Germany, Austria, Switzerland):
