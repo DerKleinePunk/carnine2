@@ -376,6 +376,57 @@ USB stick. `./pack_maps.sh` builds such a package from the same sources as
 `deploy_maps.sh`; the format is described in `resources/debos/README.md`, the
 steps for the tester in `docs/bedienung/nach-der-installation.md`.
 
+**Routing by country** (since the release after 0.21.0, #184, #187). Instead
+of one routing extract for the whole area, the routing tiles can be loaded one
+country at a time. Map tiles and the names database stay one package per
+area; only Valhalla's tiles are split.
+
+- **Making a package:** `resources/tools/valhalla-pakete/routing_paket.py`
+  cuts one country out of a whole Valhalla graph along the Geofabrik border
+  (`<country>.poly`). The result `routing-<land>/` has the format of the map
+  packages (`.info.zst`, `.tar.zst`, `INHALT`, `SHA256SUMS`); the info names
+  the country, the build of the graph (`--bau`) and the Valhalla version.
+  Tiles at a border go into both neighbouring packages. Usage and the rule
+  for which tiles a country gets: the README in that folder.
+- **On the device:**
+
+  ```sh
+  sudo carnine-install-maps --dir /media/stick/routing-de --package routing-de
+  sudo carnine-install-maps --link <share-link> --package routing-ch
+  carnine-install-maps --list-routing      # country, build, Valhalla, tiles
+  sudo carnine-install-maps --remove-routing de
+  ```
+
+- **Same build only.** All installed countries must be cut from the same
+  build; a package from another build is refused with exit code 4, because
+  the border tiles of two builds do not fit together.
+- **What the installer does:** all installed countries together make up one
+  `valhalla_tiles.tar` with `index.bin` in front, written the way
+  `valhalla_build_extract` writes it, so Valhalla reads it like a whole-area
+  extract (memory-mapped, kept in the page cache). The first country moves a
+  whole-area tar aside as `valhalla_tiles.tar.vor-laenderpaketen`. Every
+  country added or removed **rewrites the tar**, copying the tiles straight
+  from the old tar and the package, each tile once; while it writes, the new
+  tar needs room next to the old one. Each
+  country's info and tile list go to `/var/lib/valhalla/pakete/`. Removing a
+  country takes out only the tiles no other installed country needs; the last
+  one brings the whole-area tar back. Only Valhalla restarts; backend and
+  frontend keep running. A whole-area map package installed later replaces
+  the countries: their records go, and the tar put aside for them is then out
+  of date.
+- **Measured on jeep-pi, 2026-11-16** (Germany and Switzerland from the DACH
+  graph of 2026-11-02, Valhalla 3.9.0, 9 routes): from start to the first
+  route 1.5 s, warm 4.24 s, cold 12.0 s, against 1.5 s, 4.26 s and 12.3 s
+  with the DACH tar; routes across the border are the same to the metre as
+  with the whole graph. **Waiting time** while the installer works (routing
+  only; map and music keep running): Germany in 156 s, then Switzerland in
+  73 s (the tar is rewritten), removing Switzerland 47 s (rewritten again),
+  removing Germany as the last country 1 s (the tar is just deleted and the
+  DACH tar comes back). Why one tar with index and not loose tiles (the first
+  version was slower once warm, one tar without index slow to start): the
+  README in `resources/tools/valhalla-pakete/`.
+- Loading and removing countries from the user interface is not built.
+
 **Our own test devices run with DACH** (Germany, Austria, Switzerland):
 `./deploy_maps.sh pi@<device> --dach` takes `dach.mbtiles` (22.1 GB),
 `dach_names.db` (2.3 GB) and their own `valhalla_tiles.tar` (6.6 GB) from
