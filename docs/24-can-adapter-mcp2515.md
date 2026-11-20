@@ -60,6 +60,8 @@ These pins do not collide with what carnine2 already uses:
 - I2C on GPIO 2/3 (`dtparam=i2c_arm=on` in the image), with the IO board at
   0x20 and the DS3231 clock at 0x68/0x57; keep it free,
 - GPIO 0/1 are reserved for a HAT ID EEPROM.
+- the reverse gear input on GPIO 26 (pin 37), see
+  [below](#reverse-gear-input-gpio-26).
 
 uart4 would sit on GPIO 8/9 and is therefore not used; see
 [Wiring to the Pi 4](23-power-supply.md#wiring-to-the-pi-4).
@@ -165,6 +167,28 @@ candump can0
 
 `cansend` frame format: `<can_id>#<data>`, e.g. `123#DEADBEEF`
 (usage text of `cansend`).
+
+## Reverse gear input (GPIO 26)
+
+Until the car's CAN bus is read, the reverse gear comes from a GPIO input
+(#137; Michael fixed GPIO 26 on 2026-11-20). The backend side is in place,
+configured with `[reverse_gear]` (see
+[07 – Reversing camera](07-deployment.md#reversing-camera)).
+
+| Signal | GPIO | Header pin |
+|---|---|---|
+| Reverse gear in | GPIO 26 | 37 |
+| GND | – | 39 |
+
+- **At most 3.3 V on the pin** (see [Levels](#levels)). The reversing light
+  carries the car's 12 V, so it must not go to the pin directly.
+- **Optocoupler wanted:** reversing light → series resistor → LED of the
+  optocoupler; its transistor pulls GPIO 26 to ground, so "gear in" reads
+  low. That is the default `active_low = true` with the Pi's internal
+  pull-up (`bias = "pull_up"`); an external 10 kΩ to 3.3 V works as well.
+  The coupler also keeps spikes from the car's supply away from the Pi.
+- **Debouncing** is done by the kernel (`debounce_ms`, default 50 ms).
+- The pin does not collide with the CAN pins above.
 
 ## Sources
 
