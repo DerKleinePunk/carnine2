@@ -603,8 +603,46 @@ none. `SaveCameraSettings` refuses a device outside `/dev/video*` and
 configuration has no effect on a field the database already holds; save that
 field again instead.
 
-Switching to the camera with the reverse gear needs a signal from the car
-(CAN or a GPIO) and is not done yet.
+**Reverse gear (#137, backend since 907f85b).** The backend reads the
+reverse gear from a GPIO input or, for trying without a car, from a demo
+source; the CAN source follows once the car's CAN adapter is known. The
+frontend does not switch to the camera page on its own yet. Set it in
+`[reverse_gear]` (template in `resources/config/carnine.toml`, best in a
+drop-in such as `/etc/carnine/config.d/40-reverse-gear.toml`, then restart
+the backend):
+
+```toml
+[reverse_gear]
+source = "gpio"          # "none" (default), "gpio" or "demo"
+gpio_line = 26           # GPIO 26 = header pin 37; no default
+# gpio_chip = "/dev/gpiochip0"
+# active_low = true      # low while the gear is in (optocoupler to ground)
+# bias = "pull_up"       # "pull_up", "pull_down" or "none"
+# debounce_ms = 50       # 0 to 1000, done by the kernel; 0 turns it off
+```
+
+- `source = "can"` is refused at start with a message saying why.
+- `gpio_line` has no default because it depends on the wiring; GPIO 26
+  (pin 37) is the input planned for the car (wiring and levels in
+  [docs/24](24-can-adapter-mcp2515.md#reverse-gear-input-gpio-26)). The backend
+  opens the line through `/dev/gpiochip0`, which its package gives the
+  `gpio` group.
+- The gear is `IN`, `OUT` or `UNKNOWN`. If the line cannot be opened or
+  read, it is `UNKNOWN`, never `OUT`; the backend tries again every 5 s and
+  logs each new error once.
+- `SystemService`: `GetReverseGear` returns the status (source, gear, time
+  of the last change), `StreamReverseGear` sends it first and then every
+  change. `SetReverseGear` works only with `source = "demo"` and returns
+  `FAILED_PRECONDITION` otherwise, so no client can overrule the car.
+
+```bash
+media_grpc_client <endpoint> reverse-gear            # status now
+media_grpc_client <endpoint> reverse-gear-stream     # status, then each change
+media_grpc_client <endpoint> set-reverse-gear in     # in|out|unknown, demo only
+```
+
+Tested so far in WSL (demo source, and a GPIO source without a chip), not
+yet on a Pi with a real switch.
 
 #### Clock without network
 
