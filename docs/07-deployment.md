@@ -1103,6 +1103,30 @@ directories and the configuration; there is no manual OS setup with
   (`carnine-password-check`, `/etc/profile.d/carnine-password.sh`). Changing
   it and the hostname on the device: `docs/bedienung/nach-der-installation.md`
 
+**Faster builds (since #186).** Two things speed up the apt downloads of the
+build, and neither is left in the image:
+
+- **apt cache, optional.** Set `CARNINE_APT_CACHE` on the build machine to
+  an apt-cacher-ng, for example `CARNINE_APT_CACHE=http://aptcache:3142` in
+  the home network. `resources/debos/apt-cache-arg.sh` then adds
+  `-e http_proxy:http://<ip>:<port>` to the podman call, but only when the
+  cache answers within 3 s; it resolves the name on the build machine,
+  because the build VM may not know local names. Without the variable, or
+  when the cache is silent, the build fetches from the mirrors as before.
+  The cache is meant for image builds only, not for the devices.
+- **No apt pipelining while building.** `raspbian.yaml` sets
+  `Acquire::http::Pipeline-Depth "0"` in
+  `/etc/apt/apt.conf.d/99carnine-build-no-pipelining` before the first apt
+  run and removes the file before the package list for the SBOM is taken.
+  With pipelining, every apt run stalled about 30 s on a package from
+  archive.raspberrypi.com.
+
+Measured on 2026-11-16 (hdmi image, same machine, v0.20.1 tree): 1272 s before,
+1119 s without pipelining (−12 %), 1064 s with the cache as well (−16 %);
+all three images had the same 513 packages in the same versions. The script
+is tested by `resources/debos/tests/apt-cache-arg-test.sh` in the
+image-scripts CI job.
+
 The result is `raspbian.img.gz` with the block map `raspbian.img.bmap` and
 the build log below `build-logs/`. Write it to the card with `bmaptool copy`,
 or from Windows with an imaging tool, after checking which card is selected.
