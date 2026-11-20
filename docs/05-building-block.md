@@ -42,6 +42,6 @@ Relationships: The gRPC server connects to the frontend and delegates to the oth
 
 - **Navigation Service** (`navigation/service.rs`): Serves `NavigationService`; calculates routes with Valhalla, searches places, streams positions.
 - **Media Library** (`database.rs`, `media_player.rs`): Indexes local media and plays it.
-- **Settings** (`config.rs`, `ConfigService`): Stores and loads settings; the UI changes them only through `UpdateConfiguration`.
+- **Settings** (`config.rs`, `ConfigService`): Loads the configuration at start (`carnine.toml` plus the drop-ins in `config.d`); `ConfigService` only reads it (`GetConfiguration`). Configuration changes go into a drop-in and take effect after a restart of the backend; what the UI itself saves goes to the service it belongs to and is kept in the database (the volume in its state file `/var/lib/carnine/audio-volume`, the exit password in `config.d/30-exit-password.toml`).
 
 This level can be further refined depending on implementation complexity.
