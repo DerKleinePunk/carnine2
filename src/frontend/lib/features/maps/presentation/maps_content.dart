@@ -39,9 +39,24 @@ class MapsContent extends StatelessWidget {
   static const tripBarInsets = EdgeInsets.only(left: 24, right: 148, bottom: 6);
 
   /// "© OpenMapTiles © OpenStreetMap-Mitwirkende" (the library's
-  /// `defaultAttributionGerman`) in three lines, broken at the hyphen.
+  /// `defaultAttributionGerman`) in three lines, broken at the hyphen, and
+  /// the elevation data of the contour lines (the library's
+  /// `elevationAttributionShort`, local_map 0.12.0) in three more, each no
+  /// wider than "© OpenStreetMap-". The short form in the corner is enough
+  /// (Michael, 2026-11-20).
   @visibleForTesting
-  static const attribution = '© OpenMapTiles\n© OpenStreetMap-\nMitwirkende';
+  static const attribution =
+      '© OpenMapTiles\n© OpenStreetMap-\nMitwirkende\n'
+      'Höhen: EU-DEM\n(Copernicus), DGM\nÖsterreich, USGS';
+
+  /// Contour lines from a file of their own next to the map
+  /// (`contours.mbtiles`, local_map 0.12.0). Without the file the contour
+  /// layers of the style stay empty at no cost; with it they show from z11
+  /// (every 50 m), z13 (every 10 m) and z14 (heights). Measured on the Pi 4
+  /// in the Vogelsberg: no measurable difference in stutter, about 30 MB
+  /// more memory (flutter-local-map, 2026-11-20).
+  @visibleForTesting
+  static const extraVectorSources = {'contours': 'contours.mbtiles'};
 
   /// The room the route overview leaves around the route (local_map 0.8.10).
   /// Measured on jeep-pi at 1024x600 (2026-10-14): the turn card reaches
@@ -88,6 +103,7 @@ class MapsContent extends StatelessWidget {
     // OpenStreetMap's (local_map 0.8.5); the wording is the library's German
     // one, only broken into lines.
     attributionText: attribution,
+    extraVectorSources: extraVectorSources,
     attributionPadding: const EdgeInsets.only(right: 8, bottom: 6),
     overviewPadding: overviewPadding,
   );
