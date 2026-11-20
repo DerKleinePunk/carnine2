@@ -394,11 +394,11 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/local_map"
-      ref: "local_map-v0.11.2"
-      resolved-ref: b97ee0e5b2fa35aca5cb1184b1840bd08f44b2d2
+      ref: bc8fb20
+      resolved-ref: bc8fb2002f3f8b0026a5954a7ef44467f203916d
       url: "https://github.com/DerKleinePunk/flutter_local_map.git"
     source: git
-    version: "0.11.2"
+    version: "0.12.0"
   logging:
     dependency: "direct main"
     description:

@@ -31,7 +31,7 @@ void main() {
   });
 
   testWidgets(
-    'the map credit (OpenMapTiles, OpenStreetMap) shows in German, in three lines in the bottom right corner, beside the trip bar',
+    'the map credit (OpenMapTiles, OpenStreetMap, elevation data) shows in German, in six lines in the bottom right corner, beside the trip bar',
     (tester) async {
       tester.view.physicalSize = const Size(1024, 600);
       tester.view.devicePixelRatio = 1;
@@ -80,9 +80,17 @@ void main() {
       expect(text, findsOneWidget, reason: 'readable without a tap');
       expect(
         MapsContent.attribution.replaceAll('\n', ' ').replaceAll('- ', '-'),
-        '© OpenMapTiles © OpenStreetMap-Mitwirkende',
-        reason: 'the same words as before, only in lines',
+        '© OpenMapTiles © OpenStreetMap-Mitwirkende '
+        '${MapConfig.elevationAttributionShort}',
+        reason: "the library's words, only in lines",
       );
+      for (final line in MapsContent.attribution.split('\n')) {
+        expect(
+          line.length,
+          lessThanOrEqualTo('© OpenStreetMap-'.length + 1),
+          reason: 'no line wider than the credit was: "$line"',
+        );
+      }
       final box = tester
           .getRect(
             find.ancestor(of: text, matching: find.byType(DecoratedBox)).first,
@@ -100,8 +108,9 @@ void main() {
           0.5,
         ),
       );
-      // Three lines of 11 px, not one long one: low and narrow.
-      expect(box.height, inInclusiveRange(36, 48));
+      // Six lines of 11 px (map and elevation data), not two long ones:
+      // narrow, and still below the compass and zoom buttons.
+      expect(box.height, inInclusiveRange(72, 88));
       expect(box.top, greaterThanOrEqualTo(_compassBottom));
 
       // The trip bar leaves the room beside it: the credit, its distance to the
