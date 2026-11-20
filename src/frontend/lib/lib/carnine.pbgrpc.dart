@@ -1182,6 +1182,37 @@ class SystemServiceClient extends $grpc.Client {
     return $createUnaryCall(_$setDisplayBrightness, request, options: options);
   }
 
+  /// Reverse gear (#137), from the source `[reverse_gear]` names: a GPIO
+  /// input, the demo source, or none (configured = false). The camera page
+  /// comes up on GEAR_IN. UNKNOWN is never "out": the line cannot be read,
+  /// or the demo source has not been set yet.
+  $grpc.ResponseFuture<$0.ReverseGearStatus> getReverseGear(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getReverseGear, request, options: options);
+  }
+
+  /// Starts with the current status, then pushes one on every change.
+  $grpc.ResponseStream<$0.ReverseGearStatus> streamReverseGear(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$streamReverseGear, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
+  /// Only with source = "demo" (WSL, trade fair); FAILED_PRECONDITION for
+  /// every other source, so a client cannot overrule the car.
+  /// INVALID_ARGUMENT for REVERSE_GEAR_UNSPECIFIED.
+  $grpc.ResponseFuture<$0.ReverseGearStatus> setReverseGear(
+    $0.SetReverseGearRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setReverseGear, request, options: options);
+  }
+
   // method descriptors
 
   static final _$reportUiReady =
@@ -1248,6 +1279,21 @@ class SystemServiceClient extends $grpc.Client {
           '/carnine.SystemService/SetDisplayBrightness',
           ($0.SetDisplayBrightnessRequest value) => value.writeToBuffer(),
           $0.DisplayBrightness.fromBuffer);
+  static final _$getReverseGear =
+      $grpc.ClientMethod<$0.Empty, $0.ReverseGearStatus>(
+          '/carnine.SystemService/GetReverseGear',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.ReverseGearStatus.fromBuffer);
+  static final _$streamReverseGear =
+      $grpc.ClientMethod<$0.Empty, $0.ReverseGearStatus>(
+          '/carnine.SystemService/StreamReverseGear',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.ReverseGearStatus.fromBuffer);
+  static final _$setReverseGear =
+      $grpc.ClientMethod<$0.SetReverseGearRequest, $0.ReverseGearStatus>(
+          '/carnine.SystemService/SetReverseGear',
+          ($0.SetReverseGearRequest value) => value.writeToBuffer(),
+          $0.ReverseGearStatus.fromBuffer);
 }
 
 @$pb.GrpcServiceName('carnine.SystemService')
@@ -1352,6 +1398,29 @@ abstract class SystemServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.SetDisplayBrightnessRequest.fromBuffer(value),
         ($0.DisplayBrightness value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.ReverseGearStatus>(
+        'GetReverseGear',
+        getReverseGear_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.ReverseGearStatus value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.ReverseGearStatus>(
+        'StreamReverseGear',
+        streamReverseGear_Pre,
+        false,
+        true,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.ReverseGearStatus value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.SetReverseGearRequest, $0.ReverseGearStatus>(
+            'SetReverseGear',
+            setReverseGear_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.SetReverseGearRequest.fromBuffer(value),
+            ($0.ReverseGearStatus value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.CommandResponse> reportUiReady_Pre(
@@ -1459,6 +1528,31 @@ abstract class SystemServiceBase extends $grpc.Service {
 
   $async.Future<$0.DisplayBrightness> setDisplayBrightness(
       $grpc.ServiceCall call, $0.SetDisplayBrightnessRequest request);
+
+  $async.Future<$0.ReverseGearStatus> getReverseGear_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return getReverseGear($call, await $request);
+  }
+
+  $async.Future<$0.ReverseGearStatus> getReverseGear(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Stream<$0.ReverseGearStatus> streamReverseGear_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async* {
+    yield* streamReverseGear($call, await $request);
+  }
+
+  $async.Stream<$0.ReverseGearStatus> streamReverseGear(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.ReverseGearStatus> setReverseGear_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.SetReverseGearRequest> $request) async {
+    return setReverseGear($call, await $request);
+  }
+
+  $async.Future<$0.ReverseGearStatus> setReverseGear(
+      $grpc.ServiceCall call, $0.SetReverseGearRequest request);
 }
 
 /// Routing, own position and place search for the navigation page (ADR-021).

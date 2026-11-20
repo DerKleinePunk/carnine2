@@ -15,6 +15,40 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+@$core.Deprecated('Use reverseGearSourceKindDescriptor instead')
+const ReverseGearSourceKind$json = {
+  '1': 'ReverseGearSourceKind',
+  '2': [
+    {'1': 'REVERSE_GEAR_SOURCE_UNSPECIFIED', '2': 0},
+    {'1': 'REVERSE_GEAR_SOURCE_NONE', '2': 1},
+    {'1': 'REVERSE_GEAR_SOURCE_GPIO', '2': 2},
+    {'1': 'REVERSE_GEAR_SOURCE_DEMO', '2': 3},
+  ],
+};
+
+/// Descriptor for `ReverseGearSourceKind`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List reverseGearSourceKindDescriptor = $convert.base64Decode(
+    'ChVSZXZlcnNlR2VhclNvdXJjZUtpbmQSIwofUkVWRVJTRV9HRUFSX1NPVVJDRV9VTlNQRUNJRk'
+    'lFRBAAEhwKGFJFVkVSU0VfR0VBUl9TT1VSQ0VfTk9ORRABEhwKGFJFVkVSU0VfR0VBUl9TT1VS'
+    'Q0VfR1BJTxACEhwKGFJFVkVSU0VfR0VBUl9TT1VSQ0VfREVNTxAD');
+
+@$core.Deprecated('Use reverseGearDescriptor instead')
+const ReverseGear$json = {
+  '1': 'ReverseGear',
+  '2': [
+    {'1': 'REVERSE_GEAR_UNSPECIFIED', '2': 0},
+    {'1': 'REVERSE_GEAR_UNKNOWN', '2': 1},
+    {'1': 'REVERSE_GEAR_OUT', '2': 2},
+    {'1': 'REVERSE_GEAR_IN', '2': 3},
+  ],
+};
+
+/// Descriptor for `ReverseGear`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List reverseGearDescriptor = $convert.base64Decode(
+    'CgtSZXZlcnNlR2VhchIcChhSRVZFUlNFX0dFQVJfVU5TUEVDSUZJRUQQABIYChRSRVZFUlNFX0'
+    'dFQVJfVU5LTk9XThABEhQKEFJFVkVSU0VfR0VBUl9PVVQQAhITCg9SRVZFUlNFX0dFQVJfSU4Q'
+    'Aw==');
+
 @$core.Deprecated('Use libraryEventTypeDescriptor instead')
 const LibraryEventType$json = {
   '1': 'LibraryEventType',
@@ -236,6 +270,64 @@ const ControlType$json = {
 final $typed_data.Uint8List controlTypeDescriptor = $convert.base64Decode(
     'CgtDb250cm9sVHlwZRIcChhDT05UUk9MX1RZUEVfVU5TUEVDSUZJRUQQABIXChNDT05UUk9MX1'
     'RZUEVfU1dJVENIEAESFwoTQ09OVFJPTF9UWVBFX1NMSURFUhAC');
+
+@$core.Deprecated('Use reverseGearStatusDescriptor instead')
+const ReverseGearStatus$json = {
+  '1': 'ReverseGearStatus',
+  '2': [
+    {'1': 'configured', '3': 1, '4': 1, '5': 8, '10': 'configured'},
+    {
+      '1': 'source',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.carnine.ReverseGearSourceKind',
+      '10': 'source'
+    },
+    {
+      '1': 'gear',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.carnine.ReverseGear',
+      '10': 'gear'
+    },
+    {
+      '1': 'changed_at_unix_ms',
+      '3': 4,
+      '4': 1,
+      '5': 3,
+      '10': 'changedAtUnixMs'
+    },
+  ],
+};
+
+/// Descriptor for `ReverseGearStatus`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List reverseGearStatusDescriptor = $convert.base64Decode(
+    'ChFSZXZlcnNlR2VhclN0YXR1cxIeCgpjb25maWd1cmVkGAEgASgIUgpjb25maWd1cmVkEjYKBn'
+    'NvdXJjZRgCIAEoDjIeLmNhcm5pbmUuUmV2ZXJzZUdlYXJTb3VyY2VLaW5kUgZzb3VyY2USKAoE'
+    'Z2VhchgDIAEoDjIULmNhcm5pbmUuUmV2ZXJzZUdlYXJSBGdlYXISKwoSY2hhbmdlZF9hdF91bm'
+    'l4X21zGAQgASgDUg9jaGFuZ2VkQXRVbml4TXM=');
+
+@$core.Deprecated('Use setReverseGearRequestDescriptor instead')
+const SetReverseGearRequest$json = {
+  '1': 'SetReverseGearRequest',
+  '2': [
+    {
+      '1': 'gear',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.carnine.ReverseGear',
+      '10': 'gear'
+    },
+  ],
+};
+
+/// Descriptor for `SetReverseGearRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setReverseGearRequestDescriptor = $convert.base64Decode(
+    'ChVTZXRSZXZlcnNlR2VhclJlcXVlc3QSKAoEZ2VhchgBIAEoDjIULmNhcm5pbmUuUmV2ZXJzZU'
+    'dlYXJSBGdlYXI=');
 
 @$core.Deprecated('Use displayBrightnessDescriptor instead')
 const DisplayBrightness$json = {

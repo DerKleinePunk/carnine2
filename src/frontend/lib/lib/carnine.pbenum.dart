@@ -14,6 +14,61 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
+class ReverseGearSourceKind extends $pb.ProtobufEnum {
+  static const ReverseGearSourceKind REVERSE_GEAR_SOURCE_UNSPECIFIED =
+      ReverseGearSourceKind._(
+          0, _omitEnumNames ? '' : 'REVERSE_GEAR_SOURCE_UNSPECIFIED');
+  static const ReverseGearSourceKind REVERSE_GEAR_SOURCE_NONE =
+      ReverseGearSourceKind._(
+          1, _omitEnumNames ? '' : 'REVERSE_GEAR_SOURCE_NONE');
+  static const ReverseGearSourceKind REVERSE_GEAR_SOURCE_GPIO =
+      ReverseGearSourceKind._(
+          2, _omitEnumNames ? '' : 'REVERSE_GEAR_SOURCE_GPIO');
+  static const ReverseGearSourceKind REVERSE_GEAR_SOURCE_DEMO =
+      ReverseGearSourceKind._(
+          3, _omitEnumNames ? '' : 'REVERSE_GEAR_SOURCE_DEMO');
+
+  static const $core.List<ReverseGearSourceKind> values =
+      <ReverseGearSourceKind>[
+    REVERSE_GEAR_SOURCE_UNSPECIFIED,
+    REVERSE_GEAR_SOURCE_NONE,
+    REVERSE_GEAR_SOURCE_GPIO,
+    REVERSE_GEAR_SOURCE_DEMO,
+  ];
+
+  static final $core.List<ReverseGearSourceKind?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static ReverseGearSourceKind? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const ReverseGearSourceKind._(super.value, super.name);
+}
+
+class ReverseGear extends $pb.ProtobufEnum {
+  static const ReverseGear REVERSE_GEAR_UNSPECIFIED =
+      ReverseGear._(0, _omitEnumNames ? '' : 'REVERSE_GEAR_UNSPECIFIED');
+  static const ReverseGear REVERSE_GEAR_UNKNOWN =
+      ReverseGear._(1, _omitEnumNames ? '' : 'REVERSE_GEAR_UNKNOWN');
+  static const ReverseGear REVERSE_GEAR_OUT =
+      ReverseGear._(2, _omitEnumNames ? '' : 'REVERSE_GEAR_OUT');
+  static const ReverseGear REVERSE_GEAR_IN =
+      ReverseGear._(3, _omitEnumNames ? '' : 'REVERSE_GEAR_IN');
+
+  static const $core.List<ReverseGear> values = <ReverseGear>[
+    REVERSE_GEAR_UNSPECIFIED,
+    REVERSE_GEAR_UNKNOWN,
+    REVERSE_GEAR_OUT,
+    REVERSE_GEAR_IN,
+  ];
+
+  static final $core.List<ReverseGear?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static ReverseGear? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const ReverseGear._(super.value, super.name);
+}
+
 class LibraryEventType extends $pb.ProtobufEnum {
   static const LibraryEventType LIBRARY_EVENT_TYPE_UNSPECIFIED =
       LibraryEventType._(

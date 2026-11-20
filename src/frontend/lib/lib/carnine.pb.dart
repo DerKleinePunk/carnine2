@@ -21,6 +21,156 @@ export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 export 'carnine.pbenum.dart';
 
+class ReverseGearStatus extends $pb.GeneratedMessage {
+  factory ReverseGearStatus({
+    $core.bool? configured,
+    ReverseGearSourceKind? source,
+    ReverseGear? gear,
+    $fixnum.Int64? changedAtUnixMs,
+  }) {
+    final result = create();
+    if (configured != null) result.configured = configured;
+    if (source != null) result.source = source;
+    if (gear != null) result.gear = gear;
+    if (changedAtUnixMs != null) result.changedAtUnixMs = changedAtUnixMs;
+    return result;
+  }
+
+  ReverseGearStatus._();
+
+  factory ReverseGearStatus.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ReverseGearStatus.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ReverseGearStatus',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'configured')
+    ..aE<ReverseGearSourceKind>(2, _omitFieldNames ? '' : 'source',
+        enumValues: ReverseGearSourceKind.values)
+    ..aE<ReverseGear>(3, _omitFieldNames ? '' : 'gear',
+        enumValues: ReverseGear.values)
+    ..aInt64(4, _omitFieldNames ? '' : 'changedAtUnixMs')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReverseGearStatus clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReverseGearStatus copyWith(void Function(ReverseGearStatus) updates) =>
+      super.copyWith((message) => updates(message as ReverseGearStatus))
+          as ReverseGearStatus;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ReverseGearStatus create() => ReverseGearStatus._();
+  @$core.override
+  ReverseGearStatus createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ReverseGearStatus getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ReverseGearStatus>(create);
+  static ReverseGearStatus? _defaultInstance;
+
+  /// A source other than "none" is set in the configuration.
+  @$pb.TagNumber(1)
+  $core.bool get configured => $_getBF(0);
+  @$pb.TagNumber(1)
+  set configured($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasConfigured() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearConfigured() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  ReverseGearSourceKind get source => $_getN(1);
+  @$pb.TagNumber(2)
+  set source(ReverseGearSourceKind value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasSource() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSource() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  ReverseGear get gear => $_getN(2);
+  @$pb.TagNumber(3)
+  set gear(ReverseGear value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasGear() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearGear() => $_clearField(3);
+
+  /// When gear last changed, 0 while it never has.
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get changedAtUnixMs => $_getI64(3);
+  @$pb.TagNumber(4)
+  set changedAtUnixMs($fixnum.Int64 value) => $_setInt64(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasChangedAtUnixMs() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearChangedAtUnixMs() => $_clearField(4);
+}
+
+class SetReverseGearRequest extends $pb.GeneratedMessage {
+  factory SetReverseGearRequest({
+    ReverseGear? gear,
+  }) {
+    final result = create();
+    if (gear != null) result.gear = gear;
+    return result;
+  }
+
+  SetReverseGearRequest._();
+
+  factory SetReverseGearRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SetReverseGearRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SetReverseGearRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aE<ReverseGear>(1, _omitFieldNames ? '' : 'gear',
+        enumValues: ReverseGear.values)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetReverseGearRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetReverseGearRequest copyWith(
+          void Function(SetReverseGearRequest) updates) =>
+      super.copyWith((message) => updates(message as SetReverseGearRequest))
+          as SetReverseGearRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetReverseGearRequest create() => SetReverseGearRequest._();
+  @$core.override
+  SetReverseGearRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SetReverseGearRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SetReverseGearRequest>(create);
+  static SetReverseGearRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ReverseGear get gear => $_getN(0);
+  @$pb.TagNumber(1)
+  set gear(ReverseGear value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasGear() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearGear() => $_clearField(1);
+}
+
 class DisplayBrightness extends $pb.GeneratedMessage {
   factory DisplayBrightness({
     $core.bool? configured,

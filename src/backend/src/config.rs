@@ -42,6 +42,10 @@ pub struct Config {
     /// backend runs on silently.
     #[serde(default)]
     pub voice: VoiceConfig,
+    /// Optional: where the reverse gear is read from (#137). Without it the
+    /// backend reports the gear as not configured.
+    #[serde(default)]
+    pub reverse_gear: ReverseGearConfig,
 }
 
 /// `[voice]`: text to speech for turn announcements (sherpa-onnx).
@@ -564,6 +568,99 @@ impl Default for PowerSupplyConfig {
     }
 }
 
+/// Where the reverse gear signal comes from (#137, `[reverse_gear]`).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ReverseGearSource {
+    /// Not read; the backend reports it as not configured.
+    #[default]
+    None,
+    /// A GPIO input, e.g. behind an optocoupler on the reversing light.
+    Gpio,
+    /// Set over gRPC (`SetReverseGear`), for WSL and the trade fair.
+    Demo,
+    /// A CAN message. Not built yet: it waits for the CAN adapter of the
+    /// car, so `validate` refuses it.
+    Can,
+}
+
+/// Pull resistor of the GPIO input.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GpioBias {
+    /// Pulled to 3.3 V: an optocoupler or switch to ground needs nothing else.
+    #[default]
+    PullUp,
+    PullDown,
+    /// No pull resistor; the circuit drives the line both ways.
+    None,
+}
+
+/// `[reverse_gear]`: the reverse gear as one event, whatever the source.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, serde::Serialize)]
+#[serde(default)]
+pub struct ReverseGearConfig {
+    pub source: ReverseGearSource,
+    /// The kernel ignores changes shorter than this (gpio-cdev
+    /// debounce_period). 0 turns it off.
+    pub debounce_ms: u32,
+    pub gpio_chip: PathBuf,
+    /// Line offset on `gpio_chip`. No default: the pin depends on the
+    /// wiring (docs/24), so `source = "gpio"` needs it.
+    pub gpio_line: Option<u32>,
+    /// The line reads low while the gear is in, as with an optocoupler that
+    /// pulls it to ground.
+    pub active_low: bool,
+    pub bias: GpioBias,
+}
+
+/// Longest debounce `[reverse_gear]` accepts; anything slower would make the
+/// camera page come late.
+pub const MAX_REVERSE_GEAR_DEBOUNCE_MS: u32 = 1000;
+
+impl Default for ReverseGearConfig {
+    fn default() -> Self {
+        Self {
+            source: ReverseGearSource::None,
+            debounce_ms: 50,
+            gpio_chip: PathBuf::from("/dev/gpiochip0"),
+            gpio_line: None,
+            active_low: true,
+            bias: GpioBias::PullUp,
+        }
+    }
+}
+
+impl ReverseGearConfig {
+    fn validate(&self) -> Result<()> {
+        if self.debounce_ms > MAX_REVERSE_GEAR_DEBOUNCE_MS {
+            anyhow::bail!(
+                "reverse_gear.debounce_ms must be between 0 and {MAX_REVERSE_GEAR_DEBOUNCE_MS}, not {}",
+                self.debounce_ms
+            );
+        }
+        match self.source {
+            ReverseGearSource::None | ReverseGearSource::Demo => Ok(()),
+            ReverseGearSource::Gpio => {
+                if self.gpio_chip.as_os_str().is_empty() {
+                    anyhow::bail!("reverse_gear.source = \"gpio\" needs reverse_gear.gpio_chip");
+                }
+                if self.gpio_line.is_none() {
+                    anyhow::bail!(
+                        "reverse_gear.source = \"gpio\" needs reverse_gear.gpio_line \
+                         (the line offset on the chip, e.g. 26 for GPIO 26)"
+                    );
+                }
+                Ok(())
+            }
+            ReverseGearSource::Can => anyhow::bail!(
+                "reverse_gear.source = \"can\" is not supported yet; it comes with the \
+                 CAN adapter (#137). Use \"gpio\" or \"none\""
+            ),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
 pub struct LoggingConfig {
     pub directory: PathBuf,
@@ -689,6 +786,7 @@ impl Config {
                 navigation.valhalla_url
             );
         }
+        self.reverse_gear.validate()?;
         Ok(())
     }
 
@@ -1187,6 +1285,64 @@ mod tests {
         config.power_supply.baud = 38400;
         config.power_supply.device = std::path::PathBuf::new();
         assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn the_reverse_gear_is_off_by_default_and_checks_its_source() {
+        use super::{GpioBias, ReverseGearConfig, ReverseGearSource};
+        let (mut config, _) =
+            Config::load_with_env(|_| None).expect("repository config should load");
+        assert_eq!(config.reverse_gear, ReverseGearConfig::default());
+        assert_eq!(config.reverse_gear.source, ReverseGearSource::None);
+        assert!(config.validate().is_ok());
+
+        config.reverse_gear.source = ReverseGearSource::Demo;
+        assert!(config.validate().is_ok());
+
+        // GPIO needs the line: the pin depends on the wiring.
+        config.reverse_gear.source = ReverseGearSource::Gpio;
+        let error = config.validate().unwrap_err().to_string();
+        assert!(error.contains("gpio_line"), "{error}");
+        config.reverse_gear.gpio_line = Some(26);
+        assert!(config.validate().is_ok());
+        config.reverse_gear.gpio_chip = std::path::PathBuf::new();
+        assert!(config.validate().is_err());
+        config.reverse_gear.gpio_chip = std::path::PathBuf::from("/dev/gpiochip0");
+
+        config.reverse_gear.debounce_ms = 1000;
+        assert!(config.validate().is_ok());
+        config.reverse_gear.debounce_ms = 1001;
+        assert!(config.validate().is_err());
+        config.reverse_gear.debounce_ms = 0;
+        assert!(config.validate().is_ok());
+
+        // CAN waits for the adapter and says so.
+        config.reverse_gear.source = ReverseGearSource::Can;
+        let error = config.validate().unwrap_err().to_string();
+        assert!(error.contains("not supported yet"), "{error}");
+
+        let section: ReverseGearConfig = toml::from_str(
+            "source = \"gpio\"\ngpio_line = 26\nbias = \"pull_down\"\nactive_low = false",
+        )
+        .expect("drop-in should parse");
+        assert_eq!(section.source, ReverseGearSource::Gpio);
+        assert_eq!(section.gpio_line, Some(26));
+        assert_eq!(section.bias, GpioBias::PullDown);
+        assert!(!section.active_low);
+        assert_eq!(section.debounce_ms, 50);
+        assert_eq!(
+            section.gpio_chip,
+            std::path::PathBuf::from("/dev/gpiochip0")
+        );
+        for broken in ["source = \"relay\"", "bias = \"up\"", "gpio_line = -1"] {
+            assert!(
+                toml::from_str::<ReverseGearConfig>(broken).is_err(),
+                "{broken}"
+            );
+        }
+        let none: ReverseGearConfig =
+            toml::from_str("bias = \"none\"").expect("drop-in should parse");
+        assert_eq!(none.bias, GpioBias::None);
     }
 
     #[test]
