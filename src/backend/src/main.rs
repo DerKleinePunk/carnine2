@@ -40,6 +40,7 @@ mod navigation;
 mod power_supply;
 #[cfg(test)]
 mod queue_playback_tests;
+mod reverse_gear;
 mod serial_line;
 mod server_transport;
 mod size_capped_log;
@@ -62,9 +63,10 @@ use carnine::{
     LibraryEvent, LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest,
     PlayQueueEntryRequest, PlayRequest, PlayerEvent, PlayerEventType, PlayerState, Playlist,
     PlaylistEntry, PowerSupplyState, PowerSupplyStatus, RemovePlaylistEntryRequest,
-    RenamePlaylistRequest, RepeatMode, RescanMediaRequest, SearchMediaRequest, SearchMediaResponse,
-    SeekRequest, ServiceVersion, SetDisplayBrightnessRequest, SetExitPasswordRequest,
-    SetRepeatModeRequest, SetShuffleModeRequest, SetVolumeRequest, SystemMetrics, ThermalStatus,
+    RenamePlaylistRequest, RepeatMode, RescanMediaRequest, ReverseGear, ReverseGearSourceKind,
+    ReverseGearStatus, SearchMediaRequest, SearchMediaResponse, SeekRequest, ServiceVersion,
+    SetDisplayBrightnessRequest, SetExitPasswordRequest, SetRepeatModeRequest,
+    SetReverseGearRequest, SetShuffleModeRequest, SetVolumeRequest, SystemMetrics, ThermalStatus,
     UiState, UpdateConfigurationRequest, VolumeResponse,
 };
 
@@ -76,6 +78,7 @@ pub struct SystemServiceImpl {
     exit_password: Arc<exit_password::Store>,
     /// Holds the display backlight among its controls, if one is configured.
     controls: Option<Arc<controls::ControlHub>>,
+    reverse_gear: reverse_gear::ReverseGearHub,
 }
 
 /// Page names are identifiers like "maps"; anything longer is not one.
@@ -100,7 +103,13 @@ impl SystemServiceImpl {
             power_supply,
             exit_password: Arc::default(),
             controls: None,
+            reverse_gear: reverse_gear::ReverseGearHub::default(),
         }
+    }
+
+    pub fn with_reverse_gear(mut self, hub: reverse_gear::ReverseGearHub) -> Self {
+        self.reverse_gear = hub;
+        self
     }
 
     pub fn with_controls(mut self, controls: Arc<controls::ControlHub>) -> Self {
@@ -137,6 +146,28 @@ impl SystemServiceImpl {
     pub fn with_exit_password(mut self, store: exit_password::Store) -> Self {
         self.exit_password = Arc::new(store);
         self
+    }
+}
+
+fn reverse_gear_to_proto(status: &reverse_gear::ReverseGearStatus) -> ReverseGearStatus {
+    use config::ReverseGearSource;
+    let source = match status.source {
+        ReverseGearSource::None => ReverseGearSourceKind::ReverseGearSourceNone,
+        ReverseGearSource::Gpio => ReverseGearSourceKind::ReverseGearSourceGpio,
+        ReverseGearSource::Demo => ReverseGearSourceKind::ReverseGearSourceDemo,
+        // Refused by Config::validate; never running.
+        ReverseGearSource::Can => ReverseGearSourceKind::ReverseGearSourceUnspecified,
+    };
+    let gear = match status.gear {
+        reverse_gear::Gear::Unknown => ReverseGear::Unknown,
+        reverse_gear::Gear::Out => ReverseGear::Out,
+        reverse_gear::Gear::In => ReverseGear::In,
+    };
+    ReverseGearStatus {
+        configured: status.configured(),
+        source: source as i32,
+        gear: gear as i32,
+        changed_at_unix_ms: status.changed_at_unix_ms,
     }
 }
 
@@ -189,6 +220,9 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
     >;
     type StreamThermalStatusStream =
         Pin<Box<dyn tokio_stream::Stream<Item = Result<ThermalStatus, Status>> + Send + 'static>>;
+    type StreamReverseGearStream = Pin<
+        Box<dyn tokio_stream::Stream<Item = Result<ReverseGearStatus, Status>> + Send + 'static>,
+    >;
 
     async fn report_ui_ready(
         &self,
@@ -330,6 +364,50 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
             Err(controls::SetError::NotFound) => Err(Status::failed_precondition(
                 "no display backlight is configured",
             )),
+        }
+    }
+
+    async fn get_reverse_gear(
+        &self,
+        _request: Request<Empty>,
+    ) -> Result<Response<ReverseGearStatus>, Status> {
+        Ok(Response::new(reverse_gear_to_proto(
+            &self.reverse_gear.current(),
+        )))
+    }
+
+    async fn stream_reverse_gear(
+        &self,
+        _request: Request<Empty>,
+    ) -> Result<Response<Self::StreamReverseGearStream>, Status> {
+        let updates = tokio_stream::wrappers::WatchStream::new(self.reverse_gear.subscribe())
+            .map(|status| Ok(reverse_gear_to_proto(&status)));
+        Ok(Response::new(Box::pin(updates)))
+    }
+
+    async fn set_reverse_gear(
+        &self,
+        request: Request<SetReverseGearRequest>,
+    ) -> Result<Response<ReverseGearStatus>, Status> {
+        let gear = match ReverseGear::try_from(request.into_inner().gear) {
+            Ok(ReverseGear::Unknown) => reverse_gear::Gear::Unknown,
+            Ok(ReverseGear::Out) => reverse_gear::Gear::Out,
+            Ok(ReverseGear::In) => reverse_gear::Gear::In,
+            Ok(ReverseGear::Unspecified) | Err(_) => {
+                return Err(Status::invalid_argument(
+                    "gear must be REVERSE_GEAR_UNKNOWN, _OUT or _IN",
+                ))
+            }
+        };
+        info!(?gear, "SetReverseGear requested");
+        match self.reverse_gear.set_demo(gear) {
+            Ok(status) => Ok(Response::new(reverse_gear_to_proto(&status))),
+            Err(reverse_gear::NotDemoSource(source)) => {
+                warn!(?source, "SetReverseGear refused: not the demo source");
+                Err(Status::failed_precondition(format!(
+                    "the reverse gear comes from {source:?}; only source = \"demo\" can be set"
+                )))
+            }
         }
     }
 
@@ -969,6 +1047,7 @@ impl ConfigService for ConfigServiceImpl {
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
             updated.navigation = current.navigation.clone();
             updated.power_supply = current.power_supply.clone();
+            updated.reverse_gear = current.reverse_gear.clone();
             updated.camera = current.camera.clone();
             updated.audio.volume_state_path = current.audio.volume_state_path.clone();
             updated.audio.channels = current.audio.channels;
@@ -1732,6 +1811,7 @@ fn configuration_from_proto(configuration: &Configuration) -> Result<config::Con
         controls: Vec::new(),
         display: Default::default(),
         voice: Default::default(),
+        reverse_gear: Default::default(),
     };
     configuration.validate()?;
     Ok(configuration)
@@ -1974,12 +2054,15 @@ async fn main() -> Result<()> {
             }
         });
     }
+    let reverse_gear_hub = reverse_gear::ReverseGearHub::new(configuration.reverse_gear.source);
+    reverse_gear::spawn(reverse_gear_hub.clone(), &configuration.reverse_gear);
     let system_service = SystemServiceImpl::new(
         Arc::clone(&system_metrics),
         configuration.media.database_path.clone(),
         power_supply_hub.clone(),
     )
     .with_controls(Arc::clone(&control_hub))
+    .with_reverse_gear(reverse_gear_hub.clone())
     .with_exit_password(exit_password::Store::new(
         configuration.exit_password.hash.as_deref(),
         Some(configuration_path.with_extension("d")),
@@ -2305,6 +2388,7 @@ mod tests {
             controls: Vec::new(),
             display: Default::default(),
             voice: Default::default(),
+            reverse_gear: Default::default(),
         }
     }
 
@@ -2319,6 +2403,104 @@ mod tests {
         assert!(response.into_inner().success);
         // The amplifier on Rel3 waits for this.
         assert!(service.power_supply.ui_reported());
+    }
+
+    #[tokio::test]
+    async fn system_service_reports_the_reverse_gear_and_sets_only_the_demo_source() {
+        use crate::carnine::{
+            system_service_server::SystemService, ReverseGear, ReverseGearSourceKind,
+            SetReverseGearRequest,
+        };
+        use crate::config::ReverseGearSource;
+        use crate::reverse_gear::ReverseGearHub;
+        use tokio_stream::StreamExt;
+
+        let plain = SystemServiceImpl::default();
+        let status = SystemService::get_reverse_gear(&plain, Request::new(Empty {}))
+            .await
+            .unwrap()
+            .into_inner();
+        assert!(!status.configured);
+        assert_eq!(
+            status.source(),
+            ReverseGearSourceKind::ReverseGearSourceNone
+        );
+        assert_eq!(status.gear(), ReverseGear::Unknown);
+        let refused = SystemService::set_reverse_gear(
+            &plain,
+            Request::new(SetReverseGearRequest {
+                gear: ReverseGear::In as i32,
+            }),
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(refused.code(), tonic::Code::FailedPrecondition);
+
+        let gpio = SystemServiceImpl::default()
+            .with_reverse_gear(ReverseGearHub::new(ReverseGearSource::Gpio));
+        let refused = SystemService::set_reverse_gear(
+            &gpio,
+            Request::new(SetReverseGearRequest {
+                gear: ReverseGear::In as i32,
+            }),
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(refused.code(), tonic::Code::FailedPrecondition);
+
+        let demo = SystemServiceImpl::default()
+            .with_reverse_gear(ReverseGearHub::new(ReverseGearSource::Demo));
+        let mut stream = SystemService::stream_reverse_gear(&demo, Request::new(Empty {}))
+            .await
+            .unwrap()
+            .into_inner();
+        let first = stream.next().await.unwrap().unwrap();
+        assert!(first.configured);
+        assert_eq!(first.source(), ReverseGearSourceKind::ReverseGearSourceDemo);
+        assert_eq!(first.gear(), ReverseGear::Unknown);
+        assert_eq!(first.changed_at_unix_ms, 0);
+
+        for gear in [ReverseGear::Unspecified as i32, 99] {
+            let invalid = SystemService::set_reverse_gear(
+                &demo,
+                Request::new(SetReverseGearRequest { gear }),
+            )
+            .await
+            .unwrap_err();
+            assert_eq!(invalid.code(), tonic::Code::InvalidArgument, "{gear}");
+        }
+
+        let set = SystemService::set_reverse_gear(
+            &demo,
+            Request::new(SetReverseGearRequest {
+                gear: ReverseGear::In as i32,
+            }),
+        )
+        .await
+        .unwrap()
+        .into_inner();
+        assert_eq!(set.gear(), ReverseGear::In);
+        assert!(set.changed_at_unix_ms > 0);
+        let pushed = stream.next().await.unwrap().unwrap();
+        assert_eq!(pushed, set);
+
+        SystemService::set_reverse_gear(
+            &demo,
+            Request::new(SetReverseGearRequest {
+                gear: ReverseGear::Out as i32,
+            }),
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            stream.next().await.unwrap().unwrap().gear(),
+            ReverseGear::Out
+        );
+        let got = SystemService::get_reverse_gear(&demo, Request::new(Empty {}))
+            .await
+            .unwrap()
+            .into_inner();
+        assert_eq!(got.gear(), ReverseGear::Out);
     }
 
     #[tokio::test]

@@ -24,10 +24,11 @@ use carnine::{
     ImportMusicVolumeRequest, LatLon, LibraryEventType, NavigationStatus, PlayPlaylistRequest,
     PlayQueueEntryRequest, PlayRequest, PositionFix, PositionSourceKind, PowerSupplyState,
     PowerSupplyStatus, PrepareAnnouncementsRequest, RemovePlaylistEntryRequest,
-    RenamePlaylistRequest, RepeatMode, RescanMediaRequest, Route, SearchMediaRequest,
-    SearchPlacesRequest, SeekRequest, SetDisplayBrightnessRequest, SetExitPasswordRequest,
-    SetRepeatModeRequest, SetShuffleModeRequest, SetTrackRecordingRequest, SetVoiceSettingsRequest,
-    SetVolumeRequest, SystemMetrics, ThermalStatus, UiState, VoiceSettings,
+    RenamePlaylistRequest, RepeatMode, RescanMediaRequest, ReverseGear, ReverseGearStatus, Route,
+    SearchMediaRequest, SearchPlacesRequest, SeekRequest, SetDisplayBrightnessRequest,
+    SetExitPasswordRequest, SetRepeatModeRequest, SetReverseGearRequest, SetShuffleModeRequest,
+    SetTrackRecordingRequest, SetVoiceSettingsRequest, SetVolumeRequest, SystemMetrics,
+    ThermalStatus, UiState, VoiceSettings,
 };
 
 #[tokio::main]
@@ -89,6 +90,9 @@ async fn main() -> Result<()> {
         "brightness" => get_display_brightness(&endpoint).await?,
         "set-brightness" => set_display_brightness(&endpoint).await?,
         "power-supply-stream" => stream_power_supply_status(&endpoint).await?,
+        "reverse-gear" => get_reverse_gear(&endpoint).await?,
+        "reverse-gear-stream" => stream_reverse_gear(&endpoint).await?,
+        "set-reverse-gear" => set_reverse_gear(&endpoint).await?,
         "ui-ready" => report_ui_ready(&endpoint).await?,
         "thermal" => get_thermal_status(&endpoint).await?,
         "thermal-stream" => stream_thermal_status(&endpoint).await?,
@@ -1030,6 +1034,51 @@ async fn set_display_brightness(endpoint: &str) -> Result<()> {
         .await?
         .into_inner();
     print_display_brightness(&brightness);
+    Ok(())
+}
+
+fn print_reverse_gear(status: &ReverseGearStatus) {
+    println!(
+        "configured={} source={:?} gear={:?} changed_at_unix_ms={}",
+        status.configured,
+        status.source(),
+        status.gear(),
+        status.changed_at_unix_ms
+    );
+}
+
+/// `reverse-gear`: whether the reverse gear is in (#137).
+async fn get_reverse_gear(endpoint: &str) -> Result<()> {
+    let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let status = client.get_reverse_gear(Empty {}).await?.into_inner();
+    print_reverse_gear(&status);
+    Ok(())
+}
+
+/// `reverse-gear-stream [count]`: the current status plus as many changes as
+/// requested (default 5), e.g. while the gear lever or the switch is moved.
+async fn stream_reverse_gear(endpoint: &str) -> Result<()> {
+    let count = event_count(5)?;
+    let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let mut stream = client.stream_reverse_gear(Empty {}).await?.into_inner();
+    read_events(&mut stream, count, |status| print_reverse_gear(&status)).await
+}
+
+/// `set-reverse-gear <in|out|unknown>`: only with `[reverse_gear] source =
+/// "demo"`; any other source answers FAILED_PRECONDITION.
+async fn set_reverse_gear(endpoint: &str) -> Result<()> {
+    let gear = match env::args().nth(3).as_deref() {
+        Some("in") => ReverseGear::In,
+        Some("out") => ReverseGear::Out,
+        Some("unknown") => ReverseGear::Unknown,
+        _ => bail!("set-reverse-gear requires in, out or unknown"),
+    };
+    let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let status = client
+        .set_reverse_gear(SetReverseGearRequest { gear: gear as i32 })
+        .await?
+        .into_inner();
+    print_reverse_gear(&status);
     Ok(())
 }
 

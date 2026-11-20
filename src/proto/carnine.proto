@@ -102,6 +102,44 @@ service SystemService {
   // INVALID_ARGUMENT above 100, FAILED_PRECONDITION without a backlight,
   // UNAVAILABLE when the PWM channel cannot be driven.
   rpc SetDisplayBrightness (SetDisplayBrightnessRequest) returns (DisplayBrightness);
+  // Reverse gear (#137), from the source `[reverse_gear]` names: a GPIO
+  // input, the demo source, or none (configured = false). The camera page
+  // comes up on GEAR_IN. UNKNOWN is never "out": the line cannot be read,
+  // or the demo source has not been set yet.
+  rpc GetReverseGear (Empty) returns (ReverseGearStatus);
+  // Starts with the current status, then pushes one on every change.
+  rpc StreamReverseGear (Empty) returns (stream ReverseGearStatus);
+  // Only with source = "demo" (WSL, trade fair); FAILED_PRECONDITION for
+  // every other source, so a client cannot overrule the car.
+  // INVALID_ARGUMENT for REVERSE_GEAR_UNSPECIFIED.
+  rpc SetReverseGear (SetReverseGearRequest) returns (ReverseGearStatus);
+}
+
+enum ReverseGearSourceKind {
+  REVERSE_GEAR_SOURCE_UNSPECIFIED = 0;
+  REVERSE_GEAR_SOURCE_NONE = 1;
+  REVERSE_GEAR_SOURCE_GPIO = 2;
+  REVERSE_GEAR_SOURCE_DEMO = 3;
+}
+
+enum ReverseGear {
+  REVERSE_GEAR_UNSPECIFIED = 0;
+  REVERSE_GEAR_UNKNOWN = 1;
+  REVERSE_GEAR_OUT = 2;
+  REVERSE_GEAR_IN = 3;
+}
+
+message ReverseGearStatus {
+  // A source other than "none" is set in the configuration.
+  bool configured = 1;
+  ReverseGearSourceKind source = 2;
+  ReverseGear gear = 3;
+  // When gear last changed, 0 while it never has.
+  int64 changed_at_unix_ms = 4;
+}
+
+message SetReverseGearRequest {
+  ReverseGear gear = 1;
 }
 
 message DisplayBrightness {

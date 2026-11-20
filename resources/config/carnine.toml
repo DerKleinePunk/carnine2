@@ -120,6 +120,25 @@ warm_metrics_interval_seconds = 5
 # input = 0
 # width = 360
 
+# Reverse gear (#137): the camera page comes up while it is in. Off unless a
+# source is set, e.g. in /etc/carnine/config.d/40-reverse-gear.toml. source is
+# "none", "gpio" or "demo" ("can" follows with the CAN adapter). "demo" is set
+# over gRPC for WSL and the trade fair (CLI: set-reverse-gear in|out|unknown;
+# reverse-gear, reverse-gear-stream show it for every source).
+# [reverse_gear]
+# source = "gpio"
+# The line offset on the chip, e.g. 26 for GPIO 26 (pin 37). No default: it
+# depends on the wiring (docs/24); at most 3.3 V on the pin, best through an
+# optocoupler from the reversing light.
+# gpio_line = 26
+# gpio_chip = "/dev/gpiochip0"
+# true: the line reads low while the gear is in (optocoupler pulls to ground).
+# active_low = true
+# "pull_up", "pull_down" or "none".
+# bias = "pull_up"
+# The kernel ignores changes shorter than this; 0 to 1000, 0 turns it off.
+# debounce_ms = 50
+
 # The password "Beenden" in the options asks for (#51), as an Argon2id hash
 # only; this one is the factory default. SystemService.SetExitPassword (CLI:
 # set-exit-password) writes a changed one to
