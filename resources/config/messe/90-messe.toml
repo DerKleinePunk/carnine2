@@ -9,8 +9,11 @@ position_source = "replay"
 # ~9 min a round; made by resources/tools/demo/demo_gps.py nmea.
 replay_file = "/var/lib/carnine/maps/messe-tour.nmea"
 replay_loop = true
-# Shown in the search field while the tour drives (#127).
-replay_destination_name = "Kunsthalle Montez"
+# Shown in the search field while the tour drives (#127). "Montez" and not
+# the venue's full name: OpenStreetMap knows it as "Kunstverein Familie
+# Montez", so a touch on the field (which searches its text) finds it, and
+# shows that the search takes a part of a name.
+replay_destination_name = "Montez"
 # The frontend returns to the map after 60 s without a touch (#128).
 demo_mode = true
 
