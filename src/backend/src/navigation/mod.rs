@@ -1,6 +1,7 @@
 //! Navigation: own position, routing and place search for the map page
 //! (ADR-021).
 
+pub mod border;
 pub mod clock;
 pub mod location_name;
 pub mod nmea;
@@ -94,7 +95,8 @@ pub fn start(config: &NavigationConfig, database: &Path) -> NavigationServiceImp
     }
     // Config::validate rejects a source without its path; nothing to start.
     let service =
-        NavigationServiceImpl::new(hub, config.valhalla_url.clone(), config.map_region.clone());
+        NavigationServiceImpl::new(hub, config.valhalla_url.clone(), config.map_region.clone())
+            .with_routing_packages(config.routing_packages_dir.clone());
     let service = match replay_route_ready {
         Some(ready) => service.with_replay_route_ready(ready),
         None => service,

@@ -17,8 +17,10 @@
 #
 # A country routing package (routing-<land>, made by
 # resources/tools/valhalla-pakete/routing_paket.py) holds routing-<land>.info
-# (country, build, Valhalla version) and routing-<land>.tar with the Valhalla
-# tiles that touch the country. The countries together make up Valhalla's
+# (country, build, Valhalla version), routing-<land>.poly (the country's
+# border; the backend keeps routes inside the installed countries with it,
+# packages from before 2026-11-20 have none) and routing-<land>.tar with the
+# Valhalla tiles that touch the country. The countries together make up Valhalla's
 # valhalla_tiles.tar, read the same way as a whole-area one (memory-mapped;
 # loose tiles in tile_dir were slower on jeep-pi once warm, 2026-11-16): the
 # whole-area tar is put aside and comes back when the last country goes. The
@@ -210,10 +212,15 @@ if [ "$LIST_ROUTING" -eq 1 ]; then
     fi
     for info in $(routing_countries); do
         name=$(basename "$info" .info)
-        printf '%s: Bau %s, Valhalla %s, %s Kacheln\n' "${name#routing-}" \
+        border=""
+        [ -e "$ROUTING_DIR/$name.poly" ] || border=", ohne Grenze"
+        printf '%s: Bau %s, Valhalla %s, %s Kacheln%s\n' "${name#routing-}" \
             "$(info_value "$info" bau)" "$(info_value "$info" valhalla)" \
-            "$(wc -l < "$ROUTING_DIR/$name.kacheln" 2>/dev/null || echo 0)"
+            "$(wc -l < "$ROUTING_DIR/$name.kacheln" 2>/dev/null || echo 0)" "$border"
     done
+    if [ -n "$(routing_countries)" ] && [ -n "$(for info in $(routing_countries); do [ -e "${info%.info}.poly" ] || echo x; done)" ]; then
+        echo "Hinweis: Ohne die Grenze jedes Landes bleiben Routen nicht in den installierten Ländern. Das Land neu laden behebt das."
+    fi
     if [ -e "$FULL_TAR_ASIDE" ]; then
         echo "Das ganze Routing-Paket liegt beiseite: $FULL_TAR_ASIDE"
     fi
@@ -234,7 +241,7 @@ if [ -n "$REMOVE_ROUTING" ]; then
     "$SYSTEMCTL" stop valhalla.service
     trap '"$SYSTEMCTL" start valhalla.service || true' EXIT
     remove_country "$name"
-    rm -f "$ROUTING_DIR/$name.info"
+    rm -f "$ROUTING_DIR/$name.info" "$ROUTING_DIR/$name.poly"
     if [ -z "$(routing_countries)" ]; then
         # The last country: its folder goes too, if nothing else is in it.
         rmdir "$ROUTING_DIR" 2>/dev/null || true
@@ -314,10 +321,11 @@ fetch_failure() {
 }
 
 target_of() {
-    # A country routing package holds its info and its tiles, nothing else.
+    # A country routing package holds its info, its border and its tiles,
+    # nothing else.
     if [ "$ROUTING" -eq 1 ]; then
         case "$1" in
-            "$PACKAGE.info"|"$PACKAGE.tar") echo "$ROUTING_DIR/$1" ;;
+            "$PACKAGE.info"|"$PACKAGE.poly"|"$PACKAGE.tar") echo "$ROUTING_DIR/$1" ;;
             *) return 1 ;;
         esac
         return 0
@@ -519,7 +527,8 @@ while IFS="$(printf '\t')" read -r packed packed_size unpacked_size target; do
             if [ "$target" = "$FULL_TAR" ] && [ -n "$(routing_countries)" ]; then
                 # A whole-area package replaced the countries' tar: they are
                 # gone, the tar put aside for them is out of date.
-                rm -f "$ROUTING_DIR"/routing-*.info "$ROUTING_DIR"/routing-*.kacheln
+                rm -f "$ROUTING_DIR"/routing-*.info "$ROUTING_DIR"/routing-*.poly \
+                    "$ROUTING_DIR"/routing-*.kacheln
                 echo "Hinweis: Das ganze Routing-Paket ersetzt die Länderpakete. $FULL_TAR_ASIDE (falls da) ist veraltet und kann weg."
             fi
             ;;

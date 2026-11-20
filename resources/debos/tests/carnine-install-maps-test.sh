@@ -215,7 +215,8 @@ CH_TILES="2/000/790/000.gph 1/049/507.gph"
 SHARED=1/049/507.gph
 
 # routing_package <land> <build> <tiles...>: $tree/pk-<build>/routing-<land>,
-# each tile holding "<build> <path>".
+# each tile holding "<build> <path>", with a border (.poly) unless NOPOLY=1
+# (a package from before borders were packed).
 routing_package() {
     land=$1 build=$2
     shift 2
@@ -227,9 +228,10 @@ routing_package() {
 import sys
 sys.path.insert(0, sys.argv[1])
 import routing_paket as rp
-root, land, build, out = sys.argv[2:6]
-rp.write_package(root, sorted(sys.argv[6:]), land, build, "3.9.1", out)' \
-        "$ROUTING_TOOL" "$tree/src-$build" "$land" "$build" "$tree/pk-$build" "$@"
+root, land, build, out, nopoly = sys.argv[2:7]
+poly = None if nopoly == "1" else land + "\n1\n 0 0\n 1 0\n 1 1\nEND\nEND\n"
+rp.write_package(root, sorted(sys.argv[7:]), land, build, "3.9.1", out, poly=poly)' \
+        "$ROUTING_TOOL" "$tree/src-$build" "$land" "$build" "$tree/pk-$build" "${NOPOLY:-0}" "$@"
 }
 
 ROUTING_TAR=""
@@ -297,6 +299,7 @@ check "routing: tar world-readable" "$(stat -c %a "$ROUTING_TAR")" "644"
 check "routing: tar belongs to root" "$(grep -c "^root:root $ROUTING_TAR\$" "$tree/chown.log")" "1"
 check "routing: nothing unpacked" "$(test -e "$tree/valhalla/valhalla_tiles" && echo there || echo absent)" "absent"
 check "routing: no package tar kept" "$(count '*.tar' "$tree/valhalla/pakete")" "0"
+check "routing: the country's border is installed" "$(head -n 1 "$tree/valhalla/pakete/routing-de.poly")" "de"
 
 run 100000000 --dir "$tree/pk-b1/routing-ch" --package routing-ch
 check "routing: second country of the same build installs" "$status" "0"
@@ -328,6 +331,8 @@ check "routing: other build: tar unchanged" "$(in_tar 2/000/700/000.gph)" "0"
 # Removing a country keeps the border tile the other one needs.
 run 100000000 --remove-routing de
 check "routing: remove succeeds" "$status" "0"
+check "routing: removed country's border gone" "$(test -e "$tree/valhalla/pakete/routing-de.poly" && echo left || echo gone)" "gone"
+check "routing: the other country's border stays" "$(test -e "$tree/valhalla/pakete/routing-ch.poly" && echo there || echo gone)" "there"
 check "routing: removed country's own tiles out of the tar" "$(in_tar '^2/000/791/')" "0"
 # shellcheck disable=SC2086
 check "routing: border tile and the other country stay" "$(has_tiles b1 $CH_TILES)" "yes"
@@ -390,6 +395,19 @@ run 100000000 --dir "$tree/package-a"
 check "routing: whole-area package over countries installs" "$(installed a)" "yes"
 check "routing: whole-area package: says so" "$(grep -c 'ersetzt die Länderpakete' "$tree/out.log")" "1"
 check "routing: whole-area package: countries gone from the list" "$(find "$tree/valhalla/pakete" -type f | wc -l | tr -d ' ')" "0"
+rm -rf "$tree"
+
+# A package from before borders were packed installs; the list says it has
+# no border, so routes are not kept inside the countries.
+setup
+# shellcheck disable=SC2086
+NOPOLY=1 routing_package ch b1 $CH_TILES
+run 100000000 --dir "$tree/pk-b1/routing-ch" --package routing-ch
+check "routing: package without border installs" "$status" "0"
+check "routing: no border file" "$(test -e "$tree/valhalla/pakete/routing-ch.poly" && echo there || echo absent)" "absent"
+CARNINE_VALHALLA_DIR="$tree/valhalla" sh "$SCRIPT" --list-routing > "$tree/out.log" 2>&1 || true
+check "routing: list names the missing border" "$(head -n 1 "$tree/out.log")" "ch: Bau b1, Valhalla 3.9.1, 2 Kacheln, ohne Grenze"
+check "routing: list says what it means" "$(grep -c 'Routen nicht in den installierten' "$tree/out.log")" "1"
 rm -rf "$tree"
 
 # A map package's files in a routing package are refused.

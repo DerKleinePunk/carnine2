@@ -15,7 +15,7 @@ python3 routing_paket.py <valhalla_tiles> germany.poly --land de \
 - `<valhalla_tiles>` is the tile tree of the whole graph (Valhalla's `tile_dir`).
 - `germany.poly` is the country border from Geofabrik, for example `https://download.geofabrik.de/europe/germany.poly`.
 - `--bau` names the build of the graph. Every package cut from the same build carries the same name.
-- The output is `<folder>/routing-de/`, in the same format as the map packages: `routing-de.info.zst`, `routing-de.tar.zst`, `INHALT`, `SHA256SUMS` and `SHA256SUMS.entpackt`.
+- The output is `<folder>/routing-de/`, in the same format as the map packages: `routing-de.info.zst`, `routing-de.poly.zst` (the border it was cut with), `routing-de.tar.zst`, `INHALT`, `SHA256SUMS` and `SHA256SUMS.entpackt`.
 
 **Which tiles a country gets:** a tile belongs to it when one of its corners or its centre lies inside the border, or a point of the border lies inside the tile. Tiles at the border therefore end up in both neighbouring packages.
 
@@ -37,7 +37,11 @@ sudo carnine-install-maps --remove-routing de
     - The tiles are copied straight from the old tar and the package; nothing is unpacked.
     - Each tile is in the tar once.
     - While the new tar is written, there must be room for it next to the old one.
-- Each country's info and tile list go to `/var/lib/valhalla/pakete/`.
+- Each country's info, border and tile list go to `/var/lib/valhalla/pakete/`.
+
+**Routes stay inside the installed countries.** Valhalla's big tiles (motorways and main roads) also carry the neighbours' main roads, so with Germany and Austria alone Berlin–Vienna went through the Czech Republic, where there is no map. The backend computes a route as before; if it leaves the installed countries, it computes it again with thin rings along the border passed to Valhalla as `exclude_polygons`: first only where the route left, then, if it leaves elsewhere, along the whole outer border. A destination outside the installed countries then has no route. A route that starts or ends abroad is left as it is.
+- This needs every installed country's `.poly`. Packages from before 2026-11-20 have none; `--list-routing` says "ohne Grenze", and routes are then not kept inside. Loading the country again fixes that.
+- It needs a Valhalla with the `exclude_polygons` fix for graphs with missing tiles (`carnine-valhalla` 3.9.0-5); 3.9.0 crashes on it.
 - Only Valhalla restarts.
 
 **Removing a country** takes out only the tiles that no other installed country needs. The last country takes the tar away with it, and the whole-area tar comes back.
