@@ -74,7 +74,7 @@ This section describes architectural principles, patterns, and technologies that
 - **Environment Variables**: Only for deployment-specific overrides: `CARNINE_CONFIG`, `CARNINE_LOG_DIRECTORY`, `CARNINE_DATABASE_PATH`, `CARNINE_SOCKET_PATH`, `CARNINE_SOCKET_MODE`, `CARNINE_TCP_ADDRESS` (`carnine-backend --help` lists them)
 
 ### Hot Reloading (planned)
-- **Settings**: Changes applied without restart via gRPC config endpoint. Today `UpdateConfiguration` saves the change and always reports that a restart is required
+- **Settings**: Changes applied without restart via gRPC config endpoint. Today there is no way to save the configuration over gRPC (`UpdateConfiguration` was removed on 2026-11-20, #192): changes go into a drop-in in `config.d` and need a restart of the backend
 - **Feature Flags**: Runtime toggles for experimental features (none exist yet)
 
 ### UI Configuration Changes

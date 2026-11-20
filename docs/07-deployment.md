@@ -860,8 +860,8 @@ by ear; the template `resources/config/carnine.toml` carries it as an
 example. Without `channels` (or with 2) everything is stereo as before and
 `rear_percent` does nothing. The configuration check refuses `channels` other
 than 2, 4 or 6 and `rear_percent` above 100. Both are read at start, so a
-change needs `sudo systemctl restart carnine-backend`; the UI and
-`UpdateConfiguration` do not touch them.
+change needs `sudo systemctl restart carnine-backend`; the UI does not
+touch them.
 
 **The chain.** The encoding runs in a service of its own, behind the ALSA
 loopback (`snd-aloop`), not inside ALSA's `default` device (037837a):
