@@ -334,7 +334,7 @@ had.
 | `[navigation] position_source` | `"replay"` | the tour instead of the GPS mouse |
 | `[navigation] replay_file` | `/var/lib/carnine/maps/messe-tour.nmea` | the tour |
 | `[navigation] replay_loop` | `true` | rounds without end |
-| `[navigation] replay_destination_name` | `"Kunsthalle Montez"` | the destination's name for the search field; without it street and locality from the names database |
+| `[navigation] replay_destination_name` | `"Montez"` | the destination's name for the search field; without it street and locality from the names database. Use a name the search finds: in OpenStreetMap the place is "Kunstverein Familie Montez", so "Kunsthalle Montez" finds nothing, while "Montez" also shows that the search finds parts of names |
 | `[navigation] demo_mode` | `true` | tells the frontend it is at the trade fair |
 | `[media] resume_mode` | `"auto-play"` | music starts by itself after power on, from the last playlist; on a fresh card nothing plays until a playlist has been played once |
 
