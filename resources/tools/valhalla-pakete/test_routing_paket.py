@@ -120,6 +120,26 @@ class PackageTest(unittest.TestCase):
         with open(os.path.join(folder, 'routing-ch.tar.zst'), 'rb') as f:
             self.assertEqual(line, f'{hashlib.sha256(f.read()).hexdigest()}  routing-ch.tar.zst')
 
+    def test_the_border_comes_along_between_info_and_tiles(self):
+        tiles = rp.tiles_for(rp.list_tiles(self.root), rp.read_poly(SQUARE))
+        folder = rp.write_package(self.root, tiles, 'ch', 'b', '3.9.1', self.out, poly=SQUARE)
+        with open(os.path.join(folder, 'INHALT')) as f:
+            rows = [line.split('\t') for line in f.read().splitlines()[1:]]
+        self.assertEqual([r[0] for r in rows],
+                         ['routing-ch.info.zst', 'routing-ch.poly.zst', 'routing-ch.tar.zst'])
+        self.assertEqual(self.unpack(folder, 'routing-ch.poly').decode(), SQUARE)
+        with open(os.path.join(folder, 'SHA256SUMS.entpackt')) as f:
+            self.assertIn('  routing-ch.poly', f.read())
+
+    def test_main_packs_the_border_it_cut_with(self):
+        poly = os.path.join(self.dir.name, 'ch.poly')
+        with open(poly, 'w') as f:
+            f.write(SQUARE)
+        self.assertEqual(rp.main([self.root, poly, '--land', 'ch', '--bau', 'b',
+                                  '--valhalla', 'v', '--out', self.out]), 0)
+        folder = os.path.join(self.out, 'routing-ch')
+        self.assertEqual(self.unpack(folder, 'routing-ch.poly').decode(), SQUARE)
+
     def test_the_tar_holds_the_tiles_unchanged_without_an_owner(self):
         tiles = rp.tiles_for(rp.list_tiles(self.root), rp.read_poly(SQUARE))
         folder = rp.write_package(self.root, tiles, 'ch', 'b1', '3.9.0', self.out)

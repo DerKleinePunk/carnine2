@@ -424,6 +424,11 @@ pub struct NavigationConfig {
     /// means place search answers UNAVAILABLE.
     #[serde(default)]
     pub names_database: Option<PathBuf>,
+    /// Where `carnine-install-maps` keeps the country routing packages' info
+    /// and border; routes stay inside the countries installed there. Nothing
+    /// there (a whole-area routing tar) leaves routes as Valhalla finds them.
+    #[serde(default = "default_routing_packages_dir")]
+    pub routing_packages_dir: PathBuf,
 }
 
 /// Line speeds the serial devices (GPS receivers, the power supply) use.
@@ -435,6 +440,10 @@ fn default_serial_baud() -> u32 {
 
 fn default_replay_loop() -> bool {
     true
+}
+
+fn default_routing_packages_dir() -> PathBuf {
+    PathBuf::from("/var/lib/valhalla/pakete")
 }
 
 fn default_valhalla_url() -> String {
@@ -456,6 +465,7 @@ impl Default for NavigationConfig {
             valhalla_url: default_valhalla_url(),
             map_region: String::new(),
             names_database: None,
+            routing_packages_dir: default_routing_packages_dir(),
         }
     }
 }

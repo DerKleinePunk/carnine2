@@ -89,6 +89,10 @@ warm_metrics_interval_seconds = 5
 # valhalla_url = "http://127.0.0.1:8002"
 # map_region = "hessen"
 # names_database = "/var/lib/carnine/maps/hessen_names.db"
+# Where carnine-install-maps keeps the country routing packages (info and
+# border). With packages installed, a route that leaves those countries is
+# computed again with the border closed there; without them nothing changes.
+# routing_packages_dir = "/var/lib/valhalla/pakete"
 
 # Car power supply AuPrV1_1 (docs/23-power-supply.md). Off by default. With a
 # supply connected, the backend sends it a sign of life every second from

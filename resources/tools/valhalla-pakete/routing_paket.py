@@ -137,8 +137,10 @@ def sha256(path):
     return h.hexdigest()
 
 
-def write_package(root, tiles, land, bau, valhalla, out, zstd='zstd'):
-    """Writes out/routing-<land>/ and returns its path."""
+def write_package(root, tiles, land, bau, valhalla, out, zstd='zstd', poly=None):
+    """Writes out/routing-<land>/ and returns its path. `poly` is the
+    country's border (.poly text); the backend keeps routes inside the
+    installed countries with it."""
     name = f'routing-{land}'
     folder = os.path.join(out, name)
     os.makedirs(folder, exist_ok=True)
@@ -146,12 +148,19 @@ def write_package(root, tiles, land, bau, valhalla, out, zstd='zstd'):
     plain[f'{name}.info'] = os.path.join(folder, f'{name}.info')
     with open(plain[f'{name}.info'], 'w', encoding='utf-8') as f:
         f.write(info_text(land, bau, valhalla, len(tiles)))
+    files = [f'{name}.info']
+    if poly is not None:
+        plain[f'{name}.poly'] = os.path.join(folder, f'{name}.poly')
+        with open(plain[f'{name}.poly'], 'w', encoding='utf-8') as f:
+            f.write(poly)
+        files.append(f'{name}.poly')
+    files.append(f'{name}.tar')
     plain[f'{name}.tar'] = os.path.join(folder, f'{name}.tar')
     write_tar(root, tiles, plain[f'{name}.tar'])
 
     rows, sums, sums_plain = [], [], []
     # The info first: the installer reads it before it touches anything.
-    for file_name in (f'{name}.info', f'{name}.tar'):
+    for file_name in files:
         source = plain[file_name]
         packed = source + '.zst'
         subprocess.run([zstd, '-q', '-f', '-T0', source, '-o', packed], check=True)
@@ -184,12 +193,14 @@ def main(argv=None):
     if any(c.isspace() or c in '=/' for c in args.bau + args.valhalla):
         ap.error('--bau and --valhalla must not contain spaces, "=" or "/"')
     with open(args.poly, encoding='utf-8') as f:
-        rings = read_poly(f.read())
+        poly = f.read()
+    rings = read_poly(poly)
     tiles = tiles_for(list_tiles(args.tiles), rings)
     if not tiles:
         print('no tile touches the polygon', file=sys.stderr)
         return 1
-    folder = write_package(args.tiles, tiles, args.land, args.bau, args.valhalla, args.out)
+    folder = write_package(args.tiles, tiles, args.land, args.bau, args.valhalla, args.out,
+                           poly=poly)
     print(f'{folder}: {len(tiles)} tiles')
     return 0
 

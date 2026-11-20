@@ -92,6 +92,15 @@ impl NavigationServiceImpl {
         }
     }
 
+    /// Keeps routes inside the countries whose routing packages are
+    /// installed in `dir` (`carnine-install-maps --package routing-<land>`).
+    pub fn with_routing_packages(mut self, dir: PathBuf) -> Self {
+        self.valhalla = self
+            .valhalla
+            .with_border(Arc::new(super::border::BorderCache::new(dir)));
+        self
+    }
+
     pub fn with_replay_route_ready(mut self, ready: tokio::sync::watch::Sender<bool>) -> Self {
         self.replay_route_ready = Some(ready);
         self

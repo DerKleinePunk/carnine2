@@ -2,6 +2,8 @@
 //! `/trace_route` to map-match a recorded tour. Both answer with the same trip
 //! format, parsed here into [`RouteData`].
 
+use std::collections::BTreeSet;
+use std::sync::Arc;
 use std::time::Duration;
 
 use bytes::Bytes;
@@ -12,6 +14,8 @@ use hyper_util::client::legacy::connect::HttpConnector;
 use hyper_util::client::legacy::Client;
 use hyper_util::rt::TokioExecutor;
 use serde_json::{json, Value};
+
+use super::border::BorderCache;
 
 /// Upper bound for one routing call. A cross-Hessen route takes Valhalla well
 /// under a second on the Pi 4; map-matching a 50-minute tour takes longer.
@@ -88,6 +92,8 @@ pub enum RoutingError {
 pub struct Valhalla {
     base_url: String,
     client: Client<HttpConnector, Full<Bytes>>,
+    /// The installed countries' borders; `None` routes anywhere the graph goes.
+    border: Option<Arc<BorderCache>>,
 }
 
 impl Valhalla {
@@ -99,7 +105,15 @@ impl Valhalla {
                 connector.set_connect_timeout(Some(CONNECT_TIMEOUT));
                 Client::builder(TokioExecutor::new()).build(connector)
             },
+            border: None,
         }
+    }
+
+    /// Keeps routes inside the countries whose routing packages are in `dir`
+    /// (see [`super::border`]).
+    pub fn with_border(mut self, cache: Arc<BorderCache>) -> Self {
+        self.border = Some(cache);
+        self
     }
 
     /// `heading` is the course at the origin in degrees (0 = north,
@@ -111,8 +125,64 @@ impl Valhalla {
         destination: (f64, f64),
         language: &str,
     ) -> Result<RouteData, RoutingError> {
-        self.trip("route", route_body(origin, heading, destination, language))
-            .await
+        let body = route_body(origin, heading, destination, language);
+        let mut route = self.trip("route", body.clone()).await?;
+        let Some(area) = self.border.as_ref().and_then(|cache| cache.area()) else {
+            return Ok(route);
+        };
+        if !area.contains(origin) || !area.contains(destination) {
+            // Starting or ending abroad, the route has to cross the border.
+            tracing::info!(
+                ?origin,
+                ?destination,
+                "route starts or ends outside the installed countries, border left open"
+            );
+            return Ok(route);
+        }
+        let crossings = area.crossings(&route.geometry);
+        if crossings.is_empty() {
+            return Ok(route);
+        }
+        // First only where the route left: cheap, and enough when the way
+        // round is short. A neighbour with many crossings (the Czech Republic
+        // with its main roads) would be tried crossing by crossing, so a
+        // second try closes the whole outer border; that costs Valhalla about
+        // a second on a Pi 4, but only for such routes.
+        let near = area.slits_near(&crossings);
+        let all: BTreeSet<usize> = (0..area.slit_count()).collect();
+        let mut tries = vec![near, all];
+        tries.dedup();
+        for (round, closed) in tries.iter().enumerate() {
+            if closed.is_empty() {
+                continue;
+            }
+            tracing::info!(
+                round = round + 1,
+                crossings = ?area.crossings(&route.geometry),
+                slits = closed.len(),
+                distance_meters = route.distance_meters,
+                "route leaves the installed countries, computing it again with the border closed"
+            );
+            let mut closed_body = body.clone();
+            closed_body["exclude_polygons"] = area.exclude_polygons(closed);
+            route = match self.trip("route", closed_body).await {
+                Ok(route) => route,
+                Err(RoutingError::NoRoute(reason)) => {
+                    return Err(RoutingError::NoRoute(format!(
+                        "no route inside the installed countries ({reason})"
+                    )))
+                }
+                Err(error) => return Err(error),
+            };
+            if area.crossings(&route.geometry).is_empty() {
+                return Ok(route);
+            }
+        }
+        tracing::warn!(
+            crossings = ?area.crossings(&route.geometry),
+            "route still leaves the installed countries with the whole border closed, kept as it is"
+        );
+        Ok(route)
     }
 
     /// Map-matches `points` onto the road network and returns the driven way
@@ -738,5 +808,250 @@ mod tests {
             matches!(result, Err(RoutingError::Unavailable(_))),
             "{result:?}"
         );
+    }
+
+    /// Encodes (lat, lon) points as Valhalla's polyline6.
+    fn encode(points: &[(f64, f64)]) -> String {
+        let mut out = String::new();
+        let (mut last_lat, mut last_lon) = (0i64, 0i64);
+        let push = |value: i64, out: &mut String| {
+            let mut v = if value < 0 { !(value << 1) } else { value << 1 } as u64;
+            while v >= 0x20 {
+                out.push(char::from(((0x20 | (v & 0x1f)) + 63) as u8));
+                v >>= 5;
+            }
+            out.push(char::from((v + 63) as u8));
+        };
+        for &(lat, lon) in points {
+            let (lat, lon) = ((lat * 1e6).round() as i64, (lon * 1e6).round() as i64);
+            push(lat - last_lat, &mut out);
+            push(lon - last_lon, &mut out);
+            (last_lat, last_lon) = (lat, lon);
+        }
+        out
+    }
+
+    fn trip(points: &[(f64, f64)], km: f64) -> (u16, Value) {
+        (
+            200,
+            json!({"trip": {"summary": {"length": km, "time": km * 60.0},
+                "legs": [{"shape": encode(points), "maneuvers": [
+                    {"instruction": "Los.", "length": km, "time": km * 60.0, "type": 1,
+                     "begin_shape_index": 0},
+                    {"instruction": "Ziel.", "length": 0.0, "time": 0.0, "type": 4,
+                     "begin_shape_index": points.len() - 1}]}]}}),
+        )
+    }
+
+    /// A Valhalla that answers the requests in turn with `answers` and hands
+    /// back every body it got.
+    async fn scripted_valhalla(
+        answers: Vec<(u16, Value)>,
+    ) -> (String, Arc<std::sync::Mutex<Vec<Value>>>) {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let bodies = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let seen = bodies.clone();
+        tokio::spawn(async move {
+            for (status, answer) in answers {
+                let (mut socket, _) = listener.accept().await.unwrap();
+                let mut request = Vec::new();
+                let mut buffer = [0u8; 65536];
+                let body = loop {
+                    let read = socket.read(&mut buffer).await.unwrap();
+                    request.extend_from_slice(&buffer[..read]);
+                    let text = String::from_utf8_lossy(&request);
+                    if let Some(split) = text.find("\r\n\r\n") {
+                        let length = text[..split]
+                            .lines()
+                            .find_map(|line| {
+                                line.to_ascii_lowercase()
+                                    .strip_prefix("content-length:")
+                                    .map(|value| value.trim().parse::<usize>().unwrap())
+                            })
+                            .unwrap_or(0);
+                        if request.len() >= split + 4 + length {
+                            break request[split + 4..split + 4 + length].to_vec();
+                        }
+                    }
+                    assert!(read > 0, "connection closed before the body");
+                };
+                seen.lock()
+                    .unwrap()
+                    .push(serde_json::from_slice(&body).unwrap());
+                let answer = answer.to_string();
+                let reply = format!(
+                    "HTTP/1.1 {status} X\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{answer}",
+                    answer.len()
+                );
+                socket.write_all(reply.as_bytes()).await.unwrap();
+            }
+        });
+        (url, bodies)
+    }
+
+    /// A folder with one installed country: the square 10–11° E, 47–48° N.
+    fn installed_square(tag: &str) -> std::path::PathBuf {
+        let dir =
+            std::env::temp_dir().join(format!("carnine-route-border-{tag}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("routing-a.info"), "land=a\n").unwrap();
+        // A point every 0.01°, like a real border, so it splits into many slits.
+        let mut poly = String::from("a\n1\n");
+        let corners = [(10.0, 47.0), (11.0, 47.0), (11.0, 48.0), (10.0, 48.0)];
+        for side in 0..4 {
+            let (a, b) = (corners[side], corners[(side + 1) % 4]);
+            for step in 0..100 {
+                let t = f64::from(step) / 100.0;
+                poly.push_str(&format!(
+                    " {} {}\n",
+                    a.0 + (b.0 - a.0) * t,
+                    a.1 + (b.1 - a.1) * t
+                ));
+            }
+        }
+        poly.push_str("END\nEND\n");
+        std::fs::write(dir.join("routing-a.poly"), poly).unwrap();
+        dir
+    }
+
+    fn bordered(url: &str, dir: &std::path::Path) -> Valhalla {
+        Valhalla::new(url).with_border(Arc::new(BorderCache::new(dir.to_path_buf())))
+    }
+
+    /// Out over the east border at 11° E and back in, as Berlin–Vienna went
+    /// through the Czech Republic.
+    const ABROAD: [(f64, f64); 4] = [(47.3, 10.5), (47.3, 11.3), (47.7, 11.3), (47.7, 10.5)];
+    const INSIDE: [(f64, f64); 3] = [(47.3, 10.5), (47.5, 10.9), (47.7, 10.5)];
+
+    #[tokio::test]
+    async fn a_route_leaving_the_installed_countries_is_computed_again_with_the_border_closed() {
+        let dir = installed_square("again");
+        let (url, bodies) =
+            scripted_valhalla(vec![trip(&ABROAD, 120.0), trip(&INSIDE, 60.0)]).await;
+        let route = bordered(&url, &dir)
+            .route((47.3, 10.5), None, (47.7, 10.5), "de-DE")
+            .await
+            .expect("a route inside");
+        assert_eq!(route.distance_meters, 60_000.0);
+        let bodies = bodies.lock().unwrap();
+        assert_eq!(bodies.len(), 2);
+        assert!(
+            bodies[0].get("exclude_polygons").is_none(),
+            "first try is free"
+        );
+        let rings = bodies[1]["exclude_polygons"]
+            .as_array()
+            .expect("slits sent");
+        assert!(!rings.is_empty());
+        // Only slits near the east border, where the route left, not all.
+        for ring in rings {
+            for point in ring.as_array().unwrap() {
+                let lon = point[0].as_f64().unwrap();
+                assert!(lon > 10.9, "slit far from the crossing: {point}");
+            }
+        }
+        assert_eq!(bodies[1]["locations"], bodies[0]["locations"]);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[tokio::test]
+    async fn no_way_inside_the_installed_countries_is_no_route() {
+        let dir = installed_square("noway");
+        let (url, bodies) = scripted_valhalla(vec![
+            trip(&ABROAD, 120.0),
+            (
+                400,
+                json!({"error_code": 442, "error": "No path could be found for input"}),
+            ),
+        ])
+        .await;
+        let result = bordered(&url, &dir)
+            .route((47.3, 10.5), None, (47.7, 10.5), "de-DE")
+            .await;
+        match result {
+            Err(RoutingError::NoRoute(reason)) => {
+                assert!(reason.contains("installed countries"), "{reason}")
+            }
+            other => panic!("{other:?}"),
+        }
+        assert_eq!(bodies.lock().unwrap().len(), 2);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[tokio::test]
+    async fn routes_inside_or_from_abroad_and_without_packages_are_asked_once() {
+        let dir = installed_square("once");
+        // Inside all the way.
+        let (url, bodies) = scripted_valhalla(vec![trip(&INSIDE, 60.0)]).await;
+        bordered(&url, &dir)
+            .route((47.3, 10.5), None, (47.7, 10.5), "de-DE")
+            .await
+            .unwrap();
+        assert_eq!(bodies.lock().unwrap().len(), 1);
+
+        // Starting abroad the route has to cross; it is left as it is.
+        let (url, bodies) = scripted_valhalla(vec![trip(&ABROAD, 120.0)]).await;
+        let route = bordered(&url, &dir)
+            .route((47.3, 11.3), None, (47.7, 10.5), "de-DE")
+            .await
+            .unwrap();
+        assert_eq!(route.distance_meters, 120_000.0);
+        assert_eq!(bodies.lock().unwrap().len(), 1);
+
+        // No packages installed: a whole-area tar, no border.
+        let empty = dir.join("leer");
+        let (url, bodies) = scripted_valhalla(vec![trip(&ABROAD, 120.0)]).await;
+        let route = bordered(&url, &empty)
+            .route((47.3, 10.5), None, (47.7, 10.5), "de-DE")
+            .await
+            .unwrap();
+        assert_eq!(route.distance_meters, 120_000.0);
+        assert_eq!(bodies.lock().unwrap().len(), 1);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[tokio::test]
+    async fn leaving_again_elsewhere_closes_the_whole_border() {
+        let dir = installed_square("whole");
+        // The second answer leaves somewhere else, the third stays inside.
+        let leave = |lat: f64| [(47.3, 10.5), (lat, 10.95), (lat, 11.3), (47.7, 10.5)];
+        let (url, bodies) = scripted_valhalla(vec![
+            trip(&leave(47.1), 100.0),
+            trip(&leave(47.9), 101.0),
+            trip(&INSIDE, 60.0),
+        ])
+        .await;
+        let route = bordered(&url, &dir)
+            .route((47.3, 10.5), None, (47.7, 10.5), "de-DE")
+            .await
+            .unwrap();
+        assert_eq!(route.distance_meters, 60_000.0);
+        {
+            let bodies = bodies.lock().unwrap();
+            assert_eq!(bodies.len(), 3);
+            let near = bodies[1]["exclude_polygons"].as_array().unwrap().len();
+            let whole = bodies[2]["exclude_polygons"].as_array().unwrap().len();
+            assert!(near < whole, "{near} near, {whole} in all");
+            let area = BorderCache::new(dir.clone()).area().unwrap();
+            assert_eq!(whole, area.slit_count());
+        }
+
+        // Still out with the whole border closed: kept, nothing more asked.
+        let (url, bodies) = scripted_valhalla(vec![
+            trip(&leave(47.1), 100.0),
+            trip(&leave(47.9), 101.0),
+            trip(&leave(47.5), 102.0),
+        ])
+        .await;
+        let route = bordered(&url, &dir)
+            .route((47.3, 10.5), None, (47.7, 10.5), "de-DE")
+            .await
+            .unwrap();
+        assert_eq!(route.distance_meters, 102_000.0);
+        assert_eq!(bodies.lock().unwrap().len(), 3);
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 }
