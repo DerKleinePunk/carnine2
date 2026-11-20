@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:carnine_frontend/features/maps/data/navigation_channel.dart';
 import 'package:carnine_frontend/features/maps/data/navigation_mappers.dart';
 import 'package:carnine_frontend/features/maps/domain/navigation_failure.dart';
@@ -13,6 +15,14 @@ import 'package:logging/logging.dart';
 typedef LanguageTag = String Function();
 
 const _callTimeout = Duration(seconds: 10);
+
+/// A route may take the backend several Valhalla calls: when it leaves the
+/// installed country packages, it is computed again with the border closed
+/// (#194, #197). Measured on jeep-pi (2026-11-20): Berlin–Vienna 8.5 s with
+/// a cold cache, up to 23 s before #197. 10 s would cut such a route off
+/// with an error while the map says "Route wird berechnet".
+@visibleForTesting
+const routeCallTimeout = Duration(seconds: 45);
 
 /// [RoutingProvider] on `NavigationService.ComputeRoute`.
 class GrpcRoutingProvider implements RoutingProvider {
@@ -47,7 +57,7 @@ class GrpcRoutingProvider implements RoutingProvider {
     try {
       final route = await _channel.stub.computeRoute(
         request,
-        options: CallOptions(timeout: _callTimeout),
+        options: CallOptions(timeout: routeCallTimeout),
       );
       lastFailure = null;
       return routeFromProto(route);
