@@ -123,13 +123,18 @@ Positionsquelle auf die Tour in Schleife und setzt dazu unter anderem:
 
 ```toml
 [navigation]
-replay_destination_name = "Kunsthalle Montez"   # Name im Suchfeld
+replay_destination_name = "Montez"              # Name im Suchfeld
 demo_mode = true                                # Rückkehr zur Karte
 ```
 
 Diese zwei Zeilen allein starten keine Tour. `aus` löscht den Drop-in und
 startet neu. Die Einzelheiten (Tour, Schlüssel, feste Adresse) stehen in
 `docs/25-demo-and-touch-tools.md`, Abschnitt „Trade fair mode“.
+
+Als Name im Suchfeld eignet sich nur einer, den die Suche auch findet. In
+OpenStreetMap heißt das Ziel „Kunstverein Familie Montez“, „Kunsthalle Montez“
+findet nichts. „Montez“ findet es und zeigt gleich, dass die Suche auch
+Wortteile findet.
 
 | Was | Verhalten |
 |---|---|
