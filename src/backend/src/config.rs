@@ -297,6 +297,15 @@ pub struct AudioConfig {
     /// installation; without rear speakers it does nothing.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rear_percent: Option<u32>,
+    /// ALSA card id of the output the speakers are wired to (#48), e.g.
+    /// `Headphones` or `vc4hdmi0` (`/proc/asound/cards`, CLI audio-outputs).
+    /// Without it the system default, as the image sets it. Read at start.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output_card: Option<String>,
+    /// Mixer control the volume is set on, `PCM` unless given (e.g. for a
+    /// USB card whose control has another name).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mixer_control: Option<String>,
 }
 
 impl AudioConfig {
@@ -304,6 +313,15 @@ impl AudioConfig {
     pub fn rear_level(&self) -> f32 {
         self.rear_percent.unwrap_or(100) as f32 / 100.0
     }
+}
+
+/// Whether `id` can be an ALSA card id, as `audio.output_card` takes it.
+pub fn is_alsa_card_id(id: &str) -> bool {
+    !id.is_empty()
+        && id.len() <= 32
+        && id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
 }
 
 pub fn default_volume_state_path() -> PathBuf {
@@ -713,6 +731,26 @@ impl Config {
         }
         if let Some(rear) = self.audio.rear_percent.filter(|rear| *rear > 100) {
             anyhow::bail!("audio.rear_percent must be between 0 and 100, not {rear}");
+        }
+        if let Some(card) = self
+            .audio
+            .output_card
+            .as_ref()
+            .filter(|card| !is_alsa_card_id(card))
+        {
+            anyhow::bail!(
+                "audio.output_card must be an ALSA card id such as Headphones or vc4hdmi0 \
+                 (see carnine audio-outputs), not {card:?}"
+            );
+        }
+        if let Some(control) = self.audio.mixer_control.as_ref().filter(|control| {
+            control.is_empty()
+                || control.len() > 64
+                || control
+                    .chars()
+                    .any(|c| c.is_control() || c == ',' || c == '\'')
+        }) {
+            anyhow::bail!("audio.mixer_control is not a mixer control name: {control:?}");
         }
         if self.system.metrics_interval_seconds == 0
             || self.system.disk_metrics_interval_seconds == 0
@@ -1295,6 +1333,30 @@ mod tests {
         config.power_supply.baud = 38400;
         config.power_supply.device = std::path::PathBuf::new();
         assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn the_audio_output_is_the_default_unless_a_card_is_named() {
+        let (mut config, _) =
+            Config::load_with_env(|_| None).expect("repository config should load");
+        assert_eq!(config.audio.output_card, None);
+        assert_eq!(config.audio.mixer_control, None);
+        config.audio.output_card = Some("Headphones".to_string());
+        config.audio.mixer_control = Some("Speaker".to_string());
+        assert!(config.validate().is_ok());
+        for bad in ["", "hw:2", "default:CARD=x", "two words"] {
+            config.audio.output_card = Some(bad.to_string());
+            let error = config.validate().unwrap_err().to_string();
+            assert!(error.contains("audio.output_card"), "{bad}: {error}");
+        }
+        config.audio.output_card = None;
+        for bad in ["", "PCM,0", "a'b"] {
+            config.audio.mixer_control = Some(bad.to_string());
+            assert!(config.validate().is_err(), "{bad}");
+        }
+        let section: super::AudioConfig =
+            toml::from_str("output_card = \"vc4hdmi1\"").expect("drop-in should parse");
+        assert_eq!(section.output_card.as_deref(), Some("vc4hdmi1"));
     }
 
     #[test]

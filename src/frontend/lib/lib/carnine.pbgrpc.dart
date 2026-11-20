@@ -873,6 +873,17 @@ class AudioServiceClient extends $grpc.Client {
         options: options);
   }
 
+  /// The device's sound cards and which one the backend plays on (#48). The
+  /// output is set in the configuration (`[audio] output_card`, an ALSA card
+  /// id) and takes effect when the backend starts; without it the backend
+  /// plays on the system default (on the Pi the card 0 the image chose).
+  $grpc.ResponseFuture<$0.AudioOutputs> listAudioOutputs(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$listAudioOutputs, request, options: options);
+  }
+
   // method descriptors
 
   static final _$getServiceVersion =
@@ -894,6 +905,11 @@ class AudioServiceClient extends $grpc.Client {
           '/carnine.AudioService/StreamAudioEvents',
           ($0.Empty value) => value.writeToBuffer(),
           $0.AudioEvent.fromBuffer);
+  static final _$listAudioOutputs =
+      $grpc.ClientMethod<$0.Empty, $0.AudioOutputs>(
+          '/carnine.AudioService/ListAudioOutputs',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.AudioOutputs.fromBuffer);
 }
 
 @$pb.GrpcServiceName('carnine.AudioService')
@@ -929,6 +945,13 @@ abstract class AudioServiceBase extends $grpc.Service {
         true,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($0.AudioEvent value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.AudioOutputs>(
+        'ListAudioOutputs',
+        listAudioOutputs_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.AudioOutputs value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.ServiceVersion> getServiceVersion_Pre(
@@ -961,6 +984,14 @@ abstract class AudioServiceBase extends $grpc.Service {
   }
 
   $async.Stream<$0.AudioEvent> streamAudioEvents(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.AudioOutputs> listAudioOutputs_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return listAudioOutputs($call, await $request);
+  }
+
+  $async.Future<$0.AudioOutputs> listAudioOutputs(
       $grpc.ServiceCall call, $0.Empty request);
 }
 

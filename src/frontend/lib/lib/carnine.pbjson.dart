@@ -271,6 +271,56 @@ final $typed_data.Uint8List controlTypeDescriptor = $convert.base64Decode(
     'CgtDb250cm9sVHlwZRIcChhDT05UUk9MX1RZUEVfVU5TUEVDSUZJRUQQABIXChNDT05UUk9MX1'
     'RZUEVfU1dJVENIEAESFwoTQ09OVFJPTF9UWVBFX1NMSURFUhAC');
 
+@$core.Deprecated('Use audioOutputDescriptor instead')
+const AudioOutput$json = {
+  '1': 'AudioOutput',
+  '2': [
+    {'1': 'card_id', '3': 1, '4': 1, '5': 9, '10': 'cardId'},
+    {'1': 'index', '3': 2, '4': 1, '5': 13, '10': 'index'},
+    {'1': 'name', '3': 3, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'configured', '3': 4, '4': 1, '5': 8, '10': 'configured'},
+  ],
+};
+
+/// Descriptor for `AudioOutput`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List audioOutputDescriptor = $convert.base64Decode(
+    'CgtBdWRpb091dHB1dBIXCgdjYXJkX2lkGAEgASgJUgZjYXJkSWQSFAoFaW5kZXgYAiABKA1SBW'
+    'luZGV4EhIKBG5hbWUYAyABKAlSBG5hbWUSHgoKY29uZmlndXJlZBgEIAEoCFIKY29uZmlndXJl'
+    'ZA==');
+
+@$core.Deprecated('Use audioOutputsDescriptor instead')
+const AudioOutputs$json = {
+  '1': 'AudioOutputs',
+  '2': [
+    {
+      '1': 'outputs',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.carnine.AudioOutput',
+      '10': 'outputs'
+    },
+    {'1': 'configured_card', '3': 2, '4': 1, '5': 9, '10': 'configuredCard'},
+    {
+      '1': 'configured_card_present',
+      '3': 3,
+      '4': 1,
+      '5': 8,
+      '10': 'configuredCardPresent'
+    },
+    {'1': 'mixer_card', '3': 4, '4': 1, '5': 9, '10': 'mixerCard'},
+    {'1': 'mixer_control', '3': 5, '4': 1, '5': 9, '10': 'mixerControl'},
+  ],
+};
+
+/// Descriptor for `AudioOutputs`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List audioOutputsDescriptor = $convert.base64Decode(
+    'CgxBdWRpb091dHB1dHMSLgoHb3V0cHV0cxgBIAMoCzIULmNhcm5pbmUuQXVkaW9PdXRwdXRSB2'
+    '91dHB1dHMSJwoPY29uZmlndXJlZF9jYXJkGAIgASgJUg5jb25maWd1cmVkQ2FyZBI2Chdjb25m'
+    'aWd1cmVkX2NhcmRfcHJlc2VudBgDIAEoCFIVY29uZmlndXJlZENhcmRQcmVzZW50Eh0KCm1peG'
+    'VyX2NhcmQYBCABKAlSCW1peGVyQ2FyZBIjCg1taXhlcl9jb250cm9sGAUgASgJUgxtaXhlckNv'
+    'bnRyb2w=');
+
 @$core.Deprecated('Use reverseGearStatusDescriptor instead')
 const ReverseGearStatus$json = {
   '1': 'ReverseGearStatus',
