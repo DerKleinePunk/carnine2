@@ -338,8 +338,11 @@ The Valhalla program itself is not part of the data: it is built natively on
 a Pi with `scripts/valhalla/build_valhalla_on_pi.sh` from the map project
 (described in `docs/valhalla-offline-setup.md`, "Stand auf den Test-Pis") and
 packaged as `carnine-valhalla.deb` with `resources/valhalla/package-deb.sh`
-(the same Valhalla 3.9.0 binaries since the first package; the Debian
-revision counts changes to the package around them).
+(Valhalla 3.9.0; the Debian revision counts changes to the package around
+them; 3.9.0-5 carries a new build of the program, Valhalla 3.9.0 with a
+patch for country packages built on a Pi on 2026-11-20, see
+"Routing by country" under
+[Where the map data comes from](#where-the-map-data-comes-from)).
 The package brings carnine2's own unit and configuration,
 `resources/valhalla/debian/valhalla.service` and `resources/valhalla/valhalla.json`
 (listening on `127.0.0.1:8002`). The unit stops Valhalla with SIGINT and a
@@ -425,6 +428,41 @@ area; only Valhalla's tiles are split.
   DACH tar comes back). Why one tar with index and not loose tiles (the first
   version was slower once warm, one tar without index slow to start): the
   README in `resources/tools/valhalla-pakete/`.
+- **Routes stay inside the installed countries** (since the release after
+  0.21.0, #194, #197). Valhalla's large tiles (motorways and main roads)
+  carry the main roads of the neighbouring countries too, so with Germany
+  and Austria alone Berlin–Vienna went 680 km through the Czech Republic,
+  where CarNine has no map. Each package therefore brings its Geofabrik
+  border (`routing-<land>.poly`), which the installer puts next to the
+  country's info and removes with it; `--list-routing` marks packages from
+  before 2026-11-20 with „ohne Grenze“ (load the country again to fix it).
+  The backend computes a route as before and checks it against the borders
+  (a few milliseconds). Only if it leaves the installed countries does it
+  compute it again, with thin rings along the border sent to Valhalla as
+  `exclude_polygons`:
+  1. all rings within 150 km of where the route left,
+  2. if the new route leaves somewhere else, the whole outer border.
+
+  Rings lie only on border parts that belong to no other installed country,
+  so Germany–Austria stays open while Germany–Czech Republic is closed. A new
+  route to the same destination (within 200 m, e.g. after a wrong turn)
+  starts with the rings the last one needed; they are forgotten when a route
+  needs none or the installed countries change. A route that starts or ends
+  abroad is left as it is; if there is no way inside, the answer is "no
+  route". Without country packages (a whole-area tar), or when an installed
+  country has no border file, nothing changes. The borders are read from
+  `[navigation] routing_packages_dir` (default `/var/lib/valhalla/pakete`)
+  and again whenever the package files change.
+  - **Needs `carnine-valhalla` 3.9.0-5.** Valhalla 3.9.0 crashes on
+    `exclude_polygons` when tiles are missing, which is always the case
+    with country packages (reported upstream as valhalla/valhalla#6530);
+    3.9.0-5 carries the fix and raises the `exclude_polygons` limits in
+    `valhalla.json` (`max_exclude_polygons_length` 50 000 km,
+    `max_exclude_polygons_vertices` 20 000).
+  - **Measured on jeep-pi, 2026-11-20** (Germany and Austria): Berlin–Vienna
+    868.8 km over Bavaria, 8.5 s fully cold, 1.4 s for a new route to the
+    same destination (also from Dresden). Munich–Salzburg and Passau–Linz
+    needed no second request.
 - Loading and removing countries from the user interface is not built.
 
 **Our own test devices run with DACH** (Germany, Austria, Switzerland):
