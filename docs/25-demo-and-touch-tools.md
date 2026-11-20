@@ -335,7 +335,7 @@ had.
 | `[navigation] replay_file` | `/var/lib/carnine/maps/messe-tour.nmea` | the tour |
 | `[navigation] replay_loop` | `true` | rounds without end |
 | `[navigation] replay_destination_name` | `"Montez"` | the destination's name for the search field; without it street and locality from the names database. Use a name the search finds: in OpenStreetMap the place is "Kunstverein Familie Montez", so "Kunsthalle Montez" finds nothing, while "Montez" also shows that the search finds parts of names |
-| `[navigation] demo_mode` | `true` | tells the frontend it is at the trade fair |
+| `[navigation] demo_mode` | `true` | tells the frontend it is at the trade fair; with the replay as position source the backend refuses a route to an own destination (see below) |
 | `[media] resume_mode` | `"auto-play"` | music starts by itself after power on, from the last playlist; on a fresh card nothing plays until a playlist has been played once |
 
 **The tour** runs from Frankfurt Hauptbahnhof (south side) through Sachsenhausen
@@ -413,6 +413,16 @@ guide describes it in `verhalten.md`, section „Messe-Modus“, and `karte.md`)
   search, with **X** to clear it; typing goes to the search as before. After
   "Abbrechen" the field is empty again; a destination the user picked is not
   overwritten.
+- **No own destination** in trade fair mode
+  ([#174](https://github.com/DerKleinePunk/carnine2/issues/174), since the
+  release after 0.22.0): with `demo_mode` on and the replay as position source,
+  `ComputeRoute` answers `PERMISSION_DENIED`. The map shows "Route konnte nicht
+  berechnet werden" and the tour drives on. Before, a chosen destination was
+  left at once and computed again and again (11 times in 4 min at the trade
+  fair on 07.11.). Other replays stay free to route anywhere: the image's
+  default tour, `run_wsl.sh` and `standstill-nmea.sh`. Locking the
+  destination search itself in trade fair mode is still open in the frontend
+  (#174).
 - **Back to the map after 60 s without a touch** while `demo_mode` is on
   ([#128](https://github.com/DerKleinePunk/carnine2/issues/128),
   `idle_return.dart`). Every touch, also on the keyboard and in dialogs,
