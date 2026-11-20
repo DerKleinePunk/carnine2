@@ -11,6 +11,7 @@ import 'package:local_map/local_map.dart';
 /// with a two-point route.
 class _FakeNavigationService extends pb.NavigationServiceBase {
   final requests = <pb.ComputeRouteRequest>[];
+  final deadlines = <DateTime?>[];
   final prepared = <List<String>>[];
   final announced = <pb.AnnounceRequest>[];
 
@@ -20,6 +21,7 @@ class _FakeNavigationService extends pb.NavigationServiceBase {
     pb.ComputeRouteRequest request,
   ) async {
     requests.add(request);
+    deadlines.add(call.deadline);
     return pb.Route(
       routeId: 'route-1',
       geometry: [
@@ -127,6 +129,21 @@ void main() {
   tearDown(() async {
     await channel.shutdown();
     await server.shutdown();
+  });
+
+  test('a route may take longer than the other calls', () async {
+    final asked = DateTime.now();
+    await provider.route(end: const LatLng(50.76, 9.28));
+
+    final deadline = service.deadlines.single;
+    expect(deadline, isNotNull);
+    expect(
+      deadline!.difference(asked),
+      greaterThan(const Duration(seconds: 30)),
+      reason:
+          'a route closing the border took 8.5 s cold on the Pi, 23 s before #197',
+    );
+    expect(routeCallTimeout, const Duration(seconds: 45));
   });
 
   test('a reroute while driving sends the course at the start', () async {
