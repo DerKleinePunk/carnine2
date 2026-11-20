@@ -91,7 +91,7 @@ User starts playing audio:
 1. UI Widget sends `MediaService.Play` or `PlayPlaylist` via gRPC.
 2. The media player takes the file from the library and starts an FFmpeg
    decoder process that fills a ring buffer.
-3. The cpal output stream plays the buffer through ALSA (card 0). A track
+3. The cpal output stream plays the buffer through ALSA (card 0, or the card `[audio] output_card` names). A track
    counts as finished only when the buffer has played out; then the next one
    starts.
 4. `StreamPlayerEvents` updates the UI's controls and progress.
