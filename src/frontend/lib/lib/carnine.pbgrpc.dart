@@ -1669,6 +1669,11 @@ class NavigationServiceClient extends $grpc.Client {
     return $createUnaryCall(_$getLocationName, request, options: options);
   }
 
+  /// PERMISSION_DENIED in trade fair mode ([navigation] demo_mode with the
+  /// replay as position source): the tour follows its own route, so a route
+  /// to another destination would be left at once and computed again and
+  /// again (#174). The tour's route comes from GetReplayRoute. Other replays
+  /// route anywhere.
   $grpc.ResponseFuture<$0.Route> computeRoute(
     $0.ComputeRouteRequest request, {
     $grpc.CallOptions? options,

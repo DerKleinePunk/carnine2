@@ -41,6 +41,9 @@ const MOVING_MPS: f64 = 1.4;
 /// Instruction language when the request names none.
 const DEFAULT_LANGUAGE: &str = "de-DE";
 
+/// Why ComputeRoute refuses an own destination in trade fair mode (#174).
+const TRADE_FAIR_ROUTE_REFUSED: &str = "trade fair mode: the tour drives its own route, so no route to another destination; switch off trade fair mode (90-messe.toml) for that";
+
 #[derive(Debug, Clone)]
 pub struct NavigationServiceImpl {
     positions: PositionHub,
@@ -541,6 +544,19 @@ impl NavigationService for NavigationServiceImpl {
     ) -> Result<Response<Route>, Status> {
         let request = request.into_inner();
         let destination = coordinate(request.destination, "destination")?;
+        // In trade fair mode the replay drives its fixed tour whatever route
+        // is asked for, so an own destination leaves it at once and the map
+        // computes the route again and again (#174: trade fair 07.11.,
+        // carnine-pc 20.11.). The tour's own route comes from GetReplayRoute.
+        // Other replays (the image's default tour, WSL, standstill demos)
+        // stay free to route anywhere (Michael 20.11., variant B).
+        if self.demo_mode && self.positions.current().source == SourceKind::Replay {
+            warn!(
+                ?destination,
+                "route to an own destination refused in trade fair mode"
+            );
+            return Err(Status::permission_denied(TRADE_FAIR_ROUTE_REFUSED));
+        }
         let heading = match request.origin_heading_degrees {
             Some(heading) if !heading.is_finite() => {
                 return Err(Status::invalid_argument(format!(
@@ -787,22 +803,70 @@ mod tests {
             .into_inner();
         assert_eq!(again.destination_name, "Kunsthalle Montez");
 
-        let typed = service
+        // In trade fair mode an own destination is refused (#174).
+        let refused = service
             .compute_route(Request::new(ComputeRouteRequest {
                 origin: Some(LatLon {
                     latitude: 50.10572,
                     longitude: 8.66410,
                 }),
                 destination: Some(LatLon {
-                    latitude: 50.10818,
-                    longitude: 8.71014,
+                    latitude: 50.11022,
+                    longitude: 8.68354,
                 }),
                 language: None,
                 origin_heading_degrees: None,
             }))
             .await
-            .expect("the fake answers")
-            .into_inner();
+            .expect_err("no own destination while the tour drives");
+        assert_eq!(refused.code(), tonic::Code::PermissionDenied);
+        assert_eq!(refused.message(), TRADE_FAIR_ROUTE_REFUSED);
+
+        // A replay outside trade fair mode (the image's default tour, WSL)
+        // still routes anywhere.
+        let free = NavigationServiceImpl::new(
+            PositionHub::new(SourceKind::Replay),
+            answering_valhalla().await,
+            String::new(),
+        )
+        .with_replay_destination(None, false)
+        .compute_route(Request::new(ComputeRouteRequest {
+            origin: Some(LatLon {
+                latitude: 50.10572,
+                longitude: 8.66410,
+            }),
+            destination: Some(LatLon {
+                latitude: 50.11022,
+                longitude: 8.68354,
+            }),
+            language: None,
+            origin_heading_degrees: None,
+        }))
+        .await;
+        assert!(free.is_ok(), "{free:?}");
+
+        // With a GPS receiver an own destination is routed, and unnamed.
+        let typed = NavigationServiceImpl::new(
+            PositionHub::new(SourceKind::Serial),
+            answering_valhalla().await,
+            String::new(),
+        )
+        .with_replay_destination(Some("Kunsthalle Montez".to_string()), true)
+        .compute_route(Request::new(ComputeRouteRequest {
+            origin: Some(LatLon {
+                latitude: 50.10572,
+                longitude: 8.66410,
+            }),
+            destination: Some(LatLon {
+                latitude: 50.10818,
+                longitude: 8.71014,
+            }),
+            language: None,
+            origin_heading_degrees: None,
+        }))
+        .await
+        .expect("the fake answers")
+        .into_inner();
         assert_eq!(typed.destination_name, "", "only the replay route is named");
     }
 
