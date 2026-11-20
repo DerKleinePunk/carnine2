@@ -1656,7 +1656,7 @@ mod tests {
         assert!(navigation.demo_mode);
         assert_eq!(
             navigation.replay_destination_name.as_deref(),
-            Some("Kunsthalle Montez")
+            Some("Montez")
         );
         assert_eq!(config.media.resume_mode, "auto-play");
         // The map setup still comes from 10-navigation.toml.
