@@ -8,7 +8,7 @@ Namensdatenbank). Die Karte selbst funktioniert auch ohne Backend. Das Image
 bringt keine Kartendaten mit. Die Karte von Hessen installiert man nach dem
 ersten Start ([Kartendaten installieren](nach-der-installation.md#kartendaten-installieren)).
 
-![Karte ohne Route: Suchfeld oben, Knöpfe rechts, darunter „© OpenMapTiles © OpenStreetMap-Mitwirkende“, unten links der Standort](bilder/start.png)
+![Karte ohne Route bei Radmühl: Suchfeld oben, Knöpfe rechts, Höhenlinien mit der Höhe 400, unten rechts „© OpenMapTiles © OpenStreetMap-Mitwirkende“ und „Höhen: EU-DEM (Copernicus), DGM Österreich, USGS“, unten links der Standort](bilder/start.png)
 
 Ganz unten rechts auf der Karte stehen in sechs kurzen Zeilen untereinander
 „© OpenMapTiles © OpenStreetMap-Mitwirkende“ und „Höhen: EU-DEM (Copernicus),
@@ -105,7 +105,7 @@ erreichbar“ (Backend weg, rot).
 
 ## Während der Fahrt
 
-![Navigationsmodus: Abbiegekarte oben links, unten Ankunft, Dauer, Fortschritt, Distanz und ABBRECHEN](bilder/karte-navigation.png)
+![Navigationsmodus: Abbiegekarte oben links, Höhenlinien mit 400 und 450, unten Ankunft, Dauer, Fortschritt, Distanz und ABBRECHEN](bilder/karte-navigation.png)
 
 - **Abbiegekarte** oben links: Manöver-Symbol, Entfernung, „NÄCHSTE
   ABBIEGUNG“ und Straßenname.
