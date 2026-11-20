@@ -238,6 +238,11 @@ service NavigationService {
   // route. Empty fields when nothing is known there or the names database
   // predates September 2026; UNAVAILABLE without a names database.
   rpc GetLocationName (GetLocationNameRequest) returns (LocationName);
+  // PERMISSION_DENIED in trade fair mode ([navigation] demo_mode with the
+  // replay as position source): the tour follows its own route, so a route
+  // to another destination would be left at once and computed again and
+  // again (#174). The tour's route comes from GetReplayRoute. Other replays
+  // route anywhere.
   rpc ComputeRoute (ComputeRouteRequest) returns (Route);
   // The route of the running NMEA replay, map-matched against the recorded
   // fixes, so position and route come from the same recording.
