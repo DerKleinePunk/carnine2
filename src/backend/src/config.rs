@@ -46,7 +46,16 @@ pub struct Config {
     /// backend reports the gear as not configured.
     #[serde(default)]
     pub reverse_gear: ReverseGearConfig,
+    /// Why `config.d/99-ui.toml` (the expert page, #138) was left out at
+    /// start; `None` when it was used or is not there. Never in a file.
+    #[serde(skip)]
+    pub ui_drop_in_error: Option<String>,
 }
+
+/// The drop-in the expert page writes (#138). It is laid over everything
+/// else, last, and left out when the configuration is invalid with it but
+/// valid without it, so the page can never keep the backend from starting.
+pub const UI_DROP_IN: &str = "99-ui.toml";
 
 /// `[voice]`: text to speech for turn announcements (sherpa-onnx).
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
@@ -865,10 +874,51 @@ impl Config {
                 system_path.is_file().then(|| system_path.to_path_buf())
             })
             .unwrap_or_else(|| PathBuf::from("../../resources/config/carnine.toml"));
-        let mut table = read_table(&path)?;
-        for drop_in in Self::drop_in_files(&path)? {
+        let (table, ui) = Self::merged_without_ui(&path)?;
+        let Some(ui) = ui else {
+            return Ok((Self::finish(table, &path, &lookup)?, path));
+        };
+        let mut with_ui = table.clone();
+        let attempt = read_table(&ui).and_then(|overlay| {
+            merge_tables(&mut with_ui, overlay);
+            Self::finish(with_ui, &path, &lookup)
+        });
+        match attempt {
+            Ok(config) => Ok((config, path)),
+            Err(error) => match Self::finish(table, &path, &lookup) {
+                // Never locked out by the expert page: without its file the
+                // backend starts and says why the file was left out.
+                Ok(mut config) => {
+                    config.ui_drop_in_error = Some(format!("{error:#}"));
+                    Ok((config, path))
+                }
+                Err(_) => Err(error),
+            },
+        }
+    }
+
+    /// The main file with every drop-in but [`UI_DROP_IN`] laid over it,
+    /// and that drop-in's path when it is there.
+    fn merged_without_ui(path: &Path) -> Result<(toml::Table, Option<PathBuf>)> {
+        let mut table = read_table(path)?;
+        let mut ui = None;
+        for drop_in in Self::drop_in_files(path)? {
+            if drop_in.file_name().is_some_and(|name| name == UI_DROP_IN) {
+                ui = Some(drop_in);
+                continue;
+            }
             merge_tables(&mut table, read_table(&drop_in)?);
         }
+        Ok((table, ui))
+    }
+
+    /// A merged table as configuration: parsed, with the environment's
+    /// overrides, checked.
+    fn finish(
+        table: toml::Table,
+        path: &Path,
+        lookup: &impl Fn(&str) -> Option<OsString>,
+    ) -> Result<Self> {
         let mut config: Config = toml::Value::Table(table)
             .try_into()
             .with_context(|| format!("failed to parse configuration {}", path.display()))?;
@@ -892,7 +942,41 @@ impl Config {
             })?);
         }
         config.validate()?;
-        Ok((config, path))
+        Ok(config)
+    }
+
+    /// What the configuration at `path` would be with `ui` as its
+    /// [`UI_DROP_IN`]: the same parsing and checks as at start (#138).
+    /// `lookup` is the environment, as for [`Config::load`].
+    pub fn with_ui_drop_in(
+        path: &Path,
+        ui: &toml::Table,
+        lookup: impl Fn(&str) -> Option<OsString>,
+    ) -> Result<Self> {
+        let (mut table, _) = Self::merged_without_ui(path)?;
+        merge_tables(&mut table, ui.clone());
+        Self::finish(table, path, &lookup)
+    }
+
+    /// The main file and its drop-ins one by one, in the order they are
+    /// laid over each other, [`UI_DROP_IN`] last: where a value comes from.
+    pub fn layers(path: &Path) -> Result<Vec<(PathBuf, toml::Table)>> {
+        let mut layers = vec![(path.to_path_buf(), read_table(path)?)];
+        let mut ui = None;
+        for drop_in in Self::drop_in_files(path)? {
+            if drop_in.file_name().is_some_and(|name| name == UI_DROP_IN) {
+                ui = Some(drop_in);
+                continue;
+            }
+            let table = read_table(&drop_in)?;
+            layers.push((drop_in, table));
+        }
+        if let Some(ui) = ui {
+            if let Ok(table) = read_table(&ui) {
+                layers.push((ui, table));
+            }
+        }
+        Ok(layers)
     }
 
     /// Drop-ins for the configuration at `path`: the `*.toml` files in the
@@ -1678,6 +1762,57 @@ mod tests {
             "[navigation]\nposition_source = \"replay\"\n",
         );
         let error = format!("{:#}", load_from(&path).expect_err("replay needs a file"));
+        assert!(error.contains("replay_file"), "{error}");
+        let _ = std::fs::remove_dir_all(path.parent().expect("test directory"));
+    }
+
+    #[test]
+    fn an_invalid_expert_page_file_is_left_out_and_never_locks_out() {
+        // Valid with it: used, no error.
+        let path = configuration_in("ui-valid");
+        write_drop_in(&path, "99-ui.toml", "[logging]\nlevel = \"debug\"\n");
+        let config = load_from(&path).expect("a valid 99-ui.toml applies");
+        assert_eq!(config.logging.level, "debug");
+        assert_eq!(config.ui_drop_in_error, None);
+        let _ = std::fs::remove_dir_all(path.parent().expect("test directory"));
+
+        // Invalid with it, valid without: it is left out, the rest applies.
+        for (name, content, expected) in [
+            (
+                "ui-invalid",
+                "[reverse_gear]\nsource = \"gpio\"\n",
+                "gpio_line",
+            ),
+            ("ui-broken", "[audio\n", "99-ui.toml"),
+        ] {
+            let path = configuration_in(name);
+            write_drop_in(&path, "10-logging.toml", "[logging]\nlevel = \"warn\"\n");
+            write_drop_in(&path, "99-ui.toml", content);
+            let config = load_from(&path).expect("the backend starts without the page's file");
+            assert_eq!(config.logging.level, "warn", "{name}");
+            assert_eq!(
+                config.reverse_gear.source,
+                super::ReverseGearSource::None,
+                "{name}"
+            );
+            let error = config.ui_drop_in_error.expect("says why it was left out");
+            assert!(error.contains(expected), "{name}: {error}");
+            let _ = std::fs::remove_dir_all(path.parent().expect("test directory"));
+        }
+
+        // Invalid without it as well: not the page's doing, start fails as
+        // before, with the real reason.
+        let path = configuration_in("ui-other");
+        write_drop_in(
+            &path,
+            "10-navigation.toml",
+            "[navigation]\nposition_source = \"replay\"\n",
+        );
+        write_drop_in(&path, "99-ui.toml", "[audio]\nrear_percent = 50\n");
+        let error = format!(
+            "{:#}",
+            load_from(&path).expect_err("other drop-in is invalid")
+        );
         assert!(error.contains("replay_file"), "{error}");
         let _ = std::fs::remove_dir_all(path.parent().expect("test directory"));
     }

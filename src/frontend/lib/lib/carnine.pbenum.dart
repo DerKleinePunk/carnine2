@@ -472,5 +472,53 @@ class ControlType extends $pb.ProtobufEnum {
   const ControlType._(super.value, super.name);
 }
 
+class InstallSettingKind extends $pb.ProtobufEnum {
+  static const InstallSettingKind INSTALL_SETTING_KIND_UNSPECIFIED =
+      InstallSettingKind._(
+          0, _omitEnumNames ? '' : 'INSTALL_SETTING_KIND_UNSPECIFIED');
+
+  /// "true" or "false".
+  static const InstallSettingKind INSTALL_SETTING_KIND_BOOL =
+      InstallSettingKind._(
+          1, _omitEnumNames ? '' : 'INSTALL_SETTING_KIND_BOOL');
+
+  /// A whole number between min and max, in unit.
+  static const InstallSettingKind INSTALL_SETTING_KIND_INTEGER =
+      InstallSettingKind._(
+          2, _omitEnumNames ? '' : 'INSTALL_SETTING_KIND_INTEGER');
+
+  /// One of choices.
+  static const InstallSettingKind INSTALL_SETTING_KIND_CHOICE =
+      InstallSettingKind._(
+          3, _omitEnumNames ? '' : 'INSTALL_SETTING_KIND_CHOICE');
+
+  /// Free text up to max_length characters.
+  static const InstallSettingKind INSTALL_SETTING_KIND_TEXT =
+      InstallSettingKind._(
+          4, _omitEnumNames ? '' : 'INSTALL_SETTING_KIND_TEXT');
+
+  /// One of choices (the sound cards of this machine), or another card id
+  /// that is not plugged in right now.
+  static const InstallSettingKind INSTALL_SETTING_KIND_SOUND_CARD =
+      InstallSettingKind._(
+          5, _omitEnumNames ? '' : 'INSTALL_SETTING_KIND_SOUND_CARD');
+
+  static const $core.List<InstallSettingKind> values = <InstallSettingKind>[
+    INSTALL_SETTING_KIND_UNSPECIFIED,
+    INSTALL_SETTING_KIND_BOOL,
+    INSTALL_SETTING_KIND_INTEGER,
+    INSTALL_SETTING_KIND_CHOICE,
+    INSTALL_SETTING_KIND_TEXT,
+    INSTALL_SETTING_KIND_SOUND_CARD,
+  ];
+
+  static final $core.List<InstallSettingKind?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 5);
+  static InstallSettingKind? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const InstallSettingKind._(super.value, super.name);
+}
+
 const $core.bool _omitEnumNames =
     $core.bool.fromEnvironment('protobuf.omit_enum_names');

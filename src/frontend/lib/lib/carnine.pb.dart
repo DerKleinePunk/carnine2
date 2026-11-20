@@ -6313,6 +6313,547 @@ class SetControlStateRequest extends $pb.GeneratedMessage {
   void clearLevel() => $_clearField(3);
 }
 
+class InstallSettingChoice extends $pb.GeneratedMessage {
+  factory InstallSettingChoice({
+    $core.String? value,
+    $core.String? label,
+  }) {
+    final result = create();
+    if (value != null) result.value = value;
+    if (label != null) result.label = label;
+    return result;
+  }
+
+  InstallSettingChoice._();
+
+  factory InstallSettingChoice.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory InstallSettingChoice.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'InstallSettingChoice',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'value')
+    ..aOS(2, _omitFieldNames ? '' : 'label')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  InstallSettingChoice clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  InstallSettingChoice copyWith(void Function(InstallSettingChoice) updates) =>
+      super.copyWith((message) => updates(message as InstallSettingChoice))
+          as InstallSettingChoice;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static InstallSettingChoice create() => InstallSettingChoice._();
+  @$core.override
+  InstallSettingChoice createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static InstallSettingChoice getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<InstallSettingChoice>(create);
+  static InstallSettingChoice? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get value => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set value($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasValue() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearValue() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get label => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set label($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasLabel() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLabel() => $_clearField(2);
+}
+
+class InstallSetting extends $pb.GeneratedMessage {
+  factory InstallSetting({
+    $core.String? key,
+    $core.String? group,
+    $core.String? label,
+    $core.String? help,
+    InstallSettingKind? kind,
+    $fixnum.Int64? min,
+    $fixnum.Int64? max,
+    $core.String? unit,
+    $core.int? maxLength,
+    $core.Iterable<InstallSettingChoice>? choices,
+    $core.String? defaultValue,
+    $core.bool? optional,
+    $core.String? value,
+    $core.String? origin,
+    $core.bool? restartPending,
+  }) {
+    final result = create();
+    if (key != null) result.key = key;
+    if (group != null) result.group = group;
+    if (label != null) result.label = label;
+    if (help != null) result.help = help;
+    if (kind != null) result.kind = kind;
+    if (min != null) result.min = min;
+    if (max != null) result.max = max;
+    if (unit != null) result.unit = unit;
+    if (maxLength != null) result.maxLength = maxLength;
+    if (choices != null) result.choices.addAll(choices);
+    if (defaultValue != null) result.defaultValue = defaultValue;
+    if (optional != null) result.optional = optional;
+    if (value != null) result.value = value;
+    if (origin != null) result.origin = origin;
+    if (restartPending != null) result.restartPending = restartPending;
+    return result;
+  }
+
+  InstallSetting._();
+
+  factory InstallSetting.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory InstallSetting.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'InstallSetting',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'key')
+    ..aOS(2, _omitFieldNames ? '' : 'group')
+    ..aOS(3, _omitFieldNames ? '' : 'label')
+    ..aOS(4, _omitFieldNames ? '' : 'help')
+    ..aE<InstallSettingKind>(5, _omitFieldNames ? '' : 'kind',
+        enumValues: InstallSettingKind.values)
+    ..aInt64(6, _omitFieldNames ? '' : 'min')
+    ..aInt64(7, _omitFieldNames ? '' : 'max')
+    ..aOS(8, _omitFieldNames ? '' : 'unit')
+    ..aI(9, _omitFieldNames ? '' : 'maxLength', fieldType: $pb.PbFieldType.OU3)
+    ..pPM<InstallSettingChoice>(10, _omitFieldNames ? '' : 'choices',
+        subBuilder: InstallSettingChoice.create)
+    ..aOS(11, _omitFieldNames ? '' : 'defaultValue')
+    ..aOB(12, _omitFieldNames ? '' : 'optional')
+    ..aOS(13, _omitFieldNames ? '' : 'value')
+    ..aOS(14, _omitFieldNames ? '' : 'origin')
+    ..aOB(15, _omitFieldNames ? '' : 'restartPending')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  InstallSetting clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  InstallSetting copyWith(void Function(InstallSetting) updates) =>
+      super.copyWith((message) => updates(message as InstallSetting))
+          as InstallSetting;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static InstallSetting create() => InstallSetting._();
+  @$core.override
+  InstallSetting createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static InstallSetting getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<InstallSetting>(create);
+  static InstallSetting? _defaultInstance;
+
+  /// Dotted key as in the configuration file, e.g. "reverse_gear.gpio_line".
+  @$pb.TagNumber(1)
+  $core.String get key => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set key($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasKey() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearKey() => $_clearField(1);
+
+  /// German heading, label and help text for the page.
+  @$pb.TagNumber(2)
+  $core.String get group => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set group($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasGroup() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearGroup() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get label => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set label($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasLabel() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLabel() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get help => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set help($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasHelp() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearHelp() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  InstallSettingKind get kind => $_getN(4);
+  @$pb.TagNumber(5)
+  set kind(InstallSettingKind value) => $_setField(5, value);
+  @$pb.TagNumber(5)
+  $core.bool hasKind() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearKind() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get min => $_getI64(5);
+  @$pb.TagNumber(6)
+  set min($fixnum.Int64 value) => $_setInt64(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasMin() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearMin() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $fixnum.Int64 get max => $_getI64(6);
+  @$pb.TagNumber(7)
+  set max($fixnum.Int64 value) => $_setInt64(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasMax() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearMax() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get unit => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set unit($core.String value) => $_setString(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasUnit() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearUnit() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.int get maxLength => $_getIZ(8);
+  @$pb.TagNumber(9)
+  set maxLength($core.int value) => $_setUnsignedInt32(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasMaxLength() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearMaxLength() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  $pb.PbList<InstallSettingChoice> get choices => $_getList(9);
+
+  /// What applies without any file setting it; empty when it is then unset.
+  @$pb.TagNumber(11)
+  $core.String get defaultValue => $_getSZ(10);
+  @$pb.TagNumber(11)
+  set defaultValue($core.String value) => $_setString(10, value);
+  @$pb.TagNumber(11)
+  $core.bool hasDefaultValue() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearDefaultValue() => $_clearField(11);
+
+  /// May be unset: resetting it leaves it empty.
+  @$pb.TagNumber(12)
+  $core.bool get optional => $_getBF(11);
+  @$pb.TagNumber(12)
+  set optional($core.bool value) => $_setBool(11, value);
+  @$pb.TagNumber(12)
+  $core.bool hasOptional() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearOptional() => $_clearField(12);
+
+  /// What the configuration files say, as text; the default when none does.
+  @$pb.TagNumber(13)
+  $core.String get value => $_getSZ(12);
+  @$pb.TagNumber(13)
+  set value($core.String value) => $_setString(12, value);
+  @$pb.TagNumber(13)
+  $core.bool hasValue() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearValue() => $_clearField(13);
+
+  /// The file that sets the value; empty for the default.
+  @$pb.TagNumber(14)
+  $core.String get origin => $_getSZ(13);
+  @$pb.TagNumber(14)
+  set origin($core.String value) => $_setString(13, value);
+  @$pb.TagNumber(14)
+  $core.bool hasOrigin() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearOrigin() => $_clearField(14);
+
+  /// value differs from what the running backend uses.
+  @$pb.TagNumber(15)
+  $core.bool get restartPending => $_getBF(14);
+  @$pb.TagNumber(15)
+  set restartPending($core.bool value) => $_setBool(14, value);
+  @$pb.TagNumber(15)
+  $core.bool hasRestartPending() => $_has(14);
+  @$pb.TagNumber(15)
+  void clearRestartPending() => $_clearField(15);
+}
+
+class InstallSettings extends $pb.GeneratedMessage {
+  factory InstallSettings({
+    $core.Iterable<InstallSetting>? settings,
+    $core.bool? restartRequired,
+    $core.String? uiDropInError,
+    $core.String? uiDropInPath,
+  }) {
+    final result = create();
+    if (settings != null) result.settings.addAll(settings);
+    if (restartRequired != null) result.restartRequired = restartRequired;
+    if (uiDropInError != null) result.uiDropInError = uiDropInError;
+    if (uiDropInPath != null) result.uiDropInPath = uiDropInPath;
+    return result;
+  }
+
+  InstallSettings._();
+
+  factory InstallSettings.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory InstallSettings.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'InstallSettings',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..pPM<InstallSetting>(1, _omitFieldNames ? '' : 'settings',
+        subBuilder: InstallSetting.create)
+    ..aOB(2, _omitFieldNames ? '' : 'restartRequired')
+    ..aOS(3, _omitFieldNames ? '' : 'uiDropInError')
+    ..aOS(4, _omitFieldNames ? '' : 'uiDropInPath')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  InstallSettings clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  InstallSettings copyWith(void Function(InstallSettings) updates) =>
+      super.copyWith((message) => updates(message as InstallSettings))
+          as InstallSettings;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static InstallSettings create() => InstallSettings._();
+  @$core.override
+  InstallSettings createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static InstallSettings getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<InstallSettings>(create);
+  static InstallSettings? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<InstallSetting> get settings => $_getList(0);
+
+  /// Some value waits for the backend to start again.
+  @$pb.TagNumber(2)
+  $core.bool get restartRequired => $_getBF(1);
+  @$pb.TagNumber(2)
+  set restartRequired($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasRestartRequired() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearRestartRequired() => $_clearField(2);
+
+  /// Set when the backend left out 99-ui.toml at start because the
+  /// configuration was invalid with it; the values before it are active.
+  @$pb.TagNumber(3)
+  $core.String get uiDropInError => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set uiDropInError($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasUiDropInError() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearUiDropInError() => $_clearField(3);
+
+  /// Where the page's values are written.
+  @$pb.TagNumber(4)
+  $core.String get uiDropInPath => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set uiDropInPath($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasUiDropInPath() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearUiDropInPath() => $_clearField(4);
+}
+
+enum InstallSettingChange_Change { value, reset, notSet }
+
+class InstallSettingChange extends $pb.GeneratedMessage {
+  factory InstallSettingChange({
+    $core.String? key,
+    $core.String? value,
+    $core.bool? reset,
+  }) {
+    final result = create();
+    if (key != null) result.key = key;
+    if (value != null) result.value = value;
+    if (reset != null) result.reset = reset;
+    return result;
+  }
+
+  InstallSettingChange._();
+
+  factory InstallSettingChange.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory InstallSettingChange.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, InstallSettingChange_Change>
+      _InstallSettingChange_ChangeByTag = {
+    2: InstallSettingChange_Change.value,
+    3: InstallSettingChange_Change.reset,
+    0: InstallSettingChange_Change.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'InstallSettingChange',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..oo(0, [2, 3])
+    ..aOS(1, _omitFieldNames ? '' : 'key')
+    ..aOS(2, _omitFieldNames ? '' : 'value')
+    ..aOB(3, _omitFieldNames ? '' : 'reset')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  InstallSettingChange clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  InstallSettingChange copyWith(void Function(InstallSettingChange) updates) =>
+      super.copyWith((message) => updates(message as InstallSettingChange))
+          as InstallSettingChange;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static InstallSettingChange create() => InstallSettingChange._();
+  @$core.override
+  InstallSettingChange createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static InstallSettingChange getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<InstallSettingChange>(create);
+  static InstallSettingChange? _defaultInstance;
+
+  @$pb.TagNumber(2)
+  @$pb.TagNumber(3)
+  InstallSettingChange_Change whichChange() =>
+      _InstallSettingChange_ChangeByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(2)
+  @$pb.TagNumber(3)
+  void clearChange() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  $core.String get key => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set key($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasKey() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearKey() => $_clearField(1);
+
+  /// The new value as text, as InstallSetting.value shows it.
+  @$pb.TagNumber(2)
+  $core.String get value => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set value($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasValue() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearValue() => $_clearField(2);
+
+  /// Remove the value from the page's file: the other files or the
+  /// default apply again.
+  @$pb.TagNumber(3)
+  $core.bool get reset => $_getBF(2);
+  @$pb.TagNumber(3)
+  set reset($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasReset() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearReset() => $_clearField(3);
+}
+
+class SaveInstallSettingsRequest extends $pb.GeneratedMessage {
+  factory SaveInstallSettingsRequest({
+    $core.String? password,
+    $core.Iterable<InstallSettingChange>? changes,
+  }) {
+    final result = create();
+    if (password != null) result.password = password;
+    if (changes != null) result.changes.addAll(changes);
+    return result;
+  }
+
+  SaveInstallSettingsRequest._();
+
+  factory SaveInstallSettingsRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SaveInstallSettingsRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SaveInstallSettingsRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'password')
+    ..pPM<InstallSettingChange>(2, _omitFieldNames ? '' : 'changes',
+        subBuilder: InstallSettingChange.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SaveInstallSettingsRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SaveInstallSettingsRequest copyWith(
+          void Function(SaveInstallSettingsRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as SaveInstallSettingsRequest))
+          as SaveInstallSettingsRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SaveInstallSettingsRequest create() => SaveInstallSettingsRequest._();
+  @$core.override
+  SaveInstallSettingsRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SaveInstallSettingsRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SaveInstallSettingsRequest>(create);
+  static SaveInstallSettingsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get password => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set password($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPassword() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPassword() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $pb.PbList<InstallSettingChange> get changes => $_getList(1);
+}
+
 const $core.bool _omitFieldNames =
     $core.bool.fromEnvironment('protobuf.omit_field_names');
 const $core.bool _omitMessageNames =

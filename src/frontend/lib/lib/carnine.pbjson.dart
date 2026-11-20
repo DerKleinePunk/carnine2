@@ -271,6 +271,27 @@ final $typed_data.Uint8List controlTypeDescriptor = $convert.base64Decode(
     'CgtDb250cm9sVHlwZRIcChhDT05UUk9MX1RZUEVfVU5TUEVDSUZJRUQQABIXChNDT05UUk9MX1'
     'RZUEVfU1dJVENIEAESFwoTQ09OVFJPTF9UWVBFX1NMSURFUhAC');
 
+@$core.Deprecated('Use installSettingKindDescriptor instead')
+const InstallSettingKind$json = {
+  '1': 'InstallSettingKind',
+  '2': [
+    {'1': 'INSTALL_SETTING_KIND_UNSPECIFIED', '2': 0},
+    {'1': 'INSTALL_SETTING_KIND_BOOL', '2': 1},
+    {'1': 'INSTALL_SETTING_KIND_INTEGER', '2': 2},
+    {'1': 'INSTALL_SETTING_KIND_CHOICE', '2': 3},
+    {'1': 'INSTALL_SETTING_KIND_TEXT', '2': 4},
+    {'1': 'INSTALL_SETTING_KIND_SOUND_CARD', '2': 5},
+  ],
+};
+
+/// Descriptor for `InstallSettingKind`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List installSettingKindDescriptor = $convert.base64Decode(
+    'ChJJbnN0YWxsU2V0dGluZ0tpbmQSJAogSU5TVEFMTF9TRVRUSU5HX0tJTkRfVU5TUEVDSUZJRU'
+    'QQABIdChlJTlNUQUxMX1NFVFRJTkdfS0lORF9CT09MEAESIAocSU5TVEFMTF9TRVRUSU5HX0tJ'
+    'TkRfSU5URUdFUhACEh8KG0lOU1RBTExfU0VUVElOR19LSU5EX0NIT0lDRRADEh0KGUlOU1RBTE'
+    'xfU0VUVElOR19LSU5EX1RFWFQQBBIjCh9JTlNUQUxMX1NFVFRJTkdfS0lORF9TT1VORF9DQVJE'
+    'EAU=');
+
 @$core.Deprecated('Use audioOutputDescriptor instead')
 const AudioOutput$json = {
   '1': 'AudioOutput',
@@ -2150,3 +2171,130 @@ final $typed_data.Uint8List setControlStateRequestDescriptor =
     $convert.base64Decode(
         'ChZTZXRDb250cm9sU3RhdGVSZXF1ZXN0Eg4KAmlkGAEgASgJUgJpZBIQCgJvbhgCIAEoCEgAUg'
         'JvbhIWCgVsZXZlbBgDIAEoDUgAUgVsZXZlbEIHCgV2YWx1ZQ==');
+
+@$core.Deprecated('Use installSettingChoiceDescriptor instead')
+const InstallSettingChoice$json = {
+  '1': 'InstallSettingChoice',
+  '2': [
+    {'1': 'value', '3': 1, '4': 1, '5': 9, '10': 'value'},
+    {'1': 'label', '3': 2, '4': 1, '5': 9, '10': 'label'},
+  ],
+};
+
+/// Descriptor for `InstallSettingChoice`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List installSettingChoiceDescriptor = $convert.base64Decode(
+    'ChRJbnN0YWxsU2V0dGluZ0Nob2ljZRIUCgV2YWx1ZRgBIAEoCVIFdmFsdWUSFAoFbGFiZWwYAi'
+    'ABKAlSBWxhYmVs');
+
+@$core.Deprecated('Use installSettingDescriptor instead')
+const InstallSetting$json = {
+  '1': 'InstallSetting',
+  '2': [
+    {'1': 'key', '3': 1, '4': 1, '5': 9, '10': 'key'},
+    {'1': 'group', '3': 2, '4': 1, '5': 9, '10': 'group'},
+    {'1': 'label', '3': 3, '4': 1, '5': 9, '10': 'label'},
+    {'1': 'help', '3': 4, '4': 1, '5': 9, '10': 'help'},
+    {
+      '1': 'kind',
+      '3': 5,
+      '4': 1,
+      '5': 14,
+      '6': '.carnine.InstallSettingKind',
+      '10': 'kind'
+    },
+    {'1': 'min', '3': 6, '4': 1, '5': 3, '10': 'min'},
+    {'1': 'max', '3': 7, '4': 1, '5': 3, '10': 'max'},
+    {'1': 'unit', '3': 8, '4': 1, '5': 9, '10': 'unit'},
+    {'1': 'max_length', '3': 9, '4': 1, '5': 13, '10': 'maxLength'},
+    {
+      '1': 'choices',
+      '3': 10,
+      '4': 3,
+      '5': 11,
+      '6': '.carnine.InstallSettingChoice',
+      '10': 'choices'
+    },
+    {'1': 'default_value', '3': 11, '4': 1, '5': 9, '10': 'defaultValue'},
+    {'1': 'optional', '3': 12, '4': 1, '5': 8, '10': 'optional'},
+    {'1': 'value', '3': 13, '4': 1, '5': 9, '10': 'value'},
+    {'1': 'origin', '3': 14, '4': 1, '5': 9, '10': 'origin'},
+    {'1': 'restart_pending', '3': 15, '4': 1, '5': 8, '10': 'restartPending'},
+  ],
+};
+
+/// Descriptor for `InstallSetting`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List installSettingDescriptor = $convert.base64Decode(
+    'Cg5JbnN0YWxsU2V0dGluZxIQCgNrZXkYASABKAlSA2tleRIUCgVncm91cBgCIAEoCVIFZ3JvdX'
+    'ASFAoFbGFiZWwYAyABKAlSBWxhYmVsEhIKBGhlbHAYBCABKAlSBGhlbHASLwoEa2luZBgFIAEo'
+    'DjIbLmNhcm5pbmUuSW5zdGFsbFNldHRpbmdLaW5kUgRraW5kEhAKA21pbhgGIAEoA1IDbWluEh'
+    'AKA21heBgHIAEoA1IDbWF4EhIKBHVuaXQYCCABKAlSBHVuaXQSHQoKbWF4X2xlbmd0aBgJIAEo'
+    'DVIJbWF4TGVuZ3RoEjcKB2Nob2ljZXMYCiADKAsyHS5jYXJuaW5lLkluc3RhbGxTZXR0aW5nQ2'
+    'hvaWNlUgdjaG9pY2VzEiMKDWRlZmF1bHRfdmFsdWUYCyABKAlSDGRlZmF1bHRWYWx1ZRIaCghv'
+    'cHRpb25hbBgMIAEoCFIIb3B0aW9uYWwSFAoFdmFsdWUYDSABKAlSBXZhbHVlEhYKBm9yaWdpbh'
+    'gOIAEoCVIGb3JpZ2luEicKD3Jlc3RhcnRfcGVuZGluZxgPIAEoCFIOcmVzdGFydFBlbmRpbmc=');
+
+@$core.Deprecated('Use installSettingsDescriptor instead')
+const InstallSettings$json = {
+  '1': 'InstallSettings',
+  '2': [
+    {
+      '1': 'settings',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.carnine.InstallSetting',
+      '10': 'settings'
+    },
+    {'1': 'restart_required', '3': 2, '4': 1, '5': 8, '10': 'restartRequired'},
+    {'1': 'ui_drop_in_error', '3': 3, '4': 1, '5': 9, '10': 'uiDropInError'},
+    {'1': 'ui_drop_in_path', '3': 4, '4': 1, '5': 9, '10': 'uiDropInPath'},
+  ],
+};
+
+/// Descriptor for `InstallSettings`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List installSettingsDescriptor = $convert.base64Decode(
+    'Cg9JbnN0YWxsU2V0dGluZ3MSMwoIc2V0dGluZ3MYASADKAsyFy5jYXJuaW5lLkluc3RhbGxTZX'
+    'R0aW5nUghzZXR0aW5ncxIpChByZXN0YXJ0X3JlcXVpcmVkGAIgASgIUg9yZXN0YXJ0UmVxdWly'
+    'ZWQSJwoQdWlfZHJvcF9pbl9lcnJvchgDIAEoCVINdWlEcm9wSW5FcnJvchIlCg91aV9kcm9wX2'
+    'luX3BhdGgYBCABKAlSDHVpRHJvcEluUGF0aA==');
+
+@$core.Deprecated('Use installSettingChangeDescriptor instead')
+const InstallSettingChange$json = {
+  '1': 'InstallSettingChange',
+  '2': [
+    {'1': 'key', '3': 1, '4': 1, '5': 9, '10': 'key'},
+    {'1': 'value', '3': 2, '4': 1, '5': 9, '9': 0, '10': 'value'},
+    {'1': 'reset', '3': 3, '4': 1, '5': 8, '9': 0, '10': 'reset'},
+  ],
+  '8': [
+    {'1': 'change'},
+  ],
+};
+
+/// Descriptor for `InstallSettingChange`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List installSettingChangeDescriptor = $convert.base64Decode(
+    'ChRJbnN0YWxsU2V0dGluZ0NoYW5nZRIQCgNrZXkYASABKAlSA2tleRIWCgV2YWx1ZRgCIAEoCU'
+    'gAUgV2YWx1ZRIWCgVyZXNldBgDIAEoCEgAUgVyZXNldEIICgZjaGFuZ2U=');
+
+@$core.Deprecated('Use saveInstallSettingsRequestDescriptor instead')
+const SaveInstallSettingsRequest$json = {
+  '1': 'SaveInstallSettingsRequest',
+  '2': [
+    {'1': 'password', '3': 1, '4': 1, '5': 9, '10': 'password'},
+    {
+      '1': 'changes',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.carnine.InstallSettingChange',
+      '10': 'changes'
+    },
+  ],
+};
+
+/// Descriptor for `SaveInstallSettingsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List saveInstallSettingsRequestDescriptor =
+    $convert.base64Decode(
+        'ChpTYXZlSW5zdGFsbFNldHRpbmdzUmVxdWVzdBIaCghwYXNzd29yZBgBIAEoCVIIcGFzc3dvcm'
+        'QSNwoHY2hhbmdlcxgCIAMoCzIdLmNhcm5pbmUuSW5zdGFsbFNldHRpbmdDaGFuZ2VSB2NoYW5n'
+        'ZXM=');

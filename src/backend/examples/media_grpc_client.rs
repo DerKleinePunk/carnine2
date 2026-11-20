@@ -15,16 +15,18 @@ pub mod carnine {
 
 use carnine::{
     audio_service_client::AudioServiceClient, camera_service_client::CameraServiceClient,
-    control_service_client::ControlServiceClient, get_cover_art_request::Target as CoverArtTarget,
-    media_service_client::MediaServiceClient, navigation_service_client::NavigationServiceClient,
-    system_service_client::SystemServiceClient, AddPlaylistEntryRequest, AnnounceRequest,
-    AnnouncementPriority, CameraNorm, CameraSettings, ComputeRouteRequest, CreatePlaylistRequest,
-    DeletePlaylistRequest, DisplayBrightness, Empty, ExitPasswordRequest, FixState,
-    GetCoverArtRequest, GetLocationNameRequest, GetPlaylistRequest, GetReplayRouteRequest,
-    ImportMusicVolumeRequest, LatLon, LibraryEventType, NavigationStatus, PlayPlaylistRequest,
-    PlayQueueEntryRequest, PlayRequest, PositionFix, PositionSourceKind, PowerSupplyState,
-    PowerSupplyStatus, PrepareAnnouncementsRequest, RemovePlaylistEntryRequest,
-    RenamePlaylistRequest, RepeatMode, RescanMediaRequest, ReverseGear, ReverseGearStatus, Route,
+    config_service_client::ConfigServiceClient, control_service_client::ControlServiceClient,
+    get_cover_art_request::Target as CoverArtTarget,
+    install_setting_change::Change as InstallChange, media_service_client::MediaServiceClient,
+    navigation_service_client::NavigationServiceClient, system_service_client::SystemServiceClient,
+    AddPlaylistEntryRequest, AnnounceRequest, AnnouncementPriority, CameraNorm, CameraSettings,
+    ComputeRouteRequest, CreatePlaylistRequest, DeletePlaylistRequest, DisplayBrightness, Empty,
+    ExitPasswordRequest, FixState, GetCoverArtRequest, GetLocationNameRequest, GetPlaylistRequest,
+    GetReplayRouteRequest, ImportMusicVolumeRequest, InstallSettingChange, InstallSettings, LatLon,
+    LibraryEventType, NavigationStatus, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest,
+    PositionFix, PositionSourceKind, PowerSupplyState, PowerSupplyStatus,
+    PrepareAnnouncementsRequest, RemovePlaylistEntryRequest, RenamePlaylistRequest, RepeatMode,
+    RescanMediaRequest, ReverseGear, ReverseGearStatus, Route, SaveInstallSettingsRequest,
     SearchMediaRequest, SearchPlacesRequest, SeekRequest, SetDisplayBrightnessRequest,
     SetExitPasswordRequest, SetRepeatModeRequest, SetReverseGearRequest, SetShuffleModeRequest,
     SetTrackRecordingRequest, SetVoiceSettingsRequest, SetVolumeRequest, SystemMetrics,
@@ -104,6 +106,8 @@ async fn main() -> Result<()> {
         "save-traffic" => save_traffic(&endpoint).await?,
         "verify-exit-password" => verify_exit_password(&endpoint).await?,
         "set-exit-password" => set_exit_password(&endpoint).await?,
+        "install-settings" => get_install_settings(&endpoint).await?,
+        "save-install-settings" => save_install_settings(&endpoint).await?,
         "nav-status" => get_navigation_status(&endpoint).await?,
         "positions" => stream_positions(&endpoint).await?,
         "places" => search_places(&endpoint).await?,
@@ -639,6 +643,96 @@ async fn set_exit_password(endpoint: &str) -> Result<()> {
         .into_inner();
     println!("{}: {}", response.success, response.message);
     Ok(())
+}
+
+/// `install-settings` (#138): every installation value of the expert page
+/// with its type, where it comes from and whether it waits for a restart.
+async fn get_install_settings(endpoint: &str) -> Result<()> {
+    let mut client = ConfigServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let settings = client.get_install_settings(Empty {}).await?.into_inner();
+    print_install_settings(&settings);
+    Ok(())
+}
+
+/// `save-install-settings <password> key=value … key …`: `key=value` sets a
+/// value, a bare `key` removes it from the page's file (#138). Prints the
+/// values afterwards; they apply after a restart of the backend.
+async fn save_install_settings(endpoint: &str) -> Result<()> {
+    let password = env::args()
+        .nth(3)
+        .context("save-install-settings requires the exit password")?;
+    let changes: Vec<InstallSettingChange> = env::args()
+        .skip(4)
+        .map(|argument| match argument.split_once('=') {
+            Some((key, value)) => InstallSettingChange {
+                key: key.to_string(),
+                change: Some(InstallChange::Value(value.to_string())),
+            },
+            None => InstallSettingChange {
+                key: argument,
+                change: Some(InstallChange::Reset(true)),
+            },
+        })
+        .collect();
+    if changes.is_empty() {
+        bail!("save-install-settings needs at least one key=value or key to reset");
+    }
+    let mut client = ConfigServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let settings = client
+        .save_install_settings(SaveInstallSettingsRequest { password, changes })
+        .await?
+        .into_inner();
+    print_install_settings(&settings);
+    Ok(())
+}
+
+fn print_install_settings(settings: &InstallSettings) {
+    let mut group = "";
+    for setting in &settings.settings {
+        if setting.group != group {
+            group = &setting.group;
+            println!("[{group}]");
+        }
+        let kind = match setting.kind() {
+            carnine::InstallSettingKind::Integer => {
+                format!("{}..{} {}", setting.min, setting.max, setting.unit)
+                    .trim_end()
+                    .to_string()
+            }
+            carnine::InstallSettingKind::Choice | carnine::InstallSettingKind::SoundCard => {
+                let values: Vec<&str> = setting.choices.iter().map(|c| c.value.as_str()).collect();
+                format!("{:?}", values)
+            }
+            other => other
+                .as_str_name()
+                .trim_start_matches("INSTALL_SETTING_KIND_")
+                .to_lowercase(),
+        };
+        let origin = if setting.origin.is_empty() {
+            "default"
+        } else {
+            setting.origin.as_str()
+        };
+        println!(
+            "  {}={:?} ({}) from {origin}{} – {}",
+            setting.key,
+            setting.value,
+            kind,
+            if setting.restart_pending {
+                " [restart pending]"
+            } else {
+                ""
+            },
+            setting.label
+        );
+    }
+    println!(
+        "file={} restart_required={}",
+        settings.ui_drop_in_path, settings.restart_required
+    );
+    if !settings.ui_drop_in_error.is_empty() {
+        println!("LEFT OUT AT START (invalid): {}", settings.ui_drop_in_error);
+    }
 }
 
 /// `save-language <code>`, e.g. `save-language en`; without a code it clears

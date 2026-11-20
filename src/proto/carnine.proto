@@ -86,6 +86,17 @@ message AudioOutputs {
 
 service ConfigService {
   rpc GetConfiguration (Empty) returns (Configuration);
+  // Installation values of the expert page (#138): the schema the page
+  // builds its fields from, with each value, where it comes from and
+  // whether it waits for a restart. Secrets are never part of it.
+  rpc GetInstallSettings (Empty) returns (InstallSettings);
+  // Writes the changes to config.d/99-ui.toml after checking the whole
+  // configuration with them; the previous file is kept as 99-ui.toml.bak.
+  // Values take effect when the backend starts again. Needs the exit
+  // password: PERMISSION_DENIED when it is wrong, INVALID_ARGUMENT for an
+  // unknown key, a value of the wrong type or a configuration that would not
+  // start (nothing is written then), INTERNAL when the file cannot be written.
+  rpc SaveInstallSettings (SaveInstallSettingsRequest) returns (InstallSettings);
   // UpdateConfiguration was removed on 2026-11-20: no client used it, and it
   // wrote the sections the message does not carry back empty.
 }
@@ -916,4 +927,76 @@ message SetControlStateRequest {
     bool on = 2;
     uint32 level = 3;
   }
+}
+
+enum InstallSettingKind {
+  INSTALL_SETTING_KIND_UNSPECIFIED = 0;
+  // "true" or "false".
+  INSTALL_SETTING_KIND_BOOL = 1;
+  // A whole number between min and max, in unit.
+  INSTALL_SETTING_KIND_INTEGER = 2;
+  // One of choices.
+  INSTALL_SETTING_KIND_CHOICE = 3;
+  // Free text up to max_length characters.
+  INSTALL_SETTING_KIND_TEXT = 4;
+  // One of choices (the sound cards of this machine), or another card id
+  // that is not plugged in right now.
+  INSTALL_SETTING_KIND_SOUND_CARD = 5;
+}
+
+message InstallSettingChoice {
+  string value = 1;
+  string label = 2;
+}
+
+message InstallSetting {
+  // Dotted key as in the configuration file, e.g. "reverse_gear.gpio_line".
+  string key = 1;
+  // German heading, label and help text for the page.
+  string group = 2;
+  string label = 3;
+  string help = 4;
+  InstallSettingKind kind = 5;
+  int64 min = 6;
+  int64 max = 7;
+  string unit = 8;
+  uint32 max_length = 9;
+  repeated InstallSettingChoice choices = 10;
+  // What applies without any file setting it; empty when it is then unset.
+  string default_value = 11;
+  // May be unset: resetting it leaves it empty.
+  bool optional = 12;
+  // What the configuration files say, as text; the default when none does.
+  string value = 13;
+  // The file that sets the value; empty for the default.
+  string origin = 14;
+  // value differs from what the running backend uses.
+  bool restart_pending = 15;
+}
+
+message InstallSettings {
+  repeated InstallSetting settings = 1;
+  // Some value waits for the backend to start again.
+  bool restart_required = 2;
+  // Set when the backend left out 99-ui.toml at start because the
+  // configuration was invalid with it; the values before it are active.
+  string ui_drop_in_error = 3;
+  // Where the page's values are written.
+  string ui_drop_in_path = 4;
+}
+
+message InstallSettingChange {
+  string key = 1;
+  oneof change {
+    // The new value as text, as InstallSetting.value shows it.
+    string value = 2;
+    // Remove the value from the page's file: the other files or the
+    // default apply again.
+    bool reset = 3;
+  }
+}
+
+message SaveInstallSettingsRequest {
+  string password = 1;
+  repeated InstallSettingChange changes = 2;
 }
