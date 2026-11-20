@@ -55,7 +55,7 @@ Ein abgebrochener Download geht beim nächsten Aufruf weiter. Vorher prüft der
 Befehl, ob genug Platz frei ist. Oberfläche, Backend und `valhalla` hält er
 erst an, wenn alle Dateien da und geprüft sind, und startet sie danach wieder.
 
-**Routing je Land** (ab der Version nach 0.21.0): Die Daten für die
+**Routing je Land:** Die Daten für die
 Routenberechnung lassen sich auch Land für Land installieren. Die Karte und
 die Ortssuche bleiben dabei ein Paket.
 

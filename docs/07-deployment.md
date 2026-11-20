@@ -419,7 +419,7 @@ USB stick. `./pack_maps.sh` builds such a package from the same sources as
 `deploy_maps.sh`; the format is described in `resources/debos/README.md`, the
 steps for the tester in `docs/bedienung/nach-der-installation.md`.
 
-**Routing by country** (since the release after 0.21.0, #184, #187). Instead
+**Routing by country** (since 0.22.0, #184, #187). Instead
 of one routing extract for the whole area, the routing tiles can be loaded one
 country at a time. Map tiles and the names database stay one package per
 area; only Valhalla's tiles are split.
@@ -468,8 +468,8 @@ area; only Valhalla's tiles are split.
   DACH tar comes back). Why one tar with index and not loose tiles (the first
   version was slower once warm, one tar without index slow to start): the
   README in `resources/tools/valhalla-pakete/`.
-- **Routes stay inside the installed countries** (since the release after
-  0.21.0, #194, #197). Valhalla's large tiles (motorways and main roads)
+- **Routes stay inside the installed countries** (since
+  0.22.0, #194, #197). Valhalla's large tiles (motorways and main roads)
   carry the main roads of the neighbouring countries too, so with Germany
   and Austria alone Berlin–Vienna went 680 km through the Czech Republic,
   where CarNine has no map. Each package therefore brings its Geofabrik

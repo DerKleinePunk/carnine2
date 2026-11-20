@@ -10,11 +10,23 @@ ersten Start ([Kartendaten installieren](nach-der-installation.md#kartendaten-in
 
 ![Karte ohne Route: Suchfeld oben, Knöpfe rechts, darunter „© OpenMapTiles © OpenStreetMap-Mitwirkende“, unten links der Standort](bilder/start.png)
 
-Ganz unten rechts auf der Karte steht „© OpenMapTiles © OpenStreetMap-Mitwirkende“,
-in drei kurzen Zeilen untereinander. Die Kartendaten kommen von [OpenStreetMap](https://www.openstreetmap.org/copyright),
+Ganz unten rechts auf der Karte stehen in sechs kurzen Zeilen untereinander
+„© OpenMapTiles © OpenStreetMap-Mitwirkende“ und „Höhen: EU-DEM (Copernicus),
+DGM Österreich, USGS“. Die Kartendaten kommen von [OpenStreetMap](https://www.openstreetmap.org/copyright),
 die Kacheln sind nach dem Schema von [OpenMapTiles](https://openmaptiles.org/)
-gebaut. Beide Lizenzen verlangen diesen Hinweis. Während einer Route steht er
-neben der Leiste mit Ankunft und Distanz, die dafür rechts etwas schmaler ist.
+gebaut. Die Höhenangaben sind die Quellen der Höhenlinien. Die Lizenzen
+verlangen diese Hinweise ([Lizenzen](lizenzen.md#kartendaten-und-sprachausgabe)).
+Während einer Route stehen sie neben der Leiste mit Ankunft und Distanz, die
+dafür rechts etwas schmaler ist.
+
+**Höhenlinien.** Sind sie auf dem Gerät installiert, zeigt die Karte beim
+Hineinzoomen Linien gleicher Höhe: erst alle 50 m, näher alle 10 m, ganz nah
+mit der Höhe in Metern. Sie liegen unter Straßen und Gebäuden; Straßen- und
+Ortsnamen gehen vor. Ohne Höhenlinien sieht die Karte aus wie bisher.
+Höhenlinien kommen mit dem Kartenpaket: Ein Paket mit Höhenlinien installiert
+man wie jedes andere mit `sudo carnine-install-maps`
+([Kartendaten installieren](nach-der-installation.md#kartendaten-installieren)).
+Ob ein Paket sie enthält, steht in seiner `LIESMICH.txt`.
 
 ## Karte bewegen
 

@@ -35,6 +35,18 @@ less /usr/share/doc/carnine-backend/third-party-licenses.txt
   dem Schema von [OpenMapTiles](https://openmaptiles.org/) gebaut (CC-BY 4.0).
   Darum steht auf der Karte „© OpenMapTiles © OpenStreetMap-Mitwirkende“
   ([Karten](karte.md)).
+- Die Höhenlinien sind aus den Höhendaten der Terrain Tiles
+  ([tilezen/joerd](https://github.com/tilezen/joerd/blob/master/docs/attribution.md))
+  berechnet. Auf der Karte steht kurz „Höhen: EU-DEM (Copernicus), DGM
+  Österreich, USGS“. Der vorgeschriebene Wortlaut für Deutschland, Österreich
+  und die Schweiz:
+  „Europe terrain data produced using Copernicus data and information funded
+  by the European Union - EU-DEM layers; Austria terrain data © offene Daten
+  Österreichs – Digitales Geländemodell (DGM) Österreich; United States 3DEP
+  (formerly NED) and global GMTED2010 and SRTM terrain data courtesy of the
+  U.S. Geological Survey.“
+  Der vollständige Quellenvermerk der Terrain Tiles für alle Länder steht in
+  ihrer [Attributionsliste](https://github.com/tilezen/joerd/blob/master/docs/attribution.md).
 - Die Ansagen spricht [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)
   (Apache-2.0) mit der Stimme „thorsten“ von
   [Thorsten-Voice](https://www.thorsten-voice.de) (CC0) und den
