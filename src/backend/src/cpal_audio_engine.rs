@@ -76,38 +76,14 @@ pub struct CpalAudioEngine {
 
 impl CpalAudioEngine {
     /// Opens the default output device with `channels`, or with its own
-    /// default configuration when none is given.
-    #[allow(dead_code)] // examples/cpal_engine_adapter_spike.rs
+    /// default configuration when none is given. The card of `[audio]
+    /// output_card` (#48) reaches it as ALSA's `default` through
+    /// `ALSA_PCM_CARD`, set in `main` before any thread runs.
     pub fn new(channels: Option<u16>, rear_level: f32) -> Result<Self> {
-        Self::on_device(None, channels, rear_level)
-    }
-
-    /// Opens the output device named `device` (`default:CARD=<id>`, #48), or
-    /// the default device without a name. A name that is not there plays on
-    /// the default device with a warning: sound somewhere beats none.
-    pub fn on_device(device: Option<&str>, channels: Option<u16>, rear_level: f32) -> Result<Self> {
         let host = cpal::default_host();
-        let named = device.and_then(|wanted| {
-            let found = host.output_devices().ok().and_then(|mut devices| {
-                devices.find(|device| device.name().is_ok_and(|name| name == wanted))
-            });
-            if found.is_none() {
-                warn!(
-                    device = wanted,
-                    "configured audio output not found, playing on the default device"
-                );
-            }
-            found
-        });
-        let device = match named {
-            Some(device) => {
-                info!(device = ?device.name().ok(), "audio output: configured device");
-                device
-            }
-            None => host
-                .default_output_device()
-                .context("no default cpal output device")?,
-        };
+        let device = host
+            .default_output_device()
+            .context("no default cpal output device")?;
         let supported = match channels {
             None => device
                 .default_output_config()
