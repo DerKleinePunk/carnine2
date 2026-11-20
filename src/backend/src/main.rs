@@ -57,17 +57,17 @@ use carnine::{
     config_service_server::{ConfigService, ConfigServiceServer},
     media_service_server::{MediaService, MediaServiceServer},
     AddPlaylistEntryRequest, AudioEvent, AudioEventType, CanData, CanDataRequest, CanDataResponse,
-    CommandResponse, Configuration, ConfigurationResponse, CreatePlaylistRequest,
-    DeletePlaylistRequest, DisplayBrightness, Empty, ExitPasswordCheck, ExitPasswordRequest,
-    GetCoverArtRequest, GetCoverArtResponse, GetPlaylistRequest, ImportMusicVolumeRequest,
-    LibraryEvent, LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest,
-    PlayQueueEntryRequest, PlayRequest, PlayerEvent, PlayerEventType, PlayerState, Playlist,
-    PlaylistEntry, PowerSupplyState, PowerSupplyStatus, RemovePlaylistEntryRequest,
-    RenamePlaylistRequest, RepeatMode, RescanMediaRequest, ReverseGear, ReverseGearSourceKind,
-    ReverseGearStatus, SearchMediaRequest, SearchMediaResponse, SeekRequest, ServiceVersion,
+    CommandResponse, Configuration, CreatePlaylistRequest, DeletePlaylistRequest,
+    DisplayBrightness, Empty, ExitPasswordCheck, ExitPasswordRequest, GetCoverArtRequest,
+    GetCoverArtResponse, GetPlaylistRequest, ImportMusicVolumeRequest, LibraryEvent,
+    LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest, PlayQueueEntryRequest,
+    PlayRequest, PlayerEvent, PlayerEventType, PlayerState, Playlist, PlaylistEntry,
+    PowerSupplyState, PowerSupplyStatus, RemovePlaylistEntryRequest, RenamePlaylistRequest,
+    RepeatMode, RescanMediaRequest, ReverseGear, ReverseGearSourceKind, ReverseGearStatus,
+    SearchMediaRequest, SearchMediaResponse, SeekRequest, ServiceVersion,
     SetDisplayBrightnessRequest, SetExitPasswordRequest, SetRepeatModeRequest,
     SetReverseGearRequest, SetShuffleModeRequest, SetVolumeRequest, SystemMetrics, ThermalStatus,
-    UiState, UpdateConfigurationRequest, VolumeResponse,
+    UiState, VolumeResponse,
 };
 
 #[derive(Debug, Default)]
@@ -591,25 +591,19 @@ pub struct MediaServiceImpl {
     scan_cancel: Arc<AtomicBool>,
 }
 
+/// Read only: the configuration the backend started with. Changes go into a
+/// drop-in under config.d and need a restart.
 pub struct ConfigServiceImpl {
-    configuration: Mutex<config::Config>,
-    path: PathBuf,
+    configuration: config::Config,
 }
 
 impl ConfigServiceImpl {
-    fn new(configuration: config::Config, path: PathBuf) -> Self {
-        Self {
-            configuration: Mutex::new(configuration),
-            path,
-        }
+    fn new(configuration: config::Config) -> Self {
+        Self { configuration }
     }
 
     fn snapshot(&self) -> Configuration {
-        let configuration = self
-            .configuration
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        configuration_to_proto(&configuration)
+        configuration_to_proto(&self.configuration)
     }
 }
 
@@ -1027,55 +1021,6 @@ impl ConfigService for ConfigServiceImpl {
         _request: Request<Empty>,
     ) -> Result<Response<Configuration>, Status> {
         Ok(Response::new(self.snapshot()))
-    }
-
-    async fn update_configuration(
-        &self,
-        request: Request<UpdateConfigurationRequest>,
-    ) -> Result<Response<ConfigurationResponse>, Status> {
-        let configuration = request
-            .into_inner()
-            .configuration
-            .context("configuration is required")
-            .map_err(|error| Status::invalid_argument(error.to_string()))?;
-        let mut updated = configuration_from_proto(&configuration)
-            .map_err(|error| Status::invalid_argument(error.to_string()))?;
-        {
-            let current = self
-                .configuration
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            updated.navigation = current.navigation.clone();
-            updated.power_supply = current.power_supply.clone();
-            updated.reverse_gear = current.reverse_gear.clone();
-            updated.camera = current.camera.clone();
-            updated.audio.volume_state_path = current.audio.volume_state_path.clone();
-            updated.audio.channels = current.audio.channels;
-            updated.audio.rear_percent = current.audio.rear_percent;
-            updated.system.cpu_temperature_warn_celsius =
-                current.system.cpu_temperature_warn_celsius;
-            updated.system.cpu_temperature_clear_celsius =
-                current.system.cpu_temperature_clear_celsius;
-            updated.system.warm_metrics_interval_seconds =
-                current.system.warm_metrics_interval_seconds;
-        }
-        let toml = toml::to_string_pretty(&updated)
-            .map_err(|error| Status::internal(error.to_string()))?;
-        let temporary_path = self.path.with_extension("toml.tmp");
-        fs::write(&temporary_path, toml).map_err(|error| Status::internal(error.to_string()))?;
-        fs::rename(&temporary_path, &self.path)
-            .map_err(|error| Status::internal(error.to_string()))?;
-        *self
-            .configuration
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner()) = updated;
-
-        Ok(Response::new(ConfigurationResponse {
-            success: true,
-            message: "configuration saved; restart required".to_string(),
-            configuration: Some(configuration),
-            restart_required: true,
-        }))
     }
 }
 
@@ -1740,83 +1685,6 @@ fn configuration_to_proto(configuration: &config::Config) -> Configuration {
     }
 }
 
-fn nonzero_or_default(value: u64, fallback: u64) -> u64 {
-    if value == 0 {
-        fallback
-    } else {
-        value
-    }
-}
-
-fn configuration_from_proto(configuration: &Configuration) -> Result<config::Config> {
-    if configuration.socket_path.trim().is_empty() || configuration.database_path.trim().is_empty()
-    {
-        bail!("configuration contains an empty or invalid required value");
-    }
-
-    let tcp_address = configuration.tcp_address.trim();
-    let configuration = config::Config {
-        server: config::ServerConfig {
-            socket_path: PathBuf::from(&configuration.socket_path),
-            tcp_address: (!tcp_address.is_empty()).then(|| tcp_address.to_string()),
-            socket_mode: {
-                let socket_mode = configuration.socket_mode.trim();
-                (!socket_mode.is_empty()).then(|| socket_mode.to_string())
-            },
-        },
-        media: config::MediaConfig {
-            database_path: PathBuf::from(&configuration.database_path),
-            folders: configuration
-                .media_folders
-                .iter()
-                .map(PathBuf::from)
-                .collect(),
-            supported_formats: configuration.supported_formats.clone(),
-            rescan_on_start: configuration.rescan_on_start,
-            resume_mode: configuration.resume_mode.clone(),
-            cover_cache_dir: PathBuf::from(&configuration.cover_cache_dir),
-        },
-        audio: config::AudioConfig {
-            // Not in the Configuration message either; carried over as well.
-            volume_state_path: config::default_volume_state_path(),
-            channels: None,
-            rear_percent: None,
-        },
-        logging: config::LoggingConfig {
-            directory: PathBuf::from(&configuration.log_directory),
-            level: configuration.log_level.clone(),
-        },
-        system: config::SystemConfig {
-            // A client that does not know these fields sends zeros; keep the
-            // defaults rather than failing validation on its behalf.
-            metrics_interval_seconds: nonzero_or_default(
-                configuration.metrics_interval_seconds,
-                config::SystemConfig::default().metrics_interval_seconds,
-            ),
-            disk_metrics_interval_seconds: nonzero_or_default(
-                configuration.disk_metrics_interval_seconds,
-                config::SystemConfig::default().disk_metrics_interval_seconds,
-            ),
-            disk_paths: configuration.disk_paths.iter().map(PathBuf::from).collect(),
-            // Not in the Configuration message; update_configuration carries
-            // the current values over.
-            ..config::SystemConfig::default()
-        },
-        // Not part of the Configuration message; update_configuration carries
-        // the current sections over so saving settings cannot drop them.
-        navigation: config::NavigationConfig::default(),
-        power_supply: config::PowerSupplyConfig::default(),
-        camera: config::CameraConfig::default(),
-        exit_password: config::ExitPasswordConfig::default(),
-        controls: Vec::new(),
-        display: Default::default(),
-        voice: Default::default(),
-        reverse_gear: Default::default(),
-    };
-    configuration.validate()?;
-    Ok(configuration)
-}
-
 /// Usage text for `--help`. It names the environment overrides as well: they
 /// decide where the service reads its configuration and where it listens, and
 /// nothing else tells an operator that they exist.
@@ -2085,7 +1953,7 @@ async fn main() -> Result<()> {
     storage_events::spawn(Arc::new(media_service.clone()));
     let media_player = Arc::clone(&media_service.player);
     MediaPlayer::spawn_completion_watcher(Arc::clone(&media_player));
-    let config_service = ConfigServiceImpl::new(configuration.clone(), configuration_path);
+    let config_service = ConfigServiceImpl::new(configuration.clone());
     let navigation_service = navigation::start(
         &configuration.navigation,
         &configuration.media.database_path,
@@ -2329,7 +2197,7 @@ mod tests {
             assert!(USAGE.contains(variable), "usage text is missing {variable}");
         }
     }
-    use super::{configuration_from_proto, configuration_to_proto, ConfigServiceImpl};
+    use super::{configuration_to_proto, ConfigServiceImpl};
     use super::{system_metrics, AudioServiceImpl, MediaServiceImpl, SystemServiceImpl};
 
     struct FakePlayback;
@@ -3062,116 +2930,42 @@ mod tests {
     }
 
     #[test]
-    fn configuration_proto_roundtrip_preserves_values() {
+    fn configuration_to_proto_carries_the_loaded_values() {
         let original = test_configuration();
         let proto = configuration_to_proto(&original);
-        let restored = configuration_from_proto(&proto).expect("configuration should be valid");
 
-        assert_eq!(restored.server.socket_path, original.server.socket_path);
-        assert_eq!(restored.server.tcp_address, original.server.tcp_address);
-        assert_eq!(restored.media.database_path, original.media.database_path);
-        assert_eq!(restored.media.folders, original.media.folders);
         assert_eq!(
-            restored.media.supported_formats,
-            original.media.supported_formats
+            proto.socket_path,
+            original.server.socket_path.display().to_string()
         );
         assert_eq!(
-            restored.media.rescan_on_start,
-            original.media.rescan_on_start
+            proto.database_path,
+            original.media.database_path.display().to_string()
         );
-        assert_eq!(restored.media.resume_mode, original.media.resume_mode);
         assert_eq!(
-            restored.media.cover_cache_dir,
-            original.media.cover_cache_dir
+            proto.media_folders,
+            original
+                .media
+                .folders
+                .iter()
+                .map(|folder| folder.display().to_string())
+                .collect::<Vec<_>>()
         );
-        assert_eq!(restored.logging.directory, original.logging.directory);
-        assert_eq!(restored.logging.level, original.logging.level);
-    }
-
-    #[test]
-    fn configuration_from_proto_rejects_invalid_required_values() {
-        let mut configuration = configuration_to_proto(&test_configuration());
-        configuration.database_path = String::new();
-
-        assert!(configuration_from_proto(&configuration).is_err());
+        assert_eq!(proto.supported_formats, original.media.supported_formats);
+        assert_eq!(proto.rescan_on_start, original.media.rescan_on_start);
+        assert_eq!(proto.resume_mode, original.media.resume_mode);
+        assert_eq!(proto.log_level, original.logging.level);
     }
 
     #[tokio::test]
-    async fn update_configuration_keeps_the_sections_the_message_does_not_carry() {
-        let path = std::env::temp_dir().join(format!(
-            "carnine-config-navigation-test-{}.toml",
-            std::process::id()
-        ));
-        let _ = std::fs::remove_file(&path);
-        let mut current = test_configuration();
-        current.navigation.position_source = config::PositionSourceSetting::Replay;
-        current.navigation.replay_file = Some(PathBuf::from("/var/lib/carnine/tour.nmea"));
-        current.navigation.map_region = "hessen".to_string();
-        current.power_supply.enabled = true;
-        current.audio.volume_state_path = PathBuf::from("/srv/carnine/audio-volume");
-        current.system.cpu_temperature_warn_celsius = 68.0;
-        current.system.cpu_temperature_clear_celsius = 60.0;
-        current.system.warm_metrics_interval_seconds = 2;
-        let service = ConfigServiceImpl::new(current, path.clone());
-
-        // The settings page sends the Configuration message, which has no
-        // navigation fields at all.
-        service
-            .update_configuration(Request::new(super::UpdateConfigurationRequest {
-                configuration: Some(configuration_to_proto(&test_configuration())),
-            }))
+    async fn config_service_answers_with_the_configuration_it_started_with() {
+        let original = test_configuration();
+        let service = ConfigServiceImpl::new(original.clone());
+        let answered = ConfigService::get_configuration(&service, Request::new(Empty {}))
             .await
-            .expect("configuration update should succeed");
-
-        let saved: config::Config =
-            toml::from_str(&std::fs::read_to_string(&path).expect("configuration should be saved"))
-                .expect("saved configuration should be valid TOML");
-        assert_eq!(
-            saved.navigation.position_source,
-            config::PositionSourceSetting::Replay
-        );
-        assert_eq!(saved.navigation.map_region, "hessen");
-        assert!(saved.power_supply.enabled);
-        assert_eq!(
-            saved.audio.volume_state_path,
-            PathBuf::from("/srv/carnine/audio-volume")
-        );
-        assert_eq!(saved.system.cpu_temperature_warn_celsius, 68.0);
-        assert_eq!(saved.system.cpu_temperature_clear_celsius, 60.0);
-        assert_eq!(saved.system.warm_metrics_interval_seconds, 2);
-        let _ = std::fs::remove_file(path);
-    }
-
-    #[tokio::test]
-    async fn update_configuration_writes_atomically_and_requires_restart() {
-        let path =
-            std::env::temp_dir().join(format!("carnine-config-test-{}.toml", std::process::id()));
-        let _ = std::fs::remove_file(&path);
-        let service = ConfigServiceImpl::new(test_configuration(), path.clone());
-        let response = service
-            .update_configuration(Request::new(super::UpdateConfigurationRequest {
-                configuration: Some(configuration_to_proto(&test_configuration())),
-            }))
-            .await
-            .expect("configuration update should succeed")
+            .expect("GetConfiguration should answer")
             .into_inner();
-
-        assert!(response.success);
-        assert!(response.restart_required);
-        assert!(response.message.contains("restart required"));
-        assert!(path.is_file());
-        let saved = std::fs::read_to_string(&path).expect("configuration should be saved");
-        let saved_configuration: config::Config =
-            toml::from_str(&saved).expect("saved configuration should be valid TOML");
-        assert_eq!(
-            saved_configuration.audio.volume_state_path,
-            PathBuf::from("/tmp/carnine-audio-volume")
-        );
-        assert!(
-            !saved.contains("navigation_interrupt"),
-            "the removed key is not written back"
-        );
-        let _ = std::fs::remove_file(path);
+        assert_eq!(answered, configuration_to_proto(&original));
     }
 
     #[tokio::test]

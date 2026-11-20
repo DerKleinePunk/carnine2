@@ -983,13 +983,6 @@ class ConfigServiceClient extends $grpc.Client {
     return $createUnaryCall(_$getConfiguration, request, options: options);
   }
 
-  $grpc.ResponseFuture<$0.ConfigurationResponse> updateConfiguration(
-    $0.UpdateConfigurationRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$updateConfiguration, request, options: options);
-  }
-
   // method descriptors
 
   static final _$getConfiguration =
@@ -997,11 +990,6 @@ class ConfigServiceClient extends $grpc.Client {
           '/carnine.ConfigService/GetConfiguration',
           ($0.Empty value) => value.writeToBuffer(),
           $0.Configuration.fromBuffer);
-  static final _$updateConfiguration = $grpc.ClientMethod<
-          $0.UpdateConfigurationRequest, $0.ConfigurationResponse>(
-      '/carnine.ConfigService/UpdateConfiguration',
-      ($0.UpdateConfigurationRequest value) => value.writeToBuffer(),
-      $0.ConfigurationResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('carnine.ConfigService')
@@ -1016,15 +1004,6 @@ abstract class ConfigServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($0.Configuration value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.UpdateConfigurationRequest,
-            $0.ConfigurationResponse>(
-        'UpdateConfiguration',
-        updateConfiguration_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) =>
-            $0.UpdateConfigurationRequest.fromBuffer(value),
-        ($0.ConfigurationResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.Configuration> getConfiguration_Pre(
@@ -1034,15 +1013,6 @@ abstract class ConfigServiceBase extends $grpc.Service {
 
   $async.Future<$0.Configuration> getConfiguration(
       $grpc.ServiceCall call, $0.Empty request);
-
-  $async.Future<$0.ConfigurationResponse> updateConfiguration_Pre(
-      $grpc.ServiceCall $call,
-      $async.Future<$0.UpdateConfigurationRequest> $request) async {
-    return updateConfiguration($call, await $request);
-  }
-
-  $async.Future<$0.ConfigurationResponse> updateConfiguration(
-      $grpc.ServiceCall call, $0.UpdateConfigurationRequest request);
 }
 
 @$pb.GrpcServiceName('carnine.SystemService')
