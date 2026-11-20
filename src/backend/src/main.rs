@@ -36,6 +36,7 @@ mod controls;
 mod cpal_audio_engine;
 mod database;
 mod exit_password;
+mod install_settings;
 mod media_player;
 mod navigation;
 mod power_supply;
@@ -61,12 +62,13 @@ use carnine::{
     CanDataRequest, CanDataResponse, CommandResponse, Configuration, CreatePlaylistRequest,
     DeletePlaylistRequest, DisplayBrightness, Empty, ExitPasswordCheck, ExitPasswordRequest,
     GetCoverArtRequest, GetCoverArtResponse, GetPlaylistRequest, ImportMusicVolumeRequest,
-    LibraryEvent, LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest,
-    PlayQueueEntryRequest, PlayRequest, PlayerEvent, PlayerEventType, PlayerState, Playlist,
-    PlaylistEntry, PowerSupplyState, PowerSupplyStatus, RemovePlaylistEntryRequest,
-    RenamePlaylistRequest, RepeatMode, RescanMediaRequest, ReverseGear, ReverseGearSourceKind,
-    ReverseGearStatus, SearchMediaRequest, SearchMediaResponse, SeekRequest, ServiceVersion,
-    SetDisplayBrightnessRequest, SetExitPasswordRequest, SetRepeatModeRequest,
+    InstallSetting, InstallSettingChoice, InstallSettingKind, InstallSettings, LibraryEvent,
+    LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest, PlayQueueEntryRequest,
+    PlayRequest, PlayerEvent, PlayerEventType, PlayerState, Playlist, PlaylistEntry,
+    PowerSupplyState, PowerSupplyStatus, RemovePlaylistEntryRequest, RenamePlaylistRequest,
+    RepeatMode, RescanMediaRequest, ReverseGear, ReverseGearSourceKind, ReverseGearStatus,
+    SaveInstallSettingsRequest, SearchMediaRequest, SearchMediaResponse, SeekRequest,
+    ServiceVersion, SetDisplayBrightnessRequest, SetExitPasswordRequest, SetRepeatModeRequest,
     SetReverseGearRequest, SetShuffleModeRequest, SetVolumeRequest, SystemMetrics, ThermalStatus,
     UiState, VolumeResponse,
 };
@@ -144,8 +146,8 @@ impl SystemServiceImpl {
 
     /// The exit password from the configuration and where a changed one
     /// goes; without it the factory default applies and cannot be changed.
-    pub fn with_exit_password(mut self, store: exit_password::Store) -> Self {
-        self.exit_password = Arc::new(store);
+    pub fn with_exit_password(mut self, store: Arc<exit_password::Store>) -> Self {
+        self.exit_password = store;
         self
     }
 }
@@ -596,11 +598,65 @@ pub struct MediaServiceImpl {
 /// drop-in under config.d and need a restart.
 pub struct ConfigServiceImpl {
     configuration: config::Config,
+    install: Option<InstallSettingsAccess>,
+}
+
+/// What the expert page (#138) needs beside the running configuration.
+#[derive(Clone)]
+struct InstallSettingsAccess {
+    /// The main file the backend started from; the page's file is in the
+    /// `.d` directory beside it.
+    configuration_path: PathBuf,
+    exit_password: Arc<exit_password::Store>,
+    /// `/proc/asound/cards`, the choices of the audio output.
+    cards_path: PathBuf,
+    /// One save at a time: each reads the file the last one wrote.
+    saving: Arc<std::sync::Mutex<()>>,
 }
 
 impl ConfigServiceImpl {
     fn new(configuration: config::Config) -> Self {
-        Self { configuration }
+        Self {
+            configuration,
+            install: None,
+        }
+    }
+
+    /// Lets the service show and save the installation values; without it
+    /// both RPCs answer UNAVAILABLE.
+    fn with_install_settings(
+        mut self,
+        configuration_path: PathBuf,
+        exit_password: Arc<exit_password::Store>,
+        cards_path: PathBuf,
+    ) -> Self {
+        self.install = Some(InstallSettingsAccess {
+            configuration_path,
+            exit_password,
+            cards_path,
+            saving: Arc::new(std::sync::Mutex::new(())),
+        });
+        self
+    }
+
+    fn install_access(&self) -> Result<InstallSettingsAccess, Status> {
+        self.install
+            .clone()
+            .ok_or_else(|| Status::unavailable("installation settings are not available"))
+    }
+
+    fn install_settings(&self, access: &InstallSettingsAccess) -> Result<InstallSettings, Status> {
+        let cards = audio_output::read_cards(&access.cards_path);
+        let shown = install_settings::show(&access.configuration_path, &self.configuration, &cards)
+            .map_err(|error| Status::internal(format!("{error:#}")))?;
+        Ok(install_settings_to_proto(
+            &shown,
+            self.configuration.ui_drop_in_error.as_deref(),
+            &access
+                .configuration_path
+                .with_extension("d")
+                .join(config::UI_DROP_IN),
+        ))
     }
 
     fn snapshot(&self) -> Configuration {
@@ -1025,6 +1081,135 @@ impl ConfigService for ConfigServiceImpl {
         _request: Request<Empty>,
     ) -> Result<Response<Configuration>, Status> {
         Ok(Response::new(self.snapshot()))
+    }
+
+    async fn get_install_settings(
+        &self,
+        _request: Request<Empty>,
+    ) -> Result<Response<InstallSettings>, Status> {
+        let access = self.install_access()?;
+        Ok(Response::new(self.install_settings(&access)?))
+    }
+
+    async fn save_install_settings(
+        &self,
+        request: Request<SaveInstallSettingsRequest>,
+    ) -> Result<Response<InstallSettings>, Status> {
+        let access = self.install_access()?;
+        let request = request.into_inner();
+        let changes: Vec<install_settings::Change> = request
+            .changes
+            .into_iter()
+            .map(|change| {
+                use carnine::install_setting_change::Change;
+                match change.change {
+                    Some(Change::Value(value)) => Ok((change.key, Some(value))),
+                    Some(Change::Reset(true)) => Ok((change.key, None)),
+                    _ => Err(Status::invalid_argument(format!(
+                        "{}: neither a value nor reset",
+                        change.key
+                    ))),
+                }
+            })
+            .collect::<Result<_, _>>()?;
+        let keys: Vec<String> = changes.iter().map(|(key, _)| key.clone()).collect();
+        let saving = access.clone();
+        // Argon2 and the file are blocking work; keep them off the workers.
+        let result = tokio::task::spawn_blocking(move || {
+            if !saving.exit_password.verify(&request.password) {
+                return Err(Status::permission_denied("wrong exit password"));
+            }
+            let _one_at_a_time = saving
+                .saving
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            install_settings::save(&saving.configuration_path, &changes, |key| {
+                std::env::var_os(key)
+            })
+            .map_err(|error| match error {
+                install_settings::SaveError::Storage(_) => Status::internal(error.message()),
+                _ => Status::invalid_argument(error.message()),
+            })
+        })
+        .await
+        .map_err(|error| Status::internal(error.to_string()))?;
+        match &result {
+            Ok(path) => {
+                info!(?keys, file = %path.display(), "installation settings saved; they apply after a restart")
+            }
+            Err(status) => {
+                warn!(?keys, code = ?status.code(), message = status.message(), "installation settings not saved")
+            }
+        }
+        result?;
+        Ok(Response::new(self.install_settings(&access)?))
+    }
+}
+
+fn install_settings_to_proto(
+    shown: &[install_settings::Shown],
+    ui_drop_in_error: Option<&str>,
+    ui_drop_in_path: &Path,
+) -> InstallSettings {
+    use install_settings::Kind;
+    let settings: Vec<InstallSetting> = shown
+        .iter()
+        .map(|entry| {
+            let setting = entry.setting;
+            let mut out = InstallSetting {
+                key: setting.key.to_string(),
+                group: setting.group.to_string(),
+                label: setting.label.to_string(),
+                help: setting.help.to_string(),
+                default_value: setting.default.to_string(),
+                optional: setting.optional,
+                value: entry.value.clone(),
+                origin: entry
+                    .origin
+                    .as_ref()
+                    .map(|path| path.display().to_string())
+                    .unwrap_or_default(),
+                restart_pending: entry.restart_pending(),
+                ..Default::default()
+            };
+            let choice = |(value, label): (&str, &str)| InstallSettingChoice {
+                value: value.to_string(),
+                label: label.to_string(),
+            };
+            let kind = match setting.kind {
+                Kind::Bool => InstallSettingKind::Bool,
+                Kind::Integer { min, max, unit } => {
+                    out.min = min;
+                    out.max = max;
+                    out.unit = unit.to_string();
+                    InstallSettingKind::Integer
+                }
+                Kind::Choice { choices, .. } => {
+                    out.choices = choices.iter().map(|&pair| choice(pair)).collect();
+                    InstallSettingKind::Choice
+                }
+                Kind::SoundCard => {
+                    out.choices = entry
+                        .cards
+                        .iter()
+                        .map(|(value, label)| choice((value, label)))
+                        .collect();
+                    InstallSettingKind::SoundCard
+                }
+                Kind::Text { max_len } => {
+                    out.max_length = max_len as u32;
+                    InstallSettingKind::Text
+                }
+            };
+            out.set_kind(kind);
+            out
+        })
+        .collect();
+    InstallSettings {
+        restart_required: settings.iter().any(|setting| setting.restart_pending),
+        settings,
+        ui_drop_in_error: ui_drop_in_error.unwrap_or_default().to_string(),
+        ui_drop_in_path: ui_drop_in_path.display().to_string(),
     }
 }
 
@@ -1848,7 +2033,19 @@ async fn main() -> Result<()> {
     // Listed again rather than returned by load(): the files are few, and a
     // drop-in that silently did not apply is exactly what this line is for.
     for drop_in in config::Config::drop_in_files(&configuration_path)? {
-        info!("configuration drop-in applied: {}", drop_in.display());
+        let left_out = drop_in
+            .file_name()
+            .is_some_and(|name| name == config::UI_DROP_IN)
+            && configuration.ui_drop_in_error.is_some();
+        if left_out {
+            warn!(
+                drop_in = %drop_in.display(),
+                error = configuration.ui_drop_in_error.as_deref().unwrap_or_default(),
+                "installation settings of the expert page are invalid and left out, the configuration without them is active"
+            );
+        } else {
+            info!("configuration drop-in applied: {}", drop_in.display());
+        }
     }
 
     if let Some(parent) = configuration.media.database_path.parent() {
@@ -1965,6 +2162,10 @@ async fn main() -> Result<()> {
             }
         });
     }
+    let exit_password = Arc::new(exit_password::Store::new(
+        configuration.exit_password.hash.as_deref(),
+        Some(configuration_path.with_extension("d")),
+    ));
     let reverse_gear_hub = reverse_gear::ReverseGearHub::new(configuration.reverse_gear.source);
     reverse_gear::spawn(reverse_gear_hub.clone(), &configuration.reverse_gear);
     let system_service = SystemServiceImpl::new(
@@ -1974,10 +2175,7 @@ async fn main() -> Result<()> {
     )
     .with_controls(Arc::clone(&control_hub))
     .with_reverse_gear(reverse_gear_hub.clone())
-    .with_exit_password(exit_password::Store::new(
-        configuration.exit_password.hash.as_deref(),
-        Some(configuration_path.with_extension("d")),
-    ));
+    .with_exit_password(Arc::clone(&exit_password));
     let audio_output = audio_output::OutputChoice::from_config(&configuration.audio);
     let media_service = MediaServiceImpl::new_runtime(
         configuration.media.database_path.clone(),
@@ -1997,7 +2195,11 @@ async fn main() -> Result<()> {
     storage_events::spawn(Arc::new(media_service.clone()));
     let media_player = Arc::clone(&media_service.player);
     MediaPlayer::spawn_completion_watcher(Arc::clone(&media_player));
-    let config_service = ConfigServiceImpl::new(configuration.clone());
+    let config_service = ConfigServiceImpl::new(configuration.clone()).with_install_settings(
+        configuration_path.clone(),
+        Arc::clone(&exit_password),
+        PathBuf::from(audio_output::PROC_CARDS),
+    );
     let navigation_service = navigation::start(
         &configuration.navigation,
         &configuration.media.database_path,
@@ -2309,6 +2511,7 @@ mod tests {
             display: Default::default(),
             voice: Default::default(),
             reverse_gear: Default::default(),
+            ui_drop_in_error: None,
         }
     }
 
@@ -2746,10 +2949,10 @@ mod tests {
                 PathBuf::new(),
                 crate::power_supply::PowerSupplyHub::new(false),
             )
-            .with_exit_password(crate::exit_password::Store::new(
+            .with_exit_password(Arc::new(crate::exit_password::Store::new(
                 hash,
                 Some(config_path.with_extension("d")),
-            ))
+            )))
         };
         let service = service_for(None);
         let change = |current: &str, new: &str| {
@@ -3018,6 +3221,139 @@ mod tests {
             .expect("GetConfiguration should answer")
             .into_inner();
         assert_eq!(answered, configuration_to_proto(&original));
+    }
+
+    #[tokio::test]
+    async fn install_settings_are_shown_and_saved_behind_the_exit_password() {
+        use crate::carnine::install_setting_change::Change;
+        use crate::carnine::{InstallSettingKind, SaveInstallSettingsRequest};
+        use crate::{exit_password, install_settings};
+        let directory = std::env::temp_dir().join(format!(
+            "carnine-service-install-settings-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&directory);
+        std::fs::create_dir_all(directory.join("config.d")).unwrap();
+        let config_path = directory.join("config.toml");
+        std::fs::write(
+            &config_path,
+            include_str!("../../../resources/config/carnine.toml"),
+        )
+        .unwrap();
+        let cards_path = directory.join("cards");
+        std::fs::write(
+            &cards_path,
+            " 2 [Headphones     ]: bcm2835_headpho - bcm2835 Headphones\n                      bcm2835 Headphones\n",
+        )
+        .unwrap();
+        let running =
+            config::Config::with_ui_drop_in(&config_path, &toml::Table::new(), |_| None).unwrap();
+        let hash = exit_password::hash("test-pass").unwrap();
+        let service = ConfigServiceImpl::new(running.clone()).with_install_settings(
+            config_path.clone(),
+            Arc::new(exit_password::Store::new(Some(&hash), None)),
+            cards_path,
+        );
+        let ui = directory.join("config.d").join(config::UI_DROP_IN);
+
+        let shown = ConfigService::get_install_settings(&service, Request::new(Empty {}))
+            .await
+            .unwrap()
+            .into_inner();
+        assert_eq!(shown.settings.len(), install_settings::SCHEMA.len());
+        assert!(!shown.restart_required);
+        assert_eq!(shown.ui_drop_in_error, "");
+        assert_eq!(shown.ui_drop_in_path, ui.display().to_string());
+        let card = shown
+            .settings
+            .iter()
+            .find(|setting| setting.key == "audio.output_card")
+            .unwrap();
+        assert_eq!(card.kind(), InstallSettingKind::SoundCard);
+        assert_eq!(card.choices[0].value, "Headphones");
+        let debounce = shown
+            .settings
+            .iter()
+            .find(|setting| setting.key == "reverse_gear.debounce_ms")
+            .unwrap();
+        assert_eq!(
+            (
+                debounce.kind(),
+                debounce.min,
+                debounce.max,
+                debounce.unit.as_str()
+            ),
+            (InstallSettingKind::Integer, 0, 1000, "ms")
+        );
+
+        let save = |password: &str, changes: Vec<(&str, Option<Change>)>| {
+            let request = SaveInstallSettingsRequest {
+                password: password.to_string(),
+                changes: changes
+                    .into_iter()
+                    .map(|(key, change)| crate::carnine::InstallSettingChange {
+                        key: key.to_string(),
+                        change,
+                    })
+                    .collect(),
+            };
+            ConfigService::save_install_settings(&service, Request::new(request))
+        };
+        let rear = || ("audio.rear_percent", Some(Change::Value("40".into())));
+
+        let wrong = save("wrong", vec![rear()]).await.unwrap_err();
+        assert_eq!(wrong.code(), tonic::Code::PermissionDenied);
+        let unknown = save(
+            "test-pass",
+            vec![("exit_password.hash", Some(Change::Value("x".into())))],
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(unknown.code(), tonic::Code::InvalidArgument);
+        let empty = save("test-pass", vec![("audio.rear_percent", None)])
+            .await
+            .unwrap_err();
+        assert_eq!(empty.code(), tonic::Code::InvalidArgument);
+        let invalid = save(
+            "test-pass",
+            vec![("reverse_gear.source", Some(Change::Value("gpio".into())))],
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(invalid.code(), tonic::Code::InvalidArgument);
+        assert!(
+            invalid.message().contains("gpio_line"),
+            "{}",
+            invalid.message()
+        );
+        assert!(!ui.exists(), "nothing is written before a valid save");
+
+        let saved = save(
+            "test-pass",
+            vec![rear(), ("audio.channels", Some(Change::Reset(true)))],
+        )
+        .await
+        .unwrap()
+        .into_inner();
+        assert!(saved.restart_required);
+        let rear = saved
+            .settings
+            .iter()
+            .find(|setting| setting.key == "audio.rear_percent")
+            .unwrap();
+        assert_eq!(rear.value, "40");
+        assert_eq!(rear.origin, ui.display().to_string());
+        assert!(rear.restart_pending);
+        assert!(std::fs::read_to_string(&ui)
+            .unwrap()
+            .contains("rear_percent = 40"));
+
+        let without = ConfigServiceImpl::new(running);
+        let unavailable = ConfigService::get_install_settings(&without, Request::new(Empty {}))
+            .await
+            .unwrap_err();
+        assert_eq!(unavailable.code(), tonic::Code::Unavailable);
+        let _ = std::fs::remove_dir_all(&directory);
     }
 
     #[tokio::test]
