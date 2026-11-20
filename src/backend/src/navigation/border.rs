@@ -33,9 +33,6 @@ const SLIT_WIDTH_M: f64 = 15.0;
 /// Border points per slit; Valhalla checks each ring against the edges of the
 /// bins it touches, small rings keep that cheap.
 const SLIT_POINTS: usize = 12;
-/// Slits within this distance of a place where the route crossed the border
-/// are closed. The crossing is known only between two checked route points.
-const NEAR_CROSSING_M: f64 = 5_000.0;
 /// Route points closer together than this are not all checked.
 const CHECK_SPACING_M: f64 = 300.0;
 const EARTH_RADIUS_M: f64 = 6_371_008.8;
@@ -165,7 +162,7 @@ fn inside_ring(x: f64, y: f64, ring: &[(f64, f64)]) -> bool {
 }
 
 /// Great-circle distance between two (lat, lon) points.
-fn distance_m(a: (f64, f64), b: (f64, f64)) -> f64 {
+pub fn distance_m(a: (f64, f64), b: (f64, f64)) -> f64 {
     let (lat1, lat2) = (a.0.to_radians(), b.0.to_radians());
     let d_lat = lat2 - lat1;
     let d_lon = (b.1 - a.1).to_radians();
@@ -186,8 +183,8 @@ pub struct Slit {
 impl Slit {
     /// Distance from a point to the piece of border, in metres. A slit may
     /// turn round a corner of a coarse border, so its box says little.
-    fn distance_m(&self, lon: f64, lat: f64) -> f64 {
-        if self.bbox.distance_m(lon, lat) > NEAR_CROSSING_M {
+    fn distance_m(&self, lon: f64, lat: f64, within_m: f64) -> f64 {
+        if self.bbox.distance_m(lon, lat) > within_m {
             return f64::INFINITY;
         }
         self.line
@@ -306,15 +303,15 @@ impl LoadedArea {
         ((near.0 + far.0) / 2.0, (near.1 + far.1) / 2.0)
     }
 
-    /// Indexes of the slits near any of the (lat, lon) points.
-    pub fn slits_near(&self, points: &[(f64, f64)]) -> BTreeSet<usize> {
+    /// Indexes of the slits within `radius_m` of any of the (lat, lon) points.
+    pub fn slits_near(&self, points: &[(f64, f64)], radius_m: f64) -> BTreeSet<usize> {
         self.slits
             .iter()
             .enumerate()
             .filter(|(_, slit)| {
                 points
                     .iter()
-                    .any(|&(lat, lon)| slit.distance_m(lon, lat) <= NEAR_CROSSING_M)
+                    .any(|&(lat, lon)| slit.distance_m(lon, lat, radius_m) <= radius_m)
             })
             .map(|(index, _)| index)
             .collect()
@@ -584,7 +581,7 @@ mod tests {
         let west = country("w", 0.0, 0.0, 1.01, 1.0);
         let east = country("e", 0.99, 0.0, 2.0, 1.0);
         let area = LoadedArea::new(vec![west.clone(), east]);
-        let near = |lon: f64, lat: f64| !area.slits_near(&[(lat, lon)]).is_empty();
+        let near = |lon: f64, lat: f64| !area.slits_near(&[(lat, lon)], 5_000.0).is_empty();
         // 5 km is about 0.045°: the middle of the shared border has no slit
         // near it, the outer borders have.
         assert!(!near(1.0, 0.5));
@@ -595,7 +592,7 @@ mod tests {
         assert!(!area.contains((0.5, 2.5)));
 
         let alone = LoadedArea::new(vec![west]);
-        assert!(!alone.slits_near(&[(0.5, 1.0)]).is_empty());
+        assert!(!alone.slits_near(&[(0.5, 1.0)], 5_000.0).is_empty());
     }
 
     #[test]
@@ -635,7 +632,7 @@ mod tests {
         assert!((crossings[0].1 - 11.0).abs() < 1e-5, "{crossings:?}");
         assert!(area.crossings(&route[..2]).is_empty());
         assert!(area.crossings(&[]).is_empty());
-        let near = area.slits_near(&crossings);
+        let near = area.slits_near(&crossings, 5_000.0);
         assert!(!near.is_empty());
         assert!(near.len() < area.slit_count() || area.slit_count() == 1);
     }
