@@ -141,6 +141,7 @@ Wortteile findet.
 | Nach dem Einschalten | Das Auto steht am Start, bis die Route berechnet ist (höchstens 30 Sekunden), dann fährt es los. So kommt die erste Ansage rechtzeitig. |
 | Ziel im Suchfeld | Während die Tour fährt, steht dort der Name des Ziels. Mit **X** löscht man ihn und kann suchen. |
 | **ABBRECHEN** | Löscht die Route bis zum Ende der Runde. Danach lädt die Karte die Tour wieder. |
+| Eigenes Ziel | Geht im Messe-Modus nicht (ab der Version nach 0.22.0). Wählt jemand ein Ziel, zeigt die Karte „Route konnte nicht berechnet werden“, und die Tour fährt weiter. |
 | Zurück zur Karte | Nach **60 Sekunden ohne Berührung** wechselt die Oberfläche zur Seite **Karten**. Jede Berührung, auch auf der Tastatur und in Dialogen, beginnt die 60 Sekunden neu. |
 
 Die Rückkehr zur Karte wartet, solange etwas offen ist, in das jemand gerade
