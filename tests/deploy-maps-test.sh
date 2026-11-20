@@ -19,12 +19,12 @@ setup() {
     (cd "$maps" && sha256sum hessen.mbtiles GPS-Adnan-Tour.txt valhalla_tiles.tar germany_names.db > SHA256SUMS)
     (cd "$maps/germany" && sha256sum hessen_names.db > SHA256SUMS)
     (cd "$maps/dach" && sha256sum dach.mbtiles dach_names.db valhalla_tiles.tar > SHA256SUMS)
-    # The fake ssh answers the space query with FAKE_FREE and four old
-    # sizes of 0, and logs every other command with what it gets on stdin.
+    # The fake ssh answers the space query with FAKE_FREE and FAKE_OLD (4)
+    # old sizes of 0, and logs every other command with what it gets on stdin.
     cat > "$tree/fake-ssh" <<EOF
 #!/bin/sh
 case "\$2" in
-    df*) echo "\${FAKE_FREE:-100000000}"; echo 0; echo 0; echo 0; echo 0; exit 0 ;;
+    df*) echo "\${FAKE_FREE:-100000000}"; i=0; while [ "\$i" -lt "\${FAKE_OLD:-4}" ]; do echo 0; i=\$((i + 1)); done; exit 0 ;;
 esac
 echo "ssh \$*" >> "$tree/ssh.log"
 if [ "\$2" = bash ]; then cat >> "$tree/ssh.log"; fi
@@ -78,6 +78,16 @@ check "DACH copies" "$(cat "$tree/rsync.log")" "$(printf '%s\n' \
     "rsync valhalla_tiles.tar pi@device:/var/lib/valhalla/valhalla_tiles.tar")"
 check "DACH routing tiles from the DACH folder" "$(grep -c 'dach/valhalla_tiles.tar, checking' "$tree/out.log")" "1"
 check "DACH sets map_region" "$(grep -c '^ssh pi@device bash -s -- 1 DACH$' "$tree/ssh.log")" "1"
+rm -rf "$tree"
+
+# Contour lines next to the DACH map go beside map.mbtiles, owned by carnine.
+setup
+printf 'contours\n' > "$maps/dach/contours.mbtiles"
+FAKE_OLD=5 run pi@device --dach
+check "DACH with contour lines deploys" "$status" "0"
+check "contour lines copied last" "$(tail -n 1 "$tree/rsync.log")" \
+    "rsync contours.mbtiles pi@device:/var/lib/carnine/maps/contours.mbtiles"
+check "contour lines get carnine's rights" "$(grep -c 'chown carnine:carnine /var/lib/carnine/maps/contours.mbtiles' "$tree/ssh.log")" "1"
 rm -rf "$tree"
 
 # A file that does not match its SHA256SUMS stops everything before the device.

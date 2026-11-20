@@ -331,7 +331,9 @@ target_of() {
         return 0
     fi
     case "$1" in
-        map.mbtiles|germany_names.db|GPS-Adnan-Tour.txt) echo "$MAPS_DIR/$1" ;;
+        # contours.mbtiles: contour lines next to the map (local_map 0.12.0),
+        # optional; the map page reads it beside map.mbtiles.
+        map.mbtiles|germany_names.db|GPS-Adnan-Tour.txt|contours.mbtiles) echo "$MAPS_DIR/$1" ;;
         valhalla_tiles.tar) echo "$VALHALLA_DIR/$1" ;;
         *) return 1 ;;
     esac
