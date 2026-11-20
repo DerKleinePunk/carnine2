@@ -73,6 +73,11 @@ FILES=(
   "$REPLAY_TOUR=/var/lib/carnine/maps/GPS-Adnan-Tour.txt"
   "$VALHALLA_TILES=/var/lib/valhalla/valhalla_tiles.tar"
 )
+# Contour lines (local_map 0.12.0) next to the map, when there are any.
+CONTOURS="${CARNINE_CONTOURS:-$(dirname "$MAP_TILES")/contours.mbtiles}"
+if [[ -f "$CONTOURS" ]]; then
+  FILES+=("$CONTOURS=/var/lib/carnine/maps/contours.mbtiles")
+fi
 
 echo "Region $REGION:"
 for entry in "${FILES[@]}"; do
@@ -157,6 +162,10 @@ sudo chmod 0640 /var/lib/carnine/maps/map.mbtiles \
   /var/lib/carnine/maps/germany_names.db /var/lib/carnine/maps/GPS-Adnan-Tour.txt
 sudo chown root:root /var/lib/valhalla/valhalla_tiles.tar
 sudo chmod 0644 /var/lib/valhalla/valhalla_tiles.tar
+if [[ -e /var/lib/carnine/maps/contours.mbtiles ]]; then
+  sudo chown carnine:carnine /var/lib/carnine/maps/contours.mbtiles
+  sudo chmod 0640 /var/lib/carnine/maps/contours.mbtiles
+fi
 sudo sed -i "s/^map_region = .*/map_region = \"$REGION\"/" /etc/carnine/config.d/10-navigation.toml
 if [[ "$RESTART" -eq 1 ]]; then
   sudo systemctl restart valhalla.service carnine-backend.service carnine-frontend.service

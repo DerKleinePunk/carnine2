@@ -30,6 +30,8 @@ MAP_TILES="${CARNINE_MAP_TILES:-$MAPS_DIR/hessen.mbtiles}"
 NAMES_DATABASE="${CARNINE_NAMES_DATABASE:-$MAPS_DIR/germany/hessen_names.db}"
 REPLAY_TOUR="$MAPS_DIR/GPS-Adnan-Tour.txt"
 VALHALLA_TILES="$MAPS_DIR/valhalla_tiles.tar"
+# Contour lines (local_map 0.12.0), optional: packed when the file is there.
+CONTOURS="${CARNINE_CONTOURS:-$(dirname "$MAP_TILES")/contours.mbtiles}"
 # zstd level: -19 gains about 4 % over -9 on the tiles but takes minutes.
 LEVEL="${CARNINE_PACK_LEVEL:-9}"
 
@@ -45,6 +47,15 @@ SOURCES=(
   "GPS-Adnan-Tour.txt=$REPLAY_TOUR"
   "valhalla_tiles.tar=$VALHALLA_TILES"
 )
+contours_row=""
+contours_credit=""
+if [[ -f "$CONTOURS" ]]; then
+  SOURCES+=("contours.mbtiles=$CONTOURS")
+  contours_row=$'\n  contours.mbtiles.zst     Höhenlinien               -> /var/lib/carnine/maps/contours.mbtiles'
+  contours_credit=$'\nHöhenlinien: Höhen aus EU-DEM (Copernicus), DGM Österreich, USGS (Terrain Tiles).'
+else
+  echo "No contour lines ($CONTOURS), packing without them."
+fi
 for entry in "${SOURCES[@]}"; do
   if [[ ! -f "${entry#*=}" ]]; then
     echo "ERROR: map data not found: ${entry#*=} (set CARNINE_MAPS_DIR)" >&2
@@ -83,7 +94,7 @@ Gepackt mit zstd, entpackt $(awk -F '\t' '!/^#/ { s += $3 } END { printf "%.1f",
   map.mbtiles.zst          Vektorkacheln             -> /var/lib/carnine/maps/map.mbtiles
   germany_names.db.zst     Ortsnamen für die Suche   -> /var/lib/carnine/maps/germany_names.db
   GPS-Adnan-Tour.txt.zst   Messe-Tour (NMEA)         -> /var/lib/carnine/maps/GPS-Adnan-Tour.txt
-  valhalla_tiles.tar.zst   Routing                   -> /var/lib/valhalla/valhalla_tiles.tar
+  valhalla_tiles.tar.zst   Routing                   -> /var/lib/valhalla/valhalla_tiles.tar${contours_row}
 
 INHALT               Größen gepackt und entpackt
 SHA256SUMS           Prüfsummen der .zst-Dateien
@@ -91,7 +102,7 @@ SHA256SUMS.entpackt  Prüfsummen der entpackten Dateien
 
 Herkunft der Daten: © OpenStreetMap-Mitwirkende, Open Database License (ODbL) 1.0,
 https://www.openstreetmap.org/copyright
-Kacheln im OpenMapTiles-Schema, gebaut mit tilemaker; Routing mit Valhalla.
+Kacheln im OpenMapTiles-Schema, gebaut mit tilemaker; Routing mit Valhalla.${contours_credit}
 EOF
 
 # File by file rather than renaming the folder: the cloud client on Windows

@@ -176,6 +176,29 @@ check "pack_maps.sh writes LIESMICH" "$(grep -c 'carnine-install-maps' "$tree/ka
 run 100000000 --dir "$tree/karten-test"
 check "packed package installs" "$status" "0"
 check "packed package: same files" "$(installed a)" "yes"
+check "packed package without contour lines says nothing of them" "$(grep -c 'Höhenlinien' "$tree/karten-test/LIESMICH.txt")" "0"
+rm -rf "$tree"
+
+# With contour lines next to the map they are packed and installed beside
+# map.mbtiles, readable for carnine only, like the map.
+setup
+mkdir -p "$tree/sources"
+for name in $NAMES; do
+    cp "$tree/$name.a" "$tree/sources/$name"
+done
+printf 'contour lines\n' > "$tree/sources/contours.mbtiles"
+pack_status=0
+CARNINE_MAPS_DIR="$tree/sources" CARNINE_MAP_TILES="$tree/sources/map.mbtiles" \
+    CARNINE_NAMES_DATABASE="$tree/sources/germany_names.db" \
+    bash "$(dirname "$SCRIPT")/../../pack_maps.sh" "$tree/karten-hl" > "$tree/out.log" 2>&1 || pack_status=$?
+check "pack_maps.sh with contour lines succeeds" "$pack_status" "0"
+check "contour lines packed" "$(grep -c '^contours.mbtiles.zst' "$tree/karten-hl/INHALT")" "1"
+check "LIESMICH names the contour lines and their source" "$(grep -c 'Höhenlinien' "$tree/karten-hl/LIESMICH.txt")" "2"
+run 100000000 --dir "$tree/karten-hl"
+check "package with contour lines installs" "$status" "0"
+check "contour lines beside the map" "$(cat "$tree/maps/contours.mbtiles")" "contour lines"
+check "contour lines not world-readable" "$(stat -c %a "$tree/maps/contours.mbtiles")" "640"
+check "contour lines belong to carnine" "$(grep -c "^carnine:carnine $tree/maps/contours.mbtiles.new\$" "$tree/chown.log")" "1"
 rm -rf "$tree"
 
 # A failed download says why: TLS and network errors are not blamed on the
