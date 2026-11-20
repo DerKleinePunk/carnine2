@@ -728,11 +728,7 @@ impl MediaServiceImpl {
         audio: &config::AudioConfig,
     ) -> Result<Self> {
         let service = Self::from_player(
-            MediaPlayer::new(
-                audio_output::OutputChoice::from_config(audio).device_name(),
-                audio.channels,
-                audio.rear_level(),
-            ),
+            MediaPlayer::new(audio.channels, audio.rear_level()),
             database_path,
             media_folders,
             supported_formats,
@@ -1260,6 +1256,9 @@ impl AudioServiceImpl {
 
     fn audio_outputs(&self) -> AudioOutputs {
         let cards = audio_output::read_cards(&self.cards_path);
+        // The mixer that is really set: card 0 when the configured card is
+        // not there, as at start.
+        let (effective, _) = self.output.resolve(&cards);
         let configured = self.output.card.clone().unwrap_or_default();
         AudioOutputs {
             configured_card_present: configured.is_empty()
@@ -1274,8 +1273,8 @@ impl AudioServiceImpl {
                 })
                 .collect(),
             configured_card: configured,
-            mixer_card: self.output.mixer_card().to_string(),
-            mixer_control: self.output.mixer_control().to_string(),
+            mixer_card: effective.mixer_card().to_string(),
+            mixer_control: effective.mixer_control().to_string(),
         }
     }
 
@@ -1959,8 +1958,30 @@ fn parse_invocation(arguments: impl IntoIterator<Item = String>) -> Invocation {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
+    // The audio output (#48) has to be in place before any thread runs:
+    // alsa-lib reads it from the environment, and setting the environment
+    // while other threads may read it is a data race. So it comes before
+    // the async runtime and its worker threads.
+    if matches!(parse_invocation(std::env::args().skip(1)), Invocation::Run) {
+        if let Ok((configuration, _)) = config::Config::load() {
+            let (output, _) = audio_output::OutputChoice::from_config(&configuration.audio)
+                .resolve(&audio_output::read_cards(Path::new(
+                    audio_output::PROC_CARDS,
+                )));
+            if let Some(card) = output.alsa_pcm_card() {
+                std::env::set_var(audio_output::ALSA_PCM_CARD, card);
+            }
+        }
+    }
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .context("failed to start the async runtime")?
+        .block_on(run())
+}
+
+async fn run() -> Result<()> {
     // Before anything else: asking the binary what it is must never start a
     // service, open a socket or touch the audio device.
     match parse_invocation(std::env::args().skip(1)) {
@@ -2176,7 +2197,22 @@ async fn main() -> Result<()> {
     .with_controls(Arc::clone(&control_hub))
     .with_reverse_gear(reverse_gear_hub.clone())
     .with_exit_password(Arc::clone(&exit_password));
-    let audio_output = audio_output::OutputChoice::from_config(&configuration.audio);
+    let configured_output = audio_output::OutputChoice::from_config(&configuration.audio);
+    let (audio_output, missing_card) = configured_output.resolve(&audio_output::read_cards(
+        Path::new(audio_output::PROC_CARDS),
+    ));
+    match (&missing_card, audio_output.alsa_pcm_card()) {
+        (Some(card), _) => warn!(
+            card = %card,
+            "configured audio output not found, playing and setting the volume on card 0"
+        ),
+        (None, Some(card)) => info!(
+            card,
+            alsa_pcm_card = ?std::env::var(audio_output::ALSA_PCM_CARD).ok(),
+            "audio output: configured card"
+        ),
+        (None, None) => {}
+    }
     let media_service = MediaServiceImpl::new_runtime(
         configuration.media.database_path.clone(),
         configuration.media.folders.clone(),
@@ -2251,7 +2287,7 @@ async fn main() -> Result<()> {
                 },
             )
             .with_output(
-                audio_output.clone(),
+                configured_output.clone(),
                 PathBuf::from(audio_output::PROC_CARDS),
             ),
         ))
@@ -3948,6 +3984,12 @@ mod tests {
             .into_inner();
         assert!(!outputs.configured_card_present);
         assert!(outputs.outputs.iter().all(|output| !output.configured));
+        // The mixer that is really set then is card 0's (jeep-pi 20.11.:
+        // it used to name the missing card).
+        assert_eq!(
+            (outputs.mixer_card.as_str(), outputs.mixer_control.as_str()),
+            ("0", "PCM")
+        );
 
         // Nothing configured, no ALSA (WSL): no cards, default card 0.
         let plain = AudioServiceImpl::new()

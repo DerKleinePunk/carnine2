@@ -4,8 +4,14 @@
 //! output of the car, so it is set once, in `[audio] output_card`, and takes
 //! effect when the backend starts. Without it the backend plays on the
 //! system's default device as before, which the image makes ALSA card 0
-//! (`carnine-audio-output.sh`). With it, it opens `default:CARD=<id>` and
-//! sets the volume on that card's mixer control. Nothing here knows about a
+//! (`carnine-audio-output.sh`). With it, the backend sets [`ALSA_PCM_CARD`]
+//! before any thread runs, so ALSA's `default` device is that card's own
+//! default (`default:CARD=<id>`, with the card's configuration: the softvol
+//! `PCM` and IEC958 on the Pi's HDMI), and sets the volume on that card's
+//! mixer control. cpal cannot open such a name itself: under ALSA it only
+//! lists `default` and `plughw:<n>` named after the card (jeep-pi
+//! 20.11.2026), and `plughw` would skip the card's configuration. A card that
+//! is not there leaves everything on card 0. Nothing here knows about a
 //! particular board: the cards come from `/proc/asound/cards`.
 
 use std::fs;
@@ -13,6 +19,10 @@ use std::path::Path;
 
 /// Where Linux lists its sound cards.
 pub const PROC_CARDS: &str = "/proc/asound/cards";
+
+/// The variable alsa-lib's `pcm.default` takes the card from
+/// (`/usr/share/alsa/pcm/default.conf`, before `ALSA_CARD`).
+pub const ALSA_PCM_CARD: &str = "ALSA_PCM_CARD";
 
 /// Mixer card of the system default: card 0, where the image puts the
 /// chosen output.
@@ -101,14 +111,23 @@ impl OutputChoice {
         }
     }
 
-    /// The cpal (ALSA) device to open, `None` for the default device. The
-    /// `default:` device of a card goes through its own configuration (on
-    /// the Pi's HDMI the softvol with the `PCM` control), like the system
-    /// default does today.
-    pub fn device_name(&self) -> Option<String> {
-        self.card
-            .as_ref()
-            .map(|card| format!("default:CARD={card}"))
+    /// What applies on this machine: the configured output when `cards`
+    /// lists its card, else the system default (card 0, `PCM`) together
+    /// with the card that is missing. Playback and volume both follow it,
+    /// so they never part (#48: the volume once went to the jack while the
+    /// sound stayed on HDMI).
+    pub fn resolve(&self, cards: &[SoundCard]) -> (OutputChoice, Option<String>) {
+        match &self.card {
+            Some(card) if !cards.iter().any(|listed| &listed.id == card) => {
+                (OutputChoice::default(), Some(card.clone()))
+            }
+            _ => (self.clone(), None),
+        }
+    }
+
+    /// The value for [`ALSA_PCM_CARD`]; `None` keeps the system default.
+    pub fn alsa_pcm_card(&self) -> Option<&str> {
+        self.card.as_deref()
     }
 
     /// The `-c` of amixer: the card's id, or card 0 for the default.
@@ -183,7 +202,7 @@ mod tests {
     #[test]
     fn the_default_plays_and_mixes_where_it_did() {
         let default = OutputChoice::default();
-        assert_eq!(default.device_name(), None);
+        assert_eq!(default.alsa_pcm_card(), None);
         assert_eq!(default.mixer_card(), "0");
         assert_eq!(default.mixer_control(), "PCM");
 
@@ -191,10 +210,7 @@ mod tests {
             card: Some("Headphones".to_string()),
             mixer_control: None,
         };
-        assert_eq!(
-            jack.device_name().as_deref(),
-            Some("default:CARD=Headphones")
-        );
+        assert_eq!(jack.alsa_pcm_card(), Some("Headphones"));
         assert_eq!(jack.mixer_card(), "Headphones");
 
         let usb = OutputChoice {
@@ -202,5 +218,34 @@ mod tests {
             mixer_control: Some("Speaker".to_string()),
         };
         assert_eq!(usb.mixer_control(), "Speaker");
+    }
+
+    #[test]
+    fn a_card_that_is_not_there_leaves_playback_and_volume_on_card_0() {
+        let cards = parse_cards(CARNINE_PC);
+        let jack = OutputChoice {
+            card: Some("Headphones".to_string()),
+            mixer_control: Some("Speaker".to_string()),
+        };
+        assert_eq!(jack.resolve(&cards), (jack.clone(), None));
+
+        let usb = OutputChoice {
+            card: Some("USB".to_string()),
+            mixer_control: Some("Speaker".to_string()),
+        };
+        let (effective, missing) = usb.resolve(&cards);
+        assert_eq!(missing.as_deref(), Some("USB"));
+        assert_eq!(effective.alsa_pcm_card(), None);
+        assert_eq!(
+            (effective.mixer_card(), effective.mixer_control()),
+            ("0", "PCM")
+        );
+
+        // No ALSA at all (WSL): the same.
+        assert_eq!(usb.resolve(&[]).0, OutputChoice::default());
+        assert_eq!(
+            OutputChoice::default().resolve(&[]),
+            (OutputChoice::default(), None)
+        );
     }
 }
