@@ -68,6 +68,7 @@ async fn main() -> Result<()> {
         "library-smoke" => library_event_smoke(&endpoint).await?,
         "audio-events" => stream_audio_events(&endpoint).await?,
         "volume" => get_volume(&endpoint).await?,
+        "audio-outputs" => list_audio_outputs(&endpoint).await?,
         "set-volume" => set_volume(&endpoint).await?,
         "rescan" => rescan(&mut client).await?,
         "event-smoke" => event_smoke(&endpoint).await?,
@@ -381,6 +382,32 @@ async fn stream_audio_events(endpoint: &str) -> Result<()> {
         );
     })
     .await
+}
+
+/// `audio-outputs`: the sound cards and the one `[audio] output_card` names
+/// (#48); the id is the value for the configuration.
+async fn list_audio_outputs(endpoint: &str) -> Result<()> {
+    let mut client = AudioServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let outputs = client.list_audio_outputs(Empty {}).await?.into_inner();
+    for output in &outputs.outputs {
+        println!(
+            "{} card {} id={} name={:?}",
+            if output.configured { "*" } else { " " },
+            output.index,
+            output.card_id,
+            output.name
+        );
+    }
+    let configured = if outputs.configured_card.is_empty() {
+        "(system default)".to_string()
+    } else {
+        outputs.configured_card.clone()
+    };
+    println!(
+        "output_card={configured} present={} mixer=-c {} {}",
+        outputs.configured_card_present, outputs.mixer_card, outputs.mixer_control
+    );
+    Ok(())
 }
 
 async fn get_volume(endpoint: &str) -> Result<()> {

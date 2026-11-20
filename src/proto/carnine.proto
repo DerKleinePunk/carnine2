@@ -53,6 +53,35 @@ service AudioService {
   rpc GetVolume (Empty) returns (VolumeResponse);
   rpc SetVolume (SetVolumeRequest) returns (VolumeResponse);
   rpc StreamAudioEvents (Empty) returns (stream AudioEvent);
+  // The device's sound cards and which one the backend plays on (#48). The
+  // output is set in the configuration (`[audio] output_card`, an ALSA card
+  // id) and takes effect when the backend starts; without it the backend
+  // plays on the system default (on the Pi the card 0 the image chose).
+  rpc ListAudioOutputs (Empty) returns (AudioOutputs);
+}
+
+message AudioOutput {
+  // ALSA card id, e.g. "Headphones" or "vc4hdmi0": the value for
+  // `[audio] output_card`.
+  string card_id = 1;
+  // Card number; may change between boots, the id does not.
+  uint32 index = 2;
+  // Long name, e.g. "bcm2835 Headphones".
+  string name = 3;
+  // The configured output_card.
+  bool configured = 4;
+}
+
+message AudioOutputs {
+  repeated AudioOutput outputs = 1;
+  // `[audio] output_card`; empty for the system default.
+  string configured_card = 2;
+  // False when output_card names a card that is not there: the backend then
+  // plays on the system default.
+  bool configured_card_present = 3;
+  // The card and mixer control the volume is set on.
+  string mixer_card = 4;
+  string mixer_control = 5;
 }
 
 service ConfigService {

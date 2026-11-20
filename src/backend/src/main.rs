@@ -27,6 +27,7 @@ pub mod carnine {
 
 mod audio_engine;
 mod audio_mixer;
+mod audio_output;
 mod audio_source;
 mod audio_volume;
 mod camera;
@@ -56,15 +57,15 @@ use carnine::{
     carnine_service_server::{CarnineService, CarnineServiceServer},
     config_service_server::{ConfigService, ConfigServiceServer},
     media_service_server::{MediaService, MediaServiceServer},
-    AddPlaylistEntryRequest, AudioEvent, AudioEventType, CanData, CanDataRequest, CanDataResponse,
-    CommandResponse, Configuration, CreatePlaylistRequest, DeletePlaylistRequest,
-    DisplayBrightness, Empty, ExitPasswordCheck, ExitPasswordRequest, GetCoverArtRequest,
-    GetCoverArtResponse, GetPlaylistRequest, ImportMusicVolumeRequest, LibraryEvent,
-    LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest, PlayQueueEntryRequest,
-    PlayRequest, PlayerEvent, PlayerEventType, PlayerState, Playlist, PlaylistEntry,
-    PowerSupplyState, PowerSupplyStatus, RemovePlaylistEntryRequest, RenamePlaylistRequest,
-    RepeatMode, RescanMediaRequest, ReverseGear, ReverseGearSourceKind, ReverseGearStatus,
-    SearchMediaRequest, SearchMediaResponse, SeekRequest, ServiceVersion,
+    AddPlaylistEntryRequest, AudioEvent, AudioEventType, AudioOutput, AudioOutputs, CanData,
+    CanDataRequest, CanDataResponse, CommandResponse, Configuration, CreatePlaylistRequest,
+    DeletePlaylistRequest, DisplayBrightness, Empty, ExitPasswordCheck, ExitPasswordRequest,
+    GetCoverArtRequest, GetCoverArtResponse, GetPlaylistRequest, ImportMusicVolumeRequest,
+    LibraryEvent, LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest,
+    PlayQueueEntryRequest, PlayRequest, PlayerEvent, PlayerEventType, PlayerState, Playlist,
+    PlaylistEntry, PowerSupplyState, PowerSupplyStatus, RemovePlaylistEntryRequest,
+    RenamePlaylistRequest, RepeatMode, RescanMediaRequest, ReverseGear, ReverseGearSourceKind,
+    ReverseGearStatus, SearchMediaRequest, SearchMediaResponse, SeekRequest, ServiceVersion,
     SetDisplayBrightnessRequest, SetExitPasswordRequest, SetRepeatModeRequest,
     SetReverseGearRequest, SetShuffleModeRequest, SetVolumeRequest, SystemMetrics, ThermalStatus,
     UiState, VolumeResponse,
@@ -668,11 +669,14 @@ impl MediaServiceImpl {
         supported_formats: Vec<String>,
         resume_mode: String,
         cover_cache_dir: PathBuf,
-        audio_channels: Option<u16>,
-        rear_level: f32,
+        audio: &config::AudioConfig,
     ) -> Result<Self> {
         let service = Self::from_player(
-            MediaPlayer::new(audio_channels, rear_level),
+            MediaPlayer::new(
+                audio_output::OutputChoice::from_config(audio).device_name(),
+                audio.channels,
+                audio.rear_level(),
+            ),
             database_path,
             media_folders,
             supported_formats,
@@ -1031,6 +1035,9 @@ pub struct AudioServiceImpl {
     events: broadcast::Sender<AudioEvent>,
     volume: Arc<audio_volume::AudioVolume>,
     output_available: OutputAvailable,
+    /// `[audio] output_card`/`mixer_control` and where the cards are listed.
+    output: audio_output::OutputChoice,
+    cards_path: PathBuf,
 }
 
 impl AudioServiceImpl {
@@ -1055,6 +1062,35 @@ impl AudioServiceImpl {
             events,
             volume,
             output_available,
+            output: audio_output::OutputChoice::default(),
+            cards_path: PathBuf::from(audio_output::PROC_CARDS),
+        }
+    }
+
+    fn with_output(mut self, output: audio_output::OutputChoice, cards_path: PathBuf) -> Self {
+        self.output = output;
+        self.cards_path = cards_path;
+        self
+    }
+
+    fn audio_outputs(&self) -> AudioOutputs {
+        let cards = audio_output::read_cards(&self.cards_path);
+        let configured = self.output.card.clone().unwrap_or_default();
+        AudioOutputs {
+            configured_card_present: configured.is_empty()
+                || cards.iter().any(|card| card.id == configured),
+            outputs: cards
+                .into_iter()
+                .map(|card| AudioOutput {
+                    configured: card.id == configured,
+                    card_id: card.id,
+                    index: card.index,
+                    name: card.name,
+                })
+                .collect(),
+            configured_card: configured,
+            mixer_card: self.output.mixer_card().to_string(),
+            mixer_control: self.output.mixer_control().to_string(),
         }
     }
 
@@ -1631,6 +1667,13 @@ impl AudioService for AudioServiceImpl {
         Ok(Response::new(Box::pin(snapshot.chain(updates))))
     }
 
+    async fn list_audio_outputs(
+        &self,
+        _request: Request<Empty>,
+    ) -> Result<Response<AudioOutputs>, Status> {
+        Ok(Response::new(self.audio_outputs()))
+    }
+
     async fn get_volume(
         &self,
         _request: Request<Empty>,
@@ -1935,17 +1978,18 @@ async fn main() -> Result<()> {
         configuration.exit_password.hash.as_deref(),
         Some(configuration_path.with_extension("d")),
     ));
+    let audio_output = audio_output::OutputChoice::from_config(&configuration.audio);
     let media_service = MediaServiceImpl::new_runtime(
         configuration.media.database_path.clone(),
         configuration.media.folders.clone(),
         configuration.media.supported_formats.clone(),
         configuration.media.resume_mode.clone(),
         configuration.media.cover_cache_dir.clone(),
-        configuration.audio.channels,
-        configuration.audio.rear_level(),
+        &configuration.audio,
     )?;
-    let audio_volume = Arc::new(audio_volume::AudioVolume::new(
+    let audio_volume = Arc::new(audio_volume::AudioVolume::for_output(
         configuration.audio.volume_state_path.clone(),
+        &audio_output,
     ));
     audio_volume.start();
     media_service.restore_resume_state()?;
@@ -1995,14 +2039,20 @@ async fn main() -> Result<()> {
         .layer(stream_stop.layer())
         .add_service(CarnineServiceServer::new(carnine_service))
         .add_service(MediaServiceServer::new(media_service.clone()))
-        .add_service(AudioServiceServer::new(AudioServiceImpl::with_events(
-            media_service.player.audio_event_sender(),
-            Arc::clone(&audio_volume),
-            {
-                let player = Arc::clone(&media_service.player);
-                Arc::new(move || player.audio_output_available())
-            },
-        )))
+        .add_service(AudioServiceServer::new(
+            AudioServiceImpl::with_events(
+                media_service.player.audio_event_sender(),
+                Arc::clone(&audio_volume),
+                {
+                    let player = Arc::clone(&media_service.player);
+                    Arc::new(move || player.audio_output_available())
+                },
+            )
+            .with_output(
+                audio_output.clone(),
+                PathBuf::from(audio_output::PROC_CARDS),
+            ),
+        ))
         .add_service(ConfigServiceServer::new(config_service))
         .add_service(carnine::system_service_server::SystemServiceServer::new(
             system_service,
@@ -2243,6 +2293,8 @@ mod tests {
                 volume_state_path: PathBuf::from("/tmp/carnine-audio-volume"),
                 channels: None,
                 rear_percent: None,
+                output_card: None,
+                mixer_control: None,
             },
             logging: config::LoggingConfig {
                 directory: PathBuf::from("/tmp/carnine-logs"),
@@ -3518,6 +3570,61 @@ mod tests {
             snapshot.event,
             AudioEventType::AudioOutputUnavailable as i32
         );
+    }
+
+    #[tokio::test]
+    async fn audio_service_lists_the_cards_and_the_configured_output() {
+        use crate::audio_output::OutputChoice;
+        use crate::carnine::audio_service_server::AudioService;
+        let cards =
+            std::env::temp_dir().join(format!("carnine-asound-cards-{}", std::process::id()));
+        std::fs::write(
+            &cards,
+            " 0 [vc4hdmi0       ]: vc4-hdmi - vc4-hdmi-0\n                      vc4-hdmi-0\n 2 [Headphones     ]: bcm2835_headpho - bcm2835 Headphones\n                      bcm2835 Headphones\n",
+        )
+        .unwrap();
+
+        let service =
+            AudioServiceImpl::new().with_output(OutputChoice::card("Headphones"), cards.clone());
+        let outputs = AudioService::list_audio_outputs(&service, Request::new(Empty {}))
+            .await
+            .unwrap()
+            .into_inner();
+        let listed: Vec<(&str, u32, bool)> = outputs
+            .outputs
+            .iter()
+            .map(|output| (output.card_id.as_str(), output.index, output.configured))
+            .collect();
+        assert_eq!(listed, [("vc4hdmi0", 0, false), ("Headphones", 2, true)]);
+        assert_eq!(outputs.outputs[1].name, "bcm2835 Headphones");
+        assert_eq!(outputs.configured_card, "Headphones");
+        assert!(outputs.configured_card_present);
+        assert_eq!(
+            (outputs.mixer_card.as_str(), outputs.mixer_control.as_str()),
+            ("Headphones", "PCM")
+        );
+
+        // A card that is not there: the backend plays on the default.
+        let missing = AudioServiceImpl::new().with_output(OutputChoice::card("USB"), cards.clone());
+        let outputs = AudioService::list_audio_outputs(&missing, Request::new(Empty {}))
+            .await
+            .unwrap()
+            .into_inner();
+        assert!(!outputs.configured_card_present);
+        assert!(outputs.outputs.iter().all(|output| !output.configured));
+
+        // Nothing configured, no ALSA (WSL): no cards, default card 0.
+        let plain = AudioServiceImpl::new()
+            .with_output(OutputChoice::default(), cards.with_extension("missing"));
+        let outputs = AudioService::list_audio_outputs(&plain, Request::new(Empty {}))
+            .await
+            .unwrap()
+            .into_inner();
+        assert!(outputs.outputs.is_empty());
+        assert!(outputs.configured_card_present);
+        assert_eq!(outputs.configured_card, "");
+        assert_eq!(outputs.mixer_card, "0");
+        std::fs::remove_file(&cards).unwrap();
     }
 
     #[tokio::test]

@@ -320,9 +320,15 @@ impl MediaPlayer {
     /// channels`) or the device's own default, and plays the rear speakers
     /// at `rear_level` (`[audio] rear_percent`); without a device the player
     /// still comes up and retries on the next start (#55).
-    pub fn new(channels: Option<u16>, rear_level: f32) -> Self {
+    /// `device` is the cpal device of `[audio] output_card` (#48), `None`
+    /// for the default device.
+    pub fn new(device: Option<String>, channels: Option<u16>, rear_level: f32) -> Self {
         Self::with_state(Box::new(RetryingAudioEngine::new(Box::new(move || {
-            Ok(Box::new(CpalAudioEngine::new(channels, rear_level)?) as Box<dyn AudioEngine>)
+            Ok(Box::new(CpalAudioEngine::on_device(
+                device.as_deref(),
+                channels,
+                rear_level,
+            )?) as Box<dyn AudioEngine>)
         }))))
     }
 

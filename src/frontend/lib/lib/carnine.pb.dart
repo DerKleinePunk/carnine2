@@ -21,6 +21,203 @@ export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 export 'carnine.pbenum.dart';
 
+class AudioOutput extends $pb.GeneratedMessage {
+  factory AudioOutput({
+    $core.String? cardId,
+    $core.int? index,
+    $core.String? name,
+    $core.bool? configured,
+  }) {
+    final result = create();
+    if (cardId != null) result.cardId = cardId;
+    if (index != null) result.index = index;
+    if (name != null) result.name = name;
+    if (configured != null) result.configured = configured;
+    return result;
+  }
+
+  AudioOutput._();
+
+  factory AudioOutput.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AudioOutput.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AudioOutput',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'cardId')
+    ..aI(2, _omitFieldNames ? '' : 'index', fieldType: $pb.PbFieldType.OU3)
+    ..aOS(3, _omitFieldNames ? '' : 'name')
+    ..aOB(4, _omitFieldNames ? '' : 'configured')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AudioOutput clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AudioOutput copyWith(void Function(AudioOutput) updates) =>
+      super.copyWith((message) => updates(message as AudioOutput))
+          as AudioOutput;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AudioOutput create() => AudioOutput._();
+  @$core.override
+  AudioOutput createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AudioOutput getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AudioOutput>(create);
+  static AudioOutput? _defaultInstance;
+
+  /// ALSA card id, e.g. "Headphones" or "vc4hdmi0": the value for
+  /// `[audio] output_card`.
+  @$pb.TagNumber(1)
+  $core.String get cardId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set cardId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasCardId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCardId() => $_clearField(1);
+
+  /// Card number; may change between boots, the id does not.
+  @$pb.TagNumber(2)
+  $core.int get index => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set index($core.int value) => $_setUnsignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasIndex() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearIndex() => $_clearField(2);
+
+  /// Long name, e.g. "bcm2835 Headphones".
+  @$pb.TagNumber(3)
+  $core.String get name => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set name($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasName() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearName() => $_clearField(3);
+
+  /// The configured output_card.
+  @$pb.TagNumber(4)
+  $core.bool get configured => $_getBF(3);
+  @$pb.TagNumber(4)
+  set configured($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasConfigured() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearConfigured() => $_clearField(4);
+}
+
+class AudioOutputs extends $pb.GeneratedMessage {
+  factory AudioOutputs({
+    $core.Iterable<AudioOutput>? outputs,
+    $core.String? configuredCard,
+    $core.bool? configuredCardPresent,
+    $core.String? mixerCard,
+    $core.String? mixerControl,
+  }) {
+    final result = create();
+    if (outputs != null) result.outputs.addAll(outputs);
+    if (configuredCard != null) result.configuredCard = configuredCard;
+    if (configuredCardPresent != null)
+      result.configuredCardPresent = configuredCardPresent;
+    if (mixerCard != null) result.mixerCard = mixerCard;
+    if (mixerControl != null) result.mixerControl = mixerControl;
+    return result;
+  }
+
+  AudioOutputs._();
+
+  factory AudioOutputs.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AudioOutputs.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AudioOutputs',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..pPM<AudioOutput>(1, _omitFieldNames ? '' : 'outputs',
+        subBuilder: AudioOutput.create)
+    ..aOS(2, _omitFieldNames ? '' : 'configuredCard')
+    ..aOB(3, _omitFieldNames ? '' : 'configuredCardPresent')
+    ..aOS(4, _omitFieldNames ? '' : 'mixerCard')
+    ..aOS(5, _omitFieldNames ? '' : 'mixerControl')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AudioOutputs clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AudioOutputs copyWith(void Function(AudioOutputs) updates) =>
+      super.copyWith((message) => updates(message as AudioOutputs))
+          as AudioOutputs;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AudioOutputs create() => AudioOutputs._();
+  @$core.override
+  AudioOutputs createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AudioOutputs getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AudioOutputs>(create);
+  static AudioOutputs? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<AudioOutput> get outputs => $_getList(0);
+
+  /// `[audio] output_card`; empty for the system default.
+  @$pb.TagNumber(2)
+  $core.String get configuredCard => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set configuredCard($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasConfiguredCard() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearConfiguredCard() => $_clearField(2);
+
+  /// False when output_card names a card that is not there: the backend then
+  /// plays on the system default.
+  @$pb.TagNumber(3)
+  $core.bool get configuredCardPresent => $_getBF(2);
+  @$pb.TagNumber(3)
+  set configuredCardPresent($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasConfiguredCardPresent() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearConfiguredCardPresent() => $_clearField(3);
+
+  /// The card and mixer control the volume is set on.
+  @$pb.TagNumber(4)
+  $core.String get mixerCard => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set mixerCard($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasMixerCard() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearMixerCard() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get mixerControl => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set mixerControl($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasMixerControl() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearMixerControl() => $_clearField(5);
+}
+
 class ReverseGearStatus extends $pb.GeneratedMessage {
   factory ReverseGearStatus({
     $core.bool? configured,

@@ -3,11 +3,10 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Mutex;
 
+use crate::audio_output::OutputChoice;
 use anyhow::{bail, Context, Result};
 use tracing::{info, warn};
 
-const MIXER_CARD: &str = "0";
-const MIXER_CONTROL: &str = "PCM";
 const PACTL_SINK: &str = "@DEFAULT_SINK@";
 const RESTORE_RETRY_DELAY: std::time::Duration = std::time::Duration::from_secs(1);
 
@@ -53,8 +52,81 @@ fn select_backend(amixer_ok: bool, pactl_ok: bool) -> VolumeBackend {
     }
 }
 
+/// The ALSA mixer the volume is set on: card and control (#48).
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Mixer {
+    card: String,
+    control: String,
+}
+
+impl Mixer {
+    fn of(output: &OutputChoice) -> Self {
+        Self {
+            card: output.mixer_card().to_string(),
+            control: output.mixer_control().to_string(),
+        }
+    }
+
+    /// `-M` maps percent onto the dB curve (alsa-lib volume_mapping.c), so
+    /// the same number sounds alike on HDMI and on the jack (#65).
+    fn args(&self, mapped: bool, command: &str, value: Option<u8>) -> Vec<String> {
+        let mut args = Vec::new();
+        if mapped {
+            args.push("-M".to_string());
+        }
+        args.extend([
+            "-c".to_string(),
+            self.card.clone(),
+            command.to_string(),
+            self.control.clone(),
+        ]);
+        if let Some(percent) = value {
+            args.push(format!("{percent}%"));
+        }
+        args
+    }
+
+    fn set_args(&self, percent: u8) -> Vec<String> {
+        self.args(true, "set", Some(percent))
+    }
+
+    /// Only for converting a value saved before #65.
+    fn raw_set_args(&self, percent: u8) -> Vec<String> {
+        self.args(false, "set", Some(percent))
+    }
+
+    fn get_args(&self) -> Vec<String> {
+        self.args(true, "get", None)
+    }
+
+    fn apply(&self, percent: u8) -> Result<()> {
+        run_amixer_set(self.set_args(percent))
+    }
+
+    fn apply_raw(&self, percent: u8) -> Result<()> {
+        run_amixer_set(self.raw_set_args(percent))
+    }
+
+    fn read_percent(&self) -> Result<u8> {
+        let output = Command::new("amixer")
+            .args(self.get_args())
+            .output()
+            .context("failed to read ALSA volume with amixer")?;
+        if !output.status.success() {
+            bail!("amixer exited with {}", output.status);
+        }
+        parse_first_percent(&String::from_utf8_lossy(&output.stdout)).with_context(|| {
+            format!(
+                "amixer output did not contain a valid {} volume on card {}",
+                self.control, self.card
+            )
+        })
+    }
+}
+
 pub struct AudioVolume {
     state_path: PathBuf,
+    mixer: Mixer,
     backend: VolumeBackend,
     percent: Mutex<u8>,
     /// A pre-#65 value still to be converted by `start`.
@@ -62,12 +134,24 @@ pub struct AudioVolume {
 }
 
 impl AudioVolume {
+    /// On the system default: card 0, control `PCM`.
+    #[cfg(test)]
     pub fn new(state_path: PathBuf) -> Self {
-        let amixer_probe = read_amixer_percent();
+        Self::for_output(state_path, &OutputChoice::default())
+    }
+
+    /// On the mixer of the configured output (`[audio] output_card`,
+    /// `mixer_control`, #48).
+    pub fn for_output(state_path: PathBuf, output: &OutputChoice) -> Self {
+        let (mixer, amixer_probe) = pick_mixer(output, Mixer::read_percent);
         let pactl_probe = read_pactl_percent();
         let backend = select_backend(amixer_probe.is_ok(), pactl_probe.is_ok());
         match backend {
-            VolumeBackend::Amixer => info!("audio volume backend: amixer (ALSA hardware mixer)"),
+            VolumeBackend::Amixer => info!(
+                card = %mixer.card,
+                control = %mixer.control,
+                "audio volume backend: amixer (ALSA hardware mixer)"
+            ),
             VolumeBackend::Pactl => {
                 info!("audio volume backend: pactl (PulseAudio sink, e.g. WSLg)")
             }
@@ -92,6 +176,7 @@ impl AudioVolume {
         let percent = initial_percent(saved);
         Self {
             state_path,
+            mixer,
             backend,
             percent: Mutex::new(percent),
             migrate_raw: Mutex::new(match saved {
@@ -163,9 +248,11 @@ impl AudioVolume {
     /// next start tries again.
     fn migrate(&self, raw: u8) {
         let result = match self.backend {
-            VolumeBackend::Amixer => {
-                convert_raw_to_mapped(raw, apply_amixer_raw, read_amixer_percent)
-            }
+            VolumeBackend::Amixer => convert_raw_to_mapped(
+                raw,
+                |percent| self.mixer.apply_raw(percent),
+                || self.mixer.read_percent(),
+            ),
             // PulseAudio percent never followed the raw range.
             VolumeBackend::Pactl => Ok(raw),
             VolumeBackend::Unavailable => return,
@@ -189,12 +276,39 @@ impl AudioVolume {
 
     fn apply(&self, percent: u8) -> Result<()> {
         match self.backend {
-            VolumeBackend::Amixer => apply_amixer(percent),
+            VolumeBackend::Amixer => self.mixer.apply(percent),
             VolumeBackend::Pactl => apply_pactl(percent),
             VolumeBackend::Unavailable => {
                 bail!("no usable audio volume backend (neither amixer nor pactl)")
             }
         }
+    }
+}
+
+/// The mixer of the configured output; if a configured card is not there or
+/// has no such control, card 0's, where the playback then plays as well
+/// (`CpalAudioEngine::on_device`). Otherwise a missing card would leave the
+/// volume without any effect on the Pi, which has no pactl to fall back to.
+fn pick_mixer(output: &OutputChoice, probe: impl Fn(&Mixer) -> Result<u8>) -> (Mixer, Result<u8>) {
+    let configured = Mixer::of(output);
+    match probe(&configured) {
+        Ok(percent) => (configured, Ok(percent)),
+        Err(error) if output.card.is_some() => {
+            let default = Mixer::of(&OutputChoice::default());
+            match probe(&default) {
+                Ok(percent) => {
+                    warn!(
+                        card = %configured.card,
+                        control = %configured.control,
+                        error = %format!("{error:#}"),
+                        "mixer of the configured audio output not usable, setting the volume on card 0"
+                    );
+                    (default, Ok(percent))
+                }
+                Err(_) => (configured, Err(error)),
+            }
+        }
+        Err(error) => (configured, Err(error)),
     }
 }
 
@@ -243,47 +357,12 @@ fn convert_raw_to_mapped(
     read_mapped()
 }
 
-/// `-M` maps percent onto the dB curve (alsa-lib volume_mapping.c), so the
-/// same number sounds alike on HDMI and on the jack (#65).
-fn amixer_args(mapped: bool, command: &str, value: Option<u8>) -> Vec<String> {
-    let mut args = Vec::new();
-    if mapped {
-        args.push("-M".to_string());
-    }
-    args.extend(["-c", MIXER_CARD, command, MIXER_CONTROL].map(String::from));
-    if let Some(percent) = value {
-        args.push(format!("{percent}%"));
-    }
-    args
-}
-
-fn amixer_set_args(percent: u8) -> Vec<String> {
-    amixer_args(true, "set", Some(percent))
-}
-
-/// Only for converting a value saved before #65.
-fn amixer_raw_set_args(percent: u8) -> Vec<String> {
-    amixer_args(false, "set", Some(percent))
-}
-
-fn amixer_get_args() -> Vec<String> {
-    amixer_args(true, "get", None)
-}
-
 fn run_amixer_set(args: Vec<String>) -> Result<()> {
     let output = Command::new("amixer")
         .args(args)
         .output()
         .context("failed to start amixer")?;
     check_tool("amixer", &output)
-}
-
-fn apply_amixer(percent: u8) -> Result<()> {
-    run_amixer_set(amixer_set_args(percent))
-}
-
-fn apply_amixer_raw(percent: u8) -> Result<()> {
-    run_amixer_set(amixer_raw_set_args(percent))
 }
 
 /// Fails with the tool's own message: its stderr went only to the journal,
@@ -299,18 +378,6 @@ fn check_tool(tool: &str, output: &std::process::Output) -> Result<()> {
         bail!("{tool} exited with {}", output.status);
     }
     bail!("{tool} exited with {}: {message}", output.status)
-}
-
-fn read_amixer_percent() -> Result<u8> {
-    let output = Command::new("amixer")
-        .args(amixer_get_args())
-        .output()
-        .context("failed to read ALSA volume with amixer")?;
-    if !output.status.success() {
-        bail!("amixer exited with {}", output.status);
-    }
-    parse_first_percent(&String::from_utf8_lossy(&output.stdout))
-        .context("amixer output did not contain a valid PCM volume")
 }
 
 fn apply_pactl(percent: u8) -> Result<()> {
@@ -358,10 +425,10 @@ mod tests {
     use std::cell::RefCell;
 
     use super::{
-        amixer_get_args, amixer_raw_set_args, amixer_set_args, check_tool, convert_raw_to_mapped,
-        format_state, initial_percent, parse_first_percent, parse_state, select_backend,
-        SavedVolume, VolumeBackend,
+        check_tool, convert_raw_to_mapped, format_state, initial_percent, parse_first_percent,
+        parse_state, select_backend, Mixer, SavedVolume, VolumeBackend,
     };
+    use crate::audio_output::OutputChoice;
 
     fn run(script: &str) -> std::process::Output {
         std::process::Command::new("sh")
@@ -433,14 +500,59 @@ mod tests {
     }
 
     #[test]
+    fn a_missing_card_sets_the_volume_on_card_0_like_the_playback() {
+        use super::pick_mixer;
+        let only = |card: &'static str| {
+            move |mixer: &Mixer| {
+                if mixer.card == card {
+                    Ok(42)
+                } else {
+                    anyhow::bail!("amixer: Invalid card number")
+                }
+            }
+        };
+        let jack = OutputChoice::card("Headphones");
+        // The card is there: its mixer.
+        let (mixer, probe) = pick_mixer(&jack, only("Headphones"));
+        assert_eq!((mixer.card.as_str(), probe.unwrap()), ("Headphones", 42));
+        // Not there, card 0 is: card 0.
+        let (mixer, probe) = pick_mixer(&jack, only("0"));
+        assert_eq!((mixer.card.as_str(), probe.unwrap()), ("0", 42));
+        // Neither: the configured one stays, with its error (pactl may help).
+        let (mixer, probe) = pick_mixer(&jack, only("none"));
+        assert_eq!(mixer.card, "Headphones");
+        assert!(probe.is_err());
+        // Nothing configured: card 0, no second try.
+        let (mixer, probe) = pick_mixer(&OutputChoice::default(), only("none"));
+        assert_eq!(mixer.card, "0");
+        assert!(probe.is_err());
+    }
+
+    #[test]
+    fn the_volume_is_set_on_the_configured_card_and_control() {
+        let jack = Mixer::of(&OutputChoice::card("Headphones"));
+        assert_eq!(
+            jack.set_args(40),
+            ["-M", "-c", "Headphones", "set", "PCM", "40%"]
+        );
+        let usb = Mixer::of(&OutputChoice {
+            card: Some("Device".to_string()),
+            mixer_control: Some("Speaker".to_string()),
+        });
+        assert_eq!(usb.get_args(), ["-M", "-c", "Device", "get", "Speaker"]);
+    }
+
+    #[test]
     fn amixer_sets_and_reads_on_the_mapped_scale() {
-        assert_eq!(amixer_set_args(50), ["-M", "-c", "0", "set", "PCM", "50%"]);
-        assert_eq!(amixer_get_args(), ["-M", "-c", "0", "get", "PCM"]);
+        let mixer = Mixer::of(&OutputChoice::default());
+        assert_eq!(mixer.set_args(50), ["-M", "-c", "0", "set", "PCM", "50%"]);
+        assert_eq!(mixer.get_args(), ["-M", "-c", "0", "get", "PCM"]);
     }
 
     #[test]
     fn the_conversion_sets_the_old_value_without_mapping() {
-        assert_eq!(amixer_raw_set_args(65), ["-c", "0", "set", "PCM", "65%"]);
+        let mixer = Mixer::of(&OutputChoice::default());
+        assert_eq!(mixer.raw_set_args(65), ["-c", "0", "set", "PCM", "65%"]);
     }
 
     /// On carnine-pc (HDMI) the saved 65 read back as 42 with -M: the level

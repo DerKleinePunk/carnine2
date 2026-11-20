@@ -41,6 +41,17 @@ volume_state_path = "/var/lib/carnine/audio-volume"
 # rear amplifier much stronger than the front one. Set once at installation;
 # e.g. 30 (about -10 dB) for 160 W behind and 20 W in front, by ear.
 # rear_percent = 30
+# The output the speakers are wired to (#48), as an ALSA card id from
+# /proc/asound/cards (CLI: audio-outputs), e.g. "Headphones" for the Pi's
+# jack or "vc4hdmi0" / "vc4hdmi1" for its HDMI ports. Without it the system
+# default, card 0 as the image variant set it. The backend opens
+# default:CARD=<id> and sets the volume on that card; read at start, so a
+# change needs a restart of the backend. A card that is not there plays on
+# the default, with a warning in the log.
+# output_card = "Headphones"
+# Mixer control the volume is set on, PCM unless given (a USB card may call
+# it "Speaker" or "Master"; amixer -c <id> scontrols lists them).
+# mixer_control = "PCM"
 
 [logging]
 directory = "/var/log/carnine"
