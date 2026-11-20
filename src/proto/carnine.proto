@@ -57,7 +57,8 @@ service AudioService {
 
 service ConfigService {
   rpc GetConfiguration (Empty) returns (Configuration);
-  rpc UpdateConfiguration (UpdateConfigurationRequest) returns (ConfigurationResponse);
+  // UpdateConfiguration was removed on 2026-11-20: no client used it, and it
+  // wrote the sections the message does not carry back empty.
 }
 
 service SystemService {
@@ -524,17 +525,6 @@ message Configuration {
   uint64 disk_metrics_interval_seconds = 17;
   // Empty means the default: root filesystem plus every media folder.
   repeated string disk_paths = 18;
-}
-
-message UpdateConfigurationRequest {
-  Configuration configuration = 1;
-}
-
-message ConfigurationResponse {
-  bool success = 1;
-  string message = 2;
-  Configuration configuration = 3;
-  bool restart_required = 4;
 }
 
 message DiskUsage {

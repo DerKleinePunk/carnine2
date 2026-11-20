@@ -1128,52 +1128,6 @@ final $typed_data.Uint8List configurationDescriptor = $convert.base64Decode(
     '9uZHMYESABKARSGmRpc2tNZXRyaWNzSW50ZXJ2YWxTZWNvbmRzEh0KCmRpc2tfcGF0aHMYEiAD'
     'KAlSCWRpc2tQYXRoc0oECAsQDFIUbmF2aWdhdGlvbl9pbnRlcnJ1cHQ=');
 
-@$core.Deprecated('Use updateConfigurationRequestDescriptor instead')
-const UpdateConfigurationRequest$json = {
-  '1': 'UpdateConfigurationRequest',
-  '2': [
-    {
-      '1': 'configuration',
-      '3': 1,
-      '4': 1,
-      '5': 11,
-      '6': '.carnine.Configuration',
-      '10': 'configuration'
-    },
-  ],
-};
-
-/// Descriptor for `UpdateConfigurationRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List updateConfigurationRequestDescriptor =
-    $convert.base64Decode(
-        'ChpVcGRhdGVDb25maWd1cmF0aW9uUmVxdWVzdBI8Cg1jb25maWd1cmF0aW9uGAEgASgLMhYuY2'
-        'FybmluZS5Db25maWd1cmF0aW9uUg1jb25maWd1cmF0aW9u');
-
-@$core.Deprecated('Use configurationResponseDescriptor instead')
-const ConfigurationResponse$json = {
-  '1': 'ConfigurationResponse',
-  '2': [
-    {'1': 'success', '3': 1, '4': 1, '5': 8, '10': 'success'},
-    {'1': 'message', '3': 2, '4': 1, '5': 9, '10': 'message'},
-    {
-      '1': 'configuration',
-      '3': 3,
-      '4': 1,
-      '5': 11,
-      '6': '.carnine.Configuration',
-      '10': 'configuration'
-    },
-    {'1': 'restart_required', '3': 4, '4': 1, '5': 8, '10': 'restartRequired'},
-  ],
-};
-
-/// Descriptor for `ConfigurationResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List configurationResponseDescriptor = $convert.base64Decode(
-    'ChVDb25maWd1cmF0aW9uUmVzcG9uc2USGAoHc3VjY2VzcxgBIAEoCFIHc3VjY2VzcxIYCgdtZX'
-    'NzYWdlGAIgASgJUgdtZXNzYWdlEjwKDWNvbmZpZ3VyYXRpb24YAyABKAsyFi5jYXJuaW5lLkNv'
-    'bmZpZ3VyYXRpb25SDWNvbmZpZ3VyYXRpb24SKQoQcmVzdGFydF9yZXF1aXJlZBgEIAEoCFIPcm'
-    'VzdGFydFJlcXVpcmVk');
-
 @$core.Deprecated('Use diskUsageDescriptor instead')
 const DiskUsage$json = {
   '1': 'DiskUsage',
