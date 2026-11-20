@@ -739,11 +739,14 @@ win.
 
 #### Audio output
 
-The backend has no audio device setting. It plays through cpal's
+Without a setting the backend plays through cpal's
 `default_output_device()` (`src/backend/src/cpal_audio_engine.rs`), which on
 the Pi is ALSA's `default` device, and sets the volume with
 `amixer -M -c 0 set PCM` (`src/backend/src/audio_volume.rs`). Both therefore
-follow **ALSA card 0**. The Pi 4 has three cards (`config.txt` from pi-gen
+follow **ALSA card 0**, which the image variant chooses (below). Since #48
+(4c9a7ae) `[audio] output_card` can name the card instead (see
+[Choosing the output in the configuration](#choosing-the-output-in-the-configuration)).
+The Pi 4 has three cards (`config.txt` from pi-gen
 keeps `dtparam=audio=on`):
 
 | ALSA name | Output |
@@ -871,6 +874,45 @@ sudo systemctl restart carnine-backend
 
 Then check in the UI that music plays on the panel and that the volume
 slider changes `amixer -c 0 get PCM`.
+
+#### Choosing the output in the configuration
+
+Since #48 (4c9a7ae) the output can be chosen without another image or the
+modprobe and initramfs steps above: name the card in a drop-in such as
+`/etc/carnine/config.d/50-audio-output.toml` and restart the backend
+(`sudo systemctl restart carnine-backend`); the setting is read at start.
+
+```toml
+[audio]
+output_card = "Headphones"   # ALSA card id from /proc/asound/cards
+# mixer_control = "PCM"      # default; a USB card may call it "Speaker" or "Master"
+```
+
+- The id is the name in brackets in `/proc/asound/cards`, e.g. `Headphones`
+  for the jack, `vc4hdmi0` / `vc4hdmi1` for the HDMI ports. It stays the same
+  across boots, the card number may not.
+- The backend then plays on `default:CARD=<id>` and sets the volume with
+  `amixer -M -c <id>` on `mixer_control` (`amixer -c <id> scontrols` lists
+  the controls of a card).
+- A card that is not there gives a warning in the log; playback and volume
+  then stay on the system default, card 0, as without the setting.
+- Without `output_card` nothing changes: the image variant
+  (`carnine-audio-output.sh`) stays the default way to set the output.
+- **Not with the `hdmi-ac3` variant.** There only `default` leads through
+  the AC-3 encoder (`/etc/asound.conf` turns `pcm.!default` to volume →
+  loopback → `carnine-ac3.service`). `default:CARD=vc4hdmi0` would send PCM
+  straight to HDMI, past the decoder, and with `channels = 4` opening the card
+  would likely fail, leaving no sound at all. Leave `output_card` unset there.
+
+`AudioService.ListAudioOutputs` lists the cards, the configured one, whether
+it is present, and the card and control the volume is set on:
+
+```bash
+media_grpc_client <endpoint> audio-outputs   # "*" marks the configured card
+```
+
+Tested in WSL (a missing card: warning, playback on the default); not yet
+switched over on a device.
 
 #### Four speakers over AC-3 (`hdmi-ac3`)
 
