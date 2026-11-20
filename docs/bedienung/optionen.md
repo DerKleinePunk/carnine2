@@ -89,7 +89,7 @@ haben einen Pfeil und lassen sich antippen. Die anderen drei sind eine
 |---|---|
 | **Kamera** | Gerät, Videonorm, Eingang und Bildbreite (siehe unten) |
 | **Display** | Helligkeit des Displays (siehe unten) |
-| **Audio-Ausgang** | später: HDMI, Kopfhörerbuchse ([Klinke](begriffe.md)) oder USB-Soundkarte wählen (#48) |
+| **Audio-Ausgang** | später: HDMI, Kopfhörerbuchse ([Klinke](begriffe.md)) oder USB-Soundkarte wählen (#207) |
 | **Handy-App** | später: Bluetooth-Kopplung mit Code am Handy (#72) |
 | **Netzteil** | später: Zündung, Spannung und Service-Modus (#36) |
 

@@ -134,7 +134,7 @@ Gemessen am Waveshare-Display von `carnine-pc-843d` (02.10.2026): Dort war kein
 **128 Byte ohne Audioteil** (1024 × 600). Das erklärt, warum über HDMI kein Ton
 kam: Das Display meldet keinen Ton, der Pi schickt ihn nicht dorthin.
 
-Den Ausgang in der Oberfläche wählen zu können, ist geplant (#48).
+Den Ausgang in der Oberfläche wählen zu können, ist geplant (#207).
 
 *Geprüft:* genau nach dieser Seite auf einem **Pi 3** (carnine-pc, 29.09.):
 danach 0 Headphones, 1 vc4hdmi, der Ton lief auf Karte 0, zurück auf HDMI ging

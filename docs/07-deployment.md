@@ -930,18 +930,28 @@ output_card = "Headphones"   # ALSA card id from /proc/asound/cards
 - The id is the name in brackets in `/proc/asound/cards`, e.g. `Headphones`
   for the jack, `vc4hdmi0` / `vc4hdmi1` for the HDMI ports. It stays the same
   across boots, the card number may not.
-- The backend then plays on `default:CARD=<id>` and sets the volume with
-  `amixer -M -c <id>` on `mixer_control` (`amixer -c <id> scontrols` lists
-  the controls of a card).
-- A card that is not there gives a warning in the log; playback and volume
-  then stay on the system default, card 0, as without the setting.
+- At start, before anything else runs, the backend sets `ALSA_PCM_CARD=<id>`
+  (#214). ALSA's `default` device is then that card's own default, with the
+  card's configuration (softvol, IEC958 on the Pi's HDMI). The volume is set
+  with `amixer -M -c <id>` on `mixer_control` (`amixer -c <id> scontrols`
+  lists the controls of a card). The log says
+  `audio output: configured card card="<id>" alsa_pcm_card=Some("<id>")`.
+- **In 0.22.0 the choice did not take effect:** the backend looked for a
+  device named `default:CARD=<id>`, which cpal does not list, so playback
+  stayed on card 0 while the volume went to the configured card. Fixed with
+  #214, since the release after 0.22.0. No device had `output_card` set.
+- A card that is not in `/proc/asound/cards` gives the warning
+  `configured audio output not found, playing and setting the volume on card 0`;
+  playback and volume then both stay on card 0, as without the setting.
 - Without `output_card` nothing changes: the image variant
   (`carnine-audio-output.sh`) stays the default way to set the output.
-- **Not with the `hdmi-ac3` variant.** There only `default` leads through
-  the AC-3 encoder (`/etc/asound.conf` turns `pcm.!default` to volume →
-  loopback → `carnine-ac3.service`). `default:CARD=vc4hdmi0` would send PCM
-  straight to HDMI, past the decoder, and with `channels = 4` opening the card
-  would likely fail, leaving no sound at all. Leave `output_card` unset there.
+- **Not with the `hdmi-ac3` variant.** There `/etc/asound.conf` sets ALSA's
+  `default` itself (softvol "PCM" on card 0 → loopback →
+  `carnine-ac3.service`), so `ALSA_PCM_CARD` has no effect: the sound keeps
+  going through the AC-3 encoder, but the volume would be set on the named
+  card instead of card 0's softvol, and the slider would do nothing. The log
+  still says `audio output: configured card …`. Leave `output_card` unset
+  there.
 
 `AudioService.ListAudioOutputs` lists the cards, the configured one, whether
 it is present, and the card and control the volume is set on:
@@ -950,8 +960,12 @@ it is present, and the card and control the volume is set on:
 media_grpc_client <endpoint> audio-outputs   # "*" marks the configured card
 ```
 
-Tested in WSL (a missing card: warning, playback on the default); not yet
-switched over on a device.
+Tested on jeep-pi on 20.11. with #214, through a test binary: with
+`output_card = "Headphones"` the stream ran on the jack's card (2) and
+`set-volume` changed only that card; with a missing card the warning came and
+playback and volume stayed on card 0, and `audio-outputs` showed
+`present=false`. The jack was checked through the ALSA state
+(`/proc/asound/card2/pcm0p` RUNNING), not by ear: nothing is connected there.
 
 #### Four speakers over AC-3 (`hdmi-ac3`)
 
