@@ -159,6 +159,45 @@ no package owns and no deployment touches:
 - With `CARNINE_CONFIG`, drop-ins come from the `.d` directory beside that
   file; `run_wsl.sh`, for example, uses `build/wsl-dev/config.d`.
 
+**`99-ui.toml`: the values of the expert page (#138, backend since
+32fcef5).** One drop-in belongs to the backend itself: `config.d/99-ui.toml`
+holds the installation values saved from the expert page. It is always laid
+over every other file, last, whatever the others are called; to change one of
+its values, use the page or the CLI below, and by hand only delete the file.
+
+- **Which values:** only those of the page's schema, so far `reverse_gear.*`,
+  `audio.output_card` (choices from `/proc/asound/cards`),
+  `audio.mixer_control`, `audio.channels`, `audio.rear_percent` and
+  `power_supply.enabled` / `amplifier_relay` / `shutdown_on_poweroff`. Other
+  keys and secrets are refused. With the `hdmi-ac3` image variant leave
+  `audio.output_card` empty, or the sound bypasses the AC-3 encoder (see
+  [Choosing the output in the configuration](#choosing-the-output-in-the-configuration)).
+- **Saving** (`ConfigService.SaveInstallSettings`) needs the exit password
+  (otherwise `PERMISSION_DENIED`). Before writing, the backend checks the whole
+  configuration with the change exactly as at start; if it would be invalid,
+  nothing is written and the answer (`INVALID_ARGUMENT`) gives the reason.
+  The previous file is kept as `99-ui.toml.bak`; a file that is not valid
+  TOML is replaced, and kept as `.bak` too. Values take effect at the
+  next start of the backend.
+- **Never locked out:** if `99-ui.toml` makes the configuration invalid at
+  start but it is valid without it, the backend starts without the file, logs
+  a warning and reports the reason to the page. If the configuration is
+  invalid without it too, the start fails as before.
+- **Reading** (`ConfigService.GetInstallSettings`): every value with type,
+  German label and help, default, the value the files give (the default when
+  none sets it), the file it comes from (empty for the default) and whether
+  it waits for a restart, i.e. differs from what the running backend uses.
+  `ui_drop_in_error` says why the file was left out at start, if it was.
+
+```bash
+media_grpc_client <endpoint> install-settings                  # values, origin, restart pending
+media_grpc_client <endpoint> save-install-settings <password> audio.rear_percent=30 reverse_gear.source
+                                                               # key=value sets, a bare key resets
+```
+
+Tested in WSL against the real backend, not yet on a device. The frontend has
+no expert page yet.
+
 The map setup of a device is the typical case. The image installs it from
 `resources/config/config.d/10-navigation.toml`; the map data itself comes
 separately with `./deploy_maps.sh [user@host]`, see
