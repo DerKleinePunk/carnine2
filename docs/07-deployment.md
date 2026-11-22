@@ -684,7 +684,9 @@ field again instead.
 **Reverse gear (#137, backend since 907f85b).** The backend reads the
 reverse gear from a GPIO input or, for trying without a car, from a demo
 source; the CAN source follows once the car's CAN adapter is known. The
-frontend does not switch to the camera page on its own yet. Set it in
+frontend shows the camera page while the gear is in and goes back to the
+page from before when it is out (#191, user guide
+[Kamera](bedienung/kamera.md#rückwärtsgang)). Set it in
 `[reverse_gear]` (template in `resources/config/carnine.toml`, best in a
 drop-in such as `/etc/carnine/config.d/40-reverse-gear.toml`, then restart
 the backend):

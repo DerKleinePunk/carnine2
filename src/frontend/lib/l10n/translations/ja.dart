@@ -283,6 +283,7 @@ const Map<AppTextKey, String> jaTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: 'カメラの信号がありません',
   AppTextKey.cameraMissing: 'カメラが接続されていません',
   AppTextKey.cameraError: 'カメラの故障',
+  AppTextKey.cameraReverseGearSignalMissing: 'リバースギア：信号なし',
   AppTextKey.controlsEmpty: '制御が設定されていません',
   AppTextKey.controlsStateOn: 'オン',
   AppTextKey.controlsStateOff: 'オフ',

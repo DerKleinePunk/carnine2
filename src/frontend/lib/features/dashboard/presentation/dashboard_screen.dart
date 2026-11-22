@@ -4,6 +4,7 @@ import 'package:carnine_frontend/features/camera/presentation/camera_content.dar
 import 'package:carnine_frontend/features/controls/data/controls_repository.dart';
 import 'dart:async';
 
+import 'package:carnine_frontend/features/dashboard/data/reverse_gear_source.dart';
 import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/cpu_temperature_controller.dart';
 import 'package:carnine_frontend/features/maps/presentation/maps_controller.dart';
@@ -11,6 +12,7 @@ import 'package:carnine_frontend/features/dashboard/presentation/dashboard_contr
 import 'package:carnine_frontend/features/dashboard/presentation/idle_return.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/models/dashboard_nav_item.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/power_supply_controller.dart';
+import 'package:carnine_frontend/features/dashboard/presentation/reverse_gear_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/thermal_warning_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/carnine_top_bar.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/widgets/dashboard_content.dart';
@@ -47,6 +49,7 @@ class DashboardScreen extends StatefulWidget {
     this.displayBrightnessStore,
     this.controlsRepository,
     this.cameraSourceFactory,
+    this.reverseGearSource,
     this.idleReturnAfter = const Duration(seconds: 60),
     super.key,
   });
@@ -87,6 +90,10 @@ class DashboardScreen extends StatefulWidget {
   /// The camera page's picture source; the native grabber unless a test
   /// gives one.
   final GrabberSourceFactory? cameraSourceFactory;
+
+  /// Where the reverse gear comes from (#191); the backend's stream unless a
+  /// test gives one.
+  final ReverseGearSource? reverseGearSource;
 
   /// Trade fair mode: how long nobody touches the screen before it returns to
   /// the map (#128).
@@ -149,6 +156,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     apply: _mapsController.setTrafficEnabled,
   );
 
+  // The camera while the reverse gear is in, the page from before after it
+  // (#191). Neither switch is saved as the last page.
+  late final ReverseGearController _reverseGear = ReverseGearController(
+    currentPage: () => _controller.selectedItem.destination,
+    showCamera: _showCameraForReverse,
+    showPage: _controller.showWithoutSaving,
+    source: widget.reverseGearSource,
+  );
+
   // Trade fair mode (#128): back to the map after a minute without a touch.
   late final IdleReturn _idleReturn = IdleReturn(
     after: widget.idleReturnAfter,
@@ -169,6 +185,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _powerSupplyController.start();
     _thermalWarningController.start();
     _cpuTemperatureController.start();
+    _reverseGear.start();
     // At once, not only when the media page opens first: the notice about a
     // missing audio output belongs on every page (#56).
     unawaited(_mediaController.start());
@@ -177,6 +194,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void dispose() {
     _idleReturn.dispose();
+    _reverseGear.dispose();
     _followZoomController.dispose();
     _trafficController.dispose();
     GestureBinding.instance.pointerRouter.removeGlobalRoute(_handlePointer);
@@ -218,12 +236,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
       // On the map there is nothing to do.
       return;
     }
-    if (_isInInput()) {
-      // Someone is typing or choosing: wait another minute.
+    if (_isInInput() || _reverseGear.isEngaged) {
+      // Someone is typing or choosing, or reversing: wait another minute.
       _idleReturn.restart();
       return;
     }
     _controller.selectDestination(DashboardDestination.maps);
+  }
+
+  /// The reverse gear went in: the camera has priority over whatever is open.
+  /// Dialogs and the keyboard close - what was typed in them is gone, music,
+  /// route and queue stay - and the camera page comes, not saved.
+  void _showCameraForReverse() {
+    if (!mounted) {
+      return;
+    }
+    OnScreenKeyboardScope.maybeOf(context)?.close();
+    Navigator.maybeOf(context)?.popUntil((route) => route.isFirst);
+    _controller.showWithoutSaving(DashboardDestination.camera);
   }
 
   /// The keyboard, a dialog or a playlist flow is open: leaving would throw
@@ -302,6 +332,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   followZoomController: _followZoomController,
                   displayBrightnessStore: widget.displayBrightnessStore,
                   cameraSourceFactory: widget.cameraSourceFactory,
+                  reverseGearSignalMissing: _reverseGear.signalMissing,
                   onShowCamera: () => _controller.selectDestination(
                     DashboardDestination.camera,
                   ),

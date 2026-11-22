@@ -107,6 +107,26 @@ class DashboardController extends ChangeNotifier {
     selectItem(navItems.indexWhere((item) => item.destination == destination));
   }
 
+  /// Shows the page for [destination] because the car asked for it (the
+  /// reverse gear, #191), not the driver: it is not saved as the last page,
+  /// so CarNine does not start on the camera next time. Like a tap, it ends
+  /// restoring the last page: a gear that is in at start keeps the camera.
+  void showWithoutSaving(DashboardDestination destination) {
+    final index = navItems.indexWhere(
+      (item) => item.destination == destination,
+    );
+    if (index < 0 || index == _selectedIndex) {
+      return;
+    }
+    _userSelectedPage = true;
+    _logger.info(
+      'Showing dashboard page ${destination.name} (not saved as the last '
+      'page)',
+    );
+    _selectedIndex = index;
+    notifyListeners();
+  }
+
   /// Opens the page saved last, unless the user picked one in the meantime.
   ///
   /// While the backend is unreachable it tries again with growing pauses

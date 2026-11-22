@@ -6,6 +6,7 @@ import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_overlay.dart';
 import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_scope.dart';
 import 'package:carnine_frontend/features/dashboard/data/cpu_temperature_source.dart';
 import 'package:carnine_frontend/features/dashboard/data/power_supply_source.dart';
+import 'package:carnine_frontend/features/dashboard/data/reverse_gear_source.dart';
 import 'package:carnine_frontend/features/dashboard/data/thermal_status_source.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/cpu_temperature_controller.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/dashboard_controller.dart';
@@ -25,6 +26,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:grpc/grpc.dart';
 
 import '../../fakes/fake_media_repository.dart';
+import '../camera/camera_content_test.dart' show FakeGrabberSource;
+import 'reverse_gear_controller_test.dart'
+    show FakeReverseGearSource, gearIn, gearOut, gearUnknown;
 
 /// Backend with only a status: the test says whether the trade fair mode is
 /// on.
@@ -151,6 +155,8 @@ void main() {
     await tester.pump();
   }
 
+  late FakeReverseGearSource reverse;
+
   Future<void> start(WidgetTester tester, {bool demo = true}) async {
     tester.view.physicalSize = const Size(1024, 600);
     tester.view.devicePixelRatio = 1;
@@ -184,6 +190,7 @@ void main() {
     final power = PowerSupplyController(source: _QuietPowerSupply());
     final thermal = ThermalWarningController(source: _QuietThermal());
     final cpu = CpuTemperatureController(source: _QuietCpu());
+    reverse = FakeReverseGearSource();
     addTearDown(() async {
       media.dispose();
       dashboard.dispose();
@@ -224,6 +231,8 @@ void main() {
           powerSupplyController: power,
           thermalWarningController: thermal,
           cpuTemperatureController: cpu,
+          reverseGearSource: reverse,
+          cameraSourceFactory: FakeGrabberSource.new,
         ),
       ),
     );
@@ -386,5 +395,85 @@ void main() {
     expect(page(), DashboardDestination.settings);
     await tester.pump(const Duration(seconds: 1));
     expect(page(), DashboardDestination.maps);
+  });
+
+  group('the reverse gear (#191)', () {
+    /// The gear changes; the dashboard hears it in the next frames.
+    Future<void> gear(WidgetTester tester, ReverseGearStatus status) async {
+      reverse.controller.add(status);
+      await tester.pump();
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('in brings the camera, out the page from before', (
+      tester,
+    ) async {
+      await start(tester, demo: false);
+      dashboard.selectDestination(DashboardDestination.media);
+      await tester.pumpAndSettle();
+
+      await gear(tester, gearIn);
+      expect(page(), DashboardDestination.camera);
+      expect(find.byKey(const ValueKey('fake-picture')), findsOneWidget);
+
+      await gear(tester, gearOut);
+      expect(page(), DashboardDestination.media);
+    });
+
+    testWidgets('an open dialog and the keyboard close for the camera', (
+      tester,
+    ) async {
+      await start(tester, demo: false);
+      dashboard.selectDestination(DashboardDestination.settings);
+      await tester.pump();
+      await tester.tap(find.text('System'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Beenden'));
+      await tester.pumpAndSettle();
+      expect(find.text('Passwort erforderlich'), findsOneWidget);
+      expect(keyboard.isOpen, isTrue);
+
+      await gear(tester, gearIn);
+
+      expect(find.text('Passwort erforderlich'), findsNothing);
+      expect(keyboard.isOpen, isFalse);
+      expect(page(), DashboardDestination.camera);
+
+      await gear(tester, gearOut);
+      expect(page(), DashboardDestination.settings);
+    });
+
+    testWidgets('unknown shows the hint on the camera page and switches '
+        'nothing', (tester) async {
+      await start(tester, demo: false);
+      await gear(tester, gearUnknown);
+      expect(page(), isNot(DashboardDestination.camera));
+
+      dashboard.selectDestination(DashboardDestination.camera);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('reverse-gear-hint')), findsOneWidget);
+      expect(find.text('Rückwärtsgang: Signal fehlt'), findsOneWidget);
+
+      await gear(tester, gearOut);
+      expect(find.byKey(const ValueKey('reverse-gear-hint')), findsNothing);
+      expect(page(), DashboardDestination.camera, reason: 'chosen by hand');
+    });
+
+    testWidgets('the trade fair mode does not go to the map while it is in', (
+      tester,
+    ) async {
+      await start(tester);
+      dashboard.selectDestination(DashboardDestination.settings);
+      await tester.pump();
+
+      await gear(tester, gearIn);
+      await tester.pump(const Duration(seconds: 61));
+      expect(page(), DashboardDestination.camera);
+
+      await gear(tester, gearOut);
+      expect(page(), DashboardDestination.settings);
+      await tester.pump(const Duration(seconds: 61));
+      expect(page(), DashboardDestination.maps);
+    });
   });
 }

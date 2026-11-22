@@ -312,6 +312,7 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: 'Kamera sinyali yok',
   AppTextKey.cameraMissing: 'Kamera bağlı değil',
   AppTextKey.cameraError: 'Kamera arızası',
+  AppTextKey.cameraReverseGearSignalMissing: 'Geri vites: sinyal yok',
   AppTextKey.controlsEmpty: 'Kurulu kontrol yok',
   AppTextKey.controlsStateOn: 'Açık',
   AppTextKey.controlsStateOff: 'Kapalı',

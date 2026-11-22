@@ -274,6 +274,7 @@ enum AppTextKey {
   cameraNoSignal,
   cameraMissing,
   cameraError,
+  cameraReverseGearSignalMissing,
   controlsEmpty,
   controlsStateOn,
   controlsStateOff,

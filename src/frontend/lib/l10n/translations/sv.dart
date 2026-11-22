@@ -311,6 +311,7 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: 'Ingen kamerasignal',
   AppTextKey.cameraMissing: 'Kameran är inte ansluten',
   AppTextKey.cameraError: 'Kamerafel',
+  AppTextKey.cameraReverseGearSignalMissing: 'Backväxel: ingen signal',
   AppTextKey.controlsEmpty: 'Inga kontroller inställda',
   AppTextKey.controlsStateOn: 'På',
   AppTextKey.controlsStateOff: 'Av',

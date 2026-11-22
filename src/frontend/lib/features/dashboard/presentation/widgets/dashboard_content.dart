@@ -17,6 +17,7 @@ import 'package:carnine_frontend/features/settings/data/display_brightness_store
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_content.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// Dashboard body area that shows the active section.
@@ -36,6 +37,7 @@ class DashboardContent extends StatelessWidget {
     this.followZoomController,
     this.displayBrightnessStore,
     this.cameraSourceFactory,
+    this.reverseGearSignalMissing,
     this.onShowCamera,
     this.controlsRepository,
     super.key,
@@ -60,6 +62,9 @@ class DashboardContent extends StatelessWidget {
   final MapFollowZoomController? followZoomController;
   final DisplayBrightnessStore? displayBrightnessStore;
   final GrabberSourceFactory? cameraSourceFactory;
+
+  /// The camera page's hint that the reverse gear cannot be told (#191).
+  final ValueListenable<bool>? reverseGearSignalMissing;
 
   /// Selects the Kamera page - from the camera settings, to look at a change.
   final VoidCallback? onShowCamera;
@@ -103,6 +108,7 @@ class DashboardContent extends StatelessWidget {
       return CameraContent(
         settingsStore: cameraSettingsStore,
         sourceFactory: cameraSourceFactory,
+        reverseGearSignalMissing: reverseGearSignalMissing,
       );
     }
 

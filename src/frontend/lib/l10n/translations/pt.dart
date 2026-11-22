@@ -316,6 +316,7 @@ const Map<AppTextKey, String> ptTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: 'Sem sinal da câmara',
   AppTextKey.cameraMissing: 'Câmara não ligada',
   AppTextKey.cameraError: 'Avaria da câmara',
+  AppTextKey.cameraReverseGearSignalMissing: 'Marcha-atrás: sem sinal',
   AppTextKey.controlsEmpty: 'Nenhum controlo configurado',
   AppTextKey.controlsStateOn: 'Ligado',
   AppTextKey.controlsStateOff: 'Desligado',

@@ -311,6 +311,7 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: 'No camera signal',
   AppTextKey.cameraMissing: 'Camera not connected',
   AppTextKey.cameraError: 'Camera fault',
+  AppTextKey.cameraReverseGearSignalMissing: 'Reverse gear: no signal',
   AppTextKey.controlsEmpty: 'No controls set up',
   AppTextKey.controlsStateOn: 'On',
   AppTextKey.controlsStateOff: 'Off',

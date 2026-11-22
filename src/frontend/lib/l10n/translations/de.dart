@@ -319,6 +319,7 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: 'Kein Kamerasignal',
   AppTextKey.cameraMissing: 'Kamera nicht angeschlossen',
   AppTextKey.cameraError: 'Kamera gestört',
+  AppTextKey.cameraReverseGearSignalMissing: 'Rückwärtsgang: Signal fehlt',
   AppTextKey.controlsEmpty: 'Keine Technik eingerichtet',
   AppTextKey.controlsStateOn: 'An',
   AppTextKey.controlsStateOff: 'Aus',
