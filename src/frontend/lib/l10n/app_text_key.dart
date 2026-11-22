@@ -178,6 +178,7 @@ enum AppTextKey {
   settingsDiagnosticsRestartConfirmAction,
   settingsDiagnosticsExitSubtitle,
   settingsDiagnosticsVersion,
+  settingsDiagnosticsPowerSupplyFirmware,
   settingsExitPasswordChecking,
   settingsExitPasswordUnavailable,
   settingsExitPasswordShow,

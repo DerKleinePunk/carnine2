@@ -200,6 +200,7 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsExitSubtitle:
       'Maintenance mode, password required',
   AppTextKey.settingsDiagnosticsVersion: 'Version',
+  AppTextKey.settingsDiagnosticsPowerSupplyFirmware: 'Power supply: {version}',
   AppTextKey.settingsExitPasswordChecking: 'Checking …',
   AppTextKey.settingsExitPasswordUnavailable:
       'The password cannot be checked right now. Please try again in a moment.',

@@ -200,6 +200,8 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsRestartConfirmAction: 'Starta om',
   AppTextKey.settingsDiagnosticsExitSubtitle: 'Underhållsläge, lösenord krävs',
   AppTextKey.settingsDiagnosticsVersion: 'Version',
+  AppTextKey.settingsDiagnosticsPowerSupplyFirmware:
+      'Strömförsörjning: {version}',
   AppTextKey.settingsExitPasswordChecking: 'Kontrollerar …',
   AppTextKey.settingsExitPasswordUnavailable:
       'Lösenordet kan inte kontrolleras just nu. Försök igen om en stund.',

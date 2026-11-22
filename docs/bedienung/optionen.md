@@ -179,8 +179,11 @@ Zeile, was sie tut.
 - **Beenden** (rot): der **Wartungsmodus**. Fragt nach dem
   [Beenden-Passwort](#beenden-passwort) und beendet dann die Oberfläche.
 - **Version:** zeigt die Versionsnummer der Oberfläche und darunter das Datum
-  des Builds (z. B. `0.18.0` und `2026-10-14`). Die Kachel ist nur eine
-  Anzeige.
+  des Builds (z. B. `0.18.0` und `2026-10-14`). Auf einem Gerät mit
+  Netzteil-Modul stehen Version und Datum in einer Zeile, darunter die
+  Firmware des Netzteils, z. B. „Netzteil: V2.4.1“. Solange das Netzteil noch
+  nicht geantwortet hat oder stumm ist, steht dort „Netzteil: –“ (#154). Die
+  Kachel ist nur eine Anzeige.
 
 ### Beenden
 

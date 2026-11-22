@@ -4,6 +4,7 @@ import 'package:carnine_frontend/core/logging/app_logging.dart';
 import 'package:carnine_frontend/core/logging/log_viewer_dialog.dart';
 import 'package:carnine_frontend/core/platform/app_window.dart';
 import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart';
+import 'package:carnine_frontend/features/dashboard/presentation/power_supply_controller.dart';
 import 'package:carnine_frontend/features/maps/presentation/map_follow_zoom_controller.dart';
 import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
 import 'package:carnine_frontend/features/settings/data/display_brightness_store.dart';
@@ -40,6 +41,7 @@ class SettingsContent extends StatefulWidget {
     this.followZoomController,
     this.displayBrightnessStore,
     this.onShowCamera,
+    this.powerSupplyController,
     super.key,
   });
 
@@ -69,6 +71,10 @@ class SettingsContent extends StatefulWidget {
 
   /// Opens the Kamera page, so a changed setting can be looked at.
   final VoidCallback? onShowCamera;
+
+  /// The car power supply, for its firmware on "System" (#154); without one
+  /// the version tile shows the interface only.
+  final PowerSupplyController? powerSupplyController;
   final ValueListenable<List<String>>? logLines;
 
   /// Overridable for tests - both default to the real [AppWindow] actions,
@@ -154,6 +160,7 @@ class _SettingsContentState extends State<SettingsContent> {
       displayBrightnessController: _displayController,
       onShowCamera: widget.onShowCamera,
       onOpenLogs: _openLogViewer,
+      powerSupplyController: widget.powerSupplyController,
       onRestart: widget.onRestart ?? AppWindow.restartApplication,
       onExit: widget.onExit ?? AppWindow.exitApplication,
     );
@@ -420,6 +427,7 @@ class _SettingsSectionPage extends StatelessWidget {
     required this.displayBrightnessController,
     required this.onShowCamera,
     required this.onOpenLogs,
+    required this.powerSupplyController,
     required this.onRestart,
     required this.onExit,
     super.key,
@@ -438,6 +446,7 @@ class _SettingsSectionPage extends StatelessWidget {
   final DisplayBrightnessController? displayBrightnessController;
   final VoidCallback? onShowCamera;
   final VoidCallback onOpenLogs;
+  final PowerSupplyController? powerSupplyController;
   final VoidCallback onRestart;
   final VoidCallback onExit;
 
@@ -521,6 +530,7 @@ class _SettingsSectionPage extends StatelessWidget {
       SettingsSection.diagnostics => SystemPage(
         exitPasswordStore: exitPasswordStore,
         onOpenLogs: onOpenLogs,
+        powerSupplyController: powerSupplyController,
         onRestart: onRestart,
         onExit: onExit,
       ),

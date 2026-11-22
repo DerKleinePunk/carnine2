@@ -164,6 +164,14 @@ class AppLocalizations {
     ).replaceFirst('{label}', label).replaceFirst('{count}', count.toString());
   }
 
+  /// The power supply's firmware on the version tile, e.g. "Netzteil:
+  /// V2.4.1" (#154).
+  String powerSupplyFirmware(String version) {
+    return text(
+      AppTextKey.settingsDiagnosticsPowerSupplyFirmware,
+    ).replaceFirst('{version}', version);
+  }
+
   String mediaVolumeSemantic(int percent) {
     return text(
       AppTextKey.mediaVolumeSemantic,

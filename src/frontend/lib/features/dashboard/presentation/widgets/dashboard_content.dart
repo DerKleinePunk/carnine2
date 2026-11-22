@@ -78,6 +78,7 @@ class DashboardContent extends StatelessWidget {
         followZoomController: followZoomController,
         displayBrightnessStore: displayBrightnessStore,
         onShowCamera: onShowCamera,
+        powerSupplyController: powerSupplyController,
       );
     }
 

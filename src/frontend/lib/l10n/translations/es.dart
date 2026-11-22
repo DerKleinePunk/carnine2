@@ -205,6 +205,8 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsExitSubtitle:
       'Modo de mantenimiento, requiere contraseña',
   AppTextKey.settingsDiagnosticsVersion: 'Versión',
+  AppTextKey.settingsDiagnosticsPowerSupplyFirmware:
+      'Fuente de alimentación: {version}',
   AppTextKey.settingsExitPasswordChecking: 'Comprobando …',
   AppTextKey.settingsExitPasswordUnavailable:
       'Ahora mismo no se puede comprobar la contraseña. Inténtelo de nuevo en un momento.',

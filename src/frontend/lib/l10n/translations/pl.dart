@@ -204,6 +204,7 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsRestartConfirmAction: 'Uruchom ponownie',
   AppTextKey.settingsDiagnosticsExitSubtitle: 'Tryb serwisowy, wymagane hasło',
   AppTextKey.settingsDiagnosticsVersion: 'Wersja',
+  AppTextKey.settingsDiagnosticsPowerSupplyFirmware: 'Zasilacz: {version}',
   AppTextKey.settingsExitPasswordChecking: 'Sprawdzanie …',
   AppTextKey.settingsExitPasswordUnavailable:
       'Nie można teraz sprawdzić hasła. Proszę spróbować ponownie za chwilę.',

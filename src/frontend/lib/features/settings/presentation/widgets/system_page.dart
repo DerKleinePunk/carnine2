@@ -1,4 +1,6 @@
 import 'package:carnine_frontend/core/app_version.dart';
+import 'package:carnine_frontend/features/dashboard/data/power_supply_source.dart';
+import 'package:carnine_frontend/features/dashboard/presentation/power_supply_controller.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/change_exit_password_dialog.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/exit_password_dialog.dart';
@@ -17,6 +19,7 @@ class SystemPage extends StatelessWidget {
     required this.onOpenLogs,
     required this.onRestart,
     required this.onExit,
+    this.powerSupplyController,
     super.key,
   });
 
@@ -27,7 +30,48 @@ class SystemPage extends StatelessWidget {
   final VoidCallback onRestart;
   final VoidCallback onExit;
 
+  /// The car power supply, whose firmware the version tile names (#154).
+  final PowerSupplyController? powerSupplyController;
+
   static const double _gap = 16;
+
+  /// The lines under "Version": the interface's version and build date, and
+  /// with a power supply its firmware ("–" while it has not answered). Then
+  /// version and date share the first line, so it stays two lines.
+  static String versionLines(
+    AppLocalizations l10n, {
+    required String version,
+    required String date,
+    required PowerSupplyStatus power,
+  }) {
+    if (!power.configured) {
+      return date.isEmpty ? version : '$version\n$date';
+    }
+    final interface = date.isEmpty ? version : '$version · $date';
+    final firmware = l10n.powerSupplyFirmware(power.firmwareVersion ?? '–');
+    return '$interface\n$firmware';
+  }
+
+  Widget _versionTile(AppLocalizations l10n, String date) {
+    Widget tile(PowerSupplyStatus status) => _SystemTile(
+      icon: Icons.info_outline,
+      title: l10n.text(AppTextKey.settingsDiagnosticsVersion),
+      subtitle: versionLines(
+        l10n,
+        version: AppVersion.version,
+        date: date,
+        power: status,
+      ),
+    );
+    final power = powerSupplyController;
+    if (power == null) {
+      return tile(PowerSupplyStatus.none);
+    }
+    return ListenableBuilder(
+      listenable: power,
+      builder: (context, _) => tile(power.status),
+    );
+  }
 
   /// Fixed, so the tiles never overflow: a notice strip above the page (power
   /// supply, no audio output) takes room, and then the page scrolls.
@@ -162,13 +206,7 @@ class SystemPage extends StatelessWidget {
                 isWarning: true,
                 onTap: () => _confirmExit(context),
               ),
-              _SystemTile(
-                icon: Icons.info_outline,
-                title: l10n.text(AppTextKey.settingsDiagnosticsVersion),
-                subtitle: date.isEmpty
-                    ? AppVersion.version
-                    : '${AppVersion.version}\n$date',
-              ),
+              _versionTile(l10n, date),
             ],
           ),
         ],

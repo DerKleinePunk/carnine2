@@ -200,6 +200,7 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsRestartConfirmAction: 'Restartovat',
   AppTextKey.settingsDiagnosticsExitSubtitle: 'Servisní režim, nutné heslo',
   AppTextKey.settingsDiagnosticsVersion: 'Verze',
+  AppTextKey.settingsDiagnosticsPowerSupplyFirmware: 'Zdroj: {version}',
   AppTextKey.settingsExitPasswordChecking: 'Ověřování …',
   AppTextKey.settingsExitPasswordUnavailable:
       'Heslo se teď nedá ověřit. Zkuste to prosím za chvíli znovu.',

@@ -202,6 +202,8 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsExitSubtitle:
       'Vedligeholdelsestilstand, kræver adgangskode',
   AppTextKey.settingsDiagnosticsVersion: 'Version',
+  AppTextKey.settingsDiagnosticsPowerSupplyFirmware:
+      'Strømforsyning: {version}',
   AppTextKey.settingsExitPasswordChecking: 'Kontrollerer …',
   AppTextKey.settingsExitPasswordUnavailable:
       'Adgangskoden kan ikke kontrolleres lige nu. Prøv venligst igen om et øjeblik.',

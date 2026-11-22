@@ -207,6 +207,7 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsExitSubtitle:
       'Karbantartási mód, jelszó szükséges',
   AppTextKey.settingsDiagnosticsVersion: 'Verzió',
+  AppTextKey.settingsDiagnosticsPowerSupplyFirmware: 'Tápegység: {version}',
   AppTextKey.settingsExitPasswordChecking: 'Ellenőrzés …',
   AppTextKey.settingsExitPasswordUnavailable:
       'A jelszó jelenleg nem ellenőrizhető. Kérjük, próbálja újra egy pillanat múlva.',

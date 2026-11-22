@@ -202,6 +202,7 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsExitSubtitle:
       'Onderhoudsmodus, wachtwoord vereist',
   AppTextKey.settingsDiagnosticsVersion: 'Versie',
+  AppTextKey.settingsDiagnosticsPowerSupplyFirmware: 'Voeding: {version}',
   AppTextKey.settingsExitPasswordChecking: 'Controleren …',
   AppTextKey.settingsExitPasswordUnavailable:
       'Het wachtwoord kan nu niet worden gecontroleerd. Probeer het zo meteen opnieuw.',

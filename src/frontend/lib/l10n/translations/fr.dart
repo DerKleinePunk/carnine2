@@ -209,6 +209,7 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsExitSubtitle:
       'Mode maintenance, mot de passe requis',
   AppTextKey.settingsDiagnosticsVersion: 'Version',
+  AppTextKey.settingsDiagnosticsPowerSupplyFirmware: 'Alimentation : {version}',
   AppTextKey.settingsExitPasswordChecking: 'Vérification …',
   AppTextKey.settingsExitPasswordUnavailable:
       'Le mot de passe ne peut pas être vérifié pour le moment. Veuillez réessayer dans un instant.',

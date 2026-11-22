@@ -202,6 +202,7 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsRestartConfirmAction: 'Yeniden başlat',
   AppTextKey.settingsDiagnosticsExitSubtitle: 'Bakım modu, şifre gerekli',
   AppTextKey.settingsDiagnosticsVersion: 'Sürüm',
+  AppTextKey.settingsDiagnosticsPowerSupplyFirmware: 'Güç kaynağı: {version}',
   AppTextKey.settingsExitPasswordChecking: 'Doğrulanıyor …',
   AppTextKey.settingsExitPasswordUnavailable:
       'Şifre şu anda doğrulanamıyor. Lütfen birazdan tekrar deneyin.',

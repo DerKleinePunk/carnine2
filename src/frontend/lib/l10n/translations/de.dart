@@ -206,6 +206,7 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsRestartConfirmAction: 'Neu starten',
   AppTextKey.settingsDiagnosticsExitSubtitle: 'Wartungsmodus, Passwort nötig',
   AppTextKey.settingsDiagnosticsVersion: 'Version',
+  AppTextKey.settingsDiagnosticsPowerSupplyFirmware: 'Netzteil: {version}',
   AppTextKey.settingsExitPasswordChecking: 'Wird geprüft …',
   AppTextKey.settingsExitPasswordUnavailable:
       'Das Passwort kann gerade nicht geprüft werden. Bitte versuchen Sie es gleich noch einmal.',
