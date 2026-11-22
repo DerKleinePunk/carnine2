@@ -16,6 +16,7 @@ import 'package:flutter_test/flutter_test.dart';
 Widget _harness({
   required OnScreenKeyboardController keyboard,
   required TextEditingController field,
+  ValueChanged<String>? onChanged,
 }) {
   return MaterialApp(
     locale: const Locale('de'),
@@ -35,7 +36,11 @@ Widget _harness({
     home: Scaffold(
       body: Column(
         children: [
-          OnScreenTextField(controller: field, semanticLabel: 'field'),
+          OnScreenTextField(
+            controller: field,
+            semanticLabel: 'field',
+            onChanged: onChanged,
+          ),
           // Fixed, modest height: large enough to tap reliably, small
           // enough to stay clear of the keyboard panel's own region at the
           // bottom of the 600px test viewport when it's open.
@@ -85,6 +90,72 @@ void main() {
       await tester.pump();
     }
   }
+
+  group('onChanged reports a new text only (#211)', () {
+    late List<String> changes;
+
+    Future<void> show(WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1024, 600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      changes = [];
+      await tester.pumpWidget(
+        _harness(keyboard: keyboard, field: field, onChanged: changes.add),
+      );
+      await tester.pump();
+    }
+
+    testWidgets('a tap into a field with text is no input', (tester) async {
+      field.text = 'Montez';
+      await show(tester);
+
+      await tester.tap(find.byType(OnScreenTextField));
+      await tester.pumpAndSettle();
+
+      expect(keyboard.isOpen, isTrue, reason: 'the keyboard still opens');
+      expect(changes, isEmpty);
+    });
+
+    testWidgets('moving the cursor is no input', (tester) async {
+      field.text = 'Montez';
+      await show(tester);
+
+      field.selection = const TextSelection.collapsed(offset: 2);
+      field.selection = const TextSelection(baseOffset: 0, extentOffset: 6);
+      await tester.pump();
+
+      expect(changes, isEmpty);
+    });
+
+    testWidgets('a typed letter is reported once', (tester) async {
+      await show(tester);
+      await tester.tap(find.byType(OnScreenTextField));
+      await tester.pumpAndSettle();
+      if (keyboard.isShifted) {
+        keyboard.toggleShift();
+        await tester.pump();
+      }
+
+      await tester.tap(find.text('a'));
+      await tester.pump();
+
+      expect(changes, ['a']);
+    });
+
+    testWidgets('a text set by the caller is still reported, a tap after it '
+        'not', (tester) async {
+      await show(tester);
+
+      field.text = 'Wiesbaden';
+      await tester.pump();
+      expect(changes, ['Wiesbaden']);
+
+      await tester.tap(find.byType(OnScreenTextField));
+      await tester.pumpAndSettle();
+      expect(changes, ['Wiesbaden']);
+    });
+  });
 
   testWidgets('letter keys append to the bound controller', (tester) async {
     await openKeyboard(tester);

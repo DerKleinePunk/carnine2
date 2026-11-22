@@ -61,9 +61,15 @@ class _OnScreenTextFieldState extends State<OnScreenTextField> {
   // valid on its context.
   OnScreenKeyboardController? _keyboardController;
 
+  /// The text [OnScreenTextField.onChanged] knows about.
+  late String _reportedText;
+
   @override
   void initState() {
     super.initState();
+    // Set now, not lazily: read first inside the listener it would already
+    // hold the new text.
+    _reportedText = widget.controller.text;
     widget.controller.addListener(_handleTextChange);
     if (widget.autofocus) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -105,7 +111,15 @@ class _OnScreenTextFieldState extends State<OnScreenTextField> {
   }
 
   void _handleTextChange() {
-    widget.onChanged?.call(widget.controller.text);
+    // The controller also notifies when only the selection or the
+    // composing range changes - a tap into the field moves the cursor. Only
+    // a new text is an input, as with TextField.onChanged (#211).
+    final text = widget.controller.text;
+    if (text == _reportedText) {
+      return;
+    }
+    _reportedText = text;
+    widget.onChanged?.call(text);
   }
 
   void _handleFocusChange() {
