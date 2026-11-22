@@ -73,6 +73,12 @@ Die Warteschlange steht rechts im Player (Bild oben am Anfang des Kapitels).
 
 - **NÄCHSTE TITEL** listet die Warteschlange; der laufende Titel ist
   eingerahmt. **Antippen eines Eintrags springt zu diesem Titel.**
+- Die Liste folgt dem laufenden Titel: Er steht als zweite Zeile, darüber der
+  Titel davor, darunter die nächsten. Das gilt beim Öffnen der Seite, beim
+  Ausklappen der Warteschlange, bei einer neuen Playlist und bei jedem
+  Titelwechsel, auch mit Zufall. Ist der Titel nah, gleitet die Liste hin, ist
+  er weit weg, springt sie. Hat man selbst gescrollt, bleibt die Liste dort
+  bis zum nächsten Titelwechsel (#216).
 - Unten zwei Kacheln: **BIBLIOTHEK** und **SAMMLUNGEN**.
 
 Die schmale Leiste mit dem Pfeil klappt die Warteschlange ein und aus.
