@@ -204,6 +204,39 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsVersion: 'Version',
   AppTextKey.settingsDiagnosticsPowerSupplyFirmware:
       'Strømforsyning: {version}',
+  AppTextKey.settingsDiagnosticsExperts: 'Eksperter',
+  AppTextKey.settingsDiagnosticsExpertsSubtitle:
+      'Monteringsværdier, adgangskode kræves',
+  AppTextKey.settingsExpertsPageSubtitle: 'Værdier til monteringen i bilen',
+  AppTextKey.settingsBackToSystem: 'Tilbage til system',
+  AppTextKey.settingsExpertsDefault: 'Standard',
+  AppTextKey.settingsExpertsRestartPending: 'gælder efter genstart',
+  AppTextKey.settingsExpertsRestartHint:
+      'Markerede værdier gælder først efter en genstart af enheden.',
+  AppTextKey.settingsExpertsDropInError:
+      'Monteringsindstillinger ugyldige, forrige version aktiv',
+  AppTextKey.settingsExpertsReset: 'Nulstil',
+  AppTextKey.settingsExpertsResetPending: 'nulstilles',
+  AppTextKey.settingsExpertsChanged: 'ændret',
+  AppTextKey.settingsExpertsSystemDefault: 'Systemets standard',
+  AppTextKey.settingsExpertsMissingChoice: '{value} (ikke fundet)',
+  AppTextKey.settingsExpertsNotSet: 'ikke angivet',
+  AppTextKey.settingsExpertsChanges: 'Ændrede værdier: {count}',
+  AppTextKey.settingsExpertsDiscard: 'Kassér',
+  AppTextKey.settingsExpertsSave: 'Gem',
+  AppTextKey.settingsExpertsSaving: 'Gemmer …',
+  AppTextKey.settingsExpertsSaved: 'Gemt',
+  AppTextKey.settingsExpertsUnreachable: 'Backend svarer ikke. Intet er gemt.',
+  AppTextKey.settingsExpertsFailed:
+      'Det lykkedes ikke at gemme. Intet er gemt.',
+  AppTextKey.settingsExpertsRejected: 'Ikke gemt:',
+  AppTextKey.settingsExpertsDiscardTitle: 'Kassér ændringerne?',
+  AppTextKey.settingsExpertsApply: 'Anvend',
+  AppTextKey.settingsExpertsRange: 'Tilladt: {min} til {max}',
+  AppTextKey.settingsExpertsMaxLength: 'Højst {count} tegn',
+  AppTextKey.settingsExpertsOutOfRange:
+      'Indtast et heltal fra {min} til {max}.',
+  AppTextKey.settingsExpertsEmpty: 'Backend angiver ingen monteringsværdier.',
   AppTextKey.settingsExitPasswordChecking: 'Kontrollerer …',
   AppTextKey.settingsExitPasswordUnavailable:
       'Adgangskoden kan ikke kontrolleres lige nu. Prøv venligst igen om et øjeblik.',

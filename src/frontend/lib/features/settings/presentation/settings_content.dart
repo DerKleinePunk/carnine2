@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:carnine_frontend/core/logging/app_logging.dart';
 import 'package:carnine_frontend/core/logging/log_viewer_dialog.dart';
+import 'package:carnine_frontend/core/navigation/page_guard.dart';
 import 'package:carnine_frontend/core/platform/app_window.dart';
 import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/power_supply_controller.dart';
@@ -9,12 +10,16 @@ import 'package:carnine_frontend/features/maps/presentation/map_follow_zoom_cont
 import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
 import 'package:carnine_frontend/features/settings/data/display_brightness_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
+import 'package:carnine_frontend/features/settings/data/install_values_store.dart';
 import 'package:carnine_frontend/features/settings/presentation/display_brightness_controller.dart';
 import 'package:carnine_frontend/features/settings/presentation/models/settings_option_item.dart';
+import 'package:carnine_frontend/features/settings/presentation/install_values_controller.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_controller.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/camera_settings_page.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/system_page.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/display_brightness_page.dart';
+import 'package:carnine_frontend/features/settings/presentation/widgets/exit_password_dialog.dart';
+import 'package:carnine_frontend/features/settings/presentation/widgets/install_values_page.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/follow_zoom_tab.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/language_flag.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/map_settings_page.dart';
@@ -42,6 +47,8 @@ class SettingsContent extends StatefulWidget {
     this.displayBrightnessStore,
     this.onShowCamera,
     this.powerSupplyController,
+    this.installValuesStore,
+    this.onPageGuard,
     super.key,
   });
 
@@ -75,6 +82,14 @@ class SettingsContent extends StatefulWidget {
   /// The car power supply, for its firmware on "System" (#154); without one
   /// the version tile shows the interface only.
   final PowerSupplyController? powerSupplyController;
+
+  /// Where the expert page reads and saves the installation values (#207);
+  /// without one its tile on "System" only shows.
+  final InstallValuesStore? installValuesStore;
+
+  /// Tells the dashboard about unsaved changes on the expert page, so a tap
+  /// in the side menu asks first; `null` again when this page goes.
+  final ValueChanged<PageGuard?>? onPageGuard;
   final ValueListenable<List<String>>? logLines;
 
   /// Overridable for tests - both default to the real [AppWindow] actions,
@@ -104,8 +119,27 @@ class _SettingsContentState extends State<SettingsContent> {
   ValueListenable<List<String>> get _logLines =>
       widget.logLines ?? AppLogging.lines;
 
+  /// The expert page's values and changes, while it is open; it holds the
+  /// exit password given on opening, for saving.
+  InstallValuesController? _experts;
+
+  bool get _hasUnsavedExperts => _experts?.hasChanges ?? false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.onPageGuard?.call(
+      PageGuard(
+        isActive: () => _hasUnsavedExperts,
+        confirmLeave: _confirmDiscard,
+      ),
+    );
+  }
+
   @override
   void dispose() {
+    widget.onPageGuard?.call(null);
+    _experts?.dispose();
     if (_ownsController) {
       _controller.dispose();
     }
@@ -163,7 +197,71 @@ class _SettingsContentState extends State<SettingsContent> {
       powerSupplyController: widget.powerSupplyController,
       onRestart: widget.onRestart ?? AppWindow.restartApplication,
       onExit: widget.onExit ?? AppWindow.exitApplication,
+      experts: _controller.expertsOpen ? _experts : null,
+      onOpenExperts: widget.installValuesStore == null ? null : _openExperts,
+      onCloseExperts: _closeExperts,
+      askPassword: _askPassword,
     );
+  }
+
+  Future<String?> _askPassword() =>
+      ExitPasswordDialog.askPassword(context, store: widget.exitPasswordStore);
+
+  /// Only after the exit password: the page saves with it.
+  Future<void> _openExperts() async {
+    final store = widget.installValuesStore;
+    if (store == null) {
+      return;
+    }
+    final password = await _askPassword();
+    if (password == null || !mounted) {
+      return;
+    }
+    _experts?.dispose();
+    _experts = InstallValuesController(store: store, password: password);
+    _controller.showExperts();
+  }
+
+  /// Back to "System"; with unsaved changes only after asking.
+  Future<void> _closeExperts() async {
+    if (_hasUnsavedExperts && !await _confirmDiscard()) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    _controller.closeExperts();
+    _experts?.dispose();
+    _experts = null;
+  }
+
+  /// "Änderungen verwerfen?" - `true` gives them up.
+  Future<bool> _confirmDiscard() async {
+    if (!_hasUnsavedExperts || !mounted) {
+      return true;
+    }
+    final l10n = AppLocalizations.of(context);
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.text(AppTextKey.settingsExpertsDiscardTitle)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.text(AppTextKey.settingsExitPasswordCancelAction)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.text(AppTextKey.settingsExpertsDiscard)),
+          ),
+        ],
+      ),
+    );
+    if (discard ?? false) {
+      _experts?.discard();
+      return true;
+    }
+    return false;
   }
 
   void _openLogViewer() {
@@ -213,6 +311,15 @@ const SettingsOptionItem _displayPageItem = SettingsOptionItem(
   titleKey: AppTextKey.settingsDevicesDisplayTitle,
   subtitleKey: AppTextKey.settingsDevicesDisplaySubtitle,
   semanticLabelKey: AppTextKey.settingsDevicesDisplayTitle,
+);
+
+/// Header of the expert page below "System" (#207).
+const SettingsOptionItem _expertsPageItem = SettingsOptionItem(
+  section: SettingsSection.diagnostics,
+  icon: Icons.engineering,
+  titleKey: AppTextKey.settingsDiagnosticsExperts,
+  subtitleKey: AppTextKey.settingsExpertsPageSubtitle,
+  semanticLabelKey: AppTextKey.settingsDiagnosticsExperts,
 );
 
 /// Header of the camera page below "Geräte".
@@ -430,6 +537,10 @@ class _SettingsSectionPage extends StatelessWidget {
     required this.powerSupplyController,
     required this.onRestart,
     required this.onExit,
+    required this.experts,
+    required this.onOpenExperts,
+    required this.onCloseExperts,
+    required this.askPassword,
     super.key,
   });
 
@@ -450,23 +561,36 @@ class _SettingsSectionPage extends StatelessWidget {
   final VoidCallback onRestart;
   final VoidCallback onExit;
 
+  /// The expert page's controller while it is open below "System" (#207).
+  final InstallValuesController? experts;
+  final VoidCallback? onOpenExperts;
+  final VoidCallback onCloseExperts;
+  final Future<String?> Function() askPassword;
+
   @override
   Widget build(BuildContext context) {
     final onDevicePage = devicePage != null;
+    final onExperts = experts != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SettingsPageHeader(
-          item: switch (devicePage) {
-            SettingsDevicePage.camera => _cameraPageItem,
-            SettingsDevicePage.display => _displayPageItem,
-            null => item,
-          },
-          onBack: onDevicePage ? onCloseDevicePage : onBack,
-          backLabelKey: onDevicePage
-              ? AppTextKey.settingsBackToDevices
-              : AppTextKey.settingsBackToOptions,
+          item: onExperts
+              ? _expertsPageItem
+              : switch (devicePage) {
+                  SettingsDevicePage.camera => _cameraPageItem,
+                  SettingsDevicePage.display => _displayPageItem,
+                  null => item,
+                },
+          onBack: onExperts
+              ? onCloseExperts
+              : (onDevicePage ? onCloseDevicePage : onBack),
+          backLabelKey: onExperts
+              ? AppTextKey.settingsBackToSystem
+              : (onDevicePage
+                    ? AppTextKey.settingsBackToDevices
+                    : AppTextKey.settingsBackToOptions),
         ),
         const SizedBox(height: 18),
         Expanded(child: _SettingsPageBody(child: _bodyForSection())),
@@ -521,19 +645,29 @@ class _SettingsSectionPage extends StatelessWidget {
     );
   }
 
+  /// "System", or the expert page below it.
+  Widget _diagnosticsBody() {
+    final open = experts;
+    if (open != null) {
+      return InstallValuesPage(controller: open, askPassword: askPassword);
+    }
+    return SystemPage(
+      exitPasswordStore: exitPasswordStore,
+      onOpenLogs: onOpenLogs,
+      powerSupplyController: powerSupplyController,
+      onRestart: onRestart,
+      onExit: onExit,
+      onOpenExperts: onOpenExperts,
+    );
+  }
+
   Widget _bodyForSection() {
     return switch (item.section) {
       SettingsSection.appearance => _AppearanceLanguagePage(
         languageController: languageController,
       ),
       SettingsSection.devices => _devicesBody(),
-      SettingsSection.diagnostics => SystemPage(
-        exitPasswordStore: exitPasswordStore,
-        onOpenLogs: onOpenLogs,
-        powerSupplyController: powerSupplyController,
-        onRestart: onRestart,
-        onExit: onExit,
-      ),
+      SettingsSection.diagnostics => _diagnosticsBody(),
       SettingsSection.maps => _mapBody(),
     };
   }

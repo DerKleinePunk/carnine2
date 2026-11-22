@@ -25,6 +25,7 @@ import 'package:carnine_frontend/features/maps/presentation/map_follow_zoom_cont
 import 'package:carnine_frontend/features/maps/presentation/traffic_controller.dart';
 import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
 import 'package:carnine_frontend/features/settings/data/display_brightness_store.dart';
+import 'package:carnine_frontend/features/settings/data/install_values_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
 import 'package:flutter/gestures.dart';
@@ -47,6 +48,7 @@ class DashboardScreen extends StatefulWidget {
     this.mapFollowZoomStore,
     this.trafficSettingStore,
     this.displayBrightnessStore,
+    this.installValuesStore,
     this.controlsRepository,
     this.cameraSourceFactory,
     this.reverseGearSource,
@@ -83,6 +85,9 @@ class DashboardScreen extends StatefulWidget {
 
   /// Where the display brightness is read and set.
   final DisplayBrightnessStore? displayBrightnessStore;
+
+  /// Where the expert page reads and saves the installation values.
+  final InstallValuesStore? installValuesStore;
 
   /// Where the Technik page gets its controls from; tests leave it out.
   final ControlsRepository? controlsRepository;
@@ -236,8 +241,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       // On the map there is nothing to do.
       return;
     }
-    if (_isInInput() || _reverseGear.isEngaged) {
-      // Someone is typing or choosing, or reversing: wait another minute.
+    if (_isInInput() ||
+        _reverseGear.isEngaged ||
+        _controller.holdsUnsavedWork) {
+      // Someone is typing or choosing, reversing, or has unsaved changes:
+      // wait another minute.
       _idleReturn.restart();
       return;
     }
@@ -293,7 +301,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         SideMenu(
           items: DashboardController.navItems,
           selectedIndex: _controller.selectedIndex,
-          onItemSelected: _controller.selectItem,
+          onItemSelected: (index) =>
+              unawaited(_controller.selectItemAsked(index)),
         ),
         Expanded(
           child: Column(
@@ -331,6 +340,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   announcementSettingsStore: widget.announcementSettingsStore,
                   followZoomController: _followZoomController,
                   displayBrightnessStore: widget.displayBrightnessStore,
+                  installValuesStore: widget.installValuesStore,
+                  onPageGuard: (guard) => _controller.pageGuard = guard,
                   cameraSourceFactory: widget.cameraSourceFactory,
                   reverseGearSignalMissing: _reverseGear.signalMissing,
                   onShowCamera: () => _controller.selectDestination(

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_controller.dart';
 import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_overlay.dart';
 import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_scope.dart';
+import 'package:carnine_frontend/core/navigation/page_guard.dart';
 import 'package:carnine_frontend/features/dashboard/data/cpu_temperature_source.dart';
 import 'package:carnine_frontend/features/dashboard/data/power_supply_source.dart';
 import 'package:carnine_frontend/features/dashboard/data/reverse_gear_source.dart';
@@ -474,6 +475,89 @@ void main() {
       expect(page(), DashboardDestination.settings);
       await tester.pump(const Duration(seconds: 61));
       expect(page(), DashboardDestination.maps);
+    });
+  });
+
+  group('a page with unsaved changes (#207)', () {
+    /// What the expert page registers while it has changes; [answer] is the
+    /// driver's choice in its question.
+    PageGuard guard({required bool Function() active, bool answer = false}) =>
+        PageGuard(isActive: active, confirmLeave: () async => answer);
+
+    testWidgets('a tap in the side menu asks first, and stays on "Abbrechen"', (
+      tester,
+    ) async {
+      await start(tester, demo: false);
+      dashboard.selectDestination(DashboardDestination.settings);
+      await tester.pumpAndSettle();
+      var asked = 0;
+      dashboard.pageGuard = PageGuard(
+        isActive: () => true,
+        confirmLeave: () async {
+          asked++;
+          return false;
+        },
+      );
+
+      await tester.tap(find.text('Medien'));
+      await tester.pumpAndSettle();
+
+      expect(asked, 1);
+      expect(page(), DashboardDestination.settings);
+    });
+
+    testWidgets('"Verwerfen" lets the switch through', (tester) async {
+      await start(tester, demo: false);
+      dashboard.selectDestination(DashboardDestination.settings);
+      await tester.pumpAndSettle();
+      dashboard.pageGuard = guard(active: () => true, answer: true);
+
+      await tester.tap(find.text('Medien'));
+      await tester.pumpAndSettle();
+
+      expect(page(), DashboardDestination.media);
+    });
+
+    testWidgets('without changes nothing is asked', (tester) async {
+      await start(tester, demo: false);
+      dashboard.selectDestination(DashboardDestination.settings);
+      await tester.pumpAndSettle();
+      dashboard.pageGuard = guard(active: () => false);
+
+      await tester.tap(find.text('Medien'));
+      await tester.pumpAndSettle();
+
+      expect(page(), DashboardDestination.media);
+    });
+
+    testWidgets('the trade fair mode waits while there are changes', (
+      tester,
+    ) async {
+      await start(tester);
+      dashboard.selectDestination(DashboardDestination.settings);
+      await tester.pump();
+      var unsaved = true;
+      dashboard.pageGuard = guard(active: () => unsaved);
+
+      await tester.pump(const Duration(seconds: 61));
+      expect(page(), DashboardDestination.settings);
+
+      unsaved = false;
+      await tester.pump(const Duration(seconds: 61));
+      expect(page(), DashboardDestination.maps);
+    });
+
+    testWidgets('the reverse gear does not ask', (tester) async {
+      await start(tester, demo: false);
+      dashboard.selectDestination(DashboardDestination.settings);
+      await tester.pumpAndSettle();
+      dashboard.pageGuard = guard(active: () => true);
+
+      reverse.controller.add(gearIn);
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(page(), DashboardDestination.camera);
     });
   });
 }

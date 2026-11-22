@@ -208,6 +208,42 @@ const Map<AppTextKey, String> itTranslations = <AppTextKey, String>{
       'Modalità manutenzione, serve la password',
   AppTextKey.settingsDiagnosticsVersion: 'Versione',
   AppTextKey.settingsDiagnosticsPowerSupplyFirmware: 'Alimentatore: {version}',
+  AppTextKey.settingsDiagnosticsExperts: 'Esperti',
+  AppTextKey.settingsDiagnosticsExpertsSubtitle:
+      'Valori di installazione, password necessaria',
+  AppTextKey.settingsExpertsPageSubtitle:
+      'Valori per l’installazione nel veicolo',
+  AppTextKey.settingsBackToSystem: 'Torna a sistema',
+  AppTextKey.settingsExpertsDefault: 'Predefinito',
+  AppTextKey.settingsExpertsRestartPending: 'vale dopo il riavvio',
+  AppTextKey.settingsExpertsRestartHint:
+      'I valori contrassegnati valgono solo dopo un riavvio del dispositivo.',
+  AppTextKey.settingsExpertsDropInError:
+      'Impostazioni di installazione non valide, versione precedente attiva',
+  AppTextKey.settingsExpertsReset: 'Ripristina',
+  AppTextKey.settingsExpertsResetPending: 'verrà ripristinato',
+  AppTextKey.settingsExpertsChanged: 'modificato',
+  AppTextKey.settingsExpertsSystemDefault: 'Predefinito di sistema',
+  AppTextKey.settingsExpertsMissingChoice: '{value} (non trovato)',
+  AppTextKey.settingsExpertsNotSet: 'non impostato',
+  AppTextKey.settingsExpertsChanges: 'Valori modificati: {count}',
+  AppTextKey.settingsExpertsDiscard: 'Scarta',
+  AppTextKey.settingsExpertsSave: 'Salva',
+  AppTextKey.settingsExpertsSaving: 'Salvataggio …',
+  AppTextKey.settingsExpertsSaved: 'Salvato',
+  AppTextKey.settingsExpertsUnreachable:
+      'Il backend non risponde. Non è stato salvato nulla.',
+  AppTextKey.settingsExpertsFailed:
+      'Salvataggio non riuscito. Non è stato salvato nulla.',
+  AppTextKey.settingsExpertsRejected: 'Non salvato:',
+  AppTextKey.settingsExpertsDiscardTitle: 'Scartare le modifiche?',
+  AppTextKey.settingsExpertsApply: 'Applica',
+  AppTextKey.settingsExpertsRange: 'Consentito: da {min} a {max}',
+  AppTextKey.settingsExpertsMaxLength: 'Al massimo {count} caratteri',
+  AppTextKey.settingsExpertsOutOfRange:
+      'Inserisca un numero intero da {min} a {max}.',
+  AppTextKey.settingsExpertsEmpty:
+      'Il backend non indica valori di installazione.',
   AppTextKey.settingsExitPasswordChecking: 'Verifica in corso …',
   AppTextKey.settingsExitPasswordUnavailable:
       'Al momento non è possibile verificare la password. Riprovi tra poco.',

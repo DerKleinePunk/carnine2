@@ -203,6 +203,40 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsExitSubtitle: 'Bakım modu, şifre gerekli',
   AppTextKey.settingsDiagnosticsVersion: 'Sürüm',
   AppTextKey.settingsDiagnosticsPowerSupplyFirmware: 'Güç kaynağı: {version}',
+  AppTextKey.settingsDiagnosticsExperts: 'Uzmanlar',
+  AppTextKey.settingsDiagnosticsExpertsSubtitle:
+      'Montaj değerleri, şifre gerekli',
+  AppTextKey.settingsExpertsPageSubtitle: 'Araca montaj için değerler',
+  AppTextKey.settingsBackToSystem: 'Sisteme dön',
+  AppTextKey.settingsExpertsDefault: 'Varsayılan',
+  AppTextKey.settingsExpertsRestartPending: 'yeniden başlatınca geçerli',
+  AppTextKey.settingsExpertsRestartHint:
+      'İşaretli değerler cihaz yeniden başlatıldıktan sonra geçerli olur.',
+  AppTextKey.settingsExpertsDropInError:
+      'Montaj ayarları geçersiz, önceki sürüm etkin',
+  AppTextKey.settingsExpertsReset: 'Sıfırla',
+  AppTextKey.settingsExpertsResetPending: 'sıfırlanacak',
+  AppTextKey.settingsExpertsChanged: 'değiştirildi',
+  AppTextKey.settingsExpertsSystemDefault: 'Sistem varsayılanı',
+  AppTextKey.settingsExpertsMissingChoice: '{value} (bulunamadı)',
+  AppTextKey.settingsExpertsNotSet: 'ayarlanmadı',
+  AppTextKey.settingsExpertsChanges: 'Değiştirilen değerler: {count}',
+  AppTextKey.settingsExpertsDiscard: 'Vazgeç',
+  AppTextKey.settingsExpertsSave: 'Kaydet',
+  AppTextKey.settingsExpertsSaving: 'Kaydediliyor …',
+  AppTextKey.settingsExpertsSaved: 'Kaydedildi',
+  AppTextKey.settingsExpertsUnreachable:
+      'Backend yanıt vermiyor. Hiçbir şey kaydedilmedi.',
+  AppTextKey.settingsExpertsFailed:
+      'Kaydetme başarısız. Hiçbir şey kaydedilmedi.',
+  AppTextKey.settingsExpertsRejected: 'Kaydedilmedi:',
+  AppTextKey.settingsExpertsDiscardTitle: 'Değişikliklerden vazgeçilsin mi?',
+  AppTextKey.settingsExpertsApply: 'Uygula',
+  AppTextKey.settingsExpertsRange: 'İzin verilen: {min} – {max}',
+  AppTextKey.settingsExpertsMaxLength: 'En fazla {count} karakter',
+  AppTextKey.settingsExpertsOutOfRange:
+      'Lütfen {min} ile {max} arasında bir tam sayı girin.',
+  AppTextKey.settingsExpertsEmpty: 'Backend hiçbir montaj değeri bildirmiyor.',
   AppTextKey.settingsExitPasswordChecking: 'Doğrulanıyor …',
   AppTextKey.settingsExitPasswordUnavailable:
       'Şifre şu anda doğrulanamıyor. Lütfen birazdan tekrar deneyin.',

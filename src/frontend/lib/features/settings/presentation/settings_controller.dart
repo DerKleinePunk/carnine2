@@ -4,20 +4,22 @@ import 'package:logging/logging.dart';
 
 /// Presentation controller for options navigation and diagnostics events.
 class SettingsController extends ChangeNotifier {
-  SettingsController({
-    SettingsSection? initialSection,
-    Logger? logger,
-  })  : _openSection = initialSection,
-        _logger = logger ?? Logger('SettingsController');
+  SettingsController({SettingsSection? initialSection, Logger? logger})
+    : _openSection = initialSection,
+      _logger = logger ?? Logger('SettingsController');
 
   final Logger _logger;
   SettingsSection? _openSection;
   SettingsDevicePage? _openDevicePage;
+  bool _expertsOpen = false;
 
   SettingsSection? get openSection => _openSection;
 
   /// The page open below "Geräte", `null` while its list is shown.
   SettingsDevicePage? get openDevicePage => _openDevicePage;
+
+  /// "System → Experten" is open (#207); only after the exit password.
+  bool get expertsOpen => _expertsOpen;
 
   void showSection(SettingsSection section) {
     if (section == _openSection) {
@@ -28,6 +30,30 @@ class SettingsController extends ChangeNotifier {
 
     _openSection = section;
     _openDevicePage = null;
+    _expertsOpen = false;
+    notifyListeners();
+  }
+
+  void showExperts() {
+    if (_expertsOpen) {
+      return;
+    }
+
+    _logger.info('Opening the expert page');
+
+    _expertsOpen = true;
+    notifyListeners();
+  }
+
+  /// Back from the expert page to "System".
+  void closeExperts() {
+    if (!_expertsOpen) {
+      return;
+    }
+
+    _logger.info('Returning from the expert page');
+
+    _expertsOpen = false;
     notifyListeners();
   }
 
@@ -64,6 +90,7 @@ class SettingsController extends ChangeNotifier {
 
     _openSection = null;
     _openDevicePage = null;
+    _expertsOpen = false;
     notifyListeners();
   }
 

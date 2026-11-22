@@ -207,6 +207,41 @@ const Map<AppTextKey, String> esTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsVersion: 'Versión',
   AppTextKey.settingsDiagnosticsPowerSupplyFirmware:
       'Fuente de alimentación: {version}',
+  AppTextKey.settingsDiagnosticsExperts: 'Expertos',
+  AppTextKey.settingsDiagnosticsExpertsSubtitle:
+      'Valores de instalación, contraseña necesaria',
+  AppTextKey.settingsExpertsPageSubtitle:
+      'Valores para la instalación en el vehículo',
+  AppTextKey.settingsBackToSystem: 'Volver a sistema',
+  AppTextKey.settingsExpertsDefault: 'Predeterminado',
+  AppTextKey.settingsExpertsRestartPending: 'se aplica tras reiniciar',
+  AppTextKey.settingsExpertsRestartHint:
+      'Los valores marcados solo se aplican tras reiniciar el dispositivo.',
+  AppTextKey.settingsExpertsDropInError:
+      'Ajustes de instalación no válidos, versión anterior activa',
+  AppTextKey.settingsExpertsReset: 'Restablecer',
+  AppTextKey.settingsExpertsResetPending: 'se restablecerá',
+  AppTextKey.settingsExpertsChanged: 'modificado',
+  AppTextKey.settingsExpertsSystemDefault: 'Predeterminado del sistema',
+  AppTextKey.settingsExpertsMissingChoice: '{value} (no encontrado)',
+  AppTextKey.settingsExpertsNotSet: 'sin definir',
+  AppTextKey.settingsExpertsChanges: 'Valores modificados: {count}',
+  AppTextKey.settingsExpertsDiscard: 'Descartar',
+  AppTextKey.settingsExpertsSave: 'Guardar',
+  AppTextKey.settingsExpertsSaving: 'Guardando …',
+  AppTextKey.settingsExpertsSaved: 'Guardado',
+  AppTextKey.settingsExpertsUnreachable:
+      'El backend no responde. No se ha guardado nada.',
+  AppTextKey.settingsExpertsFailed: 'Error al guardar. No se ha guardado nada.',
+  AppTextKey.settingsExpertsRejected: 'No guardado:',
+  AppTextKey.settingsExpertsDiscardTitle: '¿Descartar los cambios?',
+  AppTextKey.settingsExpertsApply: 'Aplicar',
+  AppTextKey.settingsExpertsRange: 'Permitido: {min} a {max}',
+  AppTextKey.settingsExpertsMaxLength: 'Como máximo {count} caracteres',
+  AppTextKey.settingsExpertsOutOfRange:
+      'Introduzca un número entero de {min} a {max}.',
+  AppTextKey.settingsExpertsEmpty:
+      'El backend no indica ningún valor de instalación.',
   AppTextKey.settingsExitPasswordChecking: 'Comprobando …',
   AppTextKey.settingsExitPasswordUnavailable:
       'Ahora mismo no se puede comprobar la contraseña. Inténtelo de nuevo en un momento.',

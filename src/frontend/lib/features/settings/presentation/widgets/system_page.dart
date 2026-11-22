@@ -9,9 +9,9 @@ import 'package:carnine_frontend/styles/colors.dart';
 import 'package:carnine_frontend/styles/text_styles.dart';
 import 'package:flutter/material.dart';
 
-/// "System": six tiles in two groups. "Wartung" holds what a technician
-/// uses (logs, updates, the exit password), "Oberfläche" what concerns the
-/// running interface (restart, exit, version). "Beenden" is marked in the
+/// "System": seven tiles in two groups. "Wartung" holds what a technician
+/// uses (logs, updates, the exit password, the expert page), "Oberfläche"
+/// what concerns the running interface (restart, exit, version). "Beenden" is marked in the
 /// warning color: it closes the interface, and only a password gets it back.
 class SystemPage extends StatelessWidget {
   const SystemPage({
@@ -20,6 +20,7 @@ class SystemPage extends StatelessWidget {
     required this.onRestart,
     required this.onExit,
     this.powerSupplyController,
+    this.onOpenExperts,
     super.key,
   });
 
@@ -32,6 +33,10 @@ class SystemPage extends StatelessWidget {
 
   /// The car power supply, whose firmware the version tile names (#154).
   final PowerSupplyController? powerSupplyController;
+
+  /// Asks for the exit password and opens the expert page (#207); without a
+  /// backend (`null`) the tile only shows.
+  final VoidCallback? onOpenExperts;
 
   static const double _gap = 16;
 
@@ -179,6 +184,14 @@ class SystemPage extends StatelessWidget {
                   context,
                   store: exitPasswordStore,
                 ),
+              ),
+              _SystemTile(
+                icon: Icons.engineering,
+                title: l10n.text(AppTextKey.settingsDiagnosticsExperts),
+                subtitle: l10n.text(
+                  AppTextKey.settingsDiagnosticsExpertsSubtitle,
+                ),
+                onTap: onOpenExperts,
               ),
             ],
           ),

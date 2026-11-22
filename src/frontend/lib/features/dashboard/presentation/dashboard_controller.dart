@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:carnine_frontend/core/navigation/page_guard.dart';
 import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/models/dashboard_nav_item.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
@@ -81,6 +82,24 @@ class DashboardController extends ChangeNotifier {
 
   int get selectedIndex => _selectedIndex;
   DashboardNavItem get selectedItem => navItems[_selectedIndex];
+
+  /// Set by a page with unsaved work while it is shown (#207).
+  PageGuard? pageGuard;
+
+  /// The page holds unsaved work: the trade fair mode waits.
+  bool get holdsUnsavedWork => pageGuard?.isActive() ?? false;
+
+  /// A tap in the side menu: a page with unsaved work is asked first.
+  Future<void> selectItemAsked(int index) async {
+    final guard = pageGuard;
+    if (index != _selectedIndex &&
+        guard != null &&
+        guard.isActive() &&
+        !await guard.confirmLeave()) {
+      return;
+    }
+    selectItem(index);
+  }
 
   /// Selects the active dashboard section from the side menu.
   void selectItem(int index) {

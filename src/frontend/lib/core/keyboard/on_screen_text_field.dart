@@ -4,6 +4,7 @@ import 'package:carnine_frontend/styles/colors.dart';
 import 'package:carnine_frontend/styles/text_styles.dart';
 import 'package:flutter/material.dart';
 
+import 'keyboard_layout.dart';
 import 'on_screen_keyboard_controller.dart';
 import 'on_screen_keyboard_scope.dart';
 
@@ -26,6 +27,7 @@ class OnScreenTextField extends StatefulWidget {
     this.onSubmitted,
     this.prefixIcon,
     this.suffixIcon,
+    this.keyboardLayer = KeyboardLayer.letters,
     super.key,
   });
 
@@ -47,6 +49,9 @@ class OnScreenTextField extends StatefulWidget {
   final ValueChanged<String>? onSubmitted;
   final Widget? prefixIcon;
   final Widget? suffixIcon;
+
+  /// The layer the keyboard opens on: digits for a number field.
+  final KeyboardLayer keyboardLayer;
 
   @override
   State<OnScreenTextField> createState() => _OnScreenTextFieldState();
@@ -134,6 +139,7 @@ class _OnScreenTextFieldState extends State<OnScreenTextField> {
         focusNode: _focusNode,
         onSubmitted: widget.onSubmitted,
         maxLength: widget.maxLength,
+        layer: widget.keyboardLayer,
       );
     } else {
       scope.releaseKeyboard(widget.controller);

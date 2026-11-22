@@ -195,8 +195,9 @@ media_grpc_client <endpoint> save-install-settings <password> audio.rear_percent
                                                                # key=value sets, a bare key resets
 ```
 
-Tested in WSL against the real backend, not yet on a device. The frontend has
-no expert page yet.
+Tested in WSL against the real backend, not yet on a device. The frontend's
+expert page is **Optionen → System → Experten**, behind the exit password
+(#207, user guide [Experten](bedienung/optionen.md#experten)).
 
 The map setup of a device is the typical case. The image installs it from
 `resources/config/config.d/10-navigation.toml`; the map data itself comes

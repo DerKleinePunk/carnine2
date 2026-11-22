@@ -202,6 +202,40 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsVersion: 'Version',
   AppTextKey.settingsDiagnosticsPowerSupplyFirmware:
       'Strömförsörjning: {version}',
+  AppTextKey.settingsDiagnosticsExperts: 'Experter',
+  AppTextKey.settingsDiagnosticsExpertsSubtitle:
+      'Monteringsvärden, lösenord krävs',
+  AppTextKey.settingsExpertsPageSubtitle: 'Värden för monteringen i bilen',
+  AppTextKey.settingsBackToSystem: 'Tillbaka till system',
+  AppTextKey.settingsExpertsDefault: 'Standard',
+  AppTextKey.settingsExpertsRestartPending: 'gäller efter omstart',
+  AppTextKey.settingsExpertsRestartHint:
+      'Markerade värden gäller först efter en omstart av enheten.',
+  AppTextKey.settingsExpertsDropInError:
+      'Monteringsinställningar ogiltiga, föregående version aktiv',
+  AppTextKey.settingsExpertsReset: 'Återställ',
+  AppTextKey.settingsExpertsResetPending: 'återställs',
+  AppTextKey.settingsExpertsChanged: 'ändrad',
+  AppTextKey.settingsExpertsSystemDefault: 'Systemets standard',
+  AppTextKey.settingsExpertsMissingChoice: '{value} (hittades inte)',
+  AppTextKey.settingsExpertsNotSet: 'inte angivet',
+  AppTextKey.settingsExpertsChanges: 'Ändrade värden: {count}',
+  AppTextKey.settingsExpertsDiscard: 'Förkasta',
+  AppTextKey.settingsExpertsSave: 'Spara',
+  AppTextKey.settingsExpertsSaving: 'Sparar …',
+  AppTextKey.settingsExpertsSaved: 'Sparat',
+  AppTextKey.settingsExpertsUnreachable:
+      'Backend svarar inte. Inget har sparats.',
+  AppTextKey.settingsExpertsFailed:
+      'Det gick inte att spara. Inget har sparats.',
+  AppTextKey.settingsExpertsRejected: 'Inte sparat:',
+  AppTextKey.settingsExpertsDiscardTitle: 'Förkasta ändringarna?',
+  AppTextKey.settingsExpertsApply: 'Använd',
+  AppTextKey.settingsExpertsRange: 'Tillåtet: {min} till {max}',
+  AppTextKey.settingsExpertsMaxLength: 'Högst {count} tecken',
+  AppTextKey.settingsExpertsOutOfRange:
+      'Ange ett heltal från {min} till {max}.',
+  AppTextKey.settingsExpertsEmpty: 'Backend anger inga monteringsvärden.',
   AppTextKey.settingsExitPasswordChecking: 'Kontrollerar …',
   AppTextKey.settingsExitPasswordUnavailable:
       'Lösenordet kan inte kontrolleras just nu. Försök igen om en stund.',

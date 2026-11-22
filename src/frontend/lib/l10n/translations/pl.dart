@@ -205,6 +205,41 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsExitSubtitle: 'Tryb serwisowy, wymagane hasło',
   AppTextKey.settingsDiagnosticsVersion: 'Wersja',
   AppTextKey.settingsDiagnosticsPowerSupplyFirmware: 'Zasilacz: {version}',
+  AppTextKey.settingsDiagnosticsExperts: 'Eksperci',
+  AppTextKey.settingsDiagnosticsExpertsSubtitle:
+      'Wartości montażowe, wymagane hasło',
+  AppTextKey.settingsExpertsPageSubtitle: 'Wartości do montażu w samochodzie',
+  AppTextKey.settingsBackToSystem: 'Wróć do systemu',
+  AppTextKey.settingsExpertsDefault: 'Domyślne',
+  AppTextKey.settingsExpertsRestartPending: 'obowiązuje po restarcie',
+  AppTextKey.settingsExpertsRestartHint:
+      'Oznaczone wartości obowiązują dopiero po ponownym uruchomieniu urządzenia.',
+  AppTextKey.settingsExpertsDropInError:
+      'Ustawienia montażowe nieprawidłowe, aktywna poprzednia wersja',
+  AppTextKey.settingsExpertsReset: 'Resetuj',
+  AppTextKey.settingsExpertsResetPending: 'zostanie zresetowane',
+  AppTextKey.settingsExpertsChanged: 'zmienione',
+  AppTextKey.settingsExpertsSystemDefault: 'Domyślne ustawienie systemu',
+  AppTextKey.settingsExpertsMissingChoice: '{value} (nie znaleziono)',
+  AppTextKey.settingsExpertsNotSet: 'nie ustawiono',
+  AppTextKey.settingsExpertsChanges: 'Zmienione wartości: {count}',
+  AppTextKey.settingsExpertsDiscard: 'Odrzuć',
+  AppTextKey.settingsExpertsSave: 'Zapisz',
+  AppTextKey.settingsExpertsSaving: 'Zapisywanie …',
+  AppTextKey.settingsExpertsSaved: 'Zapisano',
+  AppTextKey.settingsExpertsUnreachable:
+      'Backend nie odpowiada. Niczego nie zapisano.',
+  AppTextKey.settingsExpertsFailed:
+      'Zapisywanie nie powiodło się. Niczego nie zapisano.',
+  AppTextKey.settingsExpertsRejected: 'Nie zapisano:',
+  AppTextKey.settingsExpertsDiscardTitle: 'Odrzucić zmiany?',
+  AppTextKey.settingsExpertsApply: 'Zastosuj',
+  AppTextKey.settingsExpertsRange: 'Dozwolone: od {min} do {max}',
+  AppTextKey.settingsExpertsMaxLength: 'Maks. liczba znaków: {count}',
+  AppTextKey.settingsExpertsOutOfRange:
+      'Proszę wpisać liczbę całkowitą od {min} do {max}.',
+  AppTextKey.settingsExpertsEmpty:
+      'Backend nie podaje żadnych wartości montażowych.',
   AppTextKey.settingsExitPasswordChecking: 'Sprawdzanie …',
   AppTextKey.settingsExitPasswordUnavailable:
       'Nie można teraz sprawdzić hasła. Proszę spróbować ponownie za chwilę.',
