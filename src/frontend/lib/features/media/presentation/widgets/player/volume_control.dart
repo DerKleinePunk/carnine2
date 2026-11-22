@@ -18,12 +18,14 @@ class VolumeControl extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final percent = controller.volumePercent;
-    final isMuted = controller.isMuted;
 
     return ListenableBuilder(
       listenable: controller,
       builder: (context, child) {
+        // Read here, not above: the builder runs on every change of the
+        // controller, also while nothing plays (#176).
+        final percent = controller.volumePercent;
+        final isMuted = controller.isMuted;
         return Row(
           children: [
             _MuteButton(
