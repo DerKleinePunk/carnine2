@@ -194,16 +194,36 @@ void main() {
       expect(find.text('Noch nicht verfügbar'), findsOneWidget);
     });
 
-    testWidgets('restart runs immediately, without any confirmation', (
+    testWidgets('restart asks first; Abbrechen keeps the interface (#173)', (
       tester,
     ) async {
-      var restarted = false;
-      await _open(tester, onRestart: () => restarted = true);
+      var restarts = 0;
+      await _open(tester, onRestart: () => restarts++);
 
-      await tester.tap(find.text('Neustart'));
-      await tester.pump();
+      await _tapAndSettle(tester, 'Neustart');
 
-      expect(restarted, isTrue);
+      expect(find.text('Oberfläche neu starten?'), findsOneWidget);
+      expect(find.text('Neu starten'), findsOneWidget);
+      expect(restarts, 0, reason: 'the tap alone restarts nothing');
+
+      await _tapAndSettle(tester, 'Abbrechen');
+
+      expect(find.text('Oberfläche neu starten?'), findsNothing);
+      expect(restarts, 0);
+    });
+
+    testWidgets('restart after "Neu starten", once, without a password', (
+      tester,
+    ) async {
+      var restarts = 0;
+      await _open(tester, onRestart: () => restarts++);
+
+      await _tapAndSettle(tester, 'Neustart');
+      expect(find.byType(TextField), findsNothing);
+      await _tapAndSettle(tester, 'Neu starten');
+
+      expect(restarts, 1);
+      expect(find.text('Oberfläche neu starten?'), findsNothing);
     });
 
     testWidgets('with less room, for example under a notice strip, the page '
@@ -854,6 +874,14 @@ void main() {
         final store = FakeExitPasswordStore();
         await _open(tester, store: store, locale: locale);
         expect(tester.takeException(), isNull);
+
+        // The question before a restart.
+        await tester.tap(find.byIcon(Icons.restart_alt));
+        await tester.pumpAndSettle();
+        expect(find.byType(AlertDialog), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await tester.tap(find.byType(TextButton).first);
+        await tester.pumpAndSettle();
 
         // The exit dialog with its longest message, above the keyboard.
         await tester.tap(find.byIcon(Icons.power_settings_new));

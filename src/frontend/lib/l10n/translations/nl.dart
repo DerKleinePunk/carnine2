@@ -197,6 +197,8 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
       'Wachtwoord voor de onderhoudsmodus',
   AppTextKey.settingsDiagnosticsRestartSubtitle:
       'Alleen de interface, de muziek speelt door',
+  AppTextKey.settingsDiagnosticsRestartConfirmTitle: 'De interface herstarten?',
+  AppTextKey.settingsDiagnosticsRestartConfirmAction: 'Herstarten',
   AppTextKey.settingsDiagnosticsExitSubtitle:
       'Onderhoudsmodus, wachtwoord vereist',
   AppTextKey.settingsDiagnosticsVersion: 'Versie',

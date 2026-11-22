@@ -202,6 +202,8 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
       'A karbantartási mód jelszava',
   AppTextKey.settingsDiagnosticsRestartSubtitle:
       'Csak a felület, a zene tovább szól',
+  AppTextKey.settingsDiagnosticsRestartConfirmTitle: 'Újraindítja a felületet?',
+  AppTextKey.settingsDiagnosticsRestartConfirmAction: 'Újraindítás',
   AppTextKey.settingsDiagnosticsExitSubtitle:
       'Karbantartási mód, jelszó szükséges',
   AppTextKey.settingsDiagnosticsVersion: 'Verzió',

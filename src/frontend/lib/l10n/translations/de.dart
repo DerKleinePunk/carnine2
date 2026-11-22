@@ -202,6 +202,8 @@ const Map<AppTextKey, String> deTranslations = <AppTextKey, String>{
       'Passwort für den Wartungsmodus',
   AppTextKey.settingsDiagnosticsRestartSubtitle:
       'Nur die Oberfläche, die Musik läuft weiter',
+  AppTextKey.settingsDiagnosticsRestartConfirmTitle: 'Oberfläche neu starten?',
+  AppTextKey.settingsDiagnosticsRestartConfirmAction: 'Neu starten',
   AppTextKey.settingsDiagnosticsExitSubtitle: 'Wartungsmodus, Passwort nötig',
   AppTextKey.settingsDiagnosticsVersion: 'Version',
   AppTextKey.settingsExitPasswordChecking: 'Wird geprüft …',

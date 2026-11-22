@@ -202,6 +202,8 @@ const Map<AppTextKey, String> itTranslations = <AppTextKey, String>{
       'Password della modalità manutenzione',
   AppTextKey.settingsDiagnosticsRestartSubtitle:
       'Solo l’interfaccia, la musica continua',
+  AppTextKey.settingsDiagnosticsRestartConfirmTitle: 'Riavviare l’interfaccia?',
+  AppTextKey.settingsDiagnosticsRestartConfirmAction: 'Riavvia',
   AppTextKey.settingsDiagnosticsExitSubtitle:
       'Modalità manutenzione, serve la password',
   AppTextKey.settingsDiagnosticsVersion: 'Versione',

@@ -199,6 +199,9 @@ const Map<AppTextKey, String> plTranslations = <AppTextKey, String>{
       'Hasło do trybu serwisowego',
   AppTextKey.settingsDiagnosticsRestartSubtitle:
       'Tylko interfejs, muzyka gra dalej',
+  AppTextKey.settingsDiagnosticsRestartConfirmTitle:
+      'Uruchomić ponownie interfejs?',
+  AppTextKey.settingsDiagnosticsRestartConfirmAction: 'Uruchom ponownie',
   AppTextKey.settingsDiagnosticsExitSubtitle: 'Tryb serwisowy, wymagane hasło',
   AppTextKey.settingsDiagnosticsVersion: 'Wersja',
   AppTextKey.settingsExitPasswordChecking: 'Sprawdzanie …',

@@ -196,6 +196,8 @@ const Map<AppTextKey, String> svTranslations = <AppTextKey, String>{
       'Lösenord för underhållsläget',
   AppTextKey.settingsDiagnosticsRestartSubtitle:
       'Bara gränssnittet, musiken spelar vidare',
+  AppTextKey.settingsDiagnosticsRestartConfirmTitle: 'Starta om gränssnittet?',
+  AppTextKey.settingsDiagnosticsRestartConfirmAction: 'Starta om',
   AppTextKey.settingsDiagnosticsExitSubtitle: 'Underhållsläge, lösenord krävs',
   AppTextKey.settingsDiagnosticsVersion: 'Version',
   AppTextKey.settingsExitPasswordChecking: 'Kontrollerar …',

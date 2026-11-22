@@ -55,6 +55,35 @@ class SystemPage extends StatelessWidget {
     );
   }
 
+  /// Asks before restarting: a tap on the tile alone restarted the interface
+  /// at the trade fair (#173). No password, unlike "Beenden".
+  Future<void> _confirmRestart(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          l10n.text(AppTextKey.settingsDiagnosticsRestartConfirmTitle),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.text(AppTextKey.settingsExitPasswordCancelAction)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(
+              l10n.text(AppTextKey.settingsDiagnosticsRestartConfirmAction),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed ?? false) {
+      onRestart();
+    }
+  }
+
   Future<void> _confirmExit(BuildContext context) async {
     final confirmed = await ExitPasswordDialog.show(
       context,
@@ -124,7 +153,7 @@ class SystemPage extends StatelessWidget {
                 subtitle: l10n.text(
                   AppTextKey.settingsDiagnosticsRestartSubtitle,
                 ),
-                onTap: onRestart,
+                onTap: () => _confirmRestart(context),
               ),
               _SystemTile(
                 icon: Icons.power_settings_new,

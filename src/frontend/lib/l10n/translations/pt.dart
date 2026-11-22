@@ -198,6 +198,8 @@ const Map<AppTextKey, String> ptTranslations = <AppTextKey, String>{
       'Palavra-passe do modo de manutenção',
   AppTextKey.settingsDiagnosticsRestartSubtitle:
       'Só a interface, a música continua',
+  AppTextKey.settingsDiagnosticsRestartConfirmTitle: 'Reiniciar a interface?',
+  AppTextKey.settingsDiagnosticsRestartConfirmAction: 'Reiniciar',
   AppTextKey.settingsDiagnosticsExitSubtitle:
       'Modo de manutenção, requer palavra-passe',
   AppTextKey.settingsDiagnosticsVersion: 'Versão',

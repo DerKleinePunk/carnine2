@@ -196,6 +196,8 @@ const Map<AppTextKey, String> csTranslations = <AppTextKey, String>{
       'Heslo pro servisní režim',
   AppTextKey.settingsDiagnosticsRestartSubtitle:
       'Jen rozhraní, hudba hraje dál',
+  AppTextKey.settingsDiagnosticsRestartConfirmTitle: 'Restartovat rozhraní?',
+  AppTextKey.settingsDiagnosticsRestartConfirmAction: 'Restartovat',
   AppTextKey.settingsDiagnosticsExitSubtitle: 'Servisní režim, nutné heslo',
   AppTextKey.settingsDiagnosticsVersion: 'Verze',
   AppTextKey.settingsExitPasswordChecking: 'Ověřování …',

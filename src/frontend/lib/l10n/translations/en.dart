@@ -195,6 +195,8 @@ const Map<AppTextKey, String> enTranslations = <AppTextKey, String>{
       'Password for maintenance mode',
   AppTextKey.settingsDiagnosticsRestartSubtitle:
       'Interface only, music keeps playing',
+  AppTextKey.settingsDiagnosticsRestartConfirmTitle: 'Restart the interface?',
+  AppTextKey.settingsDiagnosticsRestartConfirmAction: 'Restart',
   AppTextKey.settingsDiagnosticsExitSubtitle:
       'Maintenance mode, password required',
   AppTextKey.settingsDiagnosticsVersion: 'Version',

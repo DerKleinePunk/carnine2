@@ -174,6 +174,8 @@ enum AppTextKey {
   settingsDiagnosticsChangePassword,
   settingsDiagnosticsChangePasswordSubtitle,
   settingsDiagnosticsRestartSubtitle,
+  settingsDiagnosticsRestartConfirmTitle,
+  settingsDiagnosticsRestartConfirmAction,
   settingsDiagnosticsExitSubtitle,
   settingsDiagnosticsVersion,
   settingsExitPasswordChecking,

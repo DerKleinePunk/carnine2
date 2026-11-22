@@ -197,6 +197,9 @@ const Map<AppTextKey, String> trTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsChangePasswordSubtitle: 'Bakım modu şifresi',
   AppTextKey.settingsDiagnosticsRestartSubtitle:
       'Yalnızca arayüz, müzik çalmaya devam eder',
+  AppTextKey.settingsDiagnosticsRestartConfirmTitle:
+      'Arayüz yeniden başlatılsın mı?',
+  AppTextKey.settingsDiagnosticsRestartConfirmAction: 'Yeniden başlat',
   AppTextKey.settingsDiagnosticsExitSubtitle: 'Bakım modu, şifre gerekli',
   AppTextKey.settingsDiagnosticsVersion: 'Sürüm',
   AppTextKey.settingsExitPasswordChecking: 'Doğrulanıyor …',

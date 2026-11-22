@@ -174,6 +174,8 @@ const Map<AppTextKey, String> zhTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsChangePassword: '更改密码',
   AppTextKey.settingsDiagnosticsChangePasswordSubtitle: '维护模式的密码',
   AppTextKey.settingsDiagnosticsRestartSubtitle: '仅界面，音乐继续播放',
+  AppTextKey.settingsDiagnosticsRestartConfirmTitle: '重启界面？',
+  AppTextKey.settingsDiagnosticsRestartConfirmAction: '重启',
   AppTextKey.settingsDiagnosticsExitSubtitle: '维护模式，需要密码',
   AppTextKey.settingsDiagnosticsVersion: '版本',
   AppTextKey.settingsExitPasswordChecking: '正在验证…',

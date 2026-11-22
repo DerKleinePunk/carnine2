@@ -177,6 +177,8 @@ const Map<AppTextKey, String> jaTranslations = <AppTextKey, String>{
   AppTextKey.settingsDiagnosticsChangePassword: 'パスワードを変更',
   AppTextKey.settingsDiagnosticsChangePasswordSubtitle: 'メンテナンスモード用のパスワード',
   AppTextKey.settingsDiagnosticsRestartSubtitle: 'インターフェースのみ。音楽は流れたままです',
+  AppTextKey.settingsDiagnosticsRestartConfirmTitle: 'インターフェースを再起動しますか？',
+  AppTextKey.settingsDiagnosticsRestartConfirmAction: '再起動',
   AppTextKey.settingsDiagnosticsExitSubtitle: 'メンテナンスモード。パスワードが必要です',
   AppTextKey.settingsDiagnosticsVersion: 'バージョン',
   AppTextKey.settingsExitPasswordChecking: '確認中…',

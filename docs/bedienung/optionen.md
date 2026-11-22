@@ -170,8 +170,12 @@ Zeile, was sie tut.
 
 **Oberfläche**
 
-- **Neustart:** startet **nur die Oberfläche** neu, sofort und ohne Rückfrage.
-  Auf dem Pi übernimmt systemd den Neustart; Backend und Musik laufen weiter.
+- **Neustart:** startet **nur die Oberfläche** neu. Vorher kommt die Frage
+  „Oberfläche neu starten?“: **Neu starten** startet neu, **Abbrechen** oder
+  Antippen außerhalb des Dialogs lässt alles, wie es ist. Ein Passwort braucht
+  es nicht. Auf dem Pi übernimmt systemd den Neustart; Backend und Musik laufen
+  weiter. Im Log steht davor „Restart requested by user“, so ist ein gewollter
+  Neustart von einem Absturz zu unterscheiden (#173).
 - **Beenden** (rot): der **Wartungsmodus**. Fragt nach dem
   [Beenden-Passwort](#beenden-passwort) und beendet dann die Oberfläche.
 - **Version:** zeigt die Versionsnummer der Oberfläche und darunter das Datum
@@ -196,6 +200,7 @@ Sie es gleich noch einmal.“, der Dialog bleibt offen, und ein erneutes
 
 Die Oberfläche startet danach **absichtlich nicht** von selbst neu: Wer das
 Passwort kennt, soll am Gerät eine Konsole bekommen und dort arbeiten können.
+Im Log steht davor „Exit requested by user“.
 Etwa 5 Sekunden nach dem Beenden erscheint die Text-Anmeldung. Das Backend
 läuft weiter. Zurück zur Oberfläche mit `sudo systemctl start carnine-frontend`
 oder einem Neustart des Geräts. Stürzt die Oberfläche dagegen ab, startet

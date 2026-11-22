@@ -197,6 +197,8 @@ const Map<AppTextKey, String> daTranslations = <AppTextKey, String>{
       'Adgangskode til vedligeholdelsestilstand',
   AppTextKey.settingsDiagnosticsRestartSubtitle:
       'Kun brugerfladen, musikken spiller videre',
+  AppTextKey.settingsDiagnosticsRestartConfirmTitle: 'Genstart brugerfladen?',
+  AppTextKey.settingsDiagnosticsRestartConfirmAction: 'Genstart',
   AppTextKey.settingsDiagnosticsExitSubtitle:
       'Vedligeholdelsestilstand, kræver adgangskode',
   AppTextKey.settingsDiagnosticsVersion: 'Version',
