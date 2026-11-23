@@ -186,14 +186,18 @@ its values, use the page or the CLI below, and by hand only delete the file.
   a warning and reports the reason to the page. If the configuration is
   invalid without it too, the start fails as before.
 - **Reading** (`ConfigService.GetInstallSettings`): every value with type,
-  German label and help, default, the value the files give (the default when
+  heading, label, help and choice labels in the requested `language`
+  (#217, since the release after 0.22.0; texts in
+  `src/backend/src/install_settings_texts.toml`, an empty or unknown
+  language and an old client sending `Empty` get German;
+  `SaveInstallSettingsRequest` has `language` too), default, the value the files give (the default when
   none sets it), the file it comes from (empty for the default) and whether
   it waits for a restart, i.e. differs from what the running backend uses.
   `ui_drop_in_error` says why the file was left out at start, if it was.
 
 ```bash
-media_grpc_client <endpoint> install-settings                  # values, origin, restart pending
-media_grpc_client <endpoint> save-install-settings <password> audio.rear_percent=30 reverse_gear.source
+media_grpc_client <endpoint> install-settings [<language>]     # values, origin, restart pending
+media_grpc_client <endpoint> save-install-settings <password> [--language=<code>] audio.rear_percent=30 reverse_gear.source
                                                                # key=value sets, a bare key resets
 ```
 
