@@ -42,7 +42,12 @@ RFKILL=${CARNINE_RFKILL:-rfkill}
 WPA_CLI=${CARNINE_WPA_CLI:-wpa_cli}
 WPA_PASSPHRASE=${CARNINE_WPA_PASSPHRASE:-wpa_passphrase}
 IP=${CARNINE_IP:-ip}
-SCAN_WAIT=${CARNINE_SCAN_WAIT:-4}
+# The scan is read every SCAN_STEP seconds until it has been stable for two
+# reads, then scanned once more (a stick finds more on the second pass);
+# SCAN_MAX reads at most. A fixed wait was too short for a USB stick right
+# after wpa_supplicant started (jeep-pi, 2026-11-23).
+SCAN_STEP=${CARNINE_SCAN_STEP:-1}
+SCAN_MAX=${CARNINE_SCAN_MAX:-15}
 ADDRESS_WAIT=${CARNINE_ADDRESS_WAIT:-30}
 CONTROL_WAIT=${CARNINE_CONTROL_WAIT:-10}
 
@@ -188,13 +193,28 @@ fi
 chmod 0600 "$CONF"
 start_wpa_supplicant start
 
-# Networks in range, strongest first, each name once, with the bands it
-# was seen on ("2,4", "5" or "2,4+5").
-if [ -z "$SSID" ]; then
-    echo "Suche Netze ..."
+# scan_networks: every network in range, strongest first, each name once,
+# as "name<TAB>bands" with the bands it was seen on ("2,4", "5", "2,4+5").
+scan_networks() {
     "$WPA_CLI" -i "$interface" scan > /dev/null
-    sleep "$SCAN_WAIT"
-    networks=$("$WPA_CLI" -i "$interface" scan_results |
+    rescanned=no
+    last=""
+    same=0
+    reads=0
+    while [ "$reads" -lt "$SCAN_MAX" ]; do
+        sleep "$SCAN_STEP"
+        reads=$((reads + 1))
+        now=$("$WPA_CLI" -i "$interface" scan_results | awk 'NR > 1' | wc -l)
+        if [ "$now" -gt 0 ] && [ "$now" = "$last" ]; then same=$((same + 1)); else same=0; fi
+        last=$now
+        if [ "$same" -ge 2 ]; then
+            [ "$rescanned" = yes ] && break
+            "$WPA_CLI" -i "$interface" scan > /dev/null
+            rescanned=yes
+            same=0
+        fi
+    done
+    "$WPA_CLI" -i "$interface" scan_results |
         awk -F '\t' 'NR > 1 && $5 != "" {
             band = ($2 >= 4900) ? "5" : "2,4"
             if (!($5 in best) || $3 > best[$5]) best[$5] = $3
@@ -205,11 +225,17 @@ if [ -z "$SSID" ]; then
                 bands = (name in two) ? ((name in five) ? "2,4+5" : "2,4") : "5"
                 print best[name] "\t" name "\t" bands
             }
-        }' | sort -t "$(printf '\t')" -k1,1nr | head -n 20 | cut -f 2-)
+        }' | sort -t "$(printf '\t')" -k1,1nr | cut -f 2-
+}
+
+networks=""
+if [ -z "$SSID" ]; then
+    echo "Suche Netze ..."
+    networks=$(scan_networks)
     if [ -z "$networks" ]; then
         die "kein Netz gefunden. Versteckte Netze mit: sudo carnine-wlan --ssid <name>"
     fi
-    printf '%s\n' "$networks" | awk -F '\t' '{ printf "  %2d  %s  (%s GHz)\n", NR, $1, $2 }'
+    printf '%s\n' "$networks" | head -n 20 | awk -F '\t' '{ printf "  %2d  %s  (%s GHz)\n", NR, $1, $2 }'
     if [ "$BAND" = 5 ]; then
         echo "Nur Netze auf 5 GHz (BAND=5)."
     fi
@@ -217,12 +243,25 @@ if [ -z "$SSID" ]; then
     read -r choice || die "kein Netz gewählt"
     case "$choice" in
         ''|*[!0-9]*) SSID=$choice ;;
-        *) SSID=$(printf '%s\n' "$networks" | sed -n "${choice}p" | cut -f 1) ;;
+        *) SSID=$(printf '%s\n' "$networks" | head -n 20 | sed -n "${choice}p" | cut -f 1) ;;
     esac
     [ -n "$SSID" ] || die "kein Netz mit der Nummer $choice"
+elif [ "$BAND" = 5 ]; then
+    # A name given directly is checked too; one that is not seen at all is a
+    # hidden network and is stored as asked.
+    echo "Prüfe das Band von '$SSID' ..."
+    networks=$(scan_networks)
+fi
+
+# With BAND=5, a network seen only on 2.4 GHz is refused before the
+# password, whether it came from the list, was typed or given with --ssid.
+if [ "$BAND" = 5 ]; then
     bands=$(printf '%s\n' "$networks" | awk -F '\t' -v name="$SSID" '$1 == name { print $2; exit }')
-    if [ "$BAND" = 5 ] && [ "$bands" = "2,4" ]; then
+    if [ "$bands" = "2,4" ]; then
         die "'$SSID' ist nur auf 2,4 GHz zu sehen, dieses Gerät nimmt nur 5 GHz (BAND=5). Hotspot am Handy auf 5 GHz stellen und noch einmal aufrufen, oder einmalig mit --band any."
+    fi
+    if [ -z "$bands" ]; then
+        echo "'$SSID' ist nicht zu sehen; wird als verstecktes Netz für 5 GHz gespeichert."
     fi
 fi
 
