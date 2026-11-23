@@ -74,7 +74,7 @@ run() {
     printf '%b' "$input" | CARNINE_NET_DIR="$tree/net" CARNINE_WPA_DIR="$tree/wpa" \
         CARNINE_SYSTEMCTL="$tree/fake-systemctl" CARNINE_RFKILL="$tree/fake-rfkill" \
         CARNINE_WPA_CLI="$tree/fake-wpa_cli" CARNINE_WPA_PASSPHRASE="$tree/fake-wpa_passphrase" \
-        CARNINE_IP="$tree/fake-ip" CARNINE_WLAN_CONF="$tree/wlan.conf" CARNINE_SCAN_WAIT=0 CARNINE_ADDRESS_WAIT=2 CARNINE_CONTROL_WAIT=3 CARNINE_SKIP_ROOT_CHECK=1 \
+        CARNINE_IP="$tree/fake-ip" CARNINE_WLAN_CONF="$tree/wlan.conf" CARNINE_SCAN_STEP=0 CARNINE_SCAN_MAX=8 CARNINE_ADDRESS_WAIT=2 CARNINE_CONTROL_WAIT=3 CARNINE_SKIP_ROOT_CHECK=1 \
         sh "$SCRIPT" "$@" > "$tree/out.log" 2>&1 || status=$?
 }
 
@@ -184,7 +184,7 @@ setup
 echo 2 > "$tree/ping-late"
 run '1\ngeheim123\n'
 check "late control socket: connect succeeds" "$status" "0"
-check "late control socket: scanned after it" "$(grep -c ' scan$' "$tree/calls.log")" "1"
+check "late control socket: scanned after it (twice)" "$(grep -c ' scan$' "$tree/calls.log")" "2"
 rm -rf "$tree"
 
 # A wpa_supplicant that never answers is named, not a bare wpa_cli error.
@@ -306,6 +306,56 @@ run '' --interface wlan9
 check "--interface unknown refused" "$(grep -c 'kein WLAN-Gerät wlan9' "$tree/out.log")" "1"
 run '' --interface ../wlan0
 check "--interface with a path refused" "$(grep -c 'kein WLAN-Gerät ../wlan0' "$tree/out.log")" "1"
+rm -rf "$tree"
+
+# The scan waits until the results are stable and scans once more, instead
+# of a fixed time: a stick finds networks only after a while.
+setup
+cat > "$tree/fake-wpa_cli" <<FAKE
+#!/bin/sh
+echo "wpa_cli \$*" >> "$tree/calls.log"
+case "\$3" in
+    ping) echo PONG ;;
+    scan_results)
+        n=\$(cat "$tree/reads" 2>/dev/null || echo 0); echo \$((n + 1)) > "$tree/reads"
+        head -n 1 "$tree/scan.txt"
+        # nothing on the first two reads, then the 2.4 GHz networks; the
+        # 5 GHz one only after the second scan
+        if [ "\$n" -ge 2 ]; then grep -v Handy "$tree/scan.txt" | tail -n +2; fi
+        if [ "\$(grep -c ' scan\$' "$tree/calls.log")" -ge 2 ]; then grep Handy "$tree/scan.txt"; fi ;;
+    reconfigure) : > "$tree/connected" ;;
+esac
+FAKE
+run '2\nhotspot99\n' --band 5
+check "slow stick: networks found" "$(grep -c 'kein Netz gefunden' "$tree/out.log")" "0"
+check "slow stick: 5 GHz network after the second scan" "$(grep -c '  2  Handy  (5 GHz)$' "$tree/out.log")" "1"
+check "slow stick: scanned twice" "$(grep -c ' scan$' "$tree/calls.log")" "2"
+check "slow stick: connects" "$status" "0"
+rm -rf "$tree"
+
+# Nothing ever: gives up after SCAN_MAX reads.
+setup
+head -n 1 "$tree/scan.txt" > "$tree/scan.new" && mv "$tree/scan.new" "$tree/scan.txt"
+run ''
+check "nothing in range: reads bounded" "$(grep -c ' scan_results$' "$tree/calls.log")" "9"
+rm -rf "$tree"
+
+# --ssid and a typed name are checked against the band too (BAND=5).
+setup
+run 'geheim123\n' --ssid Garage --band 5
+check "--ssid on 2.4 GHz only refused" "$status" "1"
+check "--ssid 2.4 GHz: hint" "$(grep -c 'Hotspot am Handy auf 5 GHz stellen' "$tree/out.log")" "1"
+check "--ssid 2.4 GHz: nothing stored" "$(conf | grep -c '^network={')" "0"
+run 'hotspot99\n' --ssid Handy --band 5
+check "--ssid on 5 GHz stored" "$status" "0"
+check "--ssid on 5 GHz: freq_list" "$(conf | grep -c 'freq_list=')" "1"
+rm -rf "$tree"
+setup
+run 'Nachbar\ngeheim123\n' --band 5
+check "typed 2.4 GHz name refused" "$(grep -c 'Hotspot am Handy auf 5 GHz stellen' "$tree/out.log")" "1"
+run 'Unsichtbar\ngeheim123\n' --band 5
+check "typed unseen name stored as hidden" "$status" "0"
+check "typed unseen name: says so" "$(grep -c 'als verstecktes Netz für 5 GHz gespeichert' "$tree/out.log")" "1"
 rm -rf "$tree"
 
 # Without a WLAN interface.
