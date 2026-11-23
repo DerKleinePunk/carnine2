@@ -89,7 +89,7 @@ haben einen Pfeil und lassen sich antippen. Die anderen drei sind eine
 |---|---|
 | **Kamera** | Gerät, Videonorm, Eingang und Bildbreite (siehe unten) |
 | **Display** | Helligkeit des Displays (siehe unten) |
-| **Audio-Ausgang** | später: HDMI, Kopfhörerbuchse ([Klinke](begriffe.md)) oder USB-Soundkarte wählen; ab der Version nach 0.22.0 geht das auf der Seite **Experten** unter **System** (#207) |
+| **Audio-Ausgang** | HDMI, Kopfhörerbuchse ([Klinke](begriffe.md)) oder USB-Soundkarte; bis 0.22.0 am Gerät, danach auf der Seite [Experten](#experten) (#207) |
 | **Handy-App** | später: Bluetooth-Kopplung mit Code am Handy (#72) |
 | **Netzteil** | später: Zündung, Spannung und Service-Modus (#36) |
 
@@ -204,7 +204,9 @@ klein, woher der Wert kommt: **Vorgabe** oder der Name der Datei, die ihn setzt
 (z. B. `99-ui.toml`), und **gilt nach Neustart**, solange der Wert erst nach
 einem Neustart wirkt. Die Seite kennt selbst keinen Wert: Sie zeigt, was das
 Backend nennt. Überschriften, Bezeichnungen und Hilfe sind deshalb vorerst
-deutsch, auch wenn die Oberfläche eine andere Sprache hat.
+deutsch, auch wenn die Oberfläche eine andere Sprache hat. Das Backend kann
+sie schon in allen Sprachen der Oberfläche liefern; die Seite fragt danach,
+sobald #217 auch im Frontend fertig ist.
 
 | Art des Werts | Ändern |
 |---|---|
@@ -249,7 +251,7 @@ erscheint er ohne Änderung der Oberfläche):
 
 | Überschrift | Schlüssel | Bezeichnung |
 |---|---|---|
-| Rückwärtsgang | `reverse_gear.source` | Quelle (keine, GPIO, Demo) |
+| Rückwärtsgang | `reverse_gear.source` | Quelle (keine, GPIO-Eingang, Vorführung über gRPC) |
 | | `reverse_gear.gpio_chip` | GPIO-Chip |
 | | `reverse_gear.gpio_line` | GPIO-Leitung (0 bis 511) |
 | | `reverse_gear.active_low` | Aktiv bei Masse |
@@ -262,6 +264,11 @@ erscheint er ohne Änderung der Oberfläche):
 | Netzteil | `power_supply.enabled` | Netzteil angeschlossen |
 | | `power_supply.amplifier_relay` | Endstufe über Relais 3 |
 | | `power_supply.shutdown_on_poweroff` | Mit der Zündung herunterfahren |
+
+**Ton über vier Boxen (AC-3):** Dort bei **Ausgang** immer **Vorgabe des
+Systems** lassen, sonst tut der Lautstärkeregler nichts mehr (siehe
+[Ton über vier Boxen](ton-vier-boxen.md)). Für die Klinke siehe
+[Ton über die Klinke](ton-klinke.md).
 
 Mehr zur Datei `99-ui.toml` und zum Prüfen über die Kommandozeile in
 [docs/07](../07-deployment.md) („`99-ui.toml`: the values of the expert page“).
