@@ -34,9 +34,12 @@ with the ignition, docs/23), systemd starts both services:
    instead of 15.5 s – 12.9 s with the probe files, 13.2 s with the built
    package –, the map of the trade fair mode at 17.5 s instead of about
    20.9 s).
-3. The UI waits for five rendered frames (it forces a frame every 100 ms and
-   stops waiting after 5 s at the latest) and then reports `ReportUiReady` through
-   `SystemService`. If the backend answers `UNAVAILABLE` (for example while
+3. The UI reports `ReportUiReady` through `SystemService` as soon as its
+   first frame is rasterized (`UiReadyDetector`, since the release after
+   0.22.0, #37), or after 5 s at the latest if no frame timing comes. Up to
+   0.22.0 it forced a frame every 100 ms and waited for five (ADR-019); that
+   took 1.1–1.5 s from the embedder's first page flip to READY, now
+   91–114 ms (carnine-pc, Pi 4, 2026-11-23). If the backend answers `UNAVAILABLE` (for example while
    it restarts on its own), `UiReadinessReporter` retries (250 ms, 500 ms,
    1 s, then every 2 s) for up to 20 s. In a normal start the socket listens
    by then (measured 0.1–0.6 s before the first frame); if not, the retries
