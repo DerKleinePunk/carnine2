@@ -202,9 +202,46 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
       'A karbantartási mód jelszava',
   AppTextKey.settingsDiagnosticsRestartSubtitle:
       'Csak a felület, a zene tovább szól',
+  AppTextKey.settingsDiagnosticsRestartConfirmTitle: 'Újraindítja a felületet?',
+  AppTextKey.settingsDiagnosticsRestartConfirmAction: 'Újraindítás',
   AppTextKey.settingsDiagnosticsExitSubtitle:
       'Karbantartási mód, jelszó szükséges',
   AppTextKey.settingsDiagnosticsVersion: 'Verzió',
+  AppTextKey.settingsDiagnosticsPowerSupplyFirmware: 'Tápegység: {version}',
+  AppTextKey.settingsDiagnosticsExperts: 'Szakértők',
+  AppTextKey.settingsDiagnosticsExpertsSubtitle:
+      'Beépítési értékek, jelszó szükséges',
+  AppTextKey.settingsExpertsPageSubtitle: 'Az autóba való beépítés értékei',
+  AppTextKey.settingsBackToSystem: 'Vissza a rendszerhez',
+  AppTextKey.settingsExpertsDefault: 'Alapértelmezett',
+  AppTextKey.settingsExpertsRestartPending: 'újraindítás után érvényes',
+  AppTextKey.settingsExpertsRestartHint:
+      'A megjelölt értékek csak az eszköz újraindítása után érvényesek.',
+  AppTextKey.settingsExpertsDropInError:
+      'Érvénytelen beépítési beállítások, az előző változat aktív',
+  AppTextKey.settingsExpertsReset: 'Visszaállítás',
+  AppTextKey.settingsExpertsResetPending: 'vissza lesz állítva',
+  AppTextKey.settingsExpertsChanged: 'módosítva',
+  AppTextKey.settingsExpertsSystemDefault: 'Rendszer alapértelmezése',
+  AppTextKey.settingsExpertsMissingChoice: '{value} (nem található)',
+  AppTextKey.settingsExpertsNotSet: 'nincs beállítva',
+  AppTextKey.settingsExpertsChanges: 'Módosított értékek: {count}',
+  AppTextKey.settingsExpertsDiscard: 'Elvetés',
+  AppTextKey.settingsExpertsSave: 'Mentés',
+  AppTextKey.settingsExpertsSaving: 'Mentés …',
+  AppTextKey.settingsExpertsSaved: 'Mentve',
+  AppTextKey.settingsExpertsUnreachable:
+      'A backend nem válaszol. Semmi sem lett mentve.',
+  AppTextKey.settingsExpertsFailed:
+      'A mentés sikertelen. Semmi sem lett mentve.',
+  AppTextKey.settingsExpertsRejected: 'Nincs mentve:',
+  AppTextKey.settingsExpertsDiscardTitle: 'Elveti a módosításokat?',
+  AppTextKey.settingsExpertsApply: 'Alkalmaz',
+  AppTextKey.settingsExpertsRange: 'Megengedett: {min}–{max}',
+  AppTextKey.settingsExpertsMaxLength: 'Legfeljebb {count} karakter',
+  AppTextKey.settingsExpertsOutOfRange:
+      'Adjon meg egy egész számot {min} és {max} között.',
+  AppTextKey.settingsExpertsEmpty: 'A backend nem ad meg beépítési értékeket.',
   AppTextKey.settingsExitPasswordChecking: 'Ellenőrzés …',
   AppTextKey.settingsExitPasswordUnavailable:
       'A jelszó jelenleg nem ellenőrizhető. Kérjük, próbálja újra egy pillanat múlva.',
@@ -317,6 +354,7 @@ const Map<AppTextKey, String> huTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: 'Nincs kamerajel',
   AppTextKey.cameraMissing: 'A kamera nincs csatlakoztatva',
   AppTextKey.cameraError: 'Kamerahiba',
+  AppTextKey.cameraReverseGearSignalMissing: 'Hátramenet: nincs jel',
   AppTextKey.controlsEmpty: 'Nincs beállított vezérlés',
   AppTextKey.controlsStateOn: 'Be',
   AppTextKey.controlsStateOff: 'Ki',

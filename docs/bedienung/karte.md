@@ -201,8 +201,9 @@ nach dem Ende von vorn.
   vorher abgebrochen wurde.
 - Hat das Backend einen Namen für das Ende der Tour (`replay_destination_name`,
   siehe [Messe-Modus](verhalten.md#messe-modus)), steht er im Suchfeld wie ein
-  gewähltes Ziel, mit **X** zum Löschen. Nach **ABBRECHEN** ist das Feld
-  wieder leer. Eine selbst gewählte Route bleibt, wenn das Backend neu startet.
+  gewähltes Ziel, mit **X** zum Löschen. Ins Feld tippen öffnet nur die
+  Tastatur, eine Suche beginnt erst mit dem ersten getippten Zeichen (#211).
+  Nach **ABBRECHEN** ist das Feld wieder leer. Eine selbst gewählte Route bleibt, wenn das Backend neu startet.
 - Fehlt die Tour oder liefert das Backend keine Route, fragt die Oberfläche in
   wachsenden Pausen wieder nach (3, 6, 15, 30, danach alle 60 Sekunden) und
   schreibt den Grund nur einmal ins Log. Mit einer neuen Runde oder einem

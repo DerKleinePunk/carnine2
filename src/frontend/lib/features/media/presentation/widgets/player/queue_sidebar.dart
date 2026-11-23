@@ -1,4 +1,5 @@
 import 'package:carnine_frontend/features/media/domain/models/media_library_track.dart';
+import 'package:carnine_frontend/features/media/domain/models/media_queue.dart';
 import 'package:carnine_frontend/features/media/presentation/media_controller.dart';
 import 'package:carnine_frontend/features/media/presentation/models/media_view_state.dart';
 import 'package:carnine_frontend/features/media/presentation/player_controller.dart';
@@ -116,7 +117,12 @@ class _QueuePanel extends StatelessWidget {
         child: Column(
           children: [
             const _QueueHeader(),
-            Expanded(child: _QueueList(player: player)),
+            Expanded(
+              child: _QueueList(
+                player: player,
+                isExpanded: controller.isQueueExpanded,
+              ),
+            ),
             _QueueQuickActions(controller: controller),
           ],
         ),
@@ -146,13 +152,96 @@ class _QueueHeader extends StatelessWidget {
   }
 }
 
-class _QueueList extends StatelessWidget {
-  const _QueueList({required this.player});
+/// The queue, scrolled so the running track is the second row: the one
+/// before it stays in view above, the next ones below (#216).
+///
+/// It follows when the running track changes, a new queue is loaded, the
+/// page opens or the queue is expanded; a list the user scrolled stays put
+/// until then. Close by it glides, far off (shuffle, long lists) it jumps,
+/// so the Pi does not build every row on the way.
+class _QueueList extends StatefulWidget {
+  const _QueueList({required this.player, required this.isExpanded});
+
+  /// A row (60) and the gap below it (8); fixed, so the offset of any row is
+  /// known without building it.
+  static const double rowExtent = 68;
+  static const Duration glideDuration = Duration(milliseconds: 200);
 
   final PlayerController player;
+  final bool isExpanded;
+
+  @override
+  State<_QueueList> createState() => _QueueListState();
+}
+
+class _QueueListState extends State<_QueueList> {
+  final ScrollController _scroll = ScrollController();
+  int? _shownIndex;
+  MediaQueue? _shownQueue;
+
+  @override
+  void initState() {
+    super.initState();
+    _remember();
+    _scrollToActive(glide: false);
+  }
+
+  @override
+  void didUpdateWidget(_QueueList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final player = widget.player;
+    final expanded = widget.isExpanded && !oldWidget.isExpanded;
+    final newQueue = !identical(player.queue, _shownQueue);
+    final newTrack = player.activeQueueIndex != _shownIndex;
+    if (!expanded && !newQueue && !newTrack) {
+      return;
+    }
+    _remember();
+    _scrollToActive(glide: newTrack && !newQueue && !expanded);
+  }
+
+  void _remember() {
+    _shownIndex = widget.player.activeQueueIndex;
+    _shownQueue = widget.player.queue;
+  }
+
+  /// After the frame, when the list knows its length and height.
+  void _scrollToActive({required bool glide}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scroll.hasClients) {
+        return;
+      }
+      final position = _scroll.position;
+      final index = widget.player.activeQueueIndex ?? 0;
+      final target = ((index - 1) * _QueueList.rowExtent).clamp(
+        0.0,
+        position.maxScrollExtent,
+      );
+      final distance = (target - position.pixels).abs();
+      if (distance < 1) {
+        return;
+      }
+      if (glide && distance <= position.viewportDimension) {
+        _scroll.animateTo(
+          target,
+          duration: _QueueList.glideDuration,
+          curve: Curves.easeOutCubic,
+        );
+      } else {
+        _scroll.jumpTo(target);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final player = widget.player;
     final tracks = player.queue.tracks;
     final activeIndex = player.activeQueueIndex;
 
@@ -160,21 +249,25 @@ class _QueueList extends StatelessWidget {
       state: tracks.isEmpty
           ? const MediaViewState.empty(AppTextKey.mediaQueueEmpty)
           : const MediaViewState.ready(),
-      builder: (context) => ListView.separated(
+      builder: (context) => ListView.builder(
+        controller: _scroll,
         padding: const EdgeInsets.symmetric(horizontal: 12),
+        itemExtent: _QueueList.rowExtent,
         itemCount: tracks.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
           final track = tracks[index];
           final isActive = index == activeIndex;
-          return MediaRowTile(
-            title: track.title.toUpperCase(),
-            subtitle: track.artist,
-            semanticLabel: track.title,
-            leadingIcon: isActive ? Icons.equalizer : Icons.music_note,
-            isActive: isActive,
-            trailing: _Duration(track: track),
-            onTap: () => player.playQueueEntry(index),
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: MediaRowTile(
+              title: track.title.toUpperCase(),
+              subtitle: track.artist,
+              semanticLabel: track.title,
+              leadingIcon: isActive ? Icons.equalizer : Icons.music_note,
+              isActive: isActive,
+              trailing: _Duration(track: track),
+              onTap: () => player.playQueueEntry(index),
+            ),
           );
         },
       ),

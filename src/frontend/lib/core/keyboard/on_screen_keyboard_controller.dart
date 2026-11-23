@@ -32,6 +32,7 @@ class OnScreenKeyboardController extends ChangeNotifier {
     required FocusNode focusNode,
     ValueChanged<String>? onSubmitted,
     int? maxLength,
+    KeyboardLayer layer = KeyboardLayer.letters,
   }) {
     if (_activeController == controller) {
       return;
@@ -41,11 +42,11 @@ class OnScreenKeyboardController extends ChangeNotifier {
     _activeFocusNode = focusNode;
     _onSubmitted = onSubmitted;
     _activeMaxLength = maxLength;
-    _layer = KeyboardLayer.letters;
+    _layer = layer;
     // Auto-capitalize the first character of a fresh entry, matching
     // standard keyboard convention - but not on refocusing a field that
     // already has content, where the user is continuing mid-text.
-    _isShifted = controller.text.isEmpty;
+    _isShifted = layer == KeyboardLayer.letters && controller.text.isEmpty;
     notifyListeners();
   }
 
@@ -119,7 +120,8 @@ class OnScreenKeyboardController extends ChangeNotifier {
       // indices - substring with those first, then count graphemes on the
       // result, matching how backspace() already handles this conversion.
       final selectedText = value.text.substring(selection.start, selection.end);
-      final resultingLength = value.text.characters.length -
+      final resultingLength =
+          value.text.characters.length -
           selectedText.characters.length +
           inserted.characters.length;
       if (resultingLength > maxLength) {

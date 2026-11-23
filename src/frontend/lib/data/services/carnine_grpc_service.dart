@@ -7,6 +7,7 @@ import 'package:carnine_frontend/features/maps/data/traffic_setting_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
 import 'package:carnine_frontend/features/settings/data/display_brightness_store.dart';
+import 'package:carnine_frontend/features/settings/data/install_values_store.dart';
 import 'package:carnine_frontend/lib/carnine.pbgrpc.dart';
 import 'package:grpc/grpc.dart';
 import 'package:logging/logging.dart';
@@ -26,7 +27,8 @@ class CarnineGrpcService
         AnnouncementSettingsStore,
         DisplayBrightnessStore,
         MapFollowZoomStore,
-        TrafficSettingStore {
+        TrafficSettingStore,
+        InstallValuesStore {
   CarnineGrpcService({Logger? logger, ClientChannelFactory? channelFactory})
     : _logger = logger ?? Logger('CarnineGrpcService'),
       _channelFactory = channelFactory ?? _createDefaultChannel;
@@ -386,6 +388,117 @@ class CarnineGrpcService
       request.musicUnderPercent = musicUnderPercent;
     }
     return request;
+  }
+
+  /// Saving checks the whole configuration and writes a file: a little
+  /// longer than a plain read.
+  static const Duration _installCallTimeout = Duration(seconds: 10);
+
+  @override
+  Future<InstallValues> loadInstallSettings() async {
+    final channel = _channelFactory();
+    try {
+      final settings = await ConfigServiceClient(channel).getInstallSettings(
+        Empty(),
+        options: CallOptions(timeout: _installCallTimeout),
+      );
+      return installValuesFrom(settings);
+    } catch (error) {
+      throw installValuesExceptionFrom(error);
+    } finally {
+      await channel.shutdown();
+    }
+  }
+
+  @override
+  Future<InstallValues> saveInstallSettings({
+    required String password,
+    required List<InstallValueChange> changes,
+  }) async {
+    final channel = _channelFactory();
+    try {
+      final settings = await ConfigServiceClient(channel).saveInstallSettings(
+        SaveInstallSettingsRequest(
+          password: password,
+          changes: [
+            for (final change in changes)
+              change.reset
+                  ? InstallSettingChange(key: change.key, reset: true)
+                  : InstallSettingChange(key: change.key, value: change.value),
+          ],
+        ),
+        options: CallOptions(timeout: _installCallTimeout),
+      );
+      return installValuesFrom(settings);
+    } catch (error) {
+      throw installValuesExceptionFrom(error);
+    } finally {
+      await channel.shutdown();
+    }
+  }
+
+  /// The backend's installation values as the expert page uses them.
+  static InstallValues installValuesFrom(InstallSettings settings) {
+    return InstallValues(
+      settings: [
+        for (final setting in settings.settings)
+          InstallValue(
+            key: setting.key,
+            group: setting.group,
+            label: setting.label,
+            help: setting.help,
+            kind: switch (setting.kind) {
+              InstallSettingKind.INSTALL_SETTING_KIND_BOOL =>
+                InstallValueKind.boolean,
+              InstallSettingKind.INSTALL_SETTING_KIND_INTEGER =>
+                InstallValueKind.integer,
+              InstallSettingKind.INSTALL_SETTING_KIND_CHOICE =>
+                InstallValueKind.choice,
+              InstallSettingKind.INSTALL_SETTING_KIND_TEXT =>
+                InstallValueKind.text,
+              InstallSettingKind.INSTALL_SETTING_KIND_SOUND_CARD =>
+                InstallValueKind.soundCard,
+              _ => InstallValueKind.unknown,
+            },
+            min: setting.min.toInt(),
+            max: setting.max.toInt(),
+            unit: setting.unit,
+            maxLength: setting.maxLength,
+            choices: [
+              for (final choice in setting.choices)
+                InstallValueChoice(value: choice.value, label: choice.label),
+            ],
+            defaultValue: setting.defaultValue,
+            optional: setting.optional,
+            value: setting.value,
+            origin: setting.origin,
+            restartPending: setting.restartPending,
+          ),
+      ],
+      restartRequired: settings.restartRequired,
+      uiDropInError: settings.uiDropInError,
+      uiDropInPath: settings.uiDropInPath,
+    );
+  }
+
+  /// What a failed call means for the page. The message of a rejected value
+  /// is the backend's own and is shown as it is.
+  static InstallValuesException installValuesExceptionFrom(Object error) {
+    if (error is GrpcError) {
+      final failure = switch (error.code) {
+        StatusCode.permissionDenied => InstallValuesFailure.wrongPassword,
+        StatusCode.invalidArgument => InstallValuesFailure.rejected,
+        StatusCode.unavailable ||
+        StatusCode.deadlineExceeded ||
+        StatusCode.cancelled => InstallValuesFailure.unreachable,
+        _ => InstallValuesFailure.failed,
+      };
+      return InstallValuesException(failure, error.message ?? '');
+    }
+    return InstallValuesException(
+      InstallValuesFailure.unreachable,
+      error.toString(),
+    );
   }
 
   /// A password call that gets no answer in this time did not work.

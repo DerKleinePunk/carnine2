@@ -99,6 +99,21 @@ void main() {
       expect(searches, isEmpty);
     });
 
+    testWidgets('a tap into the field with the name starts no search (#211)', (
+      tester,
+    ) async {
+      final searches = <String>[];
+      await tester.pumpWidget(
+        _harness(const [], shown: 'Kunsthalle Montez', onChanged: searches.add),
+      );
+      await tester.pump();
+
+      await tester.tap(find.byType(TextField));
+      await tester.pumpAndSettle();
+
+      expect(searches, isEmpty);
+    });
+
     testWidgets('the name that arrives later is written without a search', (
       tester,
     ) async {

@@ -12,7 +12,7 @@ Vier Kacheln; der Pfeil oben links in jeder Unterseite führt zurück zur
 | **Karteneinstellungen** | zwei Reiter: **Ansagen** (Sprachansagen der Navigation) und **Karte** (Zoom beim Folgen) |
 | **Darstellung & Sprache** | zwei Reiter: **Darstellung** (noch leer) und **Sprache** (Anzeigesprache wählen) |
 | **Geräte** | **Kamera** und **Display** (Helligkeit) einstellen; Audio-Ausgang, Handy-App und Netzteil als Vorschau |
-| **System** | Logs, Updates, Passwort ändern, Neustart, Beenden, Version |
+| **System** | Logs, Updates, Passwort ändern, Experten (Einbau-Werte), Neustart, Beenden, Version |
 
 ## Karteneinstellungen
 
@@ -157,8 +157,9 @@ ausgegraut und sagt „Dieses Display hat keine Helligkeitsregelung“.
 
 ![System: zwei Gruppen mit je drei Kacheln, Wartung (Logansicht, Updates, Passwort ändern) und Oberfläche (Neustart, Beenden, Version)](bilder/optionen-system.png)
 
-Die Seite hat sechs große Kacheln in zwei Gruppen. Jede Kachel nennt in einer
-Zeile, was sie tut.
+Die Seite hat sieben große Kacheln in zwei Gruppen, vier unter **Wartung** und
+drei unter **Oberfläche**. Jede Kachel nennt in einer Zeile, was sie tut. (Das
+Bild zeigt noch den Stand vor der Kachel **Experten**.)
 
 **Wartung**
 
@@ -167,16 +168,102 @@ Zeile, was sie tut.
 - **Nach Updates suchen:** zeigt nur „Noch nicht verfügbar“ (#20).
 - **Passwort ändern:** ändert das Passwort für **Beenden**, siehe
   [Beenden-Passwort](#beenden-passwort).
+- **Experten:** die Einbau-Werte des Autos, nur mit dem
+  [Beenden-Passwort](#beenden-passwort), siehe [Experten](#experten).
 
 **Oberfläche**
 
-- **Neustart:** startet **nur die Oberfläche** neu, sofort und ohne Rückfrage.
-  Auf dem Pi übernimmt systemd den Neustart; Backend und Musik laufen weiter.
+- **Neustart:** startet **nur die Oberfläche** neu. Vorher kommt die Frage
+  „Oberfläche neu starten?“: **Neu starten** startet neu, **Abbrechen** oder
+  Antippen außerhalb des Dialogs lässt alles, wie es ist. Ein Passwort braucht
+  es nicht. Auf dem Pi übernimmt systemd den Neustart; Backend und Musik laufen
+  weiter. Im Log steht davor „Restart requested by user“, so ist ein gewollter
+  Neustart von einem Absturz zu unterscheiden (#173).
 - **Beenden** (rot): der **Wartungsmodus**. Fragt nach dem
   [Beenden-Passwort](#beenden-passwort) und beendet dann die Oberfläche.
 - **Version:** zeigt die Versionsnummer der Oberfläche und darunter das Datum
-  des Builds (z. B. `0.18.0` und `2026-10-14`). Die Kachel ist nur eine
-  Anzeige.
+  des Builds (z. B. `0.18.0` und `2026-10-14`). Auf einem Gerät mit
+  Netzteil-Modul stehen Version und Datum in einer Zeile, darunter die
+  Firmware des Netzteils, z. B. „Netzteil: V2.4.1“. Solange das Netzteil noch
+  nicht geantwortet hat oder stumm ist, steht dort „Netzteil: –“ (#154). Die
+  Kachel ist nur eine Anzeige.
+
+### Experten
+
+Die Werte, die man einmal je Auto beim Einbau einstellt (#207): Rückwärtsgang,
+Tonausgabe, Netzteil. Fahrer- und Messe-Einstellungen gehören nicht dazu.
+
+**Öffnen:** **Optionen → System → Experten**, dann das
+[Beenden-Passwort](#beenden-passwort) eingeben. Ohne richtiges Passwort bleibt
+die Seite zu. Das Passwort wird bei jedem Öffnen gefragt.
+
+**Aufbau:** Die Werte stehen unter Überschriften (z. B. **Rückwärtsgang**,
+**Tonausgabe**, **Netzteil**), jeder mit einer Zeile Hilfe. Darunter steht
+klein, woher der Wert kommt: **Vorgabe** oder der Name der Datei, die ihn setzt
+(z. B. `99-ui.toml`), und **gilt nach Neustart**, solange der Wert erst nach
+einem Neustart wirkt. Die Seite kennt selbst keinen Wert: Sie zeigt, was das
+Backend nennt. Überschriften, Bezeichnungen und Hilfe sind deshalb vorerst
+deutsch, auch wenn die Oberfläche eine andere Sprache hat.
+
+| Art des Werts | Ändern |
+|---|---|
+| Schalter (an/aus) | die Zeile antippen |
+| Zahl | die Zeile antippen; ein Dialog mit der Zifferntastatur zeigt den erlaubten Bereich (z. B. „Erlaubt: 0 bis 511“) und nimmt nichts außerhalb an |
+| Text | die Zeile antippen; Dialog mit der Tastatur, höchstens so viele Zeichen wie angegeben |
+| Auswahl bis 4 Möglichkeiten | Knöpfe direkt in der Zeile |
+| Auswahl ab 5 Möglichkeiten | die Zeile antippen; eine Liste zum Auswählen |
+| Soundkarte | wie eine Auswahl, zuerst **Vorgabe des Systems**; eine gespeicherte Karte, die gerade fehlt, steht als „… (nicht gefunden)“ dabei |
+
+- Optionale Werte, die gesetzt sind, haben **Zurücksetzen**: Dann gilt wieder
+  die Vorgabe (oder eine andere Konfigurationsdatei).
+- Geänderte Zeilen haben links einen Strich in der Primärfarbe und unten
+  „geändert“ bzw. „wird zurückgesetzt“.
+
+**Speichern:** Sobald etwas geändert ist, erscheint unten eine Leiste
+„Geänderte Werte: 2“ mit **Verwerfen** und **Speichern**. Gespeichert werden
+nur die geänderten Werte, alle in einem Schritt. Das Backend prüft dabei die
+ganze Konfiguration:
+
+| Antwort | Was die Seite zeigt |
+|---|---|
+| gespeichert | kurz „Gespeichert“; die Werte stehen in `/etc/carnine/config.d/99-ui.toml` und gelten nach einem Neustart des Geräts |
+| Wert falsch oder Konfiguration ungültig | „Nicht gespeichert:“ mit dem Grund des Backends (meist englisch); die Änderungen bleiben auf der Seite, nichts ist gespeichert |
+| Passwort inzwischen geändert | der Passwort-Dialog kommt noch einmal, danach wird gespeichert |
+| Backend antwortet nicht | „Das Backend antwortet nicht. Es wurde nichts gespeichert.“ |
+
+Oben auf der Seite steht „Markierte Werte gelten erst nach einem Neustart des
+Geräts.“, solange ein Wert auf einen Neustart wartet. Einen Neustart-Knopf hat
+die Seite nicht. Hat das Backend `99-ui.toml` beim Start weggelassen, weil die
+Konfiguration damit ungültig gewesen wäre, steht oben rot „Einbau-Einstellungen
+ungültig, vorige Fassung aktiv“ mit dem Grund.
+
+**Verlassen mit ungespeicherten Änderungen:** Der Zurück-Pfeil und ein Tipp im
+Seitenmenü fragen „Änderungen verwerfen?“. **Abbrechen** bleibt auf der Seite,
+**Verwerfen** gibt die Änderungen auf. Legt man den Rückwärtsgang ein, kommt die
+Kamera ohne Frage, die Änderungen sind dann weg. Im Messe-Modus springt die
+Oberfläche nicht zur Karte, solange Änderungen offen sind.
+
+**Welche Werte das Backend nennt** (Stand 0.22.0; kommt im Backend einer dazu,
+erscheint er ohne Änderung der Oberfläche):
+
+| Überschrift | Schlüssel | Bezeichnung |
+|---|---|---|
+| Rückwärtsgang | `reverse_gear.source` | Quelle (keine, GPIO, Demo) |
+| | `reverse_gear.gpio_chip` | GPIO-Chip |
+| | `reverse_gear.gpio_line` | GPIO-Leitung (0 bis 511) |
+| | `reverse_gear.active_low` | Aktiv bei Masse |
+| | `reverse_gear.bias` | Widerstand |
+| | `reverse_gear.debounce_ms` | Entprellen (ms) |
+| Tonausgabe | `audio.output_card` | Ausgang (Soundkarte) |
+| | `audio.mixer_control` | Lautstärkeregler |
+| | `audio.channels` | Kanäle (2, 4, 6) |
+| | `audio.rear_percent` | Pegel hinten (%) |
+| Netzteil | `power_supply.enabled` | Netzteil angeschlossen |
+| | `power_supply.amplifier_relay` | Endstufe über Relais 3 |
+| | `power_supply.shutdown_on_poweroff` | Mit der Zündung herunterfahren |
+
+Mehr zur Datei `99-ui.toml` und zum Prüfen über die Kommandozeile in
+[docs/07](../07-deployment.md) („`99-ui.toml`: the values of the expert page“).
 
 ### Beenden
 
@@ -196,6 +283,7 @@ Sie es gleich noch einmal.“, der Dialog bleibt offen, und ein erneutes
 
 Die Oberfläche startet danach **absichtlich nicht** von selbst neu: Wer das
 Passwort kennt, soll am Gerät eine Konsole bekommen und dort arbeiten können.
+Im Log steht davor „Exit requested by user“.
 Etwa 5 Sekunden nach dem Beenden erscheint die Text-Anmeldung. Das Backend
 läuft weiter. Zurück zur Oberfläche mit `sudo systemctl start carnine-frontend`
 oder einem Neustart des Geräts. Stürzt die Oberfläche dagegen ab, startet

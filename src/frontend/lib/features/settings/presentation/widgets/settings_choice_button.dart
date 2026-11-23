@@ -13,6 +13,7 @@ class SettingsChoiceButton extends StatelessWidget {
     this.semanticLabel,
     this.icon,
     this.isEnabled = true,
+    this.wraps = false,
     super.key,
   });
 
@@ -25,6 +26,14 @@ class SettingsChoiceButton extends StatelessWidget {
   final bool isSelected;
   final bool isEnabled;
   final VoidCallback onTap;
+
+  /// A long label (a sound card's full name on the expert page, #207) breaks
+  /// into up to three lines with room to the frame, and the button grows
+  /// with it; otherwise one line, cut with "…".
+  final bool wraps;
+
+  /// The height of a one-line button, and the least of a wrapping one.
+  static const double height = 56;
 
   @override
   Widget build(BuildContext context) {
@@ -41,8 +50,10 @@ class SettingsChoiceButton extends StatelessWidget {
       enabled: isEnabled,
       label: semanticLabel ?? label,
       excludeSemantics: true,
-      child: SizedBox(
-        height: 56,
+      child: ConstrainedBox(
+        constraints: wraps
+            ? const BoxConstraints(minHeight: height)
+            : const BoxConstraints.tightFor(height: height),
         child: Material(
           color: isSelected
               ? AppColors.surfaceContainerHighest
@@ -57,25 +68,31 @@ class SettingsChoiceButton extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: frame),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (icon != null) ...[
-                    Icon(icon, color: color, size: 22),
-                    const SizedBox(width: 10),
-                  ],
-                  Flexible(
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.labelLarge.copyWith(
-                        color: color,
-                        fontWeight: FontWeight.w700,
+              child: Padding(
+                padding: wraps
+                    ? const EdgeInsets.symmetric(horizontal: 16, vertical: 10)
+                    : EdgeInsets.zero,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (icon != null) ...[
+                      Icon(icon, color: color, size: 22),
+                      const SizedBox(width: 10),
+                    ],
+                    Flexible(
+                      child: Text(
+                        label,
+                        maxLines: wraps ? 3 : 1,
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.labelLarge.copyWith(
+                          color: color,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
