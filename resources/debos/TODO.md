@@ -32,16 +32,17 @@ Der Debos-Build soll optionale Profile für den Entwicklungs-Pi unterstützen:
 Überholt: flutter-pi meldet fehlgeschlagene DRM-Commits nicht zurück
 
 Seit ADR-020 läuft die Oberfläche unter ivi-homescreen, flutter-pi wird nicht
-mehr verwendet. Offen bleibt nur, ob die Frame-Erzwingung in `main.dart` unter
-ivi-homescreen noch gebraucht wird (siehe ADR-019, Consequences). Der alte
-Text:
+mehr verwendet. Die Frame-Erzwingung in `main.dart` ist seit der Version nach
+0.22.0 entfernt (#37): „UI bereit“ kommt mit dem ersten gezeichneten Frame,
+auf carnine-pc (Pi 4) am 23.11.2026 mit 10 Frontend-Neustarts und drei
+Kaltstarts ohne Fehler geprüft (siehe ADR-019). Der alte Text:
 
 Ein fehlgeschlagener DRM/KMS-Commit in flutter-pi (z. B. weil Plymouth das
 Display beim Boot noch hält) wird nur geloggt, aber weder an die Flutter-Engine
 zurückgemeldet noch von flutter-pi selbst wiederholt. Bleibt die UI danach im
 Leerlauf, bleibt der Bildschirm dauerhaft schwarz, obwohl der Service als
 aktiv gilt. Vorerst Dart-seitig in `src/frontend/lib/main.dart`
-(`_scheduleUiReadyDetection`) mitigiert (mehrere Frames erzwingen, mehrere
+(`_scheduleUiReadyDetection`, inzwischen entfernt) mitigiert (mehrere Frames erzwingen, mehrere
 Timing-Reports abwarten, mit Timeout-Fallback) — das verkleinert das
 Zeitfenster, behebt die Ursache aber nicht. Ein echter Fix bräuchte einen
 flutter-pi-Fork (Commit-Retry + echtes Presentation-Signal an Dart). Siehe
