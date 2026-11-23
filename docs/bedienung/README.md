@@ -47,7 +47,8 @@ Die Kapitel 2 bis 6 folgen dem Seitenmenü von oben nach unten.
 - **Musik hören:** Seitenmenü → **Medien** → Kachel **SAMMLUNGEN** → bei einer
   Playlist auf **▶**. Einzelne Titel startet man aus der **BIBLIOTHEK**
   ([Medien](medien.md)).
-- **Oberfläche neu starten:** **Optionen** → **System** → **Neustart**. Die Musik
+- **Oberfläche neu starten:** **Optionen** → **System** → **Neustart**, ab der
+  Version nach 0.22.0 dann noch **Neu starten** in der Rückfrage. Die Musik
   läuft dabei weiter ([Optionen](optionen.md#system)).
 
 ## Aufbau des Bildschirms
