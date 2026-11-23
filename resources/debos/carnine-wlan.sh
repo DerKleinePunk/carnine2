@@ -12,6 +12,18 @@
 #   sudo carnine-wlan --off            switch WLAN off again
 #   sudo carnine-wlan --on             on again with the stored networks, no questions
 #   --country <XX>                     regulatory domain, default DE
+#   --interface <name>                 that WLAN device, e.g. a USB stick
+#                                      beside the built-in one; default the
+#                                      first wl* device
+#   --band 5|any                       5: store the network for 5 GHz only
+#                                      (freq_list), any: as before; default
+#                                      from BAND= in /etc/carnine/wlan.conf,
+#                                      else any
+#
+# BAND=5 is for a WLAN stick that is poor on 2.4 GHz and a phone hotspot set
+# to 5 GHz. The scan list shows each network's band; a network seen only on
+# 2.4 GHz is refused with BAND=5 before the password is asked. The band
+# applies to a network when it is stored; set it up again to change it.
 #
 # Only the key derived from the password is stored (wpa_passphrase), not the
 # password itself. A network that is set up again replaces its old entry;
@@ -24,6 +36,7 @@ set -eu
 
 NET_DIR=${CARNINE_NET_DIR:-/sys/class/net}
 WPA_DIR=${CARNINE_WPA_DIR:-/etc/wpa_supplicant}
+WLAN_CONF=${CARNINE_WLAN_CONF:-/etc/carnine/wlan.conf}
 SYSTEMCTL=${CARNINE_SYSTEMCTL:-systemctl}
 RFKILL=${CARNINE_RFKILL:-rfkill}
 WPA_CLI=${CARNINE_WPA_CLI:-wpa_cli}
@@ -35,7 +48,12 @@ CONTROL_WAIT=${CARNINE_CONTROL_WAIT:-10}
 
 MODE=on
 SSID=""
+interface=""
 COUNTRY=DE
+BAND=""
+# Every 5 GHz channel (36-64, 100-144, 149-177); wpa_supplicant leaves out
+# what the country or the adapter does not allow.
+FREQS_5GHZ="5180 5200 5220 5240 5260 5280 5300 5320 5500 5520 5540 5560 5580 5600 5620 5640 5660 5680 5700 5720 5745 5765 5785 5805 5825 5845 5865 5885"
 
 die() {
     echo "FEHLER: $*" >&2
@@ -43,13 +61,15 @@ die() {
 }
 
 usage() {
-    die "Aufruf: sudo carnine-wlan [--ssid <name>] [--country <XX>] | --on | --off | --status"
+    die "Aufruf: sudo carnine-wlan [--ssid <name>] [--country <XX>] [--band 5|any] [--interface <name>] | --on | --off | --status"
 }
 
 while [ $# -gt 0 ]; do
     case "$1" in
         --ssid) [ $# -ge 2 ] || usage; SSID=$2; shift 2 ;;
         --country) [ $# -ge 2 ] || usage; COUNTRY=$2; shift 2 ;;
+        --band) [ $# -ge 2 ] || usage; BAND=$2; shift 2 ;;
+        --interface) [ $# -ge 2 ] || usage; interface=$2; shift 2 ;;
         --status) MODE=status; shift ;;
         --off) MODE=off; shift ;;
         --on) MODE=resume; shift ;;
@@ -61,14 +81,29 @@ if [ "$(id -u)" -ne 0 ] && [ -z "${CARNINE_SKIP_ROOT_CHECK:-}" ]; then
     die "bitte mit sudo aufrufen: sudo carnine-wlan"
 fi
 printf '%s' "$COUNTRY" | grep -Eqx '[A-Z]{2}' || die "Land als zwei Großbuchstaben, z. B. DE, AT oder CH: $COUNTRY"
+# The file is read, not sourced: only BAND= counts, quotes are dropped.
+if [ -z "$BAND" ] && [ -r "$WLAN_CONF" ]; then
+    BAND=$(sed -n 's/^[[:space:]]*BAND=["'"'"']\{0,1\}\([^"'"'"' ]*\).*/\1/p' "$WLAN_CONF" | tail -n 1)
+fi
+BAND=${BAND:-any}
+case "$BAND" in
+    5|any) ;;
+    *) die "Band 5 oder any: $BAND" ;;
+esac
 
-interface=""
-for path in "$NET_DIR"/wl*; do
-    [ -e "$path" ] || continue
-    interface=${path##*/}
-    break
-done
-[ -n "$interface" ] || die "kein WLAN-Gerät gefunden"
+if [ -n "$interface" ]; then
+    case "$interface" in
+        */*|.*) die "kein WLAN-Gerät $interface" ;;
+    esac
+    [ -e "$NET_DIR/$interface" ] || die "kein WLAN-Gerät $interface"
+else
+    for path in "$NET_DIR"/wl*; do
+        [ -e "$path" ] || continue
+        interface=${path##*/}
+        break
+    done
+    [ -n "$interface" ] || die "kein WLAN-Gerät gefunden"
+fi
 CONF="$WPA_DIR/wpa_supplicant-$interface.conf"
 SERVICE="wpa_supplicant@$interface.service"
 
@@ -112,7 +147,7 @@ case "$MODE" in
         exit 0
         ;;
     status)
-        "$WPA_CLI" -i "$interface" status 2>/dev/null | grep -E '^(ssid|wpa_state)=' || echo "wpa_state=AUS"
+        "$WPA_CLI" -i "$interface" status 2>/dev/null | grep -E '^(ssid|freq|wpa_state)=' || echo "wpa_state=AUS"
         echo "Adresse: $(address)"
         exit 0
         ;;
@@ -153,25 +188,42 @@ fi
 chmod 0600 "$CONF"
 start_wpa_supplicant start
 
-# Networks in range, strongest first, each name once.
+# Networks in range, strongest first, each name once, with the bands it
+# was seen on ("2,4", "5" or "2,4+5").
 if [ -z "$SSID" ]; then
     echo "Suche Netze ..."
     "$WPA_CLI" -i "$interface" scan > /dev/null
     sleep "$SCAN_WAIT"
-    list=$("$WPA_CLI" -i "$interface" scan_results |
-        awk -F '\t' 'NR > 1 && $5 != "" { print $3 "\t" $5 }' | sort -t "$(printf '\t')" -k1,1nr |
-        awk -F '\t' '!seen[$2]++ { print $2 }' | head -n 20)
-    if [ -z "$list" ]; then
+    networks=$("$WPA_CLI" -i "$interface" scan_results |
+        awk -F '\t' 'NR > 1 && $5 != "" {
+            band = ($2 >= 4900) ? "5" : "2,4"
+            if (!($5 in best) || $3 > best[$5]) best[$5] = $3
+            if (band == "5") five[$5] = 1; else two[$5] = 1
+        }
+        END {
+            for (name in best) {
+                bands = (name in two) ? ((name in five) ? "2,4+5" : "2,4") : "5"
+                print best[name] "\t" name "\t" bands
+            }
+        }' | sort -t "$(printf '\t')" -k1,1nr | head -n 20 | cut -f 2-)
+    if [ -z "$networks" ]; then
         die "kein Netz gefunden. Versteckte Netze mit: sudo carnine-wlan --ssid <name>"
     fi
-    printf '%s\n' "$list" | awk '{ printf "  %2d  %s\n", NR, $0 }'
+    printf '%s\n' "$networks" | awk -F '\t' '{ printf "  %2d  %s  (%s GHz)\n", NR, $1, $2 }'
+    if [ "$BAND" = 5 ]; then
+        echo "Nur Netze auf 5 GHz (BAND=5)."
+    fi
     printf 'Nummer oder Name des Netzes: '
     read -r choice || die "kein Netz gewählt"
     case "$choice" in
         ''|*[!0-9]*) SSID=$choice ;;
-        *) SSID=$(printf '%s\n' "$list" | sed -n "${choice}p") ;;
+        *) SSID=$(printf '%s\n' "$networks" | sed -n "${choice}p" | cut -f 1) ;;
     esac
     [ -n "$SSID" ] || die "kein Netz mit der Nummer $choice"
+    bands=$(printf '%s\n' "$networks" | awk -F '\t' -v name="$SSID" '$1 == name { print $2; exit }')
+    if [ "$BAND" = 5 ] && [ "$bands" = "2,4" ]; then
+        die "'$SSID' ist nur auf 2,4 GHz zu sehen, dieses Gerät nimmt nur 5 GHz (BAND=5). Hotspot am Handy auf 5 GHz stellen und noch einmal aufrufen, oder einmalig mit --band any."
+    fi
 fi
 
 printf "Passwort für '%s' (leer für ein offenes Netz): " "$SSID"
@@ -188,10 +240,14 @@ if [ -n "$password" ]; then
     fi
     psk=$("$WPA_PASSPHRASE" "$SSID" "$password" | sed -n 's/^[[:space:]]*psk=\([0-9a-f]\{64\}\)$/\1/p')
     [ -n "$psk" ] || die "wpa_passphrase hat keinen Schlüssel geliefert"
-    block=$(printf 'network={\n\tssid=%s\n\tpsk=%s\n\tkey_mgmt=WPA-PSK\n}' "$ssid_hex" "$psk")
+    block=$(printf 'network={\n\tssid=%s\n\tpsk=%s\n\tkey_mgmt=WPA-PSK\n' "$ssid_hex" "$psk")
 else
-    block=$(printf 'network={\n\tssid=%s\n\tkey_mgmt=NONE\n}' "$ssid_hex")
+    block=$(printf 'network={\n\tssid=%s\n\tkey_mgmt=NONE\n' "$ssid_hex")
 fi
+if [ "$BAND" = 5 ]; then
+    block=$(printf '%s\n\tfreq_list=%s\n' "$block" "$FREQS_5GHZ")
+fi
+block=$(printf '%s\n}' "$block")
 
 # Replace an older entry of the same network, keep the others.
 awk -v ssid="ssid=$ssid_hex" '
@@ -206,5 +262,9 @@ stored=yes
 "$WPA_CLI" -i "$interface" reconfigure > /dev/null
 "$SYSTEMCTL" enable "$SERVICE"
 
-echo "Verbinde mit '$SSID' ..."
+if [ "$BAND" = 5 ]; then
+    echo "Verbinde mit '$SSID' (nur 5 GHz) ..."
+else
+    echo "Verbinde mit '$SSID' ..."
+fi
 wait_for_address "Passwort falsch oder Netz zu weit weg? Noch einmal aufrufen."

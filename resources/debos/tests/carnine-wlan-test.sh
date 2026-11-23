@@ -74,7 +74,7 @@ run() {
     printf '%b' "$input" | CARNINE_NET_DIR="$tree/net" CARNINE_WPA_DIR="$tree/wpa" \
         CARNINE_SYSTEMCTL="$tree/fake-systemctl" CARNINE_RFKILL="$tree/fake-rfkill" \
         CARNINE_WPA_CLI="$tree/fake-wpa_cli" CARNINE_WPA_PASSPHRASE="$tree/fake-wpa_passphrase" \
-        CARNINE_IP="$tree/fake-ip" CARNINE_SCAN_WAIT=0 CARNINE_ADDRESS_WAIT=2 CARNINE_CONTROL_WAIT=3 CARNINE_SKIP_ROOT_CHECK=1 \
+        CARNINE_IP="$tree/fake-ip" CARNINE_WLAN_CONF="$tree/wlan.conf" CARNINE_SCAN_WAIT=0 CARNINE_ADDRESS_WAIT=2 CARNINE_CONTROL_WAIT=3 CARNINE_SKIP_ROOT_CHECK=1 \
         sh "$SCRIPT" "$@" > "$tree/out.log" 2>&1 || status=$?
 }
 
@@ -240,6 +240,72 @@ setup
 run '1\nkurz\n'
 check "was running: left running" "$(test -e "$tree/active" && echo running || echo stopped)" "running"
 check "was running: no stop" "$(grep -c '^systemctl stop' "$tree/calls.log")" "0"
+rm -rf "$tree"
+
+# The list names each network's band.
+setup
+run '1\ngeheim123\n'
+check "band of a 2.4 GHz network" "$(grep -c '  1  Garage  (2,4 GHz)$' "$tree/out.log")" "1"
+check "band of a 5 GHz network" "$(grep -c '  2  Handy  (5 GHz)$' "$tree/out.log")" "1"
+check "without a band: no freq_list" "$(conf | grep -c 'freq_list')" "0"
+rm -rf "$tree"
+
+# --band 5 stores the network for 5 GHz only, Kanal 149 included.
+setup
+run '2\nhotspot99\n' --band 5
+check "5 GHz network with --band 5 succeeds" "$status" "0"
+check "freq_list stored" "$(conf | grep -c '^	freq_list=5180 .* 5745 .*5885$')" "1"
+check "freq_list inside the network block" "$(conf | awk '/^network=/ { b = 1 } b && /freq_list/ { print "in"; exit }')" "in"
+check "--band 5 says so" "$(grep -c "Verbinde mit 'Handy' (nur 5 GHz)" "$tree/out.log")" "1"
+check "--band 5 list note" "$(grep -c 'Nur Netze auf 5 GHz' "$tree/out.log")" "1"
+rm -rf "$tree"
+
+# BAND=5 from wlan.conf: a network only on 2.4 GHz is refused before the password.
+setup
+printf '# Auto\nBAND="5"\n' > "$tree/wlan.conf"
+run '1\ngeheim123\n'
+check "2.4 GHz only with BAND=5 fails" "$status" "1"
+check "2.4 GHz only: hint to the hotspot" "$(grep -c 'Hotspot am Handy auf 5 GHz stellen' "$tree/out.log")" "1"
+check "2.4 GHz only: no password asked" "$(grep -c 'Passwort für' "$tree/out.log")" "0"
+check "2.4 GHz only: no network stored" "$(conf | grep -c '^network={')" "0"
+check "2.4 GHz only: not enabled" "$(grep -c '^systemctl enable' "$tree/calls.log")" "0"
+run '1\ngeheim123\n' --band any
+check "--band any overrides wlan.conf" "$status" "0"
+check "--band any: no freq_list" "$(conf | grep -c 'freq_list')" "0"
+rm -rf "$tree"
+
+# A network seen on both bands is fine with BAND=5.
+setup
+printf 'aa:06\t5240\t-50\t[WPA2-PSK-CCMP]\tGarage\n' >> "$tree/scan.txt"
+printf 'BAND=5\n' > "$tree/wlan.conf"
+run '1\ngeheim123\n'
+check "both bands: shown so" "$(grep -c '  1  Garage  (2,4+5 GHz)$' "$tree/out.log")" "1"
+check "both bands with BAND=5 succeeds" "$status" "0"
+check "both bands: freq_list stored" "$(conf | grep -c 'freq_list=')" "1"
+rm -rf "$tree"
+
+# A hidden network by name gets the 5 GHz list too; a wrong band is refused.
+setup
+run 'geheim123\n' --ssid Versteckt --band 5
+check "hidden network with --band 5" "$(conf | grep -c 'freq_list=')" "1"
+run '' --band 7
+check "wrong band refused" "$(grep -c 'Band 5 oder any: 7' "$tree/out.log")" "1"
+printf 'BAND=2\n' > "$tree/wlan.conf"
+run ''
+check "wrong band in wlan.conf refused" "$(grep -c 'Band 5 oder any: 2' "$tree/out.log")" "1"
+rm -rf "$tree"
+
+# --interface picks a device beside the first one, e.g. a USB stick.
+setup
+mkdir "$tree/net/wlan1"
+run '1\ngeheim123\n' --interface wlan1
+check "--interface wlan1 succeeds" "$status" "0"
+check "--interface: its own wpa_supplicant" "$(grep -c '^systemctl start wpa_supplicant@wlan1.service$' "$tree/calls.log")" "1"
+check "--interface: its own file" "$(grep -c '^network={' "$tree/wpa/wpa_supplicant-wlan1.conf")" "1"
+run '' --interface wlan9
+check "--interface unknown refused" "$(grep -c 'kein WLAN-Gerät wlan9' "$tree/out.log")" "1"
+run '' --interface ../wlan0
+check "--interface with a path refused" "$(grep -c 'kein WLAN-Gerät ../wlan0' "$tree/out.log")" "1"
 rm -rf "$tree"
 
 # Without a WLAN interface.
