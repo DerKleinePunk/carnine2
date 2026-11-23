@@ -799,6 +799,16 @@ multiple `SchedulerBinding.addTimingsCallback` reports before reporting
 ready. This does not verify on-screen presentation (flutter-pi does not
 expose that), but it gives the commit path repeated chances to succeed
 instead of one, compensating in practice for flutter-pi's missing retry.
+*Removed in the release after 0.22.0 (#37):* under ivi-homescreen (ADR-020)
+no frames are forced any more. `UiReadyDetector`
+(`src/frontend/lib/app/ui_ready_detector.dart`) reports ready with the first
+`FrameTiming`, i.e. the first rasterized frame, with the 5-second safety net
+kept. Measured on carnine-pc (Pi 4, 2026-11-23): 10 frontend restarts with
+the old forcing took 1.1–1.5 s from the embedder's first page flip to
+systemd's READY, 10 without it 91–114 ms; three cold boots without it were
+all clean (frontend active, no getty fallback, no failed commit, Plymouth
+quit with the first frame). READY, the end of the boot logo and the
+amplifier relay therefore come about a second earlier.
 
 **Rationale:**
 - A splash screen that quits on a fixed, independent schedule is a
@@ -880,7 +890,8 @@ the one pinned in the emb workspace, not the one on `PATH`.
   long run (page-flip events reported lost). Long runs on the test Pi on
   2026-09-24 and 2026-09-25 (freeze-watch, music and map for hours) showed
   no freeze. ADR-019's frame forcing in `main.dart` was a flutter-pi
-  workaround; whether ivi-homescreen still needs it is open.
+  workaround; ivi-homescreen does not need it, it was removed in the release
+  after 0.22.0 (#37, see ADR-019).
 - There is no rollback path any more: `main` builds with emb_cli too, and the
   flutter-pi packaging is gone.
 
