@@ -155,3 +155,12 @@ vorher 0 vc4hdmi0, 1 vc4hdmi1, 2 Headphones, danach 0 Headphones, 1 vc4hdmi0,
 über deren Regler `PCM` ein. `dracut` brauchte auf dem Pi 4 nur wenige
 Sekunden. An diesem Pi hängt ein Waveshare 7C, der Ton ist an der Klinke zu
 hören.
+
+*Geprüft (Weg über die Experten-Seite):* auf einem **Pi 3** (carnine-pc,
+23.11.2026, Stand nach 0.22.0) mit demselben Aufruf, den die Seite beim
+Speichern schickt, von der Kommandozeile aus. Nach dem Speichern von
+**Headphones** und dem Neustart des Backends öffnete das Backend die Klinke
+statt HDMI (Karte 2 offen, HDMI zu), und die Lautstärke lag auf deren Regler. Mit **Zurücksetzen** und
+einem weiteren Neustart ging es zurück auf HDMI. Die Seite selbst wurde dabei
+nicht angetippt, und gehört hat niemand: Belegt ist es über den Zustand der
+Soundkarten.
