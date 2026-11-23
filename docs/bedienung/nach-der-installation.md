@@ -169,10 +169,12 @@ Hat das Gerät gar kein WLAN, steht dort „kein WLAN-Gerät gefunden“.
   WLAN-Stick, der auf 2,4 GHz schlecht funkt. Dann muss auch der Hotspot am
   Handy auf 5 GHz laufen.
 - **Netz nur auf 2,4 GHz:** Ist es mit `--band 5` nur auf 2,4 GHz zu sehen,
-  bricht der Befehl vor der Passwortfrage ab und speichert nichts. Er meldet:
+  bricht der Befehl vor der Passwortfrage ab und speichert nichts. Das gilt
+  auch für einen eingetippten Namen und für `--ssid`. Er meldet:
   „… ist nur auf 2,4 GHz zu sehen, dieses Gerät nimmt nur 5 GHz (BAND=5).
   Hotspot am Handy auf 5 GHz stellen und noch einmal aufrufen, oder einmalig
-  mit --band any.“
+  mit --band any.“ Ist das Netz gar nicht zu sehen, wird es als verstecktes
+  Netz für 5 GHz gespeichert, und der Befehl sagt das dazu.
 - **Vorgabe:** Ohne `--band` gilt `BAND=` aus `/etc/carnine/wlan.conf`.
   Fehlt sie, gilt `any`, alle Bänder wie bisher. Das Image setzt
   `BAND=` noch nicht.

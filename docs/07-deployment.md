@@ -1163,9 +1163,20 @@ measurements: [26 – Spoken Turn Announcements](26-turn-announcements.md).
     fixed when a network is stored; to change it, set the network up again.
     With `BAND=5`, a network seen only on 2.4 GHz is refused before the
     password question, with the hint to set the phone's hotspot to 5 GHz;
-    nothing is stored. (With `--ssid` there is no scan, so no such check.)
+    nothing is stored. Since #230 this holds for a name typed in or given
+    with `--ssid` too: with `BAND=5` the script scans first; a network not
+    seen at all is stored as a hidden network for 5 GHz, with a line saying
+    so. The scan no longer waits a fixed 4 s: it reads the results every
+    second until they are stable, scans once more and stops after 15 s at
+    the latest (`CARNINE_SCAN_STEP`/`CARNINE_SCAN_MAX`; 4 s was too short
+    for the USB stick right after wpa_supplicant started).
     Why: the USB stick RTL8822BU is poor on 2.4 GHz and good on 5 GHz
     (jeep-pi, 2026-11-23); in the car the phone's hotspot runs on 5 GHz.
+    *Tested* (jeep-pi, 2026-11-23, #227 at 4b626f0, stick on the powered
+    hub, `--interface wlan1 --band 5`): the phone's hotspot on 2.4 GHz was
+    refused with the hint, no password asked, nothing stored; on 5 GHz it
+    connected on channel 149 (`freq=5745`). The changes of #230 are covered
+    by the script's tests, not tested on the device again.
     The image does **not** ship `BAND=5` yet; that comes with the stick in
     #225. `--interface <name>` picks a WLAN device other than the first
     `wl*` one, e.g. a USB stick next to the built-in WLAN; the files and the
