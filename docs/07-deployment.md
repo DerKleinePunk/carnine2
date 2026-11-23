@@ -186,14 +186,15 @@ its values, use the page or the CLI below, and by hand only delete the file.
   a warning and reports the reason to the page. If the configuration is
   invalid without it too, the start fails as before.
 - **Reading** (`ConfigService.GetInstallSettings`): every value with type,
-  heading, label, help and choice labels in the requested `language`
-  (#217, since the release after 0.22.0; texts in
-  `src/backend/src/install_settings_texts.toml`, an empty or unknown
-  language and an old client sending `Empty` get German;
-  `SaveInstallSettingsRequest` has `language` too), default, the value the files give (the default when
-  none sets it), the file it comes from (empty for the default) and whether
-  it waits for a restart, i.e. differs from what the running backend uses.
-  `ui_drop_in_error` says why the file was left out at start, if it was.
+  heading, label, help and choice labels, default, the value the files give
+  (the default when none sets it), the file it comes from (empty for the
+  default) and whether it waits for a restart, i.e. differs from what the
+  running backend uses. `ui_drop_in_error` says why the file was left out at
+  start, if it was.
+- **Language** (#217, since the release after 0.22.0): texts come in the
+  requested `language`; `SaveInstallSettingsRequest` has `language` too.
+  An empty or unknown language and an old client sending `Empty` get German.
+  The texts are in `src/backend/src/install_settings_texts.toml`.
 
 ```bash
 media_grpc_client <endpoint> install-settings [<language>]     # values, origin, restart pending
@@ -201,7 +202,11 @@ media_grpc_client <endpoint> save-install-settings <password> [--language=<code>
                                                                # key=value sets, a bare key resets
 ```
 
-Tested in WSL against the real backend, not yet on a device. The frontend's
+Tested in WSL against the real backend, and on carnine-pc (Pi 3) on
+2026-11-23 through the CLI: `install-settings` in German, English and
+Japanese, and saving `audio.output_card=Headphones`, then resetting it, each
+with a backend restart (the jack's card opened, then HDMI again; checked
+through the ALSA state, not by ear). The frontend's
 expert page is **Optionen → System → Experten**, behind the exit password
 (#207, user guide [Experten](bedienung/optionen.md#experten)).
 
