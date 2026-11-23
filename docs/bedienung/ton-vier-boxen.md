@@ -25,6 +25,15 @@ abspielt, versteht den AC-3-Strom nicht und bleibt **stumm**. Darum gibt es
 dafür keinen Schalter in der Oberfläche, umgestellt wird wie unten
 beschrieben.
 
+**Experten-Seite** (ab der Version nach 0.22.0, **Optionen → System →
+Experten**, siehe [Optionen](optionen.md#experten)): Mit vier Boxen dort bei
+**Ausgang** immer **Vorgabe des Systems** lassen. Mit einer gewählten Karte
+läuft die Musik zwar weiter über den Kodierer, aber der Lautstärkeregler in
+carnine2 tut nichts mehr. **Kanäle** und **Pegel hinten**
+lassen sich dort statt mit den Dateien in Schritt 4 und unter „Hinten zu
+laut?“ einstellen. Was dort gespeichert ist, gilt vor den Dateien (siehe
+[Ausschalten](#ausschalten-zurück-auf-stereo)).
+
 **Wer das Image selbst baut**, nimmt `-t audio_output:hdmi-ac3`, dann ist
 alles schon eingestellt
 ([resources/debos/README.md](../../resources/debos/README.md)). Die Schritte
@@ -177,6 +186,11 @@ sudo rm -f /etc/carnine/config.d/30-audio-rear.toml
 sudo systemctl daemon-reload
 sudo systemctl restart carnine-backend
 ```
+
+Wurden **Kanäle** oder **Pegel hinten** auf der Experten-Seite gespeichert,
+dort vorher beide **zurücksetzen** (oder
+`/etc/carnine/config.d/99-ui.toml` löschen, das setzt alle Werte der Seite
+zurück). Sonst spielt carnine2 weiter mit vier Kanälen.
 
 Danach spielt carnine2 wieder in Stereo über HDMI, genau wie vorher. Lag vor
 Schritt 2 schon eine eigene `/etc/asound.conf`, die Sicherung zurückkopieren.

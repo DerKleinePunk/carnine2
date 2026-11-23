@@ -89,12 +89,13 @@ haben einen Pfeil und lassen sich antippen. Die anderen drei sind eine
 |---|---|
 | **Kamera** | Gerät, Videonorm, Eingang und Bildbreite (siehe unten) |
 | **Display** | Helligkeit des Displays (siehe unten) |
-| **Audio-Ausgang** | später: HDMI, Kopfhörerbuchse ([Klinke](begriffe.md)) oder USB-Soundkarte wählen (#207) |
+| **Audio-Ausgang** | später: HDMI, Kopfhörerbuchse ([Klinke](begriffe.md)) oder USB-Soundkarte wählen; ab der Version nach 0.22.0 geht das auf der Seite **Experten** unter **System** (#207) |
 | **Handy-App** | später: Bluetooth-Kopplung mit Code am Handy (#72) |
 | **Netzteil** | später: Zündung, Spannung und Service-Modus (#36) |
 
 Den Ton-Ausgang stellt man bis dahin am Gerät um
-([Ton über die Klinke](ton-klinke.md)). Ohne erreichbares Backend sind die
+([Ton über die Klinke](ton-klinke.md)), ab der Version nach 0.22.0 auf der
+Seite **Experten**. Ohne erreichbares Backend sind die
 Zeilen Kamera und Display auch nur eine Vorschau.
 
 ### Kamera

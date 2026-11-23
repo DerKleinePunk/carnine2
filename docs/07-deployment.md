@@ -170,7 +170,9 @@ its values, use the page or the CLI below, and by hand only delete the file.
   `audio.mixer_control`, `audio.channels`, `audio.rear_percent` and
   `power_supply.enabled` / `amplifier_relay` / `shutdown_on_poweroff`. Other
   keys and secrets are refused. With the `hdmi-ac3` image variant leave
-  `audio.output_card` empty, or the sound bypasses the AC-3 encoder (see
+  `audio.output_card` empty: since #214 the sound still goes through the
+  AC-3 encoder, but the volume would be set on the named card and the slider
+  would do nothing (see
   [Choosing the output in the configuration](#choosing-the-output-in-the-configuration)).
 - **Saving** (`ConfigService.SaveInstallSettings`) needs the exit password
   (otherwise `PERMISSION_DENIED`). Before writing, the backend checks the whole
@@ -881,8 +883,9 @@ the old way once, reads the mapped percent back and keeps that, so the level
 does not change with the update (on carnine-pc 65 became 42, -17.80 dB then
 -18.00 dB).
 
-Choosing the output in the UI is planned for later
-([#48](https://github.com/DerKleinePunk/carnine2/issues/48)).
+Since the release after 0.22.0 the output can be chosen in the UI, on the
+expert page (**Optionen → System → Experten**, `audio.output_card`, #207);
+it takes effect at the next start of the backend.
 
 The `PCM` control on an HDMI card does not come from the driver, which has
 no mixer: `/usr/share/alsa/cards/vc4-hdmi.conf` (package `libasound2-data`)
@@ -901,8 +904,8 @@ No own `asound.conf` is needed for it. Two catches:
   (EPERM) and the volume stays at 100 % for that whole session (#61).
 - The backend decides **once at startup** whether it can use amixer. If
   `PCM` is missing at that moment, the volume slider has no effect until the
-  backend is restarted. Choosing the device in the UI (#48) would have to
-  deal with this.
+  backend is restarted. The output chosen on the expert page (#207) also
+  applies only from the next start.
 
 On a device that has never played through HDMI, create and store the control
 once:
