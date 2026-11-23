@@ -164,6 +164,46 @@ class AppLocalizations {
     ).replaceFirst('{label}', label).replaceFirst('{count}', count.toString());
   }
 
+  /// The power supply's firmware on the version tile, e.g. "Netzteil:
+  /// V2.4.1" (#154).
+  String powerSupplyFirmware(String version) {
+    return text(
+      AppTextKey.settingsDiagnosticsPowerSupplyFirmware,
+    ).replaceFirst('{version}', version);
+  }
+
+  /// A sound card the expert page has saved but the device lacks now.
+  String expertsMissingChoice(String value) {
+    return text(
+      AppTextKey.settingsExpertsMissingChoice,
+    ).replaceFirst('{value}', value);
+  }
+
+  String expertsChanges(int count) {
+    return text(
+      AppTextKey.settingsExpertsChanges,
+    ).replaceFirst('{count}', count.toString());
+  }
+
+  /// "Erlaubt: 0 bis 1000", the unit added by the caller.
+  String expertsRange(int min, int max) {
+    return text(AppTextKey.settingsExpertsRange)
+        .replaceFirst('{min}', min.toString())
+        .replaceFirst('{max}', max.toString());
+  }
+
+  String expertsMaxLength(int count) {
+    return text(
+      AppTextKey.settingsExpertsMaxLength,
+    ).replaceFirst('{count}', count.toString());
+  }
+
+  String expertsOutOfRange(int min, int max) {
+    return text(AppTextKey.settingsExpertsOutOfRange)
+        .replaceFirst('{min}', min.toString())
+        .replaceFirst('{max}', max.toString());
+  }
+
   String mediaVolumeSemantic(int percent) {
     return text(
       AppTextKey.mediaVolumeSemantic,

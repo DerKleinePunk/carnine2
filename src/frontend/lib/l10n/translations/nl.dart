@@ -197,9 +197,45 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
       'Wachtwoord voor de onderhoudsmodus',
   AppTextKey.settingsDiagnosticsRestartSubtitle:
       'Alleen de interface, de muziek speelt door',
+  AppTextKey.settingsDiagnosticsRestartConfirmTitle: 'De interface herstarten?',
+  AppTextKey.settingsDiagnosticsRestartConfirmAction: 'Herstarten',
   AppTextKey.settingsDiagnosticsExitSubtitle:
       'Onderhoudsmodus, wachtwoord vereist',
   AppTextKey.settingsDiagnosticsVersion: 'Versie',
+  AppTextKey.settingsDiagnosticsPowerSupplyFirmware: 'Voeding: {version}',
+  AppTextKey.settingsDiagnosticsExperts: 'Experts',
+  AppTextKey.settingsDiagnosticsExpertsSubtitle:
+      'Inbouwwaarden, wachtwoord vereist',
+  AppTextKey.settingsExpertsPageSubtitle: 'Waarden voor de inbouw in de auto',
+  AppTextKey.settingsBackToSystem: 'Terug naar systeem',
+  AppTextKey.settingsExpertsDefault: 'Standaard',
+  AppTextKey.settingsExpertsRestartPending: 'geldt na herstart',
+  AppTextKey.settingsExpertsRestartHint:
+      'Gemarkeerde waarden gelden pas na een herstart van het apparaat.',
+  AppTextKey.settingsExpertsDropInError:
+      'Inbouwinstellingen ongeldig, vorige versie actief',
+  AppTextKey.settingsExpertsReset: 'Herstellen',
+  AppTextKey.settingsExpertsResetPending: 'wordt hersteld',
+  AppTextKey.settingsExpertsChanged: 'gewijzigd',
+  AppTextKey.settingsExpertsSystemDefault: 'Systeemstandaard',
+  AppTextKey.settingsExpertsMissingChoice: '{value} (niet gevonden)',
+  AppTextKey.settingsExpertsNotSet: 'niet ingesteld',
+  AppTextKey.settingsExpertsChanges: 'Gewijzigde waarden: {count}',
+  AppTextKey.settingsExpertsDiscard: 'Verwerpen',
+  AppTextKey.settingsExpertsSave: 'Opslaan',
+  AppTextKey.settingsExpertsSaving: 'Opslaan …',
+  AppTextKey.settingsExpertsSaved: 'Opgeslagen',
+  AppTextKey.settingsExpertsUnreachable:
+      'De backend reageert niet. Er is niets opgeslagen.',
+  AppTextKey.settingsExpertsFailed: 'Opslaan mislukt. Er is niets opgeslagen.',
+  AppTextKey.settingsExpertsRejected: 'Niet opgeslagen:',
+  AppTextKey.settingsExpertsDiscardTitle: 'Wijzigingen verwerpen?',
+  AppTextKey.settingsExpertsApply: 'Toepassen',
+  AppTextKey.settingsExpertsRange: 'Toegestaan: {min} tot {max}',
+  AppTextKey.settingsExpertsMaxLength: 'Maximaal {count} tekens',
+  AppTextKey.settingsExpertsOutOfRange:
+      'Voer een geheel getal van {min} tot {max} in.',
+  AppTextKey.settingsExpertsEmpty: 'De backend noemt geen inbouwwaarden.',
   AppTextKey.settingsExitPasswordChecking: 'Controleren …',
   AppTextKey.settingsExitPasswordUnavailable:
       'Het wachtwoord kan nu niet worden gecontroleerd. Probeer het zo meteen opnieuw.',
@@ -310,6 +346,7 @@ const Map<AppTextKey, String> nlTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: 'Geen camerasignaal',
   AppTextKey.cameraMissing: 'Camera niet aangesloten',
   AppTextKey.cameraError: 'Camerastoring',
+  AppTextKey.cameraReverseGearSignalMissing: 'Achteruit: geen signaal',
   AppTextKey.controlsEmpty: 'Geen bediening ingesteld',
   AppTextKey.controlsStateOn: 'Aan',
   AppTextKey.controlsStateOff: 'Uit',

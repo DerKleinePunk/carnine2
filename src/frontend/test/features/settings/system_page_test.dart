@@ -8,10 +8,13 @@ import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_overlay.dart';
 import 'package:carnine_frontend/core/keyboard/on_screen_keyboard_scope.dart';
 import 'package:carnine_frontend/core/keyboard/on_screen_text_field.dart';
 import 'package:carnine_frontend/core/logging/log_viewer_dialog.dart';
+import 'package:carnine_frontend/features/dashboard/data/power_supply_source.dart';
+import 'package:carnine_frontend/features/dashboard/presentation/power_supply_controller.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/features/settings/presentation/models/settings_option_item.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_content.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_controller.dart';
+import 'package:carnine_frontend/features/settings/presentation/widgets/system_page.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
 import 'package:carnine_frontend/styles/colors.dart';
@@ -22,10 +25,32 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../fakes/fake_exit_password_store.dart';
 
+class _PowerSource implements PowerSupplySource {
+  final StreamController<PowerSupplyStatus> controller =
+      StreamController<PowerSupplyStatus>.broadcast();
+
+  @override
+  Stream<PowerSupplyStatus> get statuses => controller.stream;
+
+  @override
+  Future<void> dispose() => controller.close();
+}
+
+/// A power supply that answers with firmware V2.4.1.
+const _withFirmware = PowerSupplyStatus(
+  configured: true,
+  connected: true,
+  ignition: true,
+  state: PowerSupplyState.run,
+  inputVolts: 12.6,
+  firmwareVersion: 'V2.4.1',
+);
+
 Widget _harness({
   required VoidCallback onRestart,
   required VoidCallback onExit,
   ExitPasswordStore? store,
+  PowerSupplyController? power,
   Locale locale = const Locale('de'),
 }) {
   final keyboardController = OnScreenKeyboardController();
@@ -61,6 +86,7 @@ Widget _harness({
         languageController: languageController,
         controller: settingsController,
         exitPasswordStore: store,
+        powerSupplyController: power,
         onRestart: onRestart,
         onExit: onExit,
       ),
@@ -73,6 +99,7 @@ Future<void> _open(
   VoidCallback? onRestart,
   VoidCallback? onExit,
   ExitPasswordStore? store,
+  PowerSupplyController? power,
   Locale locale = const Locale('de'),
 }) async {
   tester.view.physicalSize = const Size(1024, 600);
@@ -84,6 +111,7 @@ Future<void> _open(
       onRestart: onRestart ?? () {},
       onExit: onExit ?? () {},
       store: store,
+      power: power,
       locale: locale,
     ),
   );
@@ -194,16 +222,36 @@ void main() {
       expect(find.text('Noch nicht verfügbar'), findsOneWidget);
     });
 
-    testWidgets('restart runs immediately, without any confirmation', (
+    testWidgets('restart asks first; Abbrechen keeps the interface (#173)', (
       tester,
     ) async {
-      var restarted = false;
-      await _open(tester, onRestart: () => restarted = true);
+      var restarts = 0;
+      await _open(tester, onRestart: () => restarts++);
 
-      await tester.tap(find.text('Neustart'));
-      await tester.pump();
+      await _tapAndSettle(tester, 'Neustart');
 
-      expect(restarted, isTrue);
+      expect(find.text('Oberfläche neu starten?'), findsOneWidget);
+      expect(find.text('Neu starten'), findsOneWidget);
+      expect(restarts, 0, reason: 'the tap alone restarts nothing');
+
+      await _tapAndSettle(tester, 'Abbrechen');
+
+      expect(find.text('Oberfläche neu starten?'), findsNothing);
+      expect(restarts, 0);
+    });
+
+    testWidgets('restart after "Neu starten", once, without a password', (
+      tester,
+    ) async {
+      var restarts = 0;
+      await _open(tester, onRestart: () => restarts++);
+
+      await _tapAndSettle(tester, 'Neustart');
+      expect(find.byType(TextField), findsNothing);
+      await _tapAndSettle(tester, 'Neu starten');
+
+      expect(restarts, 1);
+      expect(find.text('Oberfläche neu starten?'), findsNothing);
     });
 
     testWidgets('with less room, for example under a notice strip, the page '
@@ -253,6 +301,90 @@ void main() {
       expect(find.text('0.17.0\n2026-10-13'), findsOneWidget);
       expect(find.textContaining('ba2e5787f662'), findsNothing);
       expect(find.textContaining('git2026'), findsNothing);
+    });
+  });
+
+  group('the firmware of the power supply on the version tile (#154)', () {
+    late _PowerSource source;
+    late PowerSupplyController power;
+
+    setUp(() {
+      AppVersion.initialize(
+        version: '0.22.0',
+        build: '0.22.0+git20261122141421.285ebdbd911d',
+      );
+      source = _PowerSource();
+      power = PowerSupplyController(source: source)..start();
+    });
+
+    tearDown(() {
+      power.dispose();
+      AppVersion.initialize(
+        version: AppVersion.unknown,
+        build: AppVersion.unknown,
+      );
+    });
+
+    testWidgets('without a power supply the tile stays as it was', (
+      tester,
+    ) async {
+      await _open(tester, power: power);
+
+      expect(find.text('0.22.0\n2026-11-22'), findsOneWidget);
+      expect(find.textContaining('Netzteil'), findsNothing);
+    });
+
+    testWidgets('with one: version and date in a line, the firmware below', (
+      tester,
+    ) async {
+      await _open(tester, power: power);
+
+      source.controller.add(_withFirmware);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('0.22.0 · 2026-11-22\nNetzteil: V2.4.1'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('before it answered, or while it is silent: a dash', (
+      tester,
+    ) async {
+      await _open(tester, power: power);
+
+      source.controller.add(
+        const PowerSupplyStatus(configured: true, connected: false),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('0.22.0 · 2026-11-22\nNetzteil: –'), findsOneWidget);
+
+      source.controller.add(_withFirmware);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Netzteil: V2.4.1'), findsOneWidget);
+    });
+
+    test('the lines without a build date', () {
+      final l10n = AppLocalizations(const Locale('de'));
+
+      expect(
+        SystemPage.versionLines(
+          l10n,
+          version: '0.22.0',
+          date: '',
+          power: _withFirmware,
+        ),
+        '0.22.0\nNetzteil: V2.4.1',
+      );
+      expect(
+        SystemPage.versionLines(
+          l10n,
+          version: '0.22.0',
+          date: '',
+          power: PowerSupplyStatus.none,
+        ),
+        '0.22.0',
+      );
     });
   });
 
@@ -852,8 +984,33 @@ void main() {
         tester,
       ) async {
         final store = FakeExitPasswordStore();
-        await _open(tester, store: store, locale: locale);
+        // The version tile with the power supply's firmware, its longest form.
+        AppVersion.initialize(
+          version: '0.22.0',
+          build: '0.22.0+git20261122141421.285ebdbd911d',
+        );
+        addTearDown(
+          () => AppVersion.initialize(
+            version: AppVersion.unknown,
+            build: AppVersion.unknown,
+          ),
+        );
+        final source = _PowerSource();
+        final power = PowerSupplyController(source: source)..start();
+        addTearDown(power.dispose);
+        await _open(tester, store: store, power: power, locale: locale);
+        source.controller.add(_withFirmware);
+        await tester.pumpAndSettle();
+        expect(find.textContaining('V2.4.1'), findsOneWidget);
         expect(tester.takeException(), isNull);
+
+        // The question before a restart.
+        await tester.tap(find.byIcon(Icons.restart_alt));
+        await tester.pumpAndSettle();
+        expect(find.byType(AlertDialog), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await tester.tap(find.byType(TextButton).first);
+        await tester.pumpAndSettle();
 
         // The exit dialog with its longest message, above the keyboard.
         await tester.tap(find.byIcon(Icons.power_settings_new));

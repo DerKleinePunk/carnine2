@@ -147,7 +147,9 @@ Wortteile findet.
 Die Rückkehr zur Karte wartet, solange etwas offen ist, in das jemand gerade
 eingibt oder was er entscheidet: die Bildschirmtastatur, ein Dialog (Passwort,
 Logansicht, Playlist löschen …) und die Playlist-Abläufe in **Medien** (Playlist
-anlegen, Titel hinzufügen, umbenennen). Dann folgt die nächste Minute. Der
+anlegen, Titel hinzufügen, umbenennen). Ebenso wartet sie, solange der
+Rückwärtsgang eingelegt ist ([Kamera](kamera.md#rückwärtsgang)). Dann folgt
+die nächste Minute. Der
 Player, die Sammlungen, die Bibliothek und die Playlist-Ansicht halten sie
 nicht auf. Auf der Karte selbst passiert nichts. Ohne `demo_mode` bleibt alles
 wie sonst.

@@ -1,4 +1,6 @@
 import 'package:carnine_frontend/core/app_version.dart';
+import 'package:carnine_frontend/features/dashboard/data/power_supply_source.dart';
+import 'package:carnine_frontend/features/dashboard/presentation/power_supply_controller.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/change_exit_password_dialog.dart';
 import 'package:carnine_frontend/features/settings/presentation/widgets/exit_password_dialog.dart';
@@ -7,9 +9,9 @@ import 'package:carnine_frontend/styles/colors.dart';
 import 'package:carnine_frontend/styles/text_styles.dart';
 import 'package:flutter/material.dart';
 
-/// "System": six tiles in two groups. "Wartung" holds what a technician
-/// uses (logs, updates, the exit password), "Oberfläche" what concerns the
-/// running interface (restart, exit, version). "Beenden" is marked in the
+/// "System": seven tiles in two groups. "Wartung" holds what a technician
+/// uses (logs, updates, the exit password, the expert page), "Oberfläche"
+/// what concerns the running interface (restart, exit, version). "Beenden" is marked in the
 /// warning color: it closes the interface, and only a password gets it back.
 class SystemPage extends StatelessWidget {
   const SystemPage({
@@ -17,6 +19,8 @@ class SystemPage extends StatelessWidget {
     required this.onOpenLogs,
     required this.onRestart,
     required this.onExit,
+    this.powerSupplyController,
+    this.onOpenExperts,
     super.key,
   });
 
@@ -27,7 +31,52 @@ class SystemPage extends StatelessWidget {
   final VoidCallback onRestart;
   final VoidCallback onExit;
 
+  /// The car power supply, whose firmware the version tile names (#154).
+  final PowerSupplyController? powerSupplyController;
+
+  /// Asks for the exit password and opens the expert page (#207); without a
+  /// backend (`null`) the tile only shows.
+  final VoidCallback? onOpenExperts;
+
   static const double _gap = 16;
+
+  /// The lines under "Version": the interface's version and build date, and
+  /// with a power supply its firmware ("–" while it has not answered). Then
+  /// version and date share the first line, so it stays two lines.
+  static String versionLines(
+    AppLocalizations l10n, {
+    required String version,
+    required String date,
+    required PowerSupplyStatus power,
+  }) {
+    if (!power.configured) {
+      return date.isEmpty ? version : '$version\n$date';
+    }
+    final interface = date.isEmpty ? version : '$version · $date';
+    final firmware = l10n.powerSupplyFirmware(power.firmwareVersion ?? '–');
+    return '$interface\n$firmware';
+  }
+
+  Widget _versionTile(AppLocalizations l10n, String date) {
+    Widget tile(PowerSupplyStatus status) => _SystemTile(
+      icon: Icons.info_outline,
+      title: l10n.text(AppTextKey.settingsDiagnosticsVersion),
+      subtitle: versionLines(
+        l10n,
+        version: AppVersion.version,
+        date: date,
+        power: status,
+      ),
+    );
+    final power = powerSupplyController;
+    if (power == null) {
+      return tile(PowerSupplyStatus.none);
+    }
+    return ListenableBuilder(
+      listenable: power,
+      builder: (context, _) => tile(power.status),
+    );
+  }
 
   /// Fixed, so the tiles never overflow: a notice strip above the page (power
   /// supply, no audio output) takes room, and then the page scrolls.
@@ -53,6 +102,35 @@ class SystemPage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// Asks before restarting: a tap on the tile alone restarted the interface
+  /// at the trade fair (#173). No password, unlike "Beenden".
+  Future<void> _confirmRestart(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          l10n.text(AppTextKey.settingsDiagnosticsRestartConfirmTitle),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.text(AppTextKey.settingsExitPasswordCancelAction)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(
+              l10n.text(AppTextKey.settingsDiagnosticsRestartConfirmAction),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed ?? false) {
+      onRestart();
+    }
   }
 
   Future<void> _confirmExit(BuildContext context) async {
@@ -107,6 +185,14 @@ class SystemPage extends StatelessWidget {
                   store: exitPasswordStore,
                 ),
               ),
+              _SystemTile(
+                icon: Icons.engineering,
+                title: l10n.text(AppTextKey.settingsDiagnosticsExperts),
+                subtitle: l10n.text(
+                  AppTextKey.settingsDiagnosticsExpertsSubtitle,
+                ),
+                onTap: onOpenExperts,
+              ),
             ],
           ),
           const SizedBox(height: 18),
@@ -124,7 +210,7 @@ class SystemPage extends StatelessWidget {
                 subtitle: l10n.text(
                   AppTextKey.settingsDiagnosticsRestartSubtitle,
                 ),
-                onTap: onRestart,
+                onTap: () => _confirmRestart(context),
               ),
               _SystemTile(
                 icon: Icons.power_settings_new,
@@ -133,13 +219,7 @@ class SystemPage extends StatelessWidget {
                 isWarning: true,
                 onTap: () => _confirmExit(context),
               ),
-              _SystemTile(
-                icon: Icons.info_outline,
-                title: l10n.text(AppTextKey.settingsDiagnosticsVersion),
-                subtitle: date.isEmpty
-                    ? AppVersion.version
-                    : '${AppVersion.version}\n$date',
-              ),
+              _versionTile(l10n, date),
             ],
           ),
         ],

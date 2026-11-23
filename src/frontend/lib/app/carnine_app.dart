@@ -11,6 +11,7 @@ import 'package:carnine_frontend/features/maps/data/map_follow_zoom_store.dart';
 import 'package:carnine_frontend/features/maps/data/traffic_setting_store.dart';
 import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
 import 'package:carnine_frontend/features/settings/data/display_brightness_store.dart';
+import 'package:carnine_frontend/features/settings/data/install_values_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
@@ -30,6 +31,7 @@ class CarnineApp extends StatefulWidget {
     this.mapFollowZoomStore,
     this.trafficSettingStore,
     this.displayBrightnessStore,
+    this.installValuesStore,
     this.controlsRepository,
     super.key,
   });
@@ -57,6 +59,9 @@ class CarnineApp extends StatefulWidget {
 
   /// Where the display brightness is read and set; tests leave it out.
   final DisplayBrightnessStore? displayBrightnessStore;
+
+  /// Where the expert page reads and saves the installation values.
+  final InstallValuesStore? installValuesStore;
 
   /// Where the Technik page gets its controls from; tests leave it out.
   final ControlsRepository? controlsRepository;
@@ -135,6 +140,7 @@ class _CarnineAppState extends State<CarnineApp> {
             mapFollowZoomStore: widget.mapFollowZoomStore,
             trafficSettingStore: widget.trafficSettingStore,
             displayBrightnessStore: widget.displayBrightnessStore,
+            installValuesStore: widget.installValuesStore,
             controlsRepository: widget.controlsRepository,
           ),
         );

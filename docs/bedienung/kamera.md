@@ -14,8 +14,28 @@ kommen aus der Kamera selbst.*
 - Die Kamera läuft **nur, solange die Seite zu sehen ist**. Wechselt man auf
   eine andere Seite, gibt die Oberfläche die Kamera frei. Beim Zurückkommen
   öffnet sie sie neu, das dauert einen Moment.
-- Auf das Bild umschalten, wenn der Rückwärtsgang eingelegt wird, kann die
-  Oberfläche noch nicht. Dafür fehlt ein Signal vom Auto.
+- Ist das Signal des Rückwärtsgangs eingerichtet, kommt die Seite beim
+  Einlegen von selbst, siehe [Rückwärtsgang](#rückwärtsgang).
+
+## Rückwärtsgang
+
+Liefert das Auto das Signal des Rückwärtsgangs (Eingang am Pi oder die
+Demo-Quelle, Einrichtung in [docs/07](../07-deployment.md#reversing-camera)),
+schaltet die Oberfläche selbst um (#191):
+
+| Gang | Was passiert |
+|---|---|
+| **eingelegt** | Die Seite **Kamera** kommt, von jeder Seite aus. Offene Dialoge und die Bildschirmtastatur gehen dabei zu; was darin getippt war, ist weg. Musik, Route und Warteschlange bleiben. |
+| **heraus** | Sofort zurück auf die Seite von vorher. Hat man während der Rückwärtsfahrt selbst eine andere Seite gewählt, bleibt diese. |
+| **unbekannt** (Signal nicht lesbar) | Nichts wird umgeschaltet, auch nicht zurück. Auf der Seite Kamera steht oben „Rückwärtsgang: Signal fehlt“. |
+
+- War die Kamera schon offen, bleibt sie es auch nach dem Herausnehmen.
+- Die Kamera wird durch den Rückwärtsgang nicht als letzte Seite gemerkt:
+  Nach dem nächsten Einschalten startet die Oberfläche nicht auf der Kamera.
+  Ist der Gang beim Einschalten schon eingelegt, kommt die Kamera sofort.
+- Im Messe-Modus springt die Oberfläche nicht zur Karte, solange der Gang
+  eingelegt ist.
+- Ohne eingerichtetes Signal passiert nichts, und es gibt keinen Hinweis.
 
 ## Welche Kameras gehen
 
@@ -59,6 +79,11 @@ in der Sprache der Oberfläche.
 | **Kein Kamerasignal** | Das Gerät ist da, liefert aber kein Bild, z. B. weil am gelben Stecker des Grabbers nichts hängt oder die Kamera keinen Strom hat. |
 | **Kamera nicht angeschlossen** | Es gibt kein Gerät, z. B. weil Grabber oder Kamera abgezogen sind. Auf einem Gerät ganz ohne Kamera steht immer dieser Hinweis. |
 | **Kamera gestört** | Öffnen oder Abspielen ist fehlgeschlagen, z. B. bei einer Kamera, deren Bildformat die Seite nicht kennt. |
+
+Unabhängig vom Bild steht oben eine kleine rote Zeile **Rückwärtsgang: Signal
+fehlt**, solange das Signal des Rückwärtsgangs eingerichtet, aber nicht
+lesbar ist. Dann kommt die Seite beim Einlegen nicht von selbst (siehe
+[Rückwärtsgang](#rückwärtsgang)).
 
 **Anstecken und Abziehen bei offener Seite** geht: Fehlt die Kamera, versucht
 die Seite jede Sekunde, sie neu zu öffnen. Nach dem Anstecken steht kurz

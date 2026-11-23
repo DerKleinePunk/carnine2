@@ -1,3 +1,4 @@
+import 'package:carnine_frontend/core/navigation/page_guard.dart';
 import 'package:carnine_frontend/features/camera/data/camera_settings_store.dart';
 import 'package:carnine_frontend/features/camera/presentation/camera_content.dart';
 import 'package:carnine_frontend/features/controls/data/controls_repository.dart';
@@ -14,9 +15,11 @@ import 'package:carnine_frontend/features/media/presentation/media_controller.da
 import 'package:carnine_frontend/features/maps/presentation/map_follow_zoom_controller.dart';
 import 'package:carnine_frontend/features/settings/data/announcement_settings_store.dart';
 import 'package:carnine_frontend/features/settings/data/display_brightness_store.dart';
+import 'package:carnine_frontend/features/settings/data/install_values_store.dart';
 import 'package:carnine_frontend/features/settings/data/exit_password_store.dart';
 import 'package:carnine_frontend/features/settings/presentation/settings_content.dart';
 import 'package:carnine_frontend/l10n/app_language_controller.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// Dashboard body area that shows the active section.
@@ -35,7 +38,10 @@ class DashboardContent extends StatelessWidget {
     this.announcementSettingsStore,
     this.followZoomController,
     this.displayBrightnessStore,
+    this.installValuesStore,
+    this.onPageGuard,
     this.cameraSourceFactory,
+    this.reverseGearSignalMissing,
     this.onShowCamera,
     this.controlsRepository,
     super.key,
@@ -59,7 +65,14 @@ class DashboardContent extends StatelessWidget {
   /// The zoom of following the car; shared by the map and the options.
   final MapFollowZoomController? followZoomController;
   final DisplayBrightnessStore? displayBrightnessStore;
+  final InstallValuesStore? installValuesStore;
+
+  /// Where a page with unsaved work registers itself (#207).
+  final ValueChanged<PageGuard?>? onPageGuard;
   final GrabberSourceFactory? cameraSourceFactory;
+
+  /// The camera page's hint that the reverse gear cannot be told (#191).
+  final ValueListenable<bool>? reverseGearSignalMissing;
 
   /// Selects the Kamera page - from the camera settings, to look at a change.
   final VoidCallback? onShowCamera;
@@ -77,7 +90,10 @@ class DashboardContent extends StatelessWidget {
         announcementSettingsStore: announcementSettingsStore,
         followZoomController: followZoomController,
         displayBrightnessStore: displayBrightnessStore,
+        installValuesStore: installValuesStore,
+        onPageGuard: onPageGuard,
         onShowCamera: onShowCamera,
+        powerSupplyController: powerSupplyController,
       );
     }
 
@@ -102,6 +118,7 @@ class DashboardContent extends StatelessWidget {
       return CameraContent(
         settingsStore: cameraSettingsStore,
         sourceFactory: cameraSourceFactory,
+        reverseGearSignalMissing: reverseGearSignalMissing,
       );
     }
 

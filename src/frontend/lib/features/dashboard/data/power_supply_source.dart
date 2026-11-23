@@ -16,6 +16,7 @@ class PowerSupplyStatus {
     this.ignition,
     this.state = PowerSupplyState.unknown,
     this.inputVolts,
+    this.firmwareVersion,
   });
 
   /// No supply configured on this device; nothing to show.
@@ -33,6 +34,10 @@ class PowerSupplyStatus {
   final bool? ignition;
   final PowerSupplyState state;
   final double? inputVolts;
+
+  /// The supply's firmware, e.g. "V2.4.1"; `null` until it answered, and
+  /// again while it is silent (#154).
+  final String? firmwareVersion;
 
   /// The supply is about to cut the power: ignition off, or its watchdog
   /// fired. The backend does not shut the Pi down yet (#36).
@@ -61,6 +66,10 @@ PowerSupplyStatus powerSupplyStatusFromProto(pb.PowerSupplyStatus status) {
       _ => PowerSupplyState.unknown,
     },
     inputVolts: status.hasInputVoltageVolts() ? status.inputVoltageVolts : null,
+    firmwareVersion:
+        status.hasFirmwareVersion() && status.firmwareVersion.isNotEmpty
+        ? status.firmwareVersion
+        : null,
   );
 }
 

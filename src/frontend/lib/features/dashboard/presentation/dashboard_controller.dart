@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:carnine_frontend/core/navigation/page_guard.dart';
 import 'package:carnine_frontend/features/dashboard/data/ui_state_store.dart';
 import 'package:carnine_frontend/features/dashboard/presentation/models/dashboard_nav_item.dart';
 import 'package:carnine_frontend/l10n/app_localizations.dart';
@@ -82,6 +83,24 @@ class DashboardController extends ChangeNotifier {
   int get selectedIndex => _selectedIndex;
   DashboardNavItem get selectedItem => navItems[_selectedIndex];
 
+  /// Set by a page with unsaved work while it is shown (#207).
+  PageGuard? pageGuard;
+
+  /// The page holds unsaved work: the trade fair mode waits.
+  bool get holdsUnsavedWork => pageGuard?.isActive() ?? false;
+
+  /// A tap in the side menu: a page with unsaved work is asked first.
+  Future<void> selectItemAsked(int index) async {
+    final guard = pageGuard;
+    if (index != _selectedIndex &&
+        guard != null &&
+        guard.isActive() &&
+        !await guard.confirmLeave()) {
+      return;
+    }
+    selectItem(index);
+  }
+
   /// Selects the active dashboard section from the side menu.
   void selectItem(int index) {
     if (index == _selectedIndex || index < 0 || index >= navItems.length) {
@@ -105,6 +124,26 @@ class DashboardController extends ChangeNotifier {
   /// (the camera settings jump to the camera page this way).
   void selectDestination(DashboardDestination destination) {
     selectItem(navItems.indexWhere((item) => item.destination == destination));
+  }
+
+  /// Shows the page for [destination] because the car asked for it (the
+  /// reverse gear, #191), not the driver: it is not saved as the last page,
+  /// so CarNine does not start on the camera next time. Like a tap, it ends
+  /// restoring the last page: a gear that is in at start keeps the camera.
+  void showWithoutSaving(DashboardDestination destination) {
+    final index = navItems.indexWhere(
+      (item) => item.destination == destination,
+    );
+    if (index < 0 || index == _selectedIndex) {
+      return;
+    }
+    _userSelectedPage = true;
+    _logger.info(
+      'Showing dashboard page ${destination.name} (not saved as the last '
+      'page)',
+    );
+    _selectedIndex = index;
+    notifyListeners();
   }
 
   /// Opens the page saved last, unless the user picked one in the meantime.

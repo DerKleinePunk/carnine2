@@ -21,12 +21,20 @@ class ExitPasswordDialog extends StatefulWidget {
     BuildContext context, {
     required ExitPasswordStore? store,
   }) async {
-    final confirmed = await showDialog<bool>(
+    return await askPassword(context, store: store) != null;
+  }
+
+  /// Like [show], but resolves to the password the backend accepted, for a
+  /// call that needs it again (the expert page saves with it, #207); `null`
+  /// on cancel.
+  static Future<String?> askPassword(
+    BuildContext context, {
+    required ExitPasswordStore? store,
+  }) {
+    return showDialog<String>(
       context: context,
       builder: (context) => ExitPasswordDialog(store: store),
     );
-
-    return confirmed ?? false;
   }
 
   @override
@@ -67,7 +75,7 @@ class _ExitPasswordDialogState extends State<ExitPasswordDialog> {
         return;
       }
       if (valid) {
-        Navigator.of(context).pop(true);
+        Navigator.of(context).pop(_passwordController.text);
         return;
       }
       problem = _Problem.wrong;
@@ -126,7 +134,7 @@ class _ExitPasswordDialogState extends State<ExitPasswordDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
+          onPressed: () => Navigator.of(context).pop(),
           child: Text(l10n.text(AppTextKey.settingsExitPasswordCancelAction)),
         ),
         TextButton(

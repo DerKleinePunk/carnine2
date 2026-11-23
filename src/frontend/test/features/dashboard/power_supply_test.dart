@@ -77,6 +77,33 @@ void main() {
     expect(unknown.switchingOff, isFalse);
   });
 
+  test('the firmware version arrives once the supply answered (#154)', () {
+    final answered = powerSupplyStatusFromProto(
+      pb.PowerSupplyStatus(
+        configured: true,
+        connected: true,
+        firmwareVersion: 'V2.4.1',
+      ),
+    );
+    expect(answered.firmwareVersion, 'V2.4.1');
+
+    final silent = powerSupplyStatusFromProto(
+      pb.PowerSupplyStatus(configured: true, connected: false),
+    );
+    expect(silent.firmwareVersion, isNull);
+
+    final empty = powerSupplyStatusFromProto(
+      pb.PowerSupplyStatus(configured: true, firmwareVersion: ''),
+    );
+    expect(empty.firmwareVersion, isNull, reason: 'an empty text is none');
+
+    // Without a supply there is no version, whatever the message carries.
+    final none = powerSupplyStatusFromProto(
+      pb.PowerSupplyStatus(firmwareVersion: 'V2.4.1'),
+    );
+    expect(none.firmwareVersion, isNull);
+  });
+
   test('the controller follows the source', () async {
     final source = _FakeSource();
     final controller = PowerSupplyController(source: source)..start();

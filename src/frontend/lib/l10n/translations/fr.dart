@@ -204,9 +204,48 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
       'Mot de passe du mode maintenance',
   AppTextKey.settingsDiagnosticsRestartSubtitle:
       'L’interface uniquement, la musique continue',
+  AppTextKey.settingsDiagnosticsRestartConfirmTitle: 'Redémarrer l’interface ?',
+  AppTextKey.settingsDiagnosticsRestartConfirmAction: 'Redémarrer',
   AppTextKey.settingsDiagnosticsExitSubtitle:
       'Mode maintenance, mot de passe requis',
   AppTextKey.settingsDiagnosticsVersion: 'Version',
+  AppTextKey.settingsDiagnosticsPowerSupplyFirmware: 'Alimentation : {version}',
+  AppTextKey.settingsDiagnosticsExperts: 'Experts',
+  AppTextKey.settingsDiagnosticsExpertsSubtitle:
+      'Valeurs d’installation, mot de passe requis',
+  AppTextKey.settingsExpertsPageSubtitle:
+      'Valeurs pour l’installation dans le véhicule',
+  AppTextKey.settingsBackToSystem: 'Retour au système',
+  AppTextKey.settingsExpertsDefault: 'Par défaut',
+  AppTextKey.settingsExpertsRestartPending: 'après redémarrage',
+  AppTextKey.settingsExpertsRestartHint:
+      'Les valeurs marquées ne s’appliquent qu’après un redémarrage de l’appareil.',
+  AppTextKey.settingsExpertsDropInError:
+      'Réglages d’installation non valides, version précédente active',
+  AppTextKey.settingsExpertsReset: 'Réinitialiser',
+  AppTextKey.settingsExpertsResetPending: 'sera réinitialisé',
+  AppTextKey.settingsExpertsChanged: 'modifié',
+  AppTextKey.settingsExpertsSystemDefault: 'Valeur par défaut du système',
+  AppTextKey.settingsExpertsMissingChoice: '{value} (introuvable)',
+  AppTextKey.settingsExpertsNotSet: 'non défini',
+  AppTextKey.settingsExpertsChanges: 'Valeurs modifiées : {count}',
+  AppTextKey.settingsExpertsDiscard: 'Abandonner',
+  AppTextKey.settingsExpertsSave: 'Enregistrer',
+  AppTextKey.settingsExpertsSaving: 'Enregistrement …',
+  AppTextKey.settingsExpertsSaved: 'Enregistré',
+  AppTextKey.settingsExpertsUnreachable:
+      'Le backend ne répond pas. Rien n’a été enregistré.',
+  AppTextKey.settingsExpertsFailed:
+      'L’enregistrement a échoué. Rien n’a été enregistré.',
+  AppTextKey.settingsExpertsRejected: 'Non enregistré :',
+  AppTextKey.settingsExpertsDiscardTitle: 'Abandonner les modifications ?',
+  AppTextKey.settingsExpertsApply: 'Appliquer',
+  AppTextKey.settingsExpertsRange: 'Autorisé : {min} à {max}',
+  AppTextKey.settingsExpertsMaxLength: '{count} caractères au maximum',
+  AppTextKey.settingsExpertsOutOfRange:
+      'Veuillez saisir un nombre entier de {min} à {max}.',
+  AppTextKey.settingsExpertsEmpty:
+      'Le backend n’indique aucune valeur d’installation.',
   AppTextKey.settingsExitPasswordChecking: 'Vérification …',
   AppTextKey.settingsExitPasswordUnavailable:
       'Le mot de passe ne peut pas être vérifié pour le moment. Veuillez réessayer dans un instant.',
@@ -320,6 +359,7 @@ const Map<AppTextKey, String> frTranslations = <AppTextKey, String>{
   AppTextKey.cameraNoSignal: 'Aucun signal de caméra',
   AppTextKey.cameraMissing: 'Caméra non branchée',
   AppTextKey.cameraError: 'Défaut de caméra',
+  AppTextKey.cameraReverseGearSignalMissing: 'Marche arrière : pas de signal',
   AppTextKey.controlsEmpty: 'Aucune commande configurée',
   AppTextKey.controlsStateOn: 'Activé',
   AppTextKey.controlsStateOff: 'Désactivé',

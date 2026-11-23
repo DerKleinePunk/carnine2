@@ -55,6 +55,7 @@ Future<void> main() async {
       mapFollowZoomStore: backend,
       trafficSettingStore: backend,
       displayBrightnessStore: backend,
+      installValuesStore: backend,
       controlsRepository: GrpcControlsRepository(),
     ),
   );
