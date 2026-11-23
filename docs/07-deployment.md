@@ -202,7 +202,7 @@ media_grpc_client <endpoint> save-install-settings <password> [--language=<code>
                                                                # key=value sets, a bare key resets
 ```
 
-Tested in WSL against the real backend, and on carnine-pc (Pi 3) on
+Tested in WSL against the real backend, and on carnine-pc (Pi 4) on
 2026-11-23 through the CLI: `install-settings` in German, English and
 Japanese, and saving `audio.output_card=Headphones`, then resetting it, each
 with a backend restart (the jack's card opened, then HDMI again; checked
