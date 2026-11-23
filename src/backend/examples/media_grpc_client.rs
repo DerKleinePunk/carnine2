@@ -21,16 +21,17 @@ use carnine::{
     navigation_service_client::NavigationServiceClient, system_service_client::SystemServiceClient,
     AddPlaylistEntryRequest, AnnounceRequest, AnnouncementPriority, CameraNorm, CameraSettings,
     ComputeRouteRequest, CreatePlaylistRequest, DeletePlaylistRequest, DisplayBrightness, Empty,
-    ExitPasswordRequest, FixState, GetCoverArtRequest, GetLocationNameRequest, GetPlaylistRequest,
-    GetReplayRouteRequest, ImportMusicVolumeRequest, InstallSettingChange, InstallSettings, LatLon,
-    LibraryEventType, NavigationStatus, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest,
-    PositionFix, PositionSourceKind, PowerSupplyState, PowerSupplyStatus,
-    PrepareAnnouncementsRequest, RemovePlaylistEntryRequest, RenamePlaylistRequest, RepeatMode,
-    RescanMediaRequest, ReverseGear, ReverseGearStatus, Route, SaveInstallSettingsRequest,
-    SearchMediaRequest, SearchPlacesRequest, SeekRequest, SetDisplayBrightnessRequest,
-    SetExitPasswordRequest, SetRepeatModeRequest, SetReverseGearRequest, SetShuffleModeRequest,
-    SetTrackRecordingRequest, SetVoiceSettingsRequest, SetVolumeRequest, SystemMetrics,
-    ThermalStatus, UiState, VoiceSettings,
+    ExitPasswordRequest, FixState, GetCoverArtRequest, GetInstallSettingsRequest,
+    GetLocationNameRequest, GetPlaylistRequest, GetReplayRouteRequest, ImportMusicVolumeRequest,
+    InstallSettingChange, InstallSettings, LatLon, LibraryEventType, NavigationStatus,
+    PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PositionFix, PositionSourceKind,
+    PowerSupplyState, PowerSupplyStatus, PrepareAnnouncementsRequest, RemovePlaylistEntryRequest,
+    RenamePlaylistRequest, RepeatMode, RescanMediaRequest, ReverseGear, ReverseGearStatus, Route,
+    SaveInstallSettingsRequest, SearchMediaRequest, SearchPlacesRequest, SeekRequest,
+    SetDisplayBrightnessRequest, SetExitPasswordRequest, SetRepeatModeRequest,
+    SetReverseGearRequest, SetShuffleModeRequest, SetTrackRecordingRequest,
+    SetVoiceSettingsRequest, SetVolumeRequest, SystemMetrics, ThermalStatus, UiState,
+    VoiceSettings,
 };
 
 #[tokio::main]
@@ -645,24 +646,39 @@ async fn set_exit_password(endpoint: &str) -> Result<()> {
     Ok(())
 }
 
-/// `install-settings` (#138): every installation value of the expert page
-/// with its type, where it comes from and whether it waits for a restart.
+/// `install-settings [<language>]` (#138): every installation value of the
+/// expert page with its type, where it comes from and whether it waits for a
+/// restart. The texts come in the language given, e.g. `en` (#217); without
+/// one, German.
 async fn get_install_settings(endpoint: &str) -> Result<()> {
+    let language = env::args().nth(3).unwrap_or_default();
     let mut client = ConfigServiceClient::<Channel>::connect(endpoint.to_string()).await?;
-    let settings = client.get_install_settings(Empty {}).await?.into_inner();
+    let settings = client
+        .get_install_settings(GetInstallSettingsRequest { language })
+        .await?
+        .into_inner();
     print_install_settings(&settings);
     Ok(())
 }
 
-/// `save-install-settings <password> key=value … key …`: `key=value` sets a
-/// value, a bare `key` removes it from the page's file (#138). Prints the
-/// values afterwards; they apply after a restart of the backend.
+/// `save-install-settings <password> [--language=<code>] key=value … key …`:
+/// `key=value` sets a value, a bare `key` removes it from the page's file
+/// (#138). Prints the values afterwards, in the language given (#217); they
+/// apply after a restart of the backend.
 async fn save_install_settings(endpoint: &str) -> Result<()> {
     let password = env::args()
         .nth(3)
         .context("save-install-settings requires the exit password")?;
+    let mut language = String::new();
     let changes: Vec<InstallSettingChange> = env::args()
         .skip(4)
+        .filter(|argument| match argument.strip_prefix("--language=") {
+            Some(code) => {
+                language = code.to_string();
+                false
+            }
+            None => true,
+        })
         .map(|argument| match argument.split_once('=') {
             Some((key, value)) => InstallSettingChange {
                 key: key.to_string(),
@@ -679,7 +695,11 @@ async fn save_install_settings(endpoint: &str) -> Result<()> {
     }
     let mut client = ConfigServiceClient::<Channel>::connect(endpoint.to_string()).await?;
     let settings = client
-        .save_install_settings(SaveInstallSettingsRequest { password, changes })
+        .save_install_settings(SaveInstallSettingsRequest {
+            password,
+            changes,
+            language,
+        })
         .await?
         .into_inner();
     print_install_settings(&settings);

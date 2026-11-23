@@ -1,0 +1,876 @@
+# Texts of the expert page (#217) in the languages of the interface.
+#
+# German is the source and stays in `install_settings::SCHEMA`; this file
+# has every other language the frontend offers. Per language: the group
+# headings (by the first part of the key), then per setting its label, help
+# and the labels of its choices (by choice value). A test checks that every
+# language has every text of the schema and nothing else.
+#
+# Terms follow the frontend's own translations (src/frontend/lib/l10n):
+# e.g. "System default" for an empty output, "Reverse gear" for the camera.
+
+[en.groups]
+reverse_gear = "Reverse gear"
+audio = "Sound output"
+power_supply = "Power supply"
+
+[en."reverse_gear.source"]
+label = "Source"
+help = "Where the backend reads the reverse gear from."
+choices = { none = "none", gpio = "GPIO input", demo = "Demonstration (via gRPC)" }
+
+[en."reverse_gear.gpio_chip"]
+label = "GPIO chip"
+help = "Device file of the GPIO chip, /dev/gpiochip0 on the Raspberry Pi."
+
+[en."reverse_gear.gpio_line"]
+label = "GPIO line"
+help = "Number of the line on the chip, e.g. 26 for GPIO 26. Needed with source GPIO."
+
+[en."reverse_gear.active_low"]
+label = "Active at ground"
+help = "The gear is in when the line is at ground (optocoupler)."
+
+[en."reverse_gear.bias"]
+label = "Resistor"
+help = "Pull resistor at the input."
+choices = { pull_up = "Pull-up (to 3.3 V)", pull_down = "Pull-down (to ground)", none = "none" }
+
+[en."reverse_gear.debounce_ms"]
+label = "Debounce"
+help = "Shorter changes are ignored. 0 turns it off."
+
+[en."audio.output_card"]
+label = "Output"
+help = "Sound card the speakers are connected to. Empty: system default. Leave empty with the AC-3 encoder image."
+
+[en."audio.mixer_control"]
+label = "Volume control"
+help = "Mixer control of the card the volume is set on."
+
+[en."audio.channels"]
+label = "Channels"
+help = "4 or 6 feed rear speakers. Empty: the device's default (stereo)."
+choices = { 2 = "2 (stereo)", 4 = "4", 6 = "6 (5.1)" }
+
+[en."audio.rear_percent"]
+label = "Rear level"
+help = "Volume of the rear speakers relative to the front."
+
+[en."power_supply.enabled"]
+label = "Power supply connected"
+help = "The backend talks to the car power supply on the serial port."
+
+[en."power_supply.amplifier_relay"]
+label = "Amplifier via relay 3"
+help = "Relay 3 switches the amplifier's remote turn-on (REM)."
+
+[en."power_supply.shutdown_on_poweroff"]
+label = "Shut down with the ignition"
+help = "Off if the Pi on the bench should stay on with the ignition off."
+
+# ---------------------------------------------------------------- français
+
+[fr.groups]
+reverse_gear = "Marche arrière"
+audio = "Sortie audio"
+power_supply = "Alimentation"
+
+[fr."reverse_gear.source"]
+label = "Source"
+help = "D'où le backend lit la marche arrière."
+choices = { none = "aucune", gpio = "Entrée GPIO", demo = "Démonstration (via gRPC)" }
+
+[fr."reverse_gear.gpio_chip"]
+label = "Puce GPIO"
+help = "Fichier de périphérique de la puce GPIO, /dev/gpiochip0 sur le Raspberry Pi."
+
+[fr."reverse_gear.gpio_line"]
+label = "Ligne GPIO"
+help = "Numéro de la ligne sur la puce, p. ex. 26 pour GPIO 26. Nécessaire avec la source GPIO."
+
+[fr."reverse_gear.active_low"]
+label = "Actif à la masse"
+help = "La marche arrière est engagée quand la ligne est à la masse (optocoupleur)."
+
+[fr."reverse_gear.bias"]
+label = "Résistance"
+help = "Résistance de tirage à l'entrée."
+choices = { pull_up = "Pull-up (vers 3,3 V)", pull_down = "Pull-down (vers la masse)", none = "aucune" }
+
+[fr."reverse_gear.debounce_ms"]
+label = "Anti-rebond"
+help = "Les changements plus courts sont ignorés. 0 le désactive."
+
+[fr."audio.output_card"]
+label = "Sortie"
+help = "Carte son à laquelle les haut-parleurs sont reliés. Vide : valeur par défaut du système. Laisser vide avec l'image à encodeur AC-3."
+
+[fr."audio.mixer_control"]
+label = "Réglage du volume"
+help = "Contrôle du mélangeur de la carte sur lequel le volume est réglé."
+
+[fr."audio.channels"]
+label = "Canaux"
+help = "4 ou 6 alimentent des haut-parleurs arrière. Vide : valeur par défaut de l'appareil (stéréo)."
+choices = { 2 = "2 (stéréo)", 4 = "4", 6 = "6 (5.1)" }
+
+[fr."audio.rear_percent"]
+label = "Niveau arrière"
+help = "Volume des haut-parleurs arrière par rapport à l'avant."
+
+[fr."power_supply.enabled"]
+label = "Alimentation raccordée"
+help = "Le backend communique avec l'alimentation du véhicule sur le port série."
+
+[fr."power_supply.amplifier_relay"]
+label = "Amplificateur via le relais 3"
+help = "Le relais 3 commande l'allumage à distance (REM) de l'amplificateur."
+
+[fr."power_supply.shutdown_on_poweroff"]
+label = "Éteindre avec le contact"
+help = "Désactivé si le Pi sur l'établi doit rester allumé contact coupé."
+
+# ---------------------------------------------------------------- español
+
+[es.groups]
+reverse_gear = "Marcha atrás"
+audio = "Salida de audio"
+power_supply = "Fuente de alimentación"
+
+[es."reverse_gear.source"]
+label = "Origen"
+help = "De dónde lee el backend la marcha atrás."
+choices = { none = "ninguno", gpio = "Entrada GPIO", demo = "Demostración (vía gRPC)" }
+
+[es."reverse_gear.gpio_chip"]
+label = "Chip GPIO"
+help = "Archivo de dispositivo del chip GPIO, /dev/gpiochip0 en la Raspberry Pi."
+
+[es."reverse_gear.gpio_line"]
+label = "Línea GPIO"
+help = "Número de la línea en el chip, p. ej. 26 para GPIO 26. Necesario con el origen GPIO."
+
+[es."reverse_gear.active_low"]
+label = "Activo a masa"
+help = "La marcha está puesta cuando la línea está a masa (optoacoplador)."
+
+[es."reverse_gear.bias"]
+label = "Resistencia"
+help = "Resistencia de polarización en la entrada."
+choices = { pull_up = "Pull-up (a 3,3 V)", pull_down = "Pull-down (a masa)", none = "ninguna" }
+
+[es."reverse_gear.debounce_ms"]
+label = "Antirrebote"
+help = "Los cambios más cortos se ignoran. 0 lo desactiva."
+
+[es."audio.output_card"]
+label = "Salida"
+help = "Tarjeta de sonido a la que están conectados los altavoces. Vacío: predeterminado del sistema. Dejar vacío con la imagen con codificador AC-3."
+
+[es."audio.mixer_control"]
+label = "Control de volumen"
+help = "Control del mezclador de la tarjeta en el que se ajusta el volumen."
+
+[es."audio.channels"]
+label = "Canales"
+help = "4 o 6 alimentan altavoces traseros. Vacío: predeterminado del dispositivo (estéreo)."
+choices = { 2 = "2 (estéreo)", 4 = "4", 6 = "6 (5.1)" }
+
+[es."audio.rear_percent"]
+label = "Nivel trasero"
+help = "Volumen de los altavoces traseros respecto a los delanteros."
+
+[es."power_supply.enabled"]
+label = "Fuente de alimentación conectada"
+help = "El backend se comunica con la fuente de alimentación del vehículo por el puerto serie."
+
+[es."power_supply.amplifier_relay"]
+label = "Amplificador por el relé 3"
+help = "El relé 3 conecta el encendido remoto (REM) del amplificador."
+
+[es."power_supply.shutdown_on_poweroff"]
+label = "Apagar con el encendido"
+help = "Desactivado si la Pi en el banco debe seguir encendida con el contacto quitado."
+
+# ---------------------------------------------------------------- italiano
+
+[it.groups]
+reverse_gear = "Retromarcia"
+audio = "Uscita audio"
+power_supply = "Alimentatore"
+
+[it."reverse_gear.source"]
+label = "Sorgente"
+help = "Da dove il backend legge la retromarcia."
+choices = { none = "nessuna", gpio = "Ingresso GPIO", demo = "Dimostrazione (tramite gRPC)" }
+
+[it."reverse_gear.gpio_chip"]
+label = "Chip GPIO"
+help = "File di dispositivo del chip GPIO, /dev/gpiochip0 sul Raspberry Pi."
+
+[it."reverse_gear.gpio_line"]
+label = "Linea GPIO"
+help = "Numero della linea sul chip, ad es. 26 per GPIO 26. Necessario con la sorgente GPIO."
+
+[it."reverse_gear.active_low"]
+label = "Attivo a massa"
+help = "La retromarcia è inserita quando la linea è a massa (fotoaccoppiatore)."
+
+[it."reverse_gear.bias"]
+label = "Resistenza"
+help = "Resistenza di pull all'ingresso."
+choices = { pull_up = "Pull-up (verso 3,3 V)", pull_down = "Pull-down (verso massa)", none = "nessuna" }
+
+[it."reverse_gear.debounce_ms"]
+label = "Antirimbalzo"
+help = "I cambi più brevi vengono ignorati. 0 lo disattiva."
+
+[it."audio.output_card"]
+label = "Uscita"
+help = "Scheda audio a cui sono collegati gli altoparlanti. Vuoto: predefinito di sistema. Lasciare vuoto con l'immagine con codificatore AC-3."
+
+[it."audio.mixer_control"]
+label = "Controllo del volume"
+help = "Controllo del mixer della scheda su cui si regola il volume."
+
+[it."audio.channels"]
+label = "Canali"
+help = "4 o 6 alimentano altoparlanti posteriori. Vuoto: predefinito del dispositivo (stereo)."
+choices = { 2 = "2 (stereo)", 4 = "4", 6 = "6 (5.1)" }
+
+[it."audio.rear_percent"]
+label = "Livello posteriore"
+help = "Volume degli altoparlanti posteriori rispetto a quelli anteriori."
+
+[it."power_supply.enabled"]
+label = "Alimentatore collegato"
+help = "Il backend comunica con l'alimentatore del veicolo sulla porta seriale."
+
+[it."power_supply.amplifier_relay"]
+label = "Amplificatore tramite relè 3"
+help = "Il relè 3 comanda l'accensione remota (REM) dell'amplificatore."
+
+[it."power_supply.shutdown_on_poweroff"]
+label = "Spegnere con l'accensione"
+help = "Disattivato se il Pi sul banco deve restare acceso a quadro spento."
+
+# ---------------------------------------------------------------- 中文
+
+[zh.groups]
+reverse_gear = "倒挡"
+audio = "音频输出"
+power_supply = "电源"
+
+[zh."reverse_gear.source"]
+label = "来源"
+help = "后端从哪里读取倒挡信号。"
+choices = { none = "无", gpio = "GPIO 输入", demo = "演示（通过 gRPC）" }
+
+[zh."reverse_gear.gpio_chip"]
+label = "GPIO 芯片"
+help = "GPIO 芯片的设备文件，树莓派上为 /dev/gpiochip0。"
+
+[zh."reverse_gear.gpio_line"]
+label = "GPIO 线路"
+help = "芯片上的线路编号，例如 GPIO 26 为 26。来源为 GPIO 时必填。"
+
+[zh."reverse_gear.active_low"]
+label = "接地有效"
+help = "线路接地时表示已挂倒挡（光耦）。"
+
+[zh."reverse_gear.bias"]
+label = "电阻"
+help = "输入端的上拉/下拉电阻。"
+choices = { pull_up = "上拉（至 3.3 V）", pull_down = "下拉（至地）", none = "无" }
+
+[zh."reverse_gear.debounce_ms"]
+label = "消抖"
+help = "更短的变化将被忽略。0 表示关闭。"
+
+[zh."audio.output_card"]
+label = "输出"
+help = "扬声器所连接的声卡。留空：系统默认。使用 AC-3 编码器镜像时请留空。"
+
+[zh."audio.mixer_control"]
+label = "音量控制"
+help = "用于调节音量的声卡混音器控件。"
+
+[zh."audio.channels"]
+label = "声道"
+help = "4 或 6 声道用于驱动后置扬声器。留空：设备默认（立体声）。"
+choices = { 2 = "2（立体声）", 4 = "4", 6 = "6（5.1）" }
+
+[zh."audio.rear_percent"]
+label = "后置音量"
+help = "后置扬声器相对于前置扬声器的音量。"
+
+[zh."power_supply.enabled"]
+label = "已连接电源"
+help = "后端通过串口与车载电源通信。"
+
+[zh."power_supply.amplifier_relay"]
+label = "通过继电器 3 控制功放"
+help = "继电器 3 控制功放的远程开机（REM）。"
+
+[zh."power_supply.shutdown_on_poweroff"]
+label = "随点火关机"
+help = "如果台架上的 Pi 在熄火后应保持开机，请关闭此项。"
+
+# ---------------------------------------------------------------- 日本語
+
+[ja.groups]
+reverse_gear = "リバースギア"
+audio = "音声出力"
+power_supply = "電源"
+
+[ja."reverse_gear.source"]
+label = "入力元"
+help = "バックエンドがリバースギアを読み取る場所。"
+choices = { none = "なし", gpio = "GPIO 入力", demo = "デモ（gRPC 経由）" }
+
+[ja."reverse_gear.gpio_chip"]
+label = "GPIO チップ"
+help = "GPIO チップのデバイスファイル。Raspberry Pi では /dev/gpiochip0。"
+
+[ja."reverse_gear.gpio_line"]
+label = "GPIO ライン"
+help = "チップ上のライン番号。例：GPIO 26 なら 26。入力元が GPIO のときに必要です。"
+
+[ja."reverse_gear.active_low"]
+label = "グランドで有効"
+help = "ラインがグランドに接続されているときにギアが入っています（フォトカプラ）。"
+
+[ja."reverse_gear.bias"]
+label = "抵抗"
+help = "入力のプル抵抗。"
+choices = { pull_up = "プルアップ（3.3 V へ）", pull_down = "プルダウン（グランドへ）", none = "なし" }
+
+[ja."reverse_gear.debounce_ms"]
+label = "チャタリング除去"
+help = "これより短い変化は無視されます。0 で無効になります。"
+
+[ja."audio.output_card"]
+label = "出力"
+help = "スピーカーが接続されているサウンドカード。空欄：システムの既定。AC-3 エンコーダー付きイメージでは空欄のままにしてください。"
+
+[ja."audio.mixer_control"]
+label = "音量コントロール"
+help = "音量を設定するカードのミキサーコントロール。"
+
+[ja."audio.channels"]
+label = "チャンネル"
+help = "4 または 6 でリアスピーカーに出力します。空欄：デバイスの既定（ステレオ）。"
+choices = { 2 = "2（ステレオ）", 4 = "4", 6 = "6（5.1）" }
+
+[ja."audio.rear_percent"]
+label = "リアのレベル"
+help = "フロントに対するリアスピーカーの音量。"
+
+[ja."power_supply.enabled"]
+label = "電源ユニット接続"
+help = "バックエンドはシリアルポートで車載電源ユニットと通信します。"
+
+[ja."power_supply.amplifier_relay"]
+label = "リレー 3 でアンプを制御"
+help = "リレー 3 がアンプのリモートオン（REM）を切り替えます。"
+
+[ja."power_supply.shutdown_on_poweroff"]
+label = "イグニッションでシャットダウン"
+help = "作業台の Pi をイグニッションオフでも動かし続ける場合はオフにします。"
+
+# ---------------------------------------------------------------- Nederlands
+
+[nl.groups]
+reverse_gear = "Achteruit"
+audio = "Geluidsuitgang"
+power_supply = "Voeding"
+
+[nl."reverse_gear.source"]
+label = "Bron"
+help = "Waar de backend de achteruitversnelling vandaan leest."
+choices = { none = "geen", gpio = "GPIO-ingang", demo = "Demonstratie (via gRPC)" }
+
+[nl."reverse_gear.gpio_chip"]
+label = "GPIO-chip"
+help = "Apparaatbestand van de GPIO-chip, /dev/gpiochip0 op de Raspberry Pi."
+
+[nl."reverse_gear.gpio_line"]
+label = "GPIO-lijn"
+help = "Nummer van de lijn op de chip, bijv. 26 voor GPIO 26. Nodig bij bron GPIO."
+
+[nl."reverse_gear.active_low"]
+label = "Actief bij massa"
+help = "De versnelling is ingeschakeld als de lijn aan massa ligt (optocoupler)."
+
+[nl."reverse_gear.bias"]
+label = "Weerstand"
+help = "Pull-weerstand aan de ingang."
+choices = { pull_up = "Pull-up (naar 3,3 V)", pull_down = "Pull-down (naar massa)", none = "geen" }
+
+[nl."reverse_gear.debounce_ms"]
+label = "Ontdenderen"
+help = "Kortere wisselingen worden genegeerd. 0 schakelt het uit."
+
+[nl."audio.output_card"]
+label = "Uitgang"
+help = "Geluidskaart waarop de luidsprekers zijn aangesloten. Leeg: systeemstandaard. Leeg laten bij het image met AC-3-encoder."
+
+[nl."audio.mixer_control"]
+label = "Volumeregelaar"
+help = "Mixerregelaar van de kaart waarop het volume wordt ingesteld."
+
+[nl."audio.channels"]
+label = "Kanalen"
+help = "4 of 6 voeden luidsprekers achter. Leeg: standaard van het apparaat (stereo)."
+choices = { 2 = "2 (stereo)", 4 = "4", 6 = "6 (5.1)" }
+
+[nl."audio.rear_percent"]
+label = "Niveau achter"
+help = "Volume van de luidsprekers achter ten opzichte van voor."
+
+[nl."power_supply.enabled"]
+label = "Voeding aangesloten"
+help = "De backend communiceert met de autovoeding via de seriële poort."
+
+[nl."power_supply.amplifier_relay"]
+label = "Versterker via relais 3"
+help = "Relais 3 schakelt de afstandsbediening (REM) van de versterker."
+
+[nl."power_supply.shutdown_on_poweroff"]
+label = "Uitschakelen met het contact"
+help = "Uit als de Pi op de werkbank aan moet blijven met het contact uit."
+
+# ---------------------------------------------------------------- polski
+
+[pl.groups]
+reverse_gear = "Bieg wsteczny"
+audio = "Wyjście dźwięku"
+power_supply = "Zasilacz"
+
+[pl."reverse_gear.source"]
+label = "Źródło"
+help = "Skąd backend odczytuje bieg wsteczny."
+choices = { none = "brak", gpio = "Wejście GPIO", demo = "Demonstracja (przez gRPC)" }
+
+[pl."reverse_gear.gpio_chip"]
+label = "Układ GPIO"
+help = "Plik urządzenia układu GPIO, na Raspberry Pi /dev/gpiochip0."
+
+[pl."reverse_gear.gpio_line"]
+label = "Linia GPIO"
+help = "Numer linii w układzie, np. 26 dla GPIO 26. Wymagany przy źródle GPIO."
+
+[pl."reverse_gear.active_low"]
+label = "Aktywny przy masie"
+help = "Bieg jest włączony, gdy linia jest zwarta do masy (transoptor)."
+
+[pl."reverse_gear.bias"]
+label = "Rezystor"
+help = "Rezystor podciągający na wejściu."
+choices = { pull_up = "Pull-up (do 3,3 V)", pull_down = "Pull-down (do masy)", none = "brak" }
+
+[pl."reverse_gear.debounce_ms"]
+label = "Eliminacja drgań"
+help = "Krótsze zmiany są pomijane. 0 wyłącza tę funkcję."
+
+[pl."audio.output_card"]
+label = "Wyjście"
+help = "Karta dźwiękowa, do której podłączone są głośniki. Puste: domyślne ustawienie systemu. Przy obrazie z koderem AC-3 pozostawić puste."
+
+[pl."audio.mixer_control"]
+label = "Regulator głośności"
+help = "Regulator miksera karty, na którym ustawiana jest głośność."
+
+[pl."audio.channels"]
+label = "Kanały"
+help = "4 lub 6 zasilają tylne głośniki. Puste: domyślne ustawienie urządzenia (stereo)."
+choices = { 2 = "2 (stereo)", 4 = "4", 6 = "6 (5.1)" }
+
+[pl."audio.rear_percent"]
+label = "Poziom z tyłu"
+help = "Głośność tylnych głośników w stosunku do przednich."
+
+[pl."power_supply.enabled"]
+label = "Zasilacz podłączony"
+help = "Backend komunikuje się z zasilaczem samochodowym przez port szeregowy."
+
+[pl."power_supply.amplifier_relay"]
+label = "Wzmacniacz przez przekaźnik 3"
+help = "Przekaźnik 3 włącza zdalne uruchamianie (REM) wzmacniacza."
+
+[pl."power_supply.shutdown_on_poweroff"]
+label = "Wyłączanie razem z zapłonem"
+help = "Wyłącz, jeśli Pi na stole ma pozostać włączone przy wyłączonym zapłonie."
+
+# ---------------------------------------------------------------- magyar
+
+[hu.groups]
+reverse_gear = "Hátramenet"
+audio = "Hangkimenet"
+power_supply = "Tápegység"
+
+[hu."reverse_gear.source"]
+label = "Forrás"
+help = "Honnan olvassa a backend a hátramenetet."
+choices = { none = "nincs", gpio = "GPIO-bemenet", demo = "Bemutató (gRPC-n keresztül)" }
+
+[hu."reverse_gear.gpio_chip"]
+label = "GPIO-chip"
+help = "A GPIO-chip eszközfájlja, Raspberry Pi-n /dev/gpiochip0."
+
+[hu."reverse_gear.gpio_line"]
+label = "GPIO-vonal"
+help = "A vonal száma a chipen, pl. 26 a GPIO 26-hoz. GPIO forrásnál szükséges."
+
+[hu."reverse_gear.active_low"]
+label = "Testre aktív"
+help = "A fokozat be van kapcsolva, ha a vonal testen van (optocsatoló)."
+
+[hu."reverse_gear.bias"]
+label = "Ellenállás"
+help = "Felhúzó/lehúzó ellenállás a bemeneten."
+choices = { pull_up = "Felhúzó (3,3 V-ra)", pull_down = "Lehúzó (testre)", none = "nincs" }
+
+[hu."reverse_gear.debounce_ms"]
+label = "Pergésmentesítés"
+help = "A rövidebb változásokat figyelmen kívül hagyja. A 0 kikapcsolja."
+
+[hu."audio.output_card"]
+label = "Kimenet"
+help = "A hangkártya, amelyre a hangszórók csatlakoznak. Üres: rendszer alapértelmezése. Az AC-3 kódolós image esetén hagyja üresen."
+
+[hu."audio.mixer_control"]
+label = "Hangerőszabályzó"
+help = "A kártya keverőszabályzója, amelyen a hangerő beállítható."
+
+[hu."audio.channels"]
+label = "Csatornák"
+help = "4 vagy 6 a hátsó hangszórókat is meghajtja. Üres: az eszköz alapértelmezése (sztereó)."
+choices = { 2 = "2 (sztereó)", 4 = "4", 6 = "6 (5.1)" }
+
+[hu."audio.rear_percent"]
+label = "Hátsó szint"
+help = "A hátsó hangszórók hangereje az elsőkhöz képest."
+
+[hu."power_supply.enabled"]
+label = "Tápegység csatlakoztatva"
+help = "A backend a soros porton kommunikál az autós tápegységgel."
+
+[hu."power_supply.amplifier_relay"]
+label = "Erősítő a 3. relén keresztül"
+help = "A 3. relé kapcsolja az erősítő távoli bekapcsolását (REM)."
+
+[hu."power_supply.shutdown_on_poweroff"]
+label = "Leállítás a gyújtással"
+help = "Kapcsolja ki, ha az asztali Pi-nek gyújtás nélkül is bekapcsolva kell maradnia."
+
+# ---------------------------------------------------------------- Türkçe
+
+[tr.groups]
+reverse_gear = "Geri vites"
+audio = "Ses çıkışı"
+power_supply = "Güç kaynağı"
+
+[tr."reverse_gear.source"]
+label = "Kaynak"
+help = "Arka uç geri vitesi nereden okur."
+choices = { none = "yok", gpio = "GPIO girişi", demo = "Gösterim (gRPC üzerinden)" }
+
+[tr."reverse_gear.gpio_chip"]
+label = "GPIO yongası"
+help = "GPIO yongasının aygıt dosyası, Raspberry Pi'de /dev/gpiochip0."
+
+[tr."reverse_gear.gpio_line"]
+label = "GPIO hattı"
+help = "Yongadaki hattın numarası, ör. GPIO 26 için 26. Kaynak GPIO ise gereklidir."
+
+[tr."reverse_gear.active_low"]
+label = "Şasede etkin"
+help = "Hat şaseye bağlıyken vites takılıdır (optokuplör)."
+
+[tr."reverse_gear.bias"]
+label = "Direnç"
+help = "Girişteki çekme direnci."
+choices = { pull_up = "Pull-up (3,3 V'a)", pull_down = "Pull-down (şaseye)", none = "yok" }
+
+[tr."reverse_gear.debounce_ms"]
+label = "Sıçrama giderme"
+help = "Daha kısa değişiklikler dikkate alınmaz. 0 kapatır."
+
+[tr."audio.output_card"]
+label = "Çıkış"
+help = "Hoparlörlerin bağlı olduğu ses kartı. Boş: sistem varsayılanı. AC-3 kodlayıcılı imajda boş bırakın."
+
+[tr."audio.mixer_control"]
+label = "Ses düzeyi denetimi"
+help = "Ses düzeyinin ayarlandığı kartın mikser denetimi."
+
+[tr."audio.channels"]
+label = "Kanallar"
+help = "4 veya 6 arka hoparlörleri de besler. Boş: aygıtın varsayılanı (stereo)."
+choices = { 2 = "2 (stereo)", 4 = "4", 6 = "6 (5.1)" }
+
+[tr."audio.rear_percent"]
+label = "Arka seviye"
+help = "Arka hoparlörlerin ön hoparlörlere göre ses düzeyi."
+
+[tr."power_supply.enabled"]
+label = "Güç kaynağı bağlı"
+help = "Arka uç, araç güç kaynağıyla seri port üzerinden haberleşir."
+
+[tr."power_supply.amplifier_relay"]
+label = "Amplifikatör röle 3 ile"
+help = "Röle 3, amplifikatörün uzaktan açmasını (REM) anahtarlar."
+
+[tr."power_supply.shutdown_on_poweroff"]
+label = "Kontakla birlikte kapat"
+help = "Masadaki Pi kontak kapalıyken açık kalacaksa kapatın."
+
+# ---------------------------------------------------------------- português
+
+[pt.groups]
+reverse_gear = "Marcha-atrás"
+audio = "Saída de som"
+power_supply = "Fonte de alimentação"
+
+[pt."reverse_gear.source"]
+label = "Origem"
+help = "De onde o backend lê a marcha-atrás."
+choices = { none = "nenhuma", gpio = "Entrada GPIO", demo = "Demonstração (via gRPC)" }
+
+[pt."reverse_gear.gpio_chip"]
+label = "Chip GPIO"
+help = "Ficheiro de dispositivo do chip GPIO, /dev/gpiochip0 no Raspberry Pi."
+
+[pt."reverse_gear.gpio_line"]
+label = "Linha GPIO"
+help = "Número da linha no chip, p. ex. 26 para GPIO 26. Necessário com a origem GPIO."
+
+[pt."reverse_gear.active_low"]
+label = "Ativo à massa"
+help = "A marcha está engrenada quando a linha está à massa (optoacoplador)."
+
+[pt."reverse_gear.bias"]
+label = "Resistência"
+help = "Resistência de pull na entrada."
+choices = { pull_up = "Pull-up (para 3,3 V)", pull_down = "Pull-down (para a massa)", none = "nenhuma" }
+
+[pt."reverse_gear.debounce_ms"]
+label = "Anti-ressalto"
+help = "Mudanças mais curtas são ignoradas. 0 desativa."
+
+[pt."audio.output_card"]
+label = "Saída"
+help = "Placa de som à qual os altifalantes estão ligados. Vazio: predefinição do sistema. Deixar vazio com a imagem com codificador AC-3."
+
+[pt."audio.mixer_control"]
+label = "Controlo de volume"
+help = "Controlo do misturador da placa no qual o volume é ajustado."
+
+[pt."audio.channels"]
+label = "Canais"
+help = "4 ou 6 alimentam altifalantes traseiros. Vazio: predefinição do dispositivo (estéreo)."
+choices = { 2 = "2 (estéreo)", 4 = "4", 6 = "6 (5.1)" }
+
+[pt."audio.rear_percent"]
+label = "Nível traseiro"
+help = "Volume dos altifalantes traseiros em relação aos dianteiros."
+
+[pt."power_supply.enabled"]
+label = "Fonte de alimentação ligada"
+help = "O backend comunica com a fonte de alimentação do veículo pela porta série."
+
+[pt."power_supply.amplifier_relay"]
+label = "Amplificador pelo relé 3"
+help = "O relé 3 comuta a ligação remota (REM) do amplificador."
+
+[pt."power_supply.shutdown_on_poweroff"]
+label = "Desligar com a ignição"
+help = "Desativado se o Pi na bancada deve ficar ligado com a ignição desligada."
+
+# ---------------------------------------------------------------- čeština
+
+[cs.groups]
+reverse_gear = "Zpátečka"
+audio = "Zvukový výstup"
+power_supply = "Napájecí zdroj"
+
+[cs."reverse_gear.source"]
+label = "Zdroj"
+help = "Odkud backend čte zpátečku."
+choices = { none = "žádný", gpio = "Vstup GPIO", demo = "Ukázka (přes gRPC)" }
+
+[cs."reverse_gear.gpio_chip"]
+label = "Čip GPIO"
+help = "Soubor zařízení čipu GPIO, na Raspberry Pi /dev/gpiochip0."
+
+[cs."reverse_gear.gpio_line"]
+label = "Linka GPIO"
+help = "Číslo linky na čipu, např. 26 pro GPIO 26. Nutné u zdroje GPIO."
+
+[cs."reverse_gear.active_low"]
+label = "Aktivní při kostře"
+help = "Zpátečka je zařazená, když je linka na kostře (optočlen)."
+
+[cs."reverse_gear.bias"]
+label = "Rezistor"
+help = "Pull rezistor na vstupu."
+choices = { pull_up = "Pull-up (na 3,3 V)", pull_down = "Pull-down (na kostru)", none = "žádný" }
+
+[cs."reverse_gear.debounce_ms"]
+label = "Odstranění zákmitů"
+help = "Kratší změny se nevnímají. 0 funkci vypne."
+
+[cs."audio.output_card"]
+label = "Výstup"
+help = "Zvuková karta, ke které jsou připojeny reproduktory. Prázdné: výchozí nastavení systému. U obrazu s kodérem AC-3 nechte prázdné."
+
+[cs."audio.mixer_control"]
+label = "Ovládání hlasitosti"
+help = "Ovládací prvek směšovače karty, na kterém se nastavuje hlasitost."
+
+[cs."audio.channels"]
+label = "Kanály"
+help = "4 nebo 6 napájí zadní reproduktory. Prázdné: výchozí nastavení zařízení (stereo)."
+choices = { 2 = "2 (stereo)", 4 = "4", 6 = "6 (5.1)" }
+
+[cs."audio.rear_percent"]
+label = "Úroveň vzadu"
+help = "Hlasitost zadních reproduktorů vzhledem k předním."
+
+[cs."power_supply.enabled"]
+label = "Napájecí zdroj připojen"
+help = "Backend komunikuje s napájecím zdrojem vozu přes sériový port."
+
+[cs."power_supply.amplifier_relay"]
+label = "Zesilovač přes relé 3"
+help = "Relé 3 spíná dálkové zapnutí (REM) zesilovače."
+
+[cs."power_supply.shutdown_on_poweroff"]
+label = "Vypnout se zapalováním"
+help = "Vypněte, pokud má Pi na stole zůstat zapnutý při vypnutém zapalování."
+
+# ---------------------------------------------------------------- svenska
+
+[sv.groups]
+reverse_gear = "Backväxel"
+audio = "Ljudutgång"
+power_supply = "Strömförsörjning"
+
+[sv."reverse_gear.source"]
+label = "Källa"
+help = "Var backend läser backväxeln ifrån."
+choices = { none = "ingen", gpio = "GPIO-ingång", demo = "Demonstration (via gRPC)" }
+
+[sv."reverse_gear.gpio_chip"]
+label = "GPIO-krets"
+help = "Enhetsfil för GPIO-kretsen, /dev/gpiochip0 på Raspberry Pi."
+
+[sv."reverse_gear.gpio_line"]
+label = "GPIO-linje"
+help = "Linjens nummer på kretsen, t.ex. 26 för GPIO 26. Krävs med källan GPIO."
+
+[sv."reverse_gear.active_low"]
+label = "Aktiv mot jord"
+help = "Växeln är i när linjen ligger mot jord (optokopplare)."
+
+[sv."reverse_gear.bias"]
+label = "Motstånd"
+help = "Pull-motstånd på ingången."
+choices = { pull_up = "Pull-up (till 3,3 V)", pull_down = "Pull-down (till jord)", none = "inget" }
+
+[sv."reverse_gear.debounce_ms"]
+label = "Avstudsning"
+help = "Kortare ändringar ignoreras. 0 stänger av det."
+
+[sv."audio.output_card"]
+label = "Utgång"
+help = "Ljudkort som högtalarna är anslutna till. Tomt: systemets standard. Lämna tomt med avbildningen med AC-3-kodare."
+
+[sv."audio.mixer_control"]
+label = "Volymreglage"
+help = "Kortets mixerreglage där volymen ställs in."
+
+[sv."audio.channels"]
+label = "Kanaler"
+help = "4 eller 6 driver bakre högtalare. Tomt: enhetens standard (stereo)."
+choices = { 2 = "2 (stereo)", 4 = "4", 6 = "6 (5.1)" }
+
+[sv."audio.rear_percent"]
+label = "Nivå bak"
+help = "Volymen för de bakre högtalarna i förhållande till de främre."
+
+[sv."power_supply.enabled"]
+label = "Strömförsörjning ansluten"
+help = "Backend kommunicerar med bilens strömförsörjning via serieporten."
+
+[sv."power_supply.amplifier_relay"]
+label = "Förstärkare via relä 3"
+help = "Relä 3 slår på förstärkarens fjärrstart (REM)."
+
+[sv."power_supply.shutdown_on_poweroff"]
+label = "Stäng av med tändningen"
+help = "Av om Pi:n på bänken ska vara på med tändningen av."
+
+# ---------------------------------------------------------------- dansk
+
+[da.groups]
+reverse_gear = "Bakgear"
+audio = "Lydudgang"
+power_supply = "Strømforsyning"
+
+[da."reverse_gear.source"]
+label = "Kilde"
+help = "Hvor backend læser bakgearet fra."
+choices = { none = "ingen", gpio = "GPIO-indgang", demo = "Demonstration (via gRPC)" }
+
+[da."reverse_gear.gpio_chip"]
+label = "GPIO-chip"
+help = "Enhedsfil for GPIO-chippen, /dev/gpiochip0 på Raspberry Pi."
+
+[da."reverse_gear.gpio_line"]
+label = "GPIO-linje"
+help = "Linjens nummer på chippen, f.eks. 26 for GPIO 26. Kræves med kilden GPIO."
+
+[da."reverse_gear.active_low"]
+label = "Aktiv mod stel"
+help = "Gearet er i, når linjen ligger på stel (optokobler)."
+
+[da."reverse_gear.bias"]
+label = "Modstand"
+help = "Pull-modstand på indgangen."
+choices = { pull_up = "Pull-up (til 3,3 V)", pull_down = "Pull-down (til stel)", none = "ingen" }
+
+[da."reverse_gear.debounce_ms"]
+label = "Afprelning"
+help = "Kortere skift ignoreres. 0 slår det fra."
+
+[da."audio.output_card"]
+label = "Udgang"
+help = "Lydkort, som højttalerne er tilsluttet. Tomt: systemets standard. Lad det være tomt med imaget med AC-3-encoder."
+
+[da."audio.mixer_control"]
+label = "Lydstyrkeregulering"
+help = "Kortets mixerkontrol, som lydstyrken indstilles på."
+
+[da."audio.channels"]
+label = "Kanaler"
+help = "4 eller 6 forsyner bagerste højttalere. Tomt: enhedens standard (stereo)."
+choices = { 2 = "2 (stereo)", 4 = "4", 6 = "6 (5.1)" }
+
+[da."audio.rear_percent"]
+label = "Niveau bag"
+help = "Lydstyrken i de bagerste højttalere i forhold til de forreste."
+
+[da."power_supply.enabled"]
+label = "Strømforsyning tilsluttet"
+help = "Backend kommunikerer med bilens strømforsyning via den serielle port."
+
+[da."power_supply.amplifier_relay"]
+label = "Forstærker via relæ 3"
+help = "Relæ 3 tænder forstærkerens fjernstart (REM)."
+
+[da."power_supply.shutdown_on_poweroff"]
+label = "Luk ned med tændingen"
+help = "Fra, hvis Pi'en på bordet skal blive tændt, når tændingen er slået fra."

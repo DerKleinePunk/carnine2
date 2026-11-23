@@ -2276,6 +2276,20 @@ final $typed_data.Uint8List installSettingChangeDescriptor = $convert.base64Deco
     'ChRJbnN0YWxsU2V0dGluZ0NoYW5nZRIQCgNrZXkYASABKAlSA2tleRIWCgV2YWx1ZRgCIAEoCU'
     'gAUgV2YWx1ZRIWCgVyZXNldBgDIAEoCEgAUgVyZXNldEIICgZjaGFuZ2U=');
 
+@$core.Deprecated('Use getInstallSettingsRequestDescriptor instead')
+const GetInstallSettingsRequest$json = {
+  '1': 'GetInstallSettingsRequest',
+  '2': [
+    {'1': 'language', '3': 1, '4': 1, '5': 9, '10': 'language'},
+  ],
+};
+
+/// Descriptor for `GetInstallSettingsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getInstallSettingsRequestDescriptor =
+    $convert.base64Decode(
+        'ChlHZXRJbnN0YWxsU2V0dGluZ3NSZXF1ZXN0EhoKCGxhbmd1YWdlGAEgASgJUghsYW5ndWFnZQ'
+        '==');
+
 @$core.Deprecated('Use saveInstallSettingsRequestDescriptor instead')
 const SaveInstallSettingsRequest$json = {
   '1': 'SaveInstallSettingsRequest',
@@ -2289,6 +2303,7 @@ const SaveInstallSettingsRequest$json = {
       '6': '.carnine.InstallSettingChange',
       '10': 'changes'
     },
+    {'1': 'language', '3': 3, '4': 1, '5': 9, '10': 'language'},
   ],
 };
 
@@ -2297,4 +2312,4 @@ final $typed_data.Uint8List saveInstallSettingsRequestDescriptor =
     $convert.base64Decode(
         'ChpTYXZlSW5zdGFsbFNldHRpbmdzUmVxdWVzdBIaCghwYXNzd29yZBgBIAEoCVIIcGFzc3dvcm'
         'QSNwoHY2hhbmdlcxgCIAMoCzIdLmNhcm5pbmUuSW5zdGFsbFNldHRpbmdDaGFuZ2VSB2NoYW5n'
-        'ZXM=');
+        'ZXMSGgoIbGFuZ3VhZ2UYAyABKAlSCGxhbmd1YWdl');

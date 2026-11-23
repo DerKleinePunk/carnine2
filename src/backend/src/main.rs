@@ -61,16 +61,16 @@ use carnine::{
     AddPlaylistEntryRequest, AudioEvent, AudioEventType, AudioOutput, AudioOutputs, CanData,
     CanDataRequest, CanDataResponse, CommandResponse, Configuration, CreatePlaylistRequest,
     DeletePlaylistRequest, DisplayBrightness, Empty, ExitPasswordCheck, ExitPasswordRequest,
-    GetCoverArtRequest, GetCoverArtResponse, GetPlaylistRequest, ImportMusicVolumeRequest,
-    InstallSetting, InstallSettingChoice, InstallSettingKind, InstallSettings, LibraryEvent,
-    LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest, PlayQueueEntryRequest,
-    PlayRequest, PlayerEvent, PlayerEventType, PlayerState, Playlist, PlaylistEntry,
-    PowerSupplyState, PowerSupplyStatus, RemovePlaylistEntryRequest, RenamePlaylistRequest,
-    RepeatMode, RescanMediaRequest, ReverseGear, ReverseGearSourceKind, ReverseGearStatus,
-    SaveInstallSettingsRequest, SearchMediaRequest, SearchMediaResponse, SeekRequest,
-    ServiceVersion, SetDisplayBrightnessRequest, SetExitPasswordRequest, SetRepeatModeRequest,
-    SetReverseGearRequest, SetShuffleModeRequest, SetVolumeRequest, SystemMetrics, ThermalStatus,
-    UiState, VolumeResponse,
+    GetCoverArtRequest, GetCoverArtResponse, GetInstallSettingsRequest, GetPlaylistRequest,
+    ImportMusicVolumeRequest, InstallSetting, InstallSettingChoice, InstallSettingKind,
+    InstallSettings, LibraryEvent, LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest,
+    PlayQueueEntryRequest, PlayRequest, PlayerEvent, PlayerEventType, PlayerState, Playlist,
+    PlaylistEntry, PowerSupplyState, PowerSupplyStatus, RemovePlaylistEntryRequest,
+    RenamePlaylistRequest, RepeatMode, RescanMediaRequest, ReverseGear, ReverseGearSourceKind,
+    ReverseGearStatus, SaveInstallSettingsRequest, SearchMediaRequest, SearchMediaResponse,
+    SeekRequest, ServiceVersion, SetDisplayBrightnessRequest, SetExitPasswordRequest,
+    SetRepeatModeRequest, SetReverseGearRequest, SetShuffleModeRequest, SetVolumeRequest,
+    SystemMetrics, ThermalStatus, UiState, VolumeResponse,
 };
 
 #[derive(Debug, Default)]
@@ -645,12 +645,17 @@ impl ConfigServiceImpl {
             .ok_or_else(|| Status::unavailable("installation settings are not available"))
     }
 
-    fn install_settings(&self, access: &InstallSettingsAccess) -> Result<InstallSettings, Status> {
+    fn install_settings(
+        &self,
+        access: &InstallSettingsAccess,
+        texts: install_settings::Texts,
+    ) -> Result<InstallSettings, Status> {
         let cards = audio_output::read_cards(&access.cards_path);
         let shown = install_settings::show(&access.configuration_path, &self.configuration, &cards)
             .map_err(|error| Status::internal(format!("{error:#}")))?;
         Ok(install_settings_to_proto(
             &shown,
+            texts,
             self.configuration.ui_drop_in_error.as_deref(),
             &access
                 .configuration_path
@@ -1081,10 +1086,11 @@ impl ConfigService for ConfigServiceImpl {
 
     async fn get_install_settings(
         &self,
-        _request: Request<Empty>,
+        request: Request<GetInstallSettingsRequest>,
     ) -> Result<Response<InstallSettings>, Status> {
         let access = self.install_access()?;
-        Ok(Response::new(self.install_settings(&access)?))
+        let texts = install_settings::Texts::for_language(&request.into_inner().language);
+        Ok(Response::new(self.install_settings(&access, texts)?))
     }
 
     async fn save_install_settings(
@@ -1093,6 +1099,7 @@ impl ConfigService for ConfigServiceImpl {
     ) -> Result<Response<InstallSettings>, Status> {
         let access = self.install_access()?;
         let request = request.into_inner();
+        let texts = install_settings::Texts::for_language(&request.language);
         let changes: Vec<install_settings::Change> = request
             .changes
             .into_iter()
@@ -1138,12 +1145,13 @@ impl ConfigService for ConfigServiceImpl {
             }
         }
         result?;
-        Ok(Response::new(self.install_settings(&access)?))
+        Ok(Response::new(self.install_settings(&access, texts)?))
     }
 }
 
 fn install_settings_to_proto(
     shown: &[install_settings::Shown],
+    texts: install_settings::Texts,
     ui_drop_in_error: Option<&str>,
     ui_drop_in_path: &Path,
 ) -> InstallSettings {
@@ -1154,9 +1162,9 @@ fn install_settings_to_proto(
             let setting = entry.setting;
             let mut out = InstallSetting {
                 key: setting.key.to_string(),
-                group: setting.group.to_string(),
-                label: setting.label.to_string(),
-                help: setting.help.to_string(),
+                group: texts.group(setting).to_string(),
+                label: texts.label(setting).to_string(),
+                help: texts.help(setting).to_string(),
                 default_value: setting.default.to_string(),
                 optional: setting.optional,
                 value: entry.value.clone(),
@@ -1181,7 +1189,12 @@ fn install_settings_to_proto(
                     InstallSettingKind::Integer
                 }
                 Kind::Choice { choices, .. } => {
-                    out.choices = choices.iter().map(|&pair| choice(pair)).collect();
+                    out.choices = choices
+                        .iter()
+                        .map(|&(value, german)| {
+                            choice((value, texts.choice(setting, value, german)))
+                        })
+                        .collect();
                     InstallSettingKind::Choice
                 }
                 Kind::SoundCard => {
@@ -3262,7 +3275,10 @@ mod tests {
     #[tokio::test]
     async fn install_settings_are_shown_and_saved_behind_the_exit_password() {
         use crate::carnine::install_setting_change::Change;
-        use crate::carnine::{InstallSettingKind, SaveInstallSettingsRequest};
+        use crate::carnine::{
+            GetInstallSettingsRequest, InstallSetting, InstallSettingKind, InstallSettings,
+            SaveInstallSettingsRequest,
+        };
         use crate::{exit_password, install_settings};
         let directory = std::env::temp_dir().join(format!(
             "carnine-service-install-settings-{}",
@@ -3292,10 +3308,67 @@ mod tests {
         );
         let ui = directory.join("config.d").join(config::UI_DROP_IN);
 
-        let shown = ConfigService::get_install_settings(&service, Request::new(Empty {}))
-            .await
-            .unwrap()
-            .into_inner();
+        let get = |language: &str| {
+            ConfigService::get_install_settings(
+                &service,
+                Request::new(GetInstallSettingsRequest {
+                    language: language.to_string(),
+                }),
+            )
+        };
+        let source_texts = |settings: &InstallSettings| {
+            let source = settings
+                .settings
+                .iter()
+                .find(|setting| setting.key == "reverse_gear.source")
+                .unwrap();
+            (
+                source.group.clone(),
+                source.label.clone(),
+                source.choices[1].label.clone(),
+            )
+        };
+        let shown = get("").await.unwrap().into_inner();
+        assert_eq!(
+            source_texts(&shown),
+            (
+                "Rückwärtsgang".into(),
+                "Quelle".into(),
+                "GPIO-Eingang".into()
+            ),
+            "no language: German, as before #217"
+        );
+        let english = get("en-US").await.unwrap().into_inner();
+        assert_eq!(
+            source_texts(&english),
+            ("Reverse gear".into(), "Source".into(), "GPIO input".into())
+        );
+        assert_eq!(
+            source_texts(&get("xx").await.unwrap().into_inner()),
+            source_texts(&shown),
+            "unknown language: German"
+        );
+        for (german, english) in shown.settings.iter().zip(&english.settings) {
+            assert_eq!(german.key, english.key);
+            assert_eq!(german.value, english.value, "{}", german.key);
+            assert!(
+                !english.label.is_empty() && !english.help.is_empty(),
+                "{}",
+                english.key
+            );
+            let values = |setting: &InstallSetting| -> Vec<String> {
+                setting
+                    .choices
+                    .iter()
+                    .map(|choice| choice.value.clone())
+                    .collect()
+            };
+            assert_eq!(
+                values(german),
+                values(english),
+                "choice values never change"
+            );
+        }
         assert_eq!(shown.settings.len(), install_settings::SCHEMA.len());
         assert!(!shown.restart_required);
         assert_eq!(shown.ui_drop_in_error, "");
@@ -3325,6 +3398,7 @@ mod tests {
         let save = |password: &str, changes: Vec<(&str, Option<Change>)>| {
             let request = SaveInstallSettingsRequest {
                 password: password.to_string(),
+                language: "fr".to_string(),
                 changes: changes
                     .into_iter()
                     .map(|(key, change)| crate::carnine::InstallSettingChange {
@@ -3372,6 +3446,15 @@ mod tests {
         .unwrap()
         .into_inner();
         assert!(saved.restart_required);
+        assert_eq!(
+            source_texts(&saved),
+            (
+                "Marche arrière".into(),
+                "Source".into(),
+                "Entrée GPIO".into()
+            ),
+            "the answer to a save is in the language of the request"
+        );
         let rear = saved
             .settings
             .iter()
@@ -3385,9 +3468,12 @@ mod tests {
             .contains("rear_percent = 40"));
 
         let without = ConfigServiceImpl::new(running);
-        let unavailable = ConfigService::get_install_settings(&without, Request::new(Empty {}))
-            .await
-            .unwrap_err();
+        let unavailable = ConfigService::get_install_settings(
+            &without,
+            Request::new(GetInstallSettingsRequest::default()),
+        )
+        .await
+        .unwrap_err();
         assert_eq!(unavailable.code(), tonic::Code::Unavailable);
         let _ = std::fs::remove_dir_all(&directory);
     }

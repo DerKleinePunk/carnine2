@@ -6477,7 +6477,7 @@ class InstallSetting extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearKey() => $_clearField(1);
 
-  /// German heading, label and help text for the page.
+  /// Heading, label and help text for the page, in the requested language.
   @$pb.TagNumber(2)
   $core.String get group => $_getSZ(1);
   @$pb.TagNumber(2)
@@ -6791,14 +6791,74 @@ class InstallSettingChange extends $pb.GeneratedMessage {
   void clearReset() => $_clearField(3);
 }
 
+class GetInstallSettingsRequest extends $pb.GeneratedMessage {
+  factory GetInstallSettingsRequest({
+    $core.String? language,
+  }) {
+    final result = create();
+    if (language != null) result.language = language;
+    return result;
+  }
+
+  GetInstallSettingsRequest._();
+
+  factory GetInstallSettingsRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetInstallSettingsRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetInstallSettingsRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'language')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetInstallSettingsRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetInstallSettingsRequest copyWith(
+          void Function(GetInstallSettingsRequest) updates) =>
+      super.copyWith((message) => updates(message as GetInstallSettingsRequest))
+          as GetInstallSettingsRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetInstallSettingsRequest create() => GetInstallSettingsRequest._();
+  @$core.override
+  GetInstallSettingsRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetInstallSettingsRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetInstallSettingsRequest>(create);
+  static GetInstallSettingsRequest? _defaultInstance;
+
+  /// Language of the interface, e.g. "en" or "en-US" (only the first part
+  /// counts). Empty or unknown: German. Replaces Empty, which sent nothing,
+  /// so older clients still get German.
+  @$pb.TagNumber(1)
+  $core.String get language => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set language($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasLanguage() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearLanguage() => $_clearField(1);
+}
+
 class SaveInstallSettingsRequest extends $pb.GeneratedMessage {
   factory SaveInstallSettingsRequest({
     $core.String? password,
     $core.Iterable<InstallSettingChange>? changes,
+    $core.String? language,
   }) {
     final result = create();
     if (password != null) result.password = password;
     if (changes != null) result.changes.addAll(changes);
+    if (language != null) result.language = language;
     return result;
   }
 
@@ -6818,6 +6878,7 @@ class SaveInstallSettingsRequest extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'password')
     ..pPM<InstallSettingChange>(2, _omitFieldNames ? '' : 'changes',
         subBuilder: InstallSettingChange.create)
+    ..aOS(3, _omitFieldNames ? '' : 'language')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -6852,6 +6913,17 @@ class SaveInstallSettingsRequest extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(2)
   $pb.PbList<InstallSettingChange> get changes => $_getList(1);
+
+  /// Language of the texts in the answer, as in GetInstallSettingsRequest.
+  /// Error messages of the configuration check stay as they are.
+  @$pb.TagNumber(3)
+  $core.String get language => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set language($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasLanguage() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLanguage() => $_clearField(3);
 }
 
 const $core.bool _omitFieldNames =

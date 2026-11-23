@@ -222,6 +222,86 @@ pub const SCHEMA: &[Setting] = &[
     },
 ];
 
+/// The page's texts in the language of the interface (#217).
+///
+/// German is the source and stays in [`SCHEMA`]; the other languages the
+/// frontend offers come from `install_settings_texts.toml`, keyed by the
+/// setting's key and, for headings, the first part of the key. Anything
+/// missing falls back to German, so a gap never shows an empty field.
+#[derive(Debug, Clone, Copy)]
+pub struct Texts {
+    table: Option<&'static toml::Table>,
+}
+
+/// Languages of the interface besides German, as in `install_settings_texts.toml`.
+#[cfg(test)]
+const TEXT_LANGUAGES: &[&str] = &[
+    "en", "fr", "es", "it", "zh", "ja", "nl", "pl", "hu", "tr", "pt", "cs", "sv", "da",
+];
+
+fn text_tables() -> &'static toml::Table {
+    static TABLES: std::sync::OnceLock<toml::Table> = std::sync::OnceLock::new();
+    TABLES.get_or_init(|| {
+        include_str!("install_settings_texts.toml")
+            .parse()
+            .expect("install_settings_texts.toml is valid TOML (checked by a test)")
+    })
+}
+
+impl Texts {
+    /// Texts for a language code as the interface names it (`"en"`,
+    /// `"en-US"`, `"pt_PT"`); German for `"de"`, an empty or unknown code.
+    pub fn for_language(language: &str) -> Self {
+        let primary = language
+            .split(['-', '_'])
+            .next()
+            .unwrap_or_default()
+            .trim()
+            .to_ascii_lowercase();
+        let table = text_tables().get(&primary).and_then(toml::Value::as_table);
+        Texts { table }
+    }
+
+    /// Whether these are the German texts of the schema.
+    #[cfg(test)]
+    pub fn is_german(&self) -> bool {
+        self.table.is_none()
+    }
+
+    fn entry(&self, key: &str) -> Option<&'static toml::Table> {
+        self.table?.get(key)?.as_table()
+    }
+
+    fn text(&self, key: &str, field: &str) -> Option<&'static str> {
+        self.entry(key)?
+            .get(field)?
+            .as_str()
+            .filter(|text| !text.is_empty())
+    }
+
+    pub fn group(&self, setting: &Setting) -> &'static str {
+        let section = setting.key.split('.').next().unwrap_or_default();
+        self.text("groups", section).unwrap_or(setting.group)
+    }
+
+    pub fn label(&self, setting: &Setting) -> &'static str {
+        self.text(setting.key, "label").unwrap_or(setting.label)
+    }
+
+    pub fn help(&self, setting: &Setting) -> &'static str {
+        self.text(setting.key, "help").unwrap_or(setting.help)
+    }
+
+    /// Label of one of the setting's choices; `german` is its label in [`SCHEMA`].
+    pub fn choice(&self, setting: &Setting, value: &str, german: &'static str) -> &'static str {
+        self.entry(setting.key)
+            .and_then(|entry| entry.get("choices")?.as_table())
+            .and_then(|choices| choices.get(value)?.as_str())
+            .filter(|text| !text.is_empty())
+            .unwrap_or(german)
+    }
+}
+
 pub fn find(key: &str) -> Option<&'static Setting> {
     SCHEMA.iter().find(|setting| setting.key == key)
 }
@@ -756,5 +836,116 @@ mod tests {
                 assert!(entry.cards.is_empty(), "{}", entry.setting.key);
             }
         }
+    }
+
+    #[test]
+    fn every_language_has_every_text_of_the_page() {
+        let tables = text_tables();
+        let mut languages: Vec<&str> = tables.keys().map(String::as_str).collect();
+        languages.sort_unstable();
+        let mut expected = TEXT_LANGUAGES.to_vec();
+        expected.sort_unstable();
+        assert_eq!(
+            languages, expected,
+            "languages in install_settings_texts.toml"
+        );
+        for &language in TEXT_LANGUAGES {
+            let texts = Texts::for_language(language);
+            assert!(!texts.is_german(), "{language}");
+            for setting in SCHEMA {
+                let section = setting.key.split('.').next().unwrap();
+                assert!(
+                    texts.text("groups", section).is_some(),
+                    "{language}: group {section}"
+                );
+                assert!(
+                    texts.text(setting.key, "label").is_some(),
+                    "{language}: {} label",
+                    setting.key
+                );
+                assert!(
+                    texts.text(setting.key, "help").is_some(),
+                    "{language}: {} help",
+                    setting.key
+                );
+                if let Kind::Choice { choices, .. } = setting.kind {
+                    for (value, german) in choices {
+                        let shown = texts.choice(setting, value, "");
+                        assert!(
+                            !shown.is_empty(),
+                            "{language}: {} choice {value} ({german})",
+                            setting.key
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn the_texts_file_names_nothing_outside_the_schema() {
+        for (language, table) in text_tables() {
+            let table = table.as_table().unwrap();
+            for (key, entry) in table {
+                let entry = entry
+                    .as_table()
+                    .unwrap_or_else(|| panic!("{language}.{key}"));
+                if key == "groups" {
+                    for section in entry.keys() {
+                        assert!(
+                            SCHEMA
+                                .iter()
+                                .any(|setting| setting.key.starts_with(&format!("{section}."))),
+                            "{language}: group {section} is not in the schema"
+                        );
+                    }
+                    continue;
+                }
+                let setting =
+                    find(key).unwrap_or_else(|| panic!("{language}: {key} is not in the schema"));
+                for (field, value) in entry {
+                    match field.as_str() {
+                        "label" | "help" => assert!(value.is_str(), "{language}: {key}.{field}"),
+                        "choices" => {
+                            let Kind::Choice { choices, .. } = setting.kind else {
+                                panic!("{language}: {key} has no choices");
+                            };
+                            for value in value.as_table().unwrap().keys() {
+                                assert!(
+                                    choices.iter().any(|(known, _)| known == value),
+                                    "{language}: {key} has no choice {value}"
+                                );
+                            }
+                        }
+                        other => panic!("{language}: {key}.{other} is not a text of the page"),
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn unknown_or_empty_languages_get_german() {
+        for language in ["", "de", "de-DE", "DE_at", "xx", "klingon", "-"] {
+            let texts = Texts::for_language(language);
+            assert!(texts.is_german(), "{language:?}");
+            let source = find("reverse_gear.source").unwrap();
+            assert_eq!(texts.label(source), "Quelle");
+            assert_eq!(texts.group(source), "Rückwärtsgang");
+            assert_eq!(texts.choice(source, "gpio", "GPIO-Eingang"), "GPIO-Eingang");
+        }
+    }
+
+    #[test]
+    fn region_and_case_of_the_language_do_not_matter() {
+        let source = find("reverse_gear.source").unwrap();
+        for language in ["en", "en-US", "EN_gb", " en"] {
+            let texts = Texts::for_language(language);
+            assert_eq!(texts.group(source), "Reverse gear", "{language:?}");
+            assert_eq!(texts.label(source), "Source", "{language:?}");
+            assert_eq!(texts.choice(source, "gpio", "GPIO-Eingang"), "GPIO input");
+        }
+        let channels = find("audio.channels").unwrap();
+        assert_eq!(Texts::for_language("pt_PT").label(channels), "Canais");
     }
 }
