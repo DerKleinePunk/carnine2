@@ -399,7 +399,7 @@ class CarnineGrpcService
     final channel = _channelFactory();
     try {
       final settings = await ConfigServiceClient(channel).getInstallSettings(
-        Empty(),
+        GetInstallSettingsRequest(),
         options: CallOptions(timeout: _installCallTimeout),
       );
       return installValuesFrom(settings);

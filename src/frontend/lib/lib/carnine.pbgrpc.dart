@@ -1016,9 +1016,10 @@ class ConfigServiceClient extends $grpc.Client {
 
   /// Installation values of the expert page (#138): the schema the page
   /// builds its fields from, with each value, where it comes from and
-  /// whether it waits for a restart. Secrets are never part of it.
+  /// whether it waits for a restart. Secrets are never part of it. Texts
+  /// (group, label, help, choice labels) in the requested language (#217).
   $grpc.ResponseFuture<$0.InstallSettings> getInstallSettings(
-    $0.Empty request, {
+    $0.GetInstallSettingsRequest request, {
     $grpc.CallOptions? options,
   }) {
     return $createUnaryCall(_$getInstallSettings, request, options: options);
@@ -1045,9 +1046,9 @@ class ConfigServiceClient extends $grpc.Client {
           ($0.Empty value) => value.writeToBuffer(),
           $0.Configuration.fromBuffer);
   static final _$getInstallSettings =
-      $grpc.ClientMethod<$0.Empty, $0.InstallSettings>(
+      $grpc.ClientMethod<$0.GetInstallSettingsRequest, $0.InstallSettings>(
           '/carnine.ConfigService/GetInstallSettings',
-          ($0.Empty value) => value.writeToBuffer(),
+          ($0.GetInstallSettingsRequest value) => value.writeToBuffer(),
           $0.InstallSettings.fromBuffer);
   static final _$saveInstallSettings =
       $grpc.ClientMethod<$0.SaveInstallSettingsRequest, $0.InstallSettings>(
@@ -1068,13 +1069,15 @@ abstract class ConfigServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($0.Configuration value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.Empty, $0.InstallSettings>(
-        'GetInstallSettings',
-        getInstallSettings_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
-        ($0.InstallSettings value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.GetInstallSettingsRequest, $0.InstallSettings>(
+            'GetInstallSettings',
+            getInstallSettings_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.GetInstallSettingsRequest.fromBuffer(value),
+            ($0.InstallSettings value) => value.writeToBuffer()));
     $addMethod(
         $grpc.ServiceMethod<$0.SaveInstallSettingsRequest, $0.InstallSettings>(
             'SaveInstallSettings',
@@ -1095,12 +1098,13 @@ abstract class ConfigServiceBase extends $grpc.Service {
       $grpc.ServiceCall call, $0.Empty request);
 
   $async.Future<$0.InstallSettings> getInstallSettings_Pre(
-      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+      $grpc.ServiceCall $call,
+      $async.Future<$0.GetInstallSettingsRequest> $request) async {
     return getInstallSettings($call, await $request);
   }
 
   $async.Future<$0.InstallSettings> getInstallSettings(
-      $grpc.ServiceCall call, $0.Empty request);
+      $grpc.ServiceCall call, $0.GetInstallSettingsRequest request);
 
   $async.Future<$0.InstallSettings> saveInstallSettings_Pre(
       $grpc.ServiceCall $call,

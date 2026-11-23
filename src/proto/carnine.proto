@@ -88,8 +88,9 @@ service ConfigService {
   rpc GetConfiguration (Empty) returns (Configuration);
   // Installation values of the expert page (#138): the schema the page
   // builds its fields from, with each value, where it comes from and
-  // whether it waits for a restart. Secrets are never part of it.
-  rpc GetInstallSettings (Empty) returns (InstallSettings);
+  // whether it waits for a restart. Secrets are never part of it. Texts
+  // (group, label, help, choice labels) in the requested language (#217).
+  rpc GetInstallSettings (GetInstallSettingsRequest) returns (InstallSettings);
   // Writes the changes to config.d/99-ui.toml after checking the whole
   // configuration with them; the previous file is kept as 99-ui.toml.bak.
   // Values take effect when the backend starts again. Needs the exit
@@ -957,7 +958,7 @@ message InstallSettingChoice {
 message InstallSetting {
   // Dotted key as in the configuration file, e.g. "reverse_gear.gpio_line".
   string key = 1;
-  // German heading, label and help text for the page.
+  // Heading, label and help text for the page, in the requested language.
   string group = 2;
   string label = 3;
   string help = 4;
@@ -1001,7 +1002,17 @@ message InstallSettingChange {
   }
 }
 
+message GetInstallSettingsRequest {
+  // Language of the interface, e.g. "en" or "en-US" (only the first part
+  // counts). Empty or unknown: German. Replaces Empty, which sent nothing,
+  // so older clients still get German.
+  string language = 1;
+}
+
 message SaveInstallSettingsRequest {
   string password = 1;
   repeated InstallSettingChange changes = 2;
+  // Language of the texts in the answer, as in GetInstallSettingsRequest.
+  // Error messages of the configuration check stay as they are.
+  string language = 3;
 }
