@@ -151,12 +151,33 @@ ein, ersetzt das den alten Eintrag, etwa nach einem neuen Passwort.
 |---|---|
 | `sudo carnine-wlan --ssid <name>` | dasselbe ohne Suche, auch für ein verstecktes Netz, das in der Liste fehlt |
 | `sudo carnine-wlan --country AT` | anderes Land für die Funkkanäle, zwei Großbuchstaben (Vorgabe `DE`) |
+| `sudo carnine-wlan --band 5` | speichert das Netz nur für **5 GHz**, siehe unten |
+| `sudo carnine-wlan --interface <name>` | nimmt dieses WLAN-Gerät, z. B. `wlan1` für einen USB-Stick neben dem eingebauten WLAN |
 | `sudo carnine-wlan --status` | zeigt Netz, Zustand und Adresse |
 | `sudo carnine-wlan --off` | schaltet WLAN aus, auch über Neustarts. Die Netze bleiben gespeichert |
 | `sudo carnine-wlan --on` | schaltet es mit den gespeicherten Netzen wieder ein, ohne Abfrage |
 
 Findet die Suche nichts, meldet er „kein Netz gefunden“ und nennt `--ssid`.
 Hat das Gerät gar kein WLAN, steht dort „kein WLAN-Gerät gefunden“.
+
+**Ab der Version nach 0.22.0:**
+
+- **Band in der Liste:** Hinter jedem Netz steht, wo es zu sehen ist, z. B.
+  „Garage (2,4 GHz)“, „Handy (5 GHz)“ oder „(2,4+5 GHz)“. `--status` zeigt
+  auch die Frequenz.
+- **`--band 5`:** Das Netz wird nur für 5 GHz gespeichert. Das braucht ein
+  WLAN-Stick, der auf 2,4 GHz schlecht funkt. Dann muss auch der Hotspot am
+  Handy auf 5 GHz laufen.
+- **Netz nur auf 2,4 GHz:** Ist es mit `--band 5` nur auf 2,4 GHz zu sehen,
+  bricht der Befehl vor der Passwortfrage ab und speichert nichts. Er meldet:
+  „… ist nur auf 2,4 GHz zu sehen, dieses Gerät nimmt nur 5 GHz (BAND=5).
+  Hotspot am Handy auf 5 GHz stellen und noch einmal aufrufen, oder einmalig
+  mit --band any.“
+- **Vorgabe:** Ohne `--band` gilt `BAND=` aus `/etc/carnine/wlan.conf`.
+  Fehlt sie, gilt `any`, alle Bänder wie bisher. Das Image setzt
+  `BAND=` noch nicht.
+- **Band wechseln:** Das Band gilt ab dem Einrichten des Netzes. Wer es
+  wechseln will, richtet das Netz noch einmal ein.
 
 ## Kartendaten installieren
 

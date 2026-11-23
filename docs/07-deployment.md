@@ -1152,7 +1152,25 @@ measurements: [26 – Spoken Turn Announcements](26-turn-announcements.md).
     since the release after 0.9.5 `sudo carnine-wlan` unblocks it, scans,
     and stores the network for `wpa_supplicant@wlan0`
     (`/etc/wpa_supplicant/wpa_supplicant-wlan0.conf`, root only); `--off` and
-    `--on` switch it off and back on across reboots
+    `--on` switch it off and back on across reboots.
+    **Band** (since the release after 0.22.0, #227): the scan list shows the
+    band each network was seen on (2,4 / 5 / 2,4+5 GHz), `--status` also the
+    frequency. `--band 5` stores the network with a `freq_list` of every
+    5 GHz channel (36–177; wpa_supplicant drops what the country or the
+    adapter does not allow); `--band any` stores it as before. Without the
+    option the default comes from `BAND=` in `/etc/carnine/wlan.conf` (only
+    that line is read, the file is not sourced), else `any`. The band is
+    fixed when a network is stored; to change it, set the network up again.
+    With `BAND=5`, a network seen only on 2.4 GHz is refused before the
+    password question, with the hint to set the phone's hotspot to 5 GHz;
+    nothing is stored. (With `--ssid` there is no scan, so no such check.)
+    Why: the USB stick RTL8822BU is poor on 2.4 GHz and good on 5 GHz
+    (jeep-pi, 2026-11-23); in the car the phone's hotspot runs on 5 GHz.
+    The image does **not** ship `BAND=5` yet; that comes with the stick in
+    #225. `--interface <name>` picks a WLAN device other than the first
+    `wl*` one, e.g. a USB stick next to the built-in WLAN; the files and the
+    service then carry that name (`wpa_supplicant-<name>.conf`,
+    `wpa_supplicant@<name>`)
   • **Updates.** The image build pulls Debian trixie fresh, adds the
     Raspberry Pi archive, `trixie-security` and `trixie-updates`, and runs
     `apt-get dist-upgrade`, so every Debian and Raspberry Pi package is at the
