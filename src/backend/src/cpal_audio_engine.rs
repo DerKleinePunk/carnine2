@@ -131,6 +131,13 @@ impl CpalAudioEngine {
     }
 }
 
+/// Whether a failed `pause` only means the device cannot pause. cpal 0.16
+/// ignored that; 0.18 reports it (`UnsupportedOperation`), e.g. for the Pi's
+/// headphone jack (bcm2835), where the shutdown pause then has nothing to do.
+fn pause_unsupported(error: &cpal::Error) -> bool {
+    error.kind() == cpal::ErrorKind::UnsupportedOperation
+}
+
 /// Length of one ALSA period. cpal rings two periods, so 50 ms gives the
 /// 100 ms buffer cpal 0.16 asked ALSA for (25 ms periods, 100 ms buffer).
 /// cpal 0.18 keeps the device's period with only two periods by default,
@@ -339,10 +346,13 @@ impl AudioEngine for CpalAudioEngine {
         let Some(stream) = stream.as_ref() else {
             return Ok(());
         };
-        stream
-            .pause()
-            .context("failed to pause cpal output stream")?;
-        info!("cpal audio output stream paused for shutdown");
+        match stream.pause() {
+            Ok(()) => info!("cpal audio output stream paused for shutdown"),
+            Err(error) if pause_unsupported(&error) => {
+                debug!(%error, "the output device cannot pause; left running for shutdown");
+            }
+            Err(error) => return Err(error).context("failed to pause cpal output stream"),
+        }
         Ok(())
     }
 
@@ -624,6 +634,15 @@ pub(crate) fn engine_with_null_output(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_device_that_cannot_pause_is_no_shutdown_error() {
+        let unsupported =
+            cpal::Error::with_message(cpal::ErrorKind::UnsupportedOperation, "no pause");
+        assert!(super::pause_unsupported(&unsupported));
+        let lost = cpal::Error::new(cpal::ErrorKind::DeviceNotAvailable);
+        assert!(!super::pause_unsupported(&lost));
+    }
+
     #[test]
     fn the_period_is_fifty_milliseconds_within_the_device_range() {
         let range = cpal::SupportedBufferSize::Range {
