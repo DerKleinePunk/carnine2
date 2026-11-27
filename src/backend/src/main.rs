@@ -37,6 +37,7 @@ mod cpal_audio_engine;
 mod database;
 mod exit_password;
 mod install_settings;
+mod licenses;
 mod media_player;
 mod navigation;
 mod power_supply;
@@ -63,14 +64,15 @@ use carnine::{
     DeletePlaylistRequest, DisplayBrightness, Empty, ExitPasswordCheck, ExitPasswordRequest,
     GetCoverArtRequest, GetCoverArtResponse, GetInstallSettingsRequest, GetPlaylistRequest,
     ImportMusicVolumeRequest, InstallSetting, InstallSettingChoice, InstallSettingKind,
-    InstallSettings, LibraryEvent, LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest,
-    PlayQueueEntryRequest, PlayRequest, PlayerEvent, PlayerEventType, PlayerState, Playlist,
-    PlaylistEntry, PowerSupplyState, PowerSupplyStatus, RemovePlaylistEntryRequest,
-    RenamePlaylistRequest, RepeatMode, RescanMediaRequest, ReverseGear, ReverseGearSourceKind,
-    ReverseGearStatus, SaveInstallSettingsRequest, SearchMediaRequest, SearchMediaResponse,
-    SeekRequest, ServiceVersion, SetDisplayBrightnessRequest, SetExitPasswordRequest,
-    SetRepeatModeRequest, SetReverseGearRequest, SetShuffleModeRequest, SetVolumeRequest,
-    SystemMetrics, ThermalStatus, UiState, VolumeResponse,
+    InstallSettings, LibraryEvent, LibraryEventType, LicenseDocument, LicenseList,
+    ListPlaylistsResponse, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PlayerEvent,
+    PlayerEventType, PlayerState, Playlist, PlaylistEntry, PowerSupplyServiceModeRequest,
+    PowerSupplyState, PowerSupplyStatus, RemovePlaylistEntryRequest, RenamePlaylistRequest,
+    RepeatMode, RescanMediaRequest, ReverseGear, ReverseGearSourceKind, ReverseGearStatus,
+    SaveInstallSettingsRequest, SearchMediaRequest, SearchMediaResponse, SeekRequest,
+    ServiceVersion, SetDisplayBrightnessRequest, SetExitPasswordRequest, SetRepeatModeRequest,
+    SetReverseGearRequest, SetShuffleModeRequest, SetVolumeRequest, SystemMetrics, ThermalStatus,
+    UiState, VolumeResponse,
 };
 
 #[derive(Debug, Default)]
@@ -82,6 +84,8 @@ pub struct SystemServiceImpl {
     /// Holds the display backlight among its controls, if one is configured.
     controls: Option<Arc<controls::ControlHub>>,
     reverse_gear: reverse_gear::ReverseGearHub,
+    /// Where GetLicenses reads the licence texts ([`licenses::DOC_DIR`]).
+    license_dir: PathBuf,
 }
 
 /// Page names are identifiers like "maps"; anything longer is not one.
@@ -107,7 +111,14 @@ impl SystemServiceImpl {
             exit_password: Arc::default(),
             controls: None,
             reverse_gear: reverse_gear::ReverseGearHub::default(),
+            license_dir: PathBuf::from(licenses::DOC_DIR),
         }
+    }
+
+    #[cfg(test)]
+    pub fn with_license_dir(mut self, dir: PathBuf) -> Self {
+        self.license_dir = dir;
+        self
     }
 
     pub fn with_reverse_gear(mut self, hub: reverse_gear::ReverseGearHub) -> Self {
@@ -192,6 +203,7 @@ fn power_supply_to_proto(status: &power_supply::PowerSupplyStatus) -> PowerSuppl
         input_voltage_volts: status.voltage_tenths.map(|tenths| f64::from(tenths) / 10.0),
         alive_count: status.alive.map(u32::from),
         firmware_version: status.firmware_version.map(|version| version.to_string()),
+        service_mode: status.service_mode,
     }
 }
 
@@ -296,6 +308,38 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
         let updates = tokio_stream::wrappers::WatchStream::new(self.power_supply.subscribe())
             .map(|status| Ok(power_supply_to_proto(&status)));
         Ok(Response::new(Box::pin(updates)))
+    }
+
+    async fn get_licenses(
+        &self,
+        _request: Request<Empty>,
+    ) -> Result<Response<LicenseList>, Status> {
+        let dir = self.license_dir.clone();
+        let documents = tokio::task::spawn_blocking(move || licenses::load(&dir))
+            .await
+            .map_err(|error| Status::internal(format!("reading the licences failed: {error}")))?;
+        Ok(Response::new(LicenseList {
+            documents: documents
+                .into_iter()
+                .map(|document| LicenseDocument {
+                    package: document.package,
+                    title: document.title,
+                    text: document.text,
+                })
+                .collect(),
+        }))
+    }
+
+    async fn set_power_supply_service_mode(
+        &self,
+        request: Request<PowerSupplyServiceModeRequest>,
+    ) -> Result<Response<PowerSupplyStatus>, Status> {
+        let enabled = request.into_inner().enabled;
+        info!(enabled, "power supply service mode set by a client");
+        self.power_supply.set_service_mode(enabled);
+        Ok(Response::new(power_supply_to_proto(
+            &self.power_supply.current(),
+        )))
     }
 
     async fn get_ui_state(&self, _request: Request<Empty>) -> Result<Response<UiState>, Status> {
@@ -2359,6 +2403,23 @@ async fn run() -> Result<()> {
                 Ok(result) => result?,
                 Err(_) => warn!("gRPC shutdown grace period expired"),
             }
+            // As late as possible: from `$` on the supply keeps the power
+            // for 15 s, without it the watchdog cuts it about 8 s after the
+            // last sign of life.
+            if power_supply_hub.current().configured {
+                let hub = power_supply_hub.clone();
+                let told = tokio::task::spawn_blocking(move || match power_supply::system_stop() {
+                    Some(power_supply::SystemStop::PowerOff) => hub.announce_power_off(),
+                    Some(power_supply::SystemStop::Reboot) => {
+                        info!("system reboots: the power supply is not told")
+                    }
+                    None => {}
+                })
+                .await;
+                if let Err(error) = told {
+                    warn!(%error, "telling the power supply about the power-off failed");
+                }
+            }
         }
     }
 
@@ -3053,6 +3114,41 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn system_service_hands_out_the_installed_licence_texts() {
+        let dir = std::env::temp_dir().join(format!("carnine-licences-rpc-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("carnine-backend")).unwrap();
+        std::fs::write(dir.join("carnine-backend/copyright"), "GPL-3.0-only").unwrap();
+        let service = SystemServiceImpl::new(
+            Arc::new(system_metrics::SystemMetricsHandle::new()),
+            PathBuf::new(),
+            crate::power_supply::PowerSupplyHub::new(false),
+        )
+        .with_license_dir(dir.clone());
+        let list = SystemService::get_licenses(&service, Request::new(Empty {}))
+            .await
+            .expect("licences answer")
+            .into_inner();
+        assert_eq!(list.documents.len(), 1);
+        assert_eq!(list.documents[0].package, "carnine-backend");
+        assert_eq!(list.documents[0].title, "CarNine Backend");
+        assert_eq!(list.documents[0].text, "GPL-3.0-only");
+
+        let empty = SystemServiceImpl::new(
+            Arc::new(system_metrics::SystemMetricsHandle::new()),
+            PathBuf::new(),
+            crate::power_supply::PowerSupplyHub::new(false),
+        )
+        .with_license_dir(dir.join("missing"));
+        let none = SystemService::get_licenses(&empty, Request::new(Empty {}))
+            .await
+            .expect("no licences installed is no error")
+            .into_inner();
+        assert!(none.documents.is_empty());
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[tokio::test]
     async fn system_service_reports_the_power_supply() {
         let hub = crate::power_supply::PowerSupplyHub::new(false);
         let service = SystemServiceImpl::new(
@@ -3087,6 +3183,7 @@ mod tests {
                 minor: 4,
                 patch: 1,
             }),
+            service_mode: false,
         });
         let changed = stream.next().await.expect("the change").unwrap();
         assert!(changed.configured && changed.connected);
@@ -3095,6 +3192,29 @@ mod tests {
         assert_eq!(changed.input_voltage_volts, Some(13.4));
         assert_eq!(changed.alive_count, Some(2));
         assert_eq!(changed.firmware_version.as_deref(), Some("V2.4.1"));
+        assert!(!changed.service_mode);
+    }
+
+    #[tokio::test]
+    async fn system_service_sets_the_power_supply_service_mode() {
+        let hub = crate::power_supply::PowerSupplyHub::new(true);
+        let service = SystemServiceImpl::new(
+            Arc::new(system_metrics::SystemMetricsHandle::new()),
+            PathBuf::new(),
+            hub.clone(),
+        );
+        let set = |enabled| {
+            SystemService::set_power_supply_service_mode(
+                &service,
+                Request::new(crate::PowerSupplyServiceModeRequest { enabled }),
+            )
+        };
+        let on = set(true).await.expect("service mode on").into_inner();
+        assert!(on.configured && on.service_mode);
+        assert!(hub.current().service_mode);
+        let off = set(false).await.expect("service mode off").into_inner();
+        assert!(!off.service_mode);
+        assert!(!hub.current().service_mode);
     }
 
     #[tokio::test]

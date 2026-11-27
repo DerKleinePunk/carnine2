@@ -4,7 +4,7 @@
 
 Die Seite **Kamera** zeigt das Bild einer Rückfahrkamera.
 
-![Seite Kamera mit dem Bild einer analogen Rückfahrkamera am Grabber, darin die farbigen Hilfslinien der Kamera](bilder/cam-grabber.png)
+![Seite Kamera mit dem Bild einer analogen Rückfahrkamera am Grabber: ein Zimmer mit Fenster, Fahne und Regal in Weitwinkel, darin die farbigen Hilfslinien der Kamera; links in der Leiste ist Kamera gewählt](bilder/cam-grabber.png)
 
 *Analoge Rückfahrkamera am Grabber, auf dem Test-Pi (Pi 4). Die Hilfslinien
 kommen aus der Kamera selbst.*
@@ -37,6 +37,12 @@ schaltet die Oberfläche selbst um (#191):
   eingelegt ist.
 - Ohne eingerichtetes Signal passiert nichts, und es gibt keinen Hinweis.
 
+*Geprüft* auf carnine-pc (Pi 4, 23.11.2026, Stand 214000f, also der Code
+von 0.23.0 für diese Seite; Quelle GPIO 26 über `40-reverse-gear.toml`): Lag
+GPIO 26 auf Masse (Gang eingelegt), stand nach dem Start sofort die Seite
+**Kamera** da. Beim Ziehen der Brücke meldete das Backend `gear=Out`, und die
+Oberfläche sprang sofort zurück.
+
 ## Welche Kameras gehen
 
 | Kamera | Anschluss | Bild |
@@ -63,6 +69,11 @@ nehmen, die unter Linux ohne eigenen Treiber läuft („UVC“ im Datenblatt).
 Grabber und USB-Kamera **direkt an den Pi** stecken, nicht an einen
 USB-Hub, an dem auch die SSD hängt. Auf dem Test-Pi hat der Grabber dort
 den USB-Controller zum Stehen gebracht.
+
+Die Kamera **nur bei ausgeschaltetem Gerät** anstecken oder umstecken. Beim
+Einstecken im laufenden Betrieb ist auf dem Test-Pi der ganze USB-Teil
+hängen geblieben, samt Touch. Danach half nur, den Strom aus- und
+wieder einzuschalten.
 
 ![Seite Kamera mit dem Bild einer USB-Kamera: Kabel, Klebeband und ein Display, auf dem die Seite Kamera noch einmal zu sehen ist](bilder/cam-usb-kamera.png)
 
