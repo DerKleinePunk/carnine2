@@ -47,7 +47,7 @@ fn main() -> Result<()> {
         .context("failed to start cpal output stream")?;
     println!(
         "cpal decoder stream started: {} Hz, {} output channels, {:?}",
-        supported.sample_rate().0,
+        supported.sample_rate(),
         channels,
         supported.sample_format()
     );
@@ -155,7 +155,7 @@ where
     T: cpal::SizedSample + cpal::FromSample<f32>,
 {
     let stream = device.build_output_stream(
-        config,
+        *config,
         move |output: &mut [T], _info| {
             for frame in output.chunks_mut(channels) {
                 let left = consumer.try_pop().unwrap_or(0.0);

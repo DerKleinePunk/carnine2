@@ -39,7 +39,7 @@ fn main() -> Result<()> {
     stream.play().context("failed to start cpal mixer stream")?;
     println!(
         "cpal mixer stream started: {} Hz, {} channels, {:?}; notification at {}s",
-        supported.sample_rate().0,
+        supported.sample_rate(),
         supported.channels(),
         supported.sample_format(),
         NOTIFICATION_START_SECONDS
@@ -56,7 +56,7 @@ fn select_output_device(host: &cpal::Host, requested: Option<&str>) -> Result<cp
         .context("failed to enumerate output devices")?;
     let mut first_device = None;
     for device in devices {
-        let name = device.name().unwrap_or_else(|_| "<unnamed>".to_string());
+        let name = device.to_string();
         println!("cpal output device: {name}");
         if first_device.is_none() {
             first_device = Some(device.clone());
@@ -100,7 +100,7 @@ where
     T: cpal::SizedSample + cpal::FromSample<f32>,
 {
     Ok(device.build_output_stream(
-        config,
+        *config,
         move |output: &mut [T], _info| {
             let mut mixed_frame = [0.0_f32; CHANNELS];
             for frame in output.chunks_mut(CHANNELS) {

@@ -56,7 +56,7 @@ name = "cpal_engine_adapter_spike"
 [dependencies]
 anyhow = "1.0"
 chrono = "0.4"
-cpal = "0.16"
+cpal = "0.18"
 futures-util = "0.3"
 # statvfs for the disk usage in system_metrics; std exposes no free-space API.
 libc = "0.2"

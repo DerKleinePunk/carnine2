@@ -60,7 +60,7 @@ fn main() -> Result<()> {
         .context("failed to start cpal source mixer stream")?;
     println!(
         "cpal source mixer stream started: {} Hz, {} channels, {:?}",
-        supported.sample_rate().0,
+        supported.sample_rate(),
         supported.channels(),
         supported.sample_format()
     );
@@ -90,7 +90,7 @@ where
     T: cpal::SizedSample + cpal::FromSample<f32>,
 {
     Ok(device.build_output_stream(
-        config,
+        *config,
         move |output: &mut [T], _info| {
             for command in command_receiver.try_iter() {
                 match command {
