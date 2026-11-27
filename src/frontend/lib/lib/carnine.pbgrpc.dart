@@ -1195,6 +1195,18 @@ class SystemServiceClient extends $grpc.Client {
         options: options);
   }
 
+  /// The licence texts of what the image ships (#123): source offer, the
+  /// CarNine packages' copyright files and the lists of the libraries in
+  /// them, read from /usr/share/doc. Missing ones are left out, so on a
+  /// development machine the list may be empty. The UI's own Dart and engine
+  /// licences are not in it (NOTICES.Z).
+  $grpc.ResponseFuture<$0.LicenseList> getLicenses(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getLicenses, request, options: options);
+  }
+
   /// What the UI keeps across restarts, stored in the media database next to
   /// the resume state. Unknown values are the UI's to ignore.
   $grpc.ResponseFuture<$0.UiState> getUiState(
@@ -1321,6 +1333,10 @@ class SystemServiceClient extends $grpc.Client {
           '/carnine.SystemService/StreamPowerSupplyStatus',
           ($0.Empty value) => value.writeToBuffer(),
           $0.PowerSupplyStatus.fromBuffer);
+  static final _$getLicenses = $grpc.ClientMethod<$0.Empty, $0.LicenseList>(
+      '/carnine.SystemService/GetLicenses',
+      ($0.Empty value) => value.writeToBuffer(),
+      $0.LicenseList.fromBuffer);
   static final _$getUiState = $grpc.ClientMethod<$0.Empty, $0.UiState>(
       '/carnine.SystemService/GetUiState',
       ($0.Empty value) => value.writeToBuffer(),
@@ -1421,6 +1437,13 @@ abstract class SystemServiceBase extends $grpc.Service {
         true,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($0.PowerSupplyStatus value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.LicenseList>(
+        'GetLicenses',
+        getLicenses_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.LicenseList value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.Empty, $0.UiState>(
         'GetUiState',
         getUiState_Pre,
@@ -1548,6 +1571,14 @@ abstract class SystemServiceBase extends $grpc.Service {
   }
 
   $async.Stream<$0.PowerSupplyStatus> streamPowerSupplyStatus(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.LicenseList> getLicenses_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return getLicenses($call, await $request);
+  }
+
+  $async.Future<$0.LicenseList> getLicenses(
       $grpc.ServiceCall call, $0.Empty request);
 
   $async.Future<$0.UiState> getUiState_Pre(
