@@ -37,6 +37,7 @@ mod cpal_audio_engine;
 mod database;
 mod exit_password;
 mod install_settings;
+mod licenses;
 mod media_player;
 mod navigation;
 mod power_supply;
@@ -63,14 +64,15 @@ use carnine::{
     DeletePlaylistRequest, DisplayBrightness, Empty, ExitPasswordCheck, ExitPasswordRequest,
     GetCoverArtRequest, GetCoverArtResponse, GetInstallSettingsRequest, GetPlaylistRequest,
     ImportMusicVolumeRequest, InstallSetting, InstallSettingChoice, InstallSettingKind,
-    InstallSettings, LibraryEvent, LibraryEventType, ListPlaylistsResponse, PlayPlaylistRequest,
-    PlayQueueEntryRequest, PlayRequest, PlayerEvent, PlayerEventType, PlayerState, Playlist,
-    PlaylistEntry, PowerSupplyServiceModeRequest, PowerSupplyState, PowerSupplyStatus,
-    RemovePlaylistEntryRequest, RenamePlaylistRequest, RepeatMode, RescanMediaRequest, ReverseGear,
-    ReverseGearSourceKind, ReverseGearStatus, SaveInstallSettingsRequest, SearchMediaRequest,
-    SearchMediaResponse, SeekRequest, ServiceVersion, SetDisplayBrightnessRequest,
-    SetExitPasswordRequest, SetRepeatModeRequest, SetReverseGearRequest, SetShuffleModeRequest,
-    SetVolumeRequest, SystemMetrics, ThermalStatus, UiState, VolumeResponse,
+    InstallSettings, LibraryEvent, LibraryEventType, LicenseDocument, LicenseList,
+    ListPlaylistsResponse, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PlayerEvent,
+    PlayerEventType, PlayerState, Playlist, PlaylistEntry, PowerSupplyServiceModeRequest,
+    PowerSupplyState, PowerSupplyStatus, RemovePlaylistEntryRequest, RenamePlaylistRequest,
+    RepeatMode, RescanMediaRequest, ReverseGear, ReverseGearSourceKind, ReverseGearStatus,
+    SaveInstallSettingsRequest, SearchMediaRequest, SearchMediaResponse, SeekRequest,
+    ServiceVersion, SetDisplayBrightnessRequest, SetExitPasswordRequest, SetRepeatModeRequest,
+    SetReverseGearRequest, SetShuffleModeRequest, SetVolumeRequest, SystemMetrics, ThermalStatus,
+    UiState, VolumeResponse,
 };
 
 #[derive(Debug, Default)]
@@ -82,6 +84,8 @@ pub struct SystemServiceImpl {
     /// Holds the display backlight among its controls, if one is configured.
     controls: Option<Arc<controls::ControlHub>>,
     reverse_gear: reverse_gear::ReverseGearHub,
+    /// Where GetLicenses reads the licence texts ([`licenses::DOC_DIR`]).
+    license_dir: PathBuf,
 }
 
 /// Page names are identifiers like "maps"; anything longer is not one.
@@ -107,7 +111,14 @@ impl SystemServiceImpl {
             exit_password: Arc::default(),
             controls: None,
             reverse_gear: reverse_gear::ReverseGearHub::default(),
+            license_dir: PathBuf::from(licenses::DOC_DIR),
         }
+    }
+
+    #[cfg(test)]
+    pub fn with_license_dir(mut self, dir: PathBuf) -> Self {
+        self.license_dir = dir;
+        self
     }
 
     pub fn with_reverse_gear(mut self, hub: reverse_gear::ReverseGearHub) -> Self {
@@ -297,6 +308,26 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
         let updates = tokio_stream::wrappers::WatchStream::new(self.power_supply.subscribe())
             .map(|status| Ok(power_supply_to_proto(&status)));
         Ok(Response::new(Box::pin(updates)))
+    }
+
+    async fn get_licenses(
+        &self,
+        _request: Request<Empty>,
+    ) -> Result<Response<LicenseList>, Status> {
+        let dir = self.license_dir.clone();
+        let documents = tokio::task::spawn_blocking(move || licenses::load(&dir))
+            .await
+            .map_err(|error| Status::internal(format!("reading the licences failed: {error}")))?;
+        Ok(Response::new(LicenseList {
+            documents: documents
+                .into_iter()
+                .map(|document| LicenseDocument {
+                    package: document.package,
+                    title: document.title,
+                    text: document.text,
+                })
+                .collect(),
+        }))
     }
 
     async fn set_power_supply_service_mode(
@@ -3080,6 +3111,41 @@ mod tests {
         assert!(check(&restarted, "neues-pw").await);
         assert!(!check(&restarted, "4321").await);
         std::fs::remove_dir_all(&directory).unwrap();
+    }
+
+    #[tokio::test]
+    async fn system_service_hands_out_the_installed_licence_texts() {
+        let dir = std::env::temp_dir().join(format!("carnine-licences-rpc-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("carnine-backend")).unwrap();
+        std::fs::write(dir.join("carnine-backend/copyright"), "GPL-3.0-only").unwrap();
+        let service = SystemServiceImpl::new(
+            Arc::new(system_metrics::SystemMetricsHandle::new()),
+            PathBuf::new(),
+            crate::power_supply::PowerSupplyHub::new(false),
+        )
+        .with_license_dir(dir.clone());
+        let list = SystemService::get_licenses(&service, Request::new(Empty {}))
+            .await
+            .expect("licences answer")
+            .into_inner();
+        assert_eq!(list.documents.len(), 1);
+        assert_eq!(list.documents[0].package, "carnine-backend");
+        assert_eq!(list.documents[0].title, "CarNine Backend");
+        assert_eq!(list.documents[0].text, "GPL-3.0-only");
+
+        let empty = SystemServiceImpl::new(
+            Arc::new(system_metrics::SystemMetricsHandle::new()),
+            PathBuf::new(),
+            crate::power_supply::PowerSupplyHub::new(false),
+        )
+        .with_license_dir(dir.join("missing"));
+        let none = SystemService::get_licenses(&empty, Request::new(Empty {}))
+            .await
+            .expect("no licences installed is no error")
+            .into_inner();
+        assert!(none.documents.is_empty());
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[tokio::test]

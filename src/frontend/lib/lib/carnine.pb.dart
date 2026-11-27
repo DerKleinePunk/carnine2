@@ -4188,6 +4188,135 @@ class PowerSupplyServiceModeRequest extends $pb.GeneratedMessage {
   void clearEnabled() => $_clearField(1);
 }
 
+class LicenseDocument extends $pb.GeneratedMessage {
+  factory LicenseDocument({
+    $core.String? package,
+    $core.String? title,
+    $core.String? text,
+  }) {
+    final result = create();
+    if (package != null) result.package = package;
+    if (title != null) result.title = title;
+    if (text != null) result.text = text;
+    return result;
+  }
+
+  LicenseDocument._();
+
+  factory LicenseDocument.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory LicenseDocument.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'LicenseDocument',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'package')
+    ..aOS(2, _omitFieldNames ? '' : 'title')
+    ..aOS(3, _omitFieldNames ? '' : 'text')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LicenseDocument clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LicenseDocument copyWith(void Function(LicenseDocument) updates) =>
+      super.copyWith((message) => updates(message as LicenseDocument))
+          as LicenseDocument;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static LicenseDocument create() => LicenseDocument._();
+  @$core.override
+  LicenseDocument createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static LicenseDocument getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<LicenseDocument>(create);
+  static LicenseDocument? _defaultInstance;
+
+  /// The Debian package the text belongs to, e.g. "carnine-backend".
+  @$pb.TagNumber(1)
+  $core.String get package => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set package($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPackage() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPackage() => $_clearField(1);
+
+  /// A heading for the UI (German), e.g. "Rust-Bibliotheken im Backend".
+  @$pb.TagNumber(2)
+  $core.String get title => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set title($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasTitle() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTitle() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get text => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set text($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasText() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearText() => $_clearField(3);
+}
+
+class LicenseList extends $pb.GeneratedMessage {
+  factory LicenseList({
+    $core.Iterable<LicenseDocument>? documents,
+  }) {
+    final result = create();
+    if (documents != null) result.documents.addAll(documents);
+    return result;
+  }
+
+  LicenseList._();
+
+  factory LicenseList.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory LicenseList.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'LicenseList',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..pPM<LicenseDocument>(1, _omitFieldNames ? '' : 'documents',
+        subBuilder: LicenseDocument.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LicenseList clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LicenseList copyWith(void Function(LicenseList) updates) =>
+      super.copyWith((message) => updates(message as LicenseList))
+          as LicenseList;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static LicenseList create() => LicenseList._();
+  @$core.override
+  LicenseList createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static LicenseList getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<LicenseList>(create);
+  static LicenseList? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<LicenseDocument> get documents => $_getList(0);
+}
+
 class LatLon extends $pb.GeneratedMessage {
   factory LatLon({
     $core.double? latitude,

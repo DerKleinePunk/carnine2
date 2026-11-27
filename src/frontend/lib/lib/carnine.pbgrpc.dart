@@ -1195,6 +1195,18 @@ class SystemServiceClient extends $grpc.Client {
         options: options);
   }
 
+  /// The licence texts of what the image ships (#123): source offer, the
+  /// CarNine packages' copyright files and the lists of the libraries in
+  /// them, read from /usr/share/doc. Missing ones are left out, so on a
+  /// development machine the list may be empty. The UI's own Dart and engine
+  /// licences are not in it (NOTICES.Z).
+  $grpc.ResponseFuture<$0.LicenseList> getLicenses(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getLicenses, request, options: options);
+  }
+
   /// Holds the power supply in its service mode (watchdog off) or ends it
   /// (#36). The UI turns it on before "Beenden" leaves for the maintenance
   /// mode and off on its next start. The backend keeps it and sends it again
@@ -1333,6 +1345,10 @@ class SystemServiceClient extends $grpc.Client {
           '/carnine.SystemService/StreamPowerSupplyStatus',
           ($0.Empty value) => value.writeToBuffer(),
           $0.PowerSupplyStatus.fromBuffer);
+  static final _$getLicenses = $grpc.ClientMethod<$0.Empty, $0.LicenseList>(
+      '/carnine.SystemService/GetLicenses',
+      ($0.Empty value) => value.writeToBuffer(),
+      $0.LicenseList.fromBuffer);
   static final _$setPowerSupplyServiceMode = $grpc.ClientMethod<
           $0.PowerSupplyServiceModeRequest, $0.PowerSupplyStatus>(
       '/carnine.SystemService/SetPowerSupplyServiceMode',
@@ -1438,6 +1454,13 @@ abstract class SystemServiceBase extends $grpc.Service {
         true,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($0.PowerSupplyStatus value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.LicenseList>(
+        'GetLicenses',
+        getLicenses_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.LicenseList value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.PowerSupplyServiceModeRequest,
             $0.PowerSupplyStatus>(
         'SetPowerSupplyServiceMode',
@@ -1574,6 +1597,14 @@ abstract class SystemServiceBase extends $grpc.Service {
   }
 
   $async.Stream<$0.PowerSupplyStatus> streamPowerSupplyStatus(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.LicenseList> getLicenses_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return getLicenses($call, await $request);
+  }
+
+  $async.Future<$0.LicenseList> getLicenses(
       $grpc.ServiceCall call, $0.Empty request);
 
   $async.Future<$0.PowerSupplyStatus> setPowerSupplyServiceMode_Pre(

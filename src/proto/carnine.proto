@@ -122,6 +122,12 @@ service SystemService {
   // Starts with the current status, then pushes one on every change of
   // connection, ignition, state or input voltage.
   rpc StreamPowerSupplyStatus (Empty) returns (stream PowerSupplyStatus);
+  // The licence texts of what the image ships (#123): source offer, the
+  // CarNine packages' copyright files and the lists of the libraries in
+  // them, read from /usr/share/doc. Missing ones are left out, so on a
+  // development machine the list may be empty. The UI's own Dart and engine
+  // licences are not in it (NOTICES.Z).
+  rpc GetLicenses (Empty) returns (LicenseList);
   // Holds the power supply in its service mode (watchdog off) or ends it
   // (#36). The UI turns it on before "Beenden" leaves for the maintenance
   // mode and off on its next start. The backend keeps it and sends it again
@@ -656,6 +662,18 @@ message PowerSupplyStatus {
 
 message PowerSupplyServiceModeRequest {
   bool enabled = 1;
+}
+
+message LicenseDocument {
+  // The Debian package the text belongs to, e.g. "carnine-backend".
+  string package = 1;
+  // A heading for the UI (German), e.g. "Rust-Bibliotheken im Backend".
+  string title = 2;
+  string text = 3;
+}
+
+message LicenseList {
+  repeated LicenseDocument documents = 1;
 }
 
 message LatLon {

@@ -94,6 +94,7 @@ async fn main() -> Result<()> {
         "brightness" => get_display_brightness(&endpoint).await?,
         "set-brightness" => set_display_brightness(&endpoint).await?,
         "power-supply-stream" => stream_power_supply_status(&endpoint).await?,
+        "licenses" => get_licenses(&endpoint).await?,
         "power-supply-service" => set_power_supply_service_mode(&endpoint).await?,
         "reverse-gear" => get_reverse_gear(&endpoint).await?,
         "reverse-gear-stream" => stream_reverse_gear(&endpoint).await?,
@@ -1116,6 +1117,29 @@ fn print_position(fix: &PositionFix) {
         ),
         _ => println!("no fix source={source}"),
     }
+}
+
+/// `licenses [full]`: the licence documents the backend hands out, one line
+/// each with package, title and size; `full` prints the texts too.
+async fn get_licenses(endpoint: &str) -> Result<()> {
+    let full = env::args().nth(3).as_deref() == Some("full");
+    let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let list = client.get_licenses(Empty {}).await?.into_inner();
+    if list.documents.is_empty() {
+        println!("no licence documents installed");
+    }
+    for document in list.documents {
+        println!(
+            "{} | {} | {} bytes",
+            document.package,
+            document.title,
+            document.text.len()
+        );
+        if full {
+            println!("{}\n", document.text);
+        }
+    }
+    Ok(())
 }
 
 async fn get_power_supply_status(endpoint: &str) -> Result<()> {
