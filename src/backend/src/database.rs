@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use anyhow::{Context, Result};
 use rusqlite::{params, Connection, OptionalExtension};
 
-const CURRENT_SCHEMA_VERSION: i64 = 15;
+const CURRENT_SCHEMA_VERSION: i64 = 16;
 
 /// What the options saved for the turn announcements; `None` where never
 /// set, and then the configuration's `[voice]` value holds.
@@ -16,6 +16,7 @@ pub struct SavedVoiceSettings {
     pub enabled: Option<bool>,
     pub volume_percent: Option<u32>,
     pub music_under_percent: Option<u32>,
+    pub lane_hints: Option<bool>,
 }
 
 pub struct Database {
@@ -360,6 +361,17 @@ impl Database {
             }
             self.connection
                 .execute_batch("INSERT INTO schema_migrations (version) VALUES (15);")?;
+        }
+        if version < 16 {
+            // Spoken lane hints switched in the options (#159); NULL means
+            // "as [voice] lane_hints says".
+            if !self.has_column("navigation_state", "voice_lane_hints")? {
+                self.connection.execute_batch(
+                    "ALTER TABLE navigation_state ADD COLUMN voice_lane_hints INTEGER;",
+                )?;
+            }
+            self.connection
+                .execute_batch("INSERT INTO schema_migrations (version) VALUES (16);")?;
         }
         if version > CURRENT_SCHEMA_VERSION {
             anyhow::bail!(
@@ -939,14 +951,17 @@ impl Database {
         enabled: bool,
         volume_percent: u32,
         music_under_percent: u32,
+        lane_hints: bool,
     ) -> Result<()> {
         self.connection.execute(
-            "INSERT INTO navigation_state (id, voice_enabled, voice_volume, voice_music_under)
-             VALUES (1, ?1, ?2, ?3)
+            "INSERT INTO navigation_state
+                 (id, voice_enabled, voice_volume, voice_music_under, voice_lane_hints)
+             VALUES (1, ?1, ?2, ?3, ?4)
              ON CONFLICT(id) DO UPDATE SET voice_enabled = excluded.voice_enabled,
                  voice_volume = excluded.voice_volume,
-                 voice_music_under = excluded.voice_music_under",
-            rusqlite::params![enabled, volume_percent, music_under_percent],
+                 voice_music_under = excluded.voice_music_under,
+                 voice_lane_hints = excluded.voice_lane_hints",
+            rusqlite::params![enabled, volume_percent, music_under_percent, lane_hints],
         )?;
         Ok(())
     }
@@ -956,7 +971,7 @@ impl Database {
         Ok(self
             .connection
             .query_row(
-                "SELECT voice_enabled, voice_volume, voice_music_under
+                "SELECT voice_enabled, voice_volume, voice_music_under, voice_lane_hints
                  FROM navigation_state WHERE id = 1",
                 [],
                 |row| {
@@ -964,6 +979,7 @@ impl Database {
                         enabled: row.get(0)?,
                         volume_percent: row.get(1)?,
                         music_under_percent: row.get(2)?,
+                        lane_hints: row.get(3)?,
                     })
                 },
             )
@@ -1809,13 +1825,14 @@ mod tests {
             database.load_voice_settings().unwrap(),
             SavedVoiceSettings::default()
         );
-        database.save_voice_settings(true, 80, 30).unwrap();
+        database.save_voice_settings(true, 80, 30, false).unwrap();
         assert_eq!(
             database.load_voice_settings().unwrap(),
             SavedVoiceSettings {
                 enabled: Some(true),
                 volume_percent: Some(80),
                 music_under_percent: Some(30),
+                lane_hints: Some(false),
             }
         );
         drop(database);
@@ -1909,12 +1926,13 @@ mod tests {
             std::env::temp_dir().join(format!("carnine-schema-13-{}.sqlite3", std::process::id()));
         let _ = std::fs::remove_file(&path);
         let database = Database::open(&path).expect("database should open");
-        database.save_voice_settings(false, 65, 40).unwrap();
+        database.save_voice_settings(false, 65, 40, true).unwrap();
         // Back to schema 12, as 0.15.0 left it.
         database
             .connection
             .execute_batch(
                 "ALTER TABLE navigation_state DROP COLUMN voice_music_under;
+                 ALTER TABLE navigation_state DROP COLUMN voice_lane_hints;
                  DELETE FROM schema_migrations WHERE version >= 13;",
             )
             .unwrap();
@@ -1928,6 +1946,7 @@ mod tests {
                 enabled: Some(false),
                 volume_percent: Some(65),
                 music_under_percent: None,
+                lane_hints: None,
             },
             "switch and loudness kept, the music level as configured"
         );
@@ -1942,6 +1961,7 @@ mod tests {
             enabled: Some(false),
             volume_percent: Some(70),
             music_under_percent: Some(0),
+            lane_hints: Some(true),
         };
         assert_eq!(
             database.load_voice_settings().unwrap(),
@@ -1954,7 +1974,7 @@ mod tests {
             SavedVoiceSettings::default()
         );
 
-        database.save_voice_settings(false, 70, 0).unwrap();
+        database.save_voice_settings(false, 70, 0, true).unwrap();
         assert_eq!(database.load_voice_settings().unwrap(), saved);
         assert!(
             database.load_track_recording().unwrap(),

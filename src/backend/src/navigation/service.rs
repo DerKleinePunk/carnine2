@@ -190,6 +190,22 @@ impl NavigationServiceImpl {
         self
     }
 
+    /// Adds the spoken lane hints (#159) when the options have them on.
+    /// Applied on the way out, so the cached replay route follows the
+    /// switch at once; without a voice nothing is spoken, so nothing is added.
+    fn with_lane_hints(&self, mut route: Route, language: &str) -> Route {
+        if self
+            .voice
+            .as_ref()
+            .is_some_and(|voice| voice.state().lane_hints)
+        {
+            for maneuver in &mut route.maneuvers {
+                super::lane_hint::add_lane_hint(maneuver, language);
+            }
+        }
+        route
+    }
+
     fn route_message(&self, data: RouteData) -> Route {
         let id = self.next_route_id.fetch_add(1, Ordering::Relaxed);
         Route {
@@ -451,6 +467,7 @@ impl NavigationService for NavigationServiceImpl {
                 request.enabled,
                 request.volume_percent,
                 request.music_under_percent,
+                request.lane_hints,
             )
             .map_err(|error| Status::invalid_argument(error.to_string()))?;
         Ok(Response::new(voice_settings(Some(state))))
@@ -603,7 +620,7 @@ impl NavigationService for NavigationServiceImpl {
             maneuvers = route.maneuvers.len(),
             "route computed"
         );
-        Ok(Response::new(route))
+        Ok(Response::new(self.with_lane_hints(route, &language)))
     }
 
     async fn get_replay_route(
@@ -619,7 +636,9 @@ impl NavigationService for NavigationServiceImpl {
         let mut cache = self.replay_routes.lock().await;
         if let Some(route) = cache.get(&language) {
             self.report_replay_route_ready();
-            return Ok(Response::new(route.clone()));
+            return Ok(Response::new(
+                self.with_lane_hints(route.clone(), &language),
+            ));
         }
         info!(points = points.len(), %language, "map-matching the replay tour");
         let data = self
@@ -641,9 +660,9 @@ impl NavigationService for NavigationServiceImpl {
             destination = %route.destination_name,
             "replay route computed"
         );
-        cache.insert(language, route.clone());
+        cache.insert(language.clone(), route.clone());
         self.report_replay_route_ready();
-        Ok(Response::new(route))
+        Ok(Response::new(self.with_lane_hints(route, &language)))
     }
 
     async fn stream_positions(
@@ -667,6 +686,7 @@ fn voice_settings(state: Option<VoiceState>) -> VoiceSettings {
             volume_percent: state.volume_percent,
             music_under_percent: state.music_under_percent,
             voice: state.voice,
+            lane_hints: state.lane_hints,
         },
         None => VoiceSettings::default(),
     }
@@ -1035,6 +1055,69 @@ mod tests {
         NavigationServiceImpl::new(hub, "http://127.0.0.1:9".to_string(), String::new())
     }
 
+    /// The recorded Frankfurt–Wiesbaden route (#159) through the service:
+    /// with the switch on the clear lane maneuvers get their sentence,
+    /// switched off every text stays as Valhalla gave it.
+    #[test]
+    fn lane_hints_follow_the_switch() {
+        let data = super::super::valhalla::parse_trip(
+            &serde_json::from_str(include_str!(
+                "testdata/valhalla-route-frankfurt-wiesbaden-lanes.json"
+            ))
+            .unwrap(),
+        )
+        .expect("parses");
+        let voice = crate::voice::Voice::start(
+            Box::new(|| anyhow::bail!("no voice in tests")),
+            std::env::temp_dir().join("carnine-voice-lane-hints"),
+            None,
+            false,
+            Vec::new(),
+            Box::new(|_, _| {}),
+        );
+        let control = Arc::new(VoiceControl::new(
+            voice,
+            &crate::config::VoiceConfig::default(),
+            crate::database::SavedVoiceSettings::default(),
+            Box::new(|_| {}),
+            None,
+        ));
+        let service =
+            service(PositionHub::new(SourceKind::Serial)).with_voice(Arc::clone(&control));
+        let plain = service.route_message(data);
+
+        let hinted = service.with_lane_hints(plain.clone(), "de-DE");
+        let changed: Vec<_> = hinted
+            .maneuvers
+            .iter()
+            .zip(&plain.maneuvers)
+            .filter(|(hinted, plain)| hinted != plain)
+            .map(|(hinted, _)| hinted.verbal_alert.clone().or(hinted.verbal_pre.clone()))
+            .collect();
+        assert!(!changed.is_empty(), "the clear lane maneuvers get a hint");
+        assert!(
+            changed
+                .iter()
+                .flatten()
+                .all(|text| text.ends_with(" benutzen.")),
+            "{changed:?}"
+        );
+        // The fork to the Festhalle: the middle of three lanes.
+        assert!(
+            hinted.maneuvers[8]
+                .verbal_alert
+                .as_deref()
+                .unwrap_or_default()
+                .ends_with("Die mittlere Spur benutzen."),
+            "{:?}",
+            hinted.maneuvers[8]
+        );
+        assert_eq!(hinted.maneuvers[0], plain.maneuvers[0], "no lanes, no hint");
+
+        control.update(None, None, None, Some(false)).unwrap();
+        assert_eq!(service.with_lane_hints(plain.clone(), "de-DE"), plain);
+    }
+
     #[tokio::test]
     async fn without_a_voice_the_announcement_calls_do_nothing_but_answer() {
         use crate::carnine::navigation_service_server::NavigationService;
@@ -1092,6 +1175,7 @@ mod tests {
                 enabled: Some(false),
                 volume_percent: Some(60),
                 music_under_percent: Some(0),
+                lane_hints: Some(false),
             }))
             .await
             .unwrap()
@@ -1099,6 +1183,7 @@ mod tests {
         assert!(!settings.enabled);
         assert_eq!(settings.volume_percent, 60);
         assert_eq!(settings.music_under_percent, 0);
+        assert!(!settings.lane_hints);
         assert_eq!(settings.voice, "thorsten-medium");
         let refused = service
             .set_voice_settings(Request::new(SetVoiceSettingsRequest {

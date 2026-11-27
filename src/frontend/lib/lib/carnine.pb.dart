@@ -5653,6 +5653,7 @@ class VoiceSettings extends $pb.GeneratedMessage {
     $core.int? volumePercent,
     $core.String? voice,
     $core.int? musicUnderPercent,
+    $core.bool? laneHints,
   }) {
     final result = create();
     if (available != null) result.available = available;
@@ -5660,6 +5661,7 @@ class VoiceSettings extends $pb.GeneratedMessage {
     if (volumePercent != null) result.volumePercent = volumePercent;
     if (voice != null) result.voice = voice;
     if (musicUnderPercent != null) result.musicUnderPercent = musicUnderPercent;
+    if (laneHints != null) result.laneHints = laneHints;
     return result;
   }
 
@@ -5683,6 +5685,7 @@ class VoiceSettings extends $pb.GeneratedMessage {
     ..aOS(4, _omitFieldNames ? '' : 'voice')
     ..aI(5, _omitFieldNames ? '' : 'musicUnderPercent',
         fieldType: $pb.PbFieldType.OU3)
+    ..aOB(6, _omitFieldNames ? '' : 'laneHints')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5751,6 +5754,19 @@ class VoiceSettings extends $pb.GeneratedMessage {
   $core.bool hasMusicUnderPercent() => $_has(4);
   @$pb.TagNumber(5)
   void clearMusicUnderPercent() => $_clearField(5);
+
+  /// Spoken lane hints (#159): a sentence such as "Die rechten zwei Spuren
+  /// benutzen." after the maneuver's advance notice, only where the map is
+  /// clear about the lanes. Saved like the others; until set,
+  /// [voice] lane_hints (on). Takes effect on the next route.
+  @$pb.TagNumber(6)
+  $core.bool get laneHints => $_getBF(5);
+  @$pb.TagNumber(6)
+  set laneHints($core.bool value) => $_setBool(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasLaneHints() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearLaneHints() => $_clearField(6);
 }
 
 class SetVoiceSettingsRequest extends $pb.GeneratedMessage {
@@ -5758,11 +5774,13 @@ class SetVoiceSettingsRequest extends $pb.GeneratedMessage {
     $core.bool? enabled,
     $core.int? volumePercent,
     $core.int? musicUnderPercent,
+    $core.bool? laneHints,
   }) {
     final result = create();
     if (enabled != null) result.enabled = enabled;
     if (volumePercent != null) result.volumePercent = volumePercent;
     if (musicUnderPercent != null) result.musicUnderPercent = musicUnderPercent;
+    if (laneHints != null) result.laneHints = laneHints;
     return result;
   }
 
@@ -5784,6 +5802,7 @@ class SetVoiceSettingsRequest extends $pb.GeneratedMessage {
         fieldType: $pb.PbFieldType.OU3)
     ..aI(3, _omitFieldNames ? '' : 'musicUnderPercent',
         fieldType: $pb.PbFieldType.OU3)
+    ..aOB(4, _omitFieldNames ? '' : 'laneHints')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5832,6 +5851,15 @@ class SetVoiceSettingsRequest extends $pb.GeneratedMessage {
   $core.bool hasMusicUnderPercent() => $_has(2);
   @$pb.TagNumber(3)
   void clearMusicUnderPercent() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get laneHints => $_getBF(3);
+  @$pb.TagNumber(4)
+  set laneHints($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasLaneHints() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearLaneHints() => $_clearField(4);
 }
 
 class Route extends $pb.GeneratedMessage {

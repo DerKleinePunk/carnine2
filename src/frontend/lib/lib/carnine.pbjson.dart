@@ -1981,6 +1981,7 @@ const VoiceSettings$json = {
       '5': 13,
       '10': 'musicUnderPercent'
     },
+    {'1': 'lane_hints', '3': 6, '4': 1, '5': 8, '10': 'laneHints'},
   ],
 };
 
@@ -1989,7 +1990,7 @@ final $typed_data.Uint8List voiceSettingsDescriptor = $convert.base64Decode(
     'Cg1Wb2ljZVNldHRpbmdzEhwKCWF2YWlsYWJsZRgBIAEoCFIJYXZhaWxhYmxlEhgKB2VuYWJsZW'
     'QYAiABKAhSB2VuYWJsZWQSJQoOdm9sdW1lX3BlcmNlbnQYAyABKA1SDXZvbHVtZVBlcmNlbnQS'
     'FAoFdm9pY2UYBCABKAlSBXZvaWNlEi4KE211c2ljX3VuZGVyX3BlcmNlbnQYBSABKA1SEW11c2'
-    'ljVW5kZXJQZXJjZW50');
+    'ljVW5kZXJQZXJjZW50Eh0KCmxhbmVfaGludHMYBiABKAhSCWxhbmVIaW50cw==');
 
 @$core.Deprecated('Use setVoiceSettingsRequestDescriptor instead')
 const SetVoiceSettingsRequest$json = {
@@ -2022,11 +2023,21 @@ const SetVoiceSettingsRequest$json = {
       '10': 'musicUnderPercent',
       '17': true
     },
+    {
+      '1': 'lane_hints',
+      '3': 4,
+      '4': 1,
+      '5': 8,
+      '9': 3,
+      '10': 'laneHints',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_enabled'},
     {'1': '_volume_percent'},
     {'1': '_music_under_percent'},
+    {'1': '_lane_hints'},
   ],
 };
 
@@ -2034,8 +2045,9 @@ const SetVoiceSettingsRequest$json = {
 final $typed_data.Uint8List setVoiceSettingsRequestDescriptor = $convert.base64Decode(
     'ChdTZXRWb2ljZVNldHRpbmdzUmVxdWVzdBIdCgdlbmFibGVkGAEgASgISABSB2VuYWJsZWSIAQ'
     'ESKgoOdm9sdW1lX3BlcmNlbnQYAiABKA1IAVINdm9sdW1lUGVyY2VudIgBARIzChNtdXNpY191'
-    'bmRlcl9wZXJjZW50GAMgASgNSAJSEW11c2ljVW5kZXJQZXJjZW50iAEBQgoKCF9lbmFibGVkQh'
-    'EKD192b2x1bWVfcGVyY2VudEIWChRfbXVzaWNfdW5kZXJfcGVyY2VudA==');
+    'bmRlcl9wZXJjZW50GAMgASgNSAJSEW11c2ljVW5kZXJQZXJjZW50iAEBEiIKCmxhbmVfaGludH'
+    'MYBCABKAhIA1IJbGFuZUhpbnRziAEBQgoKCF9lbmFibGVkQhEKD192b2x1bWVfcGVyY2VudEIW'
+    'ChRfbXVzaWNfdW5kZXJfcGVyY2VudEINCgtfbGFuZV9oaW50cw==');
 
 @$core.Deprecated('Use routeDescriptor instead')
 const Route$json = {
