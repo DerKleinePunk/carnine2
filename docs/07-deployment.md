@@ -191,7 +191,7 @@ its values, use the page or the CLI below, and by hand only delete the file.
   default) and whether it waits for a restart, i.e. differs from what the
   running backend uses. `ui_drop_in_error` says why the file was left out at
   start, if it was.
-- **Language** (#217, since the release after 0.22.0): texts come in the
+- **Language** (#217, since 0.23.0): texts come in the
   requested `language`; `SaveInstallSettingsRequest` has `language` too.
   An empty or unknown language and an old client sending `Empty` get German.
   The texts are in `src/backend/src/install_settings_texts.toml`.
@@ -892,7 +892,7 @@ the old way once, reads the mapped percent back and keeps that, so the level
 does not change with the update (on carnine-pc 65 became 42, -17.80 dB then
 -18.00 dB).
 
-Since the release after 0.22.0 the output can be chosen in the UI, on the
+Since 0.23.0 the output can be chosen in the UI, on the
 expert page (**Optionen → System → Experten**, `audio.output_card`, #207);
 it takes effect at the next start of the backend.
 
@@ -954,7 +954,7 @@ output_card = "Headphones"   # ALSA card id from /proc/asound/cards
 - **In 0.22.0 the choice did not take effect:** the backend looked for a
   device named `default:CARD=<id>`, which cpal does not list, so playback
   stayed on card 0 while the volume went to the configured card. Fixed with
-  #214, since the release after 0.22.0. No device had `output_card` set.
+  #214, since 0.23.0. No device had `output_card` set.
 - A card that is not in `/proc/asound/cards` gives the warning
   `configured audio output not found, playing and setting the volume on card 0`;
   playback and volume then both stay on card 0, as without the setting.
@@ -1153,7 +1153,7 @@ measurements: [26 – Spoken Turn Announcements](26-turn-announcements.md).
     and stores the network for `wpa_supplicant@wlan0`
     (`/etc/wpa_supplicant/wpa_supplicant-wlan0.conf`, root only); `--off` and
     `--on` switch it off and back on across reboots.
-    **Band** (since the release after 0.22.0, #227): the scan list shows the
+    **Band** (since 0.23.0, #227): the scan list shows the
     band each network was seen on (2,4 / 5 / 2,4+5 GHz), `--status` also the
     frequency. `--band 5` stores the network with a `freq_list` of every
     5 GHz channel (36–177; wpa_supplicant drops what the country or the

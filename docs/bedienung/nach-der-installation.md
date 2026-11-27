@@ -160,7 +160,7 @@ ein, ersetzt das den alten Eintrag, etwa nach einem neuen Passwort.
 Findet die Suche nichts, meldet er „kein Netz gefunden“ und nennt `--ssid`.
 Hat das Gerät gar kein WLAN, steht dort „kein WLAN-Gerät gefunden“.
 
-**Ab der Version nach 0.22.0:**
+**Band und WLAN-Gerät:**
 
 - **Band in der Liste:** Hinter jedem Netz steht, wo es zu sehen ist, z. B.
   „Garage (2,4 GHz)“, „Handy (5 GHz)“ oder „(2,4+5 GHz)“. `--status` zeigt

@@ -93,9 +93,8 @@ haben einen Pfeil und lassen sich antippen. Die anderen drei sind eine
 | **Handy-App** | später: Bluetooth-Kopplung mit Code am Handy (#72) |
 | **Netzteil** | später: Zündung, Spannung und Service-Modus (#36) |
 
-Den Ton-Ausgang stellt man bis dahin am Gerät um
-([Ton über die Klinke](ton-klinke.md)), ab der Version nach 0.22.0 auf der
-Seite **Experten**. Ohne erreichbares Backend sind die
+Den Ton-Ausgang stellt man auf der Seite **Experten** um
+(oder am Gerät, siehe [Ton über die Klinke](ton-klinke.md)). Ohne erreichbares Backend sind die
 Zeilen Kamera und Display auch nur eine Vorschau.
 
 ### Kamera
