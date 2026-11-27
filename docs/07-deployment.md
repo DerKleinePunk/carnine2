@@ -1256,13 +1256,23 @@ The Debian packages pull in everything they need; the image installs them:
 - Standard build tools (gcc, make, pkg‑config), `rsync`, `dpkg-deb`
 
 **Flutter Frontend Cross‑Compilation**
-- [`emb_cli`](https://github.com/toyota-connected/emb_cli) **0.4.1** from
-  pub.dev (8 Oct 2026), the version release builds use:
+- [`emb_cli`](https://github.com/toyota-connected/emb_cli) **0.8.0** from
+  pub.dev, the version release builds use since v0.24.0 (#222; up to
+  v0.23.0 it was 0.4.1):
 
   ```
-  dart install emb_cli@0.4.1
-  emb --version          # 0.4.1
+  dart install emb_cli 0.8.0
+  emb --version          # 0.8.0
   ```
+
+  Compared with 0.4.1 the frontend renders the same (frame timings on
+  jeep-pi unchanged, 2026-11-27), and the package is about 3 MB smaller:
+  0.8.0 no longer puts the JIT snapshots (`vm_snapshot_data`,
+  `isolate_snapshot_data`), which a release build does not use, into the
+  bundle. The build log now notes `build.app_path is deprecated` from the
+  ivi-homescreen manifest; harmless, because `build_pi.sh` passes `--app`.
+  Going back: `dart install emb_cli 0.4.1`, the old `emb.lock` and
+  `emb.lock.mcp`, and the boards synced for 0.4.1.
 
   Older releases do not work: 0.3.6 and 0.3.7 reject the code assets emb
   stages itself (`libsqlite3.so`,
@@ -1483,7 +1493,9 @@ the steps are listed for provisioning a new build host.
 
    After a change of the emb version, the first build can stop with
    `emb.lock drift … re-run with --update-lock` (0.4.0 to 0.4.1 did not;
-   `emb.lock` still names 0.4.0). Then build once with
+   for 0.8.0 the locks of a trial build were taken over; they differ
+   from the old ones only in `emb_version`, and normal builds (customer
+   and MCP) then ran without drift). Then build once with
    `CARNINE_EMB_UPDATE_LOCK=1 ./build_pi.sh`: it adds `--update-lock` to its
    own emb call, so the lock matches exactly that call. Then build normally.
    The `--fetch-only` command above with `--update-lock` is not enough; it
