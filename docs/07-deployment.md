@@ -812,6 +812,21 @@ the Pi is ALSA's `default` device, and sets the volume with
 follow **ALSA card 0**, which the image variant chooses (below). Since #48
 (4c9a7ae) `[audio] output_card` can name the card instead (see
 [Choosing the output in the configuration](#choosing-the-output-in-the-configuration)).
+
+**Buffer** (cpal 0.18, #239/#240, since v0.24.0): the stream asks ALSA for
+a period of **50 ms**, within the range the device allows; cpal keeps two
+periods, so the buffer holds 100 ms, as with cpal 0.16. On carnine-pc ALSA
+reports 48 kHz, period 2400 and buffer 4800 frames. With the device's own
+period (two short periods) there were audible dropouts. An underrun (xrun)
+no longer ends the output: cpal recovers by itself, and the backend only
+logs it: the first as `cpal audio output underrun (xrun), recovered by
+cpal` (warn), then every 100th as `cpal audio output underruns so far`
+(info), the others at debug. Only a lost device drops the stream. For listening tests
+`CARNINE_AUDIO_PERIOD_MS` (5–500, default 50; other values are ignored)
+changes the period, for example in a systemd drop-in for
+`carnine-backend.service`. It is meant for tests only and has no setting in
+the configuration.
+
 The Pi 4 has three cards (`config.txt` from pi-gen
 keeps `dtparam=audio=on`):
 
