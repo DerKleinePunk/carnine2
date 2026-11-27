@@ -1170,8 +1170,13 @@ measurements: [26 – Spoken Turn Announcements](26-turn-announcements.md).
     second until they are stable, scans once more and stops after 15 s at
     the latest (`CARNINE_SCAN_STEP`/`CARNINE_SCAN_MAX`; 4 s was too short
     for the USB stick right after wpa_supplicant started).
-    Why: the USB stick RTL8822BU is poor on 2.4 GHz and good on 5 GHz
-    (jeep-pi, 2026-11-23); in the car the phone's hotspot runs on 5 GHz.
+    Why: in the car the phone's hotspot runs on 5 GHz, away from Bluetooth,
+    which shares 2.4 GHz (music from the phone, #225). On 2026-11-23 the
+    USB stick RTL8822BU moved no traffic on two 2.4 GHz home networks, but
+    the Pi's built-in WLAN failed there too, so it was probably those
+    networks. On the phone's hotspot at 2.4 GHz (2026-11-27, jeep-pi, stick
+    on the powered hub, channel 6) it uploaded at 28 Mbit/s, the limit of
+    the mobile network; on 5 GHz it downloaded at 77–93 Mbit/s.
     *Tested* (jeep-pi, 2026-11-23, #227 at 4b626f0, stick on the powered
     hub, `--interface wlan1 --band 5`): the phone's hotspot on 2.4 GHz was
     refused with the hint, no password asked, nothing stored; on 5 GHz it
