@@ -979,6 +979,15 @@ output_card = "Headphones"   # ALSA card id from /proc/asound/cards
   with `amixer -M -c <id>` on `mixer_control` (`amixer -c <id> scontrols`
   lists the controls of a card). The log says
   `audio output: configured card card="<id>" alsa_pcm_card=Some("<id>")`.
+- **Since v0.24.0 the backend opens the card by its name** (#250, PR #254):
+  from cpal's device list it takes, best first, `default:CARD=<id>` (the
+  card's own configuration), then `sysdefault:CARD=<id>`, then
+  `plughw:CARD=<id>` (format conversion only), never `hw`. The log says
+  `cpal opens the configured card by name card="<id>" device=…`. If the list
+  has none of them, it warns `no ALSA device of the configured card to open
+  by name, playing on default` with the names it saw, and plays on
+  `default` as before. Up to v0.23.0 it opened ALSA's `default` and relied
+  on `ALSA_PCM_CARD` alone.
 - **In 0.22.0 the choice did not take effect:** the backend looked for a
   device named `default:CARD=<id>`, which cpal does not list, so playback
   stayed on card 0 while the volume went to the configured card. Fixed with
@@ -988,13 +997,25 @@ output_card = "Headphones"   # ALSA card id from /proc/asound/cards
   playback and volume then both stay on card 0, as without the setting.
 - Without `output_card` nothing changes: the image variant
   (`carnine-audio-output.sh`) stays the default way to set the output.
-- **Not with the `hdmi-ac3` variant.** There `/etc/asound.conf` sets ALSA's
-  `default` itself (softvol "PCM" on card 0 → loopback →
-  `carnine-ac3.service`), so `ALSA_PCM_CARD` has no effect: the sound keeps
-  going through the AC-3 encoder, but the volume would be set on the named
-  card instead of card 0's softvol, and the slider would do nothing. The log
-  still says `audio output: configured card …`. Leave `output_card` unset
-  there.
+- **With the `hdmi-ac3` variant** `/etc/asound.conf` sets ALSA's `default`
+  itself (softvol "PCM" on card 0 → loopback → `carnine-ac3.service`).
+  - **Since v0.24.0** `output_card` works there too, because the backend
+    opens the named card directly. `default:CARD=<id>` is then missing from
+    the list (the `pcm.!default` overrides it), so it takes
+    `sysdefault:CARD=<id>`, as intended. Tested on jeep-pi on 2026-11-27
+    with `output_card = "Headphones"`: the loopback (card 3) closed, the
+    jack (card 2) open with 2 channels at 48 kHz, sound from the jack.
+    Without the drop-in it went back to AC-3 with 4 channels.
+  - **Up to v0.23.0** `ALSA_PCM_CARD` had no effect there. The sound kept
+    going through the AC-3 encoder, while the volume went to the named card
+    and the slider did nothing. On those versions leave `output_card` unset
+    with this variant.
+- **One volume for all cards:** the backend keeps a single volume in
+  `volume_state_path`, whichever card plays. After a switch of the card the
+  new card starts at the volume last set on the old one (jeep-pi
+  2026-11-27: back on AC-3 at 18 % instead of 32 % after the jack test).
+  Check the volume after changing `output_card`, above all before the
+  amplifier plays.
 
 `AudioService.ListAudioOutputs` lists the cards, the configured one, whether
 it is present, and the card and control the volume is set on:

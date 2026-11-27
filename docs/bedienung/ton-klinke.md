@@ -24,9 +24,11 @@ Oberfläche: **Optionen → System → Experten** (mit dem
 **Ausgang** die Karte **Headphones** wählen, **Speichern** und das Gerät neu
 starten ([Experten](optionen.md#experten)). Zurück auf HDMI geht es dort mit
 **Zurücksetzen** oder **Vorgabe des Systems**. Die Klinke muss dafür nicht die
-erste Soundkarte sein. Nicht bei einem Image mit vier Boxen
-([Ton über vier Boxen](ton-vier-boxen.md)): Dort bleibt der Ausgang auf
-**Vorgabe des Systems**.
+erste Soundkarte sein. Bei einem Image mit vier Boxen
+([Ton über vier Boxen](ton-vier-boxen.md)) geht das **erst ab CarNine
+0.24.0**: Dann kommt der Ton aus der Klinke statt über die vier Boxen, mit
+**Vorgabe des Systems** wieder über die vier Boxen. Bis 0.23.0 dort den
+Ausgang auf **Vorgabe des Systems** lassen.
 
 ## Was man braucht
 

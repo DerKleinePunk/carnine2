@@ -26,10 +26,14 @@ dafür keinen Schalter in der Oberfläche, umgestellt wird wie unten
 beschrieben.
 
 **Experten-Seite** (**Optionen → System →
-Experten**, siehe [Optionen](optionen.md#experten)): Mit vier Boxen dort bei
-**Ausgang** immer **Vorgabe des Systems** lassen. Mit einer gewählten Karte
-läuft die Musik zwar weiter über den Kodierer, aber der Lautstärkeregler in
-carnine2 tut nichts mehr. **Kanäle** und **Pegel hinten**
+Experten**, siehe [Optionen](optionen.md#experten)): Für die vier Boxen bei
+**Ausgang** **Vorgabe des Systems** lassen. Ab CarNine 0.24.0 spielt eine
+dort gewählte Karte (z. B. die Klinke) wirklich auf dieser Karte, also nicht
+mehr über die vier Boxen. Bis 0.23.0 lief die Musik dann weiter über den
+Kodierer, aber der Lautstärkeregler in carnine2 tat nichts mehr. **Die
+Lautstärke** gilt für alle Karten gemeinsam: Nach einem Wechsel zurück auf
+die vier Boxen steht sie auf dem Wert, der zuletzt eingestellt war, vor der
+Endstufe also erst leise anfangen. **Kanäle** und **Pegel hinten**
 lassen sich dort statt mit den Dateien in Schritt 4 und unter „Hinten zu
 laut?“ einstellen. Was dort gespeichert ist, gilt vor den Dateien (siehe
 [Ausschalten](#ausschalten-zurück-auf-stereo)).
