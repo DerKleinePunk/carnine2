@@ -75,15 +75,13 @@ pub struct CpalAudioEngine {
 }
 
 impl CpalAudioEngine {
-    /// Opens the default output device with `channels`, or with its own
-    /// default configuration when none is given. The card of `[audio]
-    /// output_card` (#48) reaches it as ALSA's `default` through
-    /// `ALSA_PCM_CARD`, set in `main` before any thread runs.
+    /// Opens the output device with `channels`, or with its own default
+    /// configuration when none is given: the card of `[audio] output_card`
+    /// (#48, in `ALSA_PCM_CARD` since `main`) by its own name, else ALSA's
+    /// `default`.
     pub fn new(channels: Option<u16>, rear_level: f32) -> Result<Self> {
         let host = cpal::default_host();
-        let device = host
-            .default_output_device()
-            .context("no default cpal output device")?;
+        let device = output_device(&host)?;
         let supported = match channels {
             None => default_output_config(&device)?,
             Some(wanted) => output_config_with_channels(&device, wanted)?,
@@ -129,6 +127,61 @@ impl CpalAudioEngine {
             rear_speakers: channels >= SURROUND_CHANNELS,
         })
     }
+}
+
+/// `audio_output::ALSA_PCM_CARD`, spelled out because the spikes in
+/// `examples/` build this file without the rest of the crate.
+const ALSA_PCM_CARD: &str = "ALSA_PCM_CARD";
+
+/// The device to play on. With a configured card (`ALSA_PCM_CARD`, set in
+/// `main` from `[audio] output_card` only when the card is there) it is
+/// opened by its own ALSA name: `ALSA_PCM_CARD` alone only reaches alsa-lib's
+/// card-dependent `default`, and an image that defines `pcm.!default`
+/// itself - the AC-3 chain's `/etc/asound.conf` into the Loopback - kept the
+/// sound there while the volume went to the chosen card (#250, jeep-pi
+/// 2026-11-27). Without a card, or when none of its names is listed, ALSA's
+/// `default` as before.
+fn output_device(host: &cpal::Host) -> Result<cpal::Device> {
+    if let Ok(card) = std::env::var(ALSA_PCM_CARD) {
+        let devices: Vec<(String, cpal::Device)> = host
+            .output_devices()
+            .map(|devices| {
+                devices
+                    .filter_map(|device| Some((device.id().ok()?.id().to_string(), device)))
+                    .collect()
+            })
+            .unwrap_or_default();
+        let names: Vec<&str> = devices.iter().map(|(name, _)| name.as_str()).collect();
+        match card_device_index(&names, &card) {
+            Some(index) => {
+                let (name, device) = devices.into_iter().nth(index).expect("index from the list");
+                info!(card, device = %name, "cpal opens the configured card by name");
+                return Ok(device);
+            }
+            None => warn!(
+                card,
+                devices = ?names,
+                "no ALSA device of the configured card to open by name, playing on default"
+            ),
+        }
+    }
+    host.default_output_device()
+        .context("no default cpal output device")
+}
+
+/// Which of the ALSA device `names` belongs to `card`, best first: the
+/// card's `default` (its own configuration, e.g. the softvol `PCM` of the
+/// Pi's HDMI), `sysdefault`, then `plughw` (only format conversion).
+fn card_device_index(names: &[&str], card: &str) -> Option<usize> {
+    const PREFERRED: [&str; 3] = ["default", "sysdefault", "plughw"];
+    let wanted = format!("CARD={card}");
+    PREFERRED.iter().find_map(|prefix| {
+        names.iter().position(|name| {
+            name.split_once(':').is_some_and(|(kind, rest)| {
+                kind == *prefix && rest.split(',').any(|part| part == wanted)
+            })
+        })
+    })
 }
 
 /// Whether a failed `pause` only means the device cannot pause. cpal 0.16
@@ -634,6 +687,42 @@ pub(crate) fn engine_with_null_output(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn the_card_variable_is_the_one_main_sets() {
+        assert_eq!(super::ALSA_PCM_CARD, crate::audio_output::ALSA_PCM_CARD);
+    }
+
+    #[test]
+    fn the_configured_card_is_opened_by_its_own_name() {
+        // As cpal 0.18 lists them on a Pi with the AC-3 chain (#250).
+        let names = [
+            "default",
+            "plughw:CARD=Headphones,DEV=0",
+            "sysdefault:CARD=Headphones,DEV=0",
+            "default:CARD=vc4hdmi0,DEV=0",
+            "default:CARD=Headphones,DEV=0",
+            "hw:CARD=Headphones,DEV=0",
+        ];
+        assert_eq!(super::card_device_index(&names, "Headphones"), Some(4));
+        assert_eq!(super::card_device_index(&names, "vc4hdmi0"), Some(3));
+        assert_eq!(
+            super::card_device_index(&names[..3], "Headphones"),
+            Some(2),
+            "sysdefault before plughw"
+        );
+        assert_eq!(
+            super::card_device_index(&names[..2], "Headphones"),
+            Some(1),
+            "plughw as the last resort, never hw"
+        );
+        assert_eq!(super::card_device_index(&names, "Loopback"), None);
+        assert_eq!(
+            super::card_device_index(&["default:CARD=Headphones2,DEV=0"], "Headphones"),
+            None,
+            "the whole card name"
+        );
+    }
+
     #[test]
     fn a_device_that_cannot_pause_is_no_shutdown_error() {
         let unsupported =

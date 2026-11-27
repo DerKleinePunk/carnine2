@@ -329,7 +329,7 @@ impl MediaPlayer {
     /// channels`) or the device's own default, and plays the rear speakers
     /// at `rear_level` (`[audio] rear_percent`); without a device the player
     /// still comes up and retries on the next start (#55).
-    /// `[audio] output_card` (#48) is ALSA's default by then (`main`).
+    /// `[audio] output_card` (#48) is opened by its own name (#250).
     pub fn new(channels: Option<u16>, rear_level: f32) -> Self {
         Self::with_state(Box::new(RetryingAudioEngine::new(Box::new(move || {
             Ok(Box::new(CpalAudioEngine::new(channels, rear_level)?) as Box<dyn AudioEngine>)
