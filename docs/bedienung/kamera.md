@@ -66,7 +66,7 @@ den USB-Controller zum Stehen gebracht.
 
 Die Kamera **nur bei ausgeschaltetem Gerät** anstecken oder umstecken. Beim
 Einstecken im laufenden Betrieb ist auf dem Test-Pi der ganze USB-Teil
-hängen geblieben, samt Touch und SSD. Danach half nur, den Strom aus- und
+hängen geblieben, samt Touch. Danach half nur, den Strom aus- und
 wieder einzuschalten.
 
 ![Seite Kamera mit dem Bild einer USB-Kamera: Kabel, Klebeband und ein Display, auf dem die Seite Kamera noch einmal zu sehen ist](bilder/cam-usb-kamera.png)

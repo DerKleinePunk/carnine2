@@ -672,13 +672,15 @@ default, all 30 arrive. At 720 on a hub shared with the boot SSD the grabber
 stalled the USB controller, so put grabber and camera straight on the Pi.
 
 Plug the camera in only while the Pi is off. On jeep-pi (2026-11-27) a USB
-camera plugged into a Pi port while running made the supply on that port
+camera plugged into a Pi port while running (with the USB power meter in
+between) made the supply on that port
 dip (a USB power meter on the same port restarted), and the Pi's whole USB
-side hung: touch dead, the SSD with the root file system gone, SSH dropped
-at once while ping still answered. Only switching the power off and on
+side hung: touch dead, SSH dropped at once while ping still answered (the root
+file system is on the USB SSD). Only switching the power off and on
 brought it back. The likely cause is the camera's inrush current; there is
 no log, the journal on jeep-pi is not persistent.
-Measured current (FNB58, 2026-11-27): the STK1160 grabber draws about
+Measured current of the grabber, not the camera that hung (FNB58,
+2026-11-27, on the powered hub): the STK1160 grabber draws about
 0.21 A at rest and 0.22 A while it delivers NTSC at 30 frames/s (it
 announces 500 mA), the camera behind it has its own supply.
 
