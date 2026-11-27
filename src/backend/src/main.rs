@@ -66,12 +66,13 @@ use carnine::{
     ImportMusicVolumeRequest, InstallSetting, InstallSettingChoice, InstallSettingKind,
     InstallSettings, LibraryEvent, LibraryEventType, LicenseDocument, LicenseList,
     ListPlaylistsResponse, PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PlayerEvent,
-    PlayerEventType, PlayerState, Playlist, PlaylistEntry, PowerSupplyState, PowerSupplyStatus,
-    RemovePlaylistEntryRequest, RenamePlaylistRequest, RepeatMode, RescanMediaRequest, ReverseGear,
-    ReverseGearSourceKind, ReverseGearStatus, SaveInstallSettingsRequest, SearchMediaRequest,
-    SearchMediaResponse, SeekRequest, ServiceVersion, SetDisplayBrightnessRequest,
-    SetExitPasswordRequest, SetRepeatModeRequest, SetReverseGearRequest, SetShuffleModeRequest,
-    SetVolumeRequest, SystemMetrics, ThermalStatus, UiState, VolumeResponse,
+    PlayerEventType, PlayerState, Playlist, PlaylistEntry, PowerSupplyServiceModeRequest,
+    PowerSupplyState, PowerSupplyStatus, RemovePlaylistEntryRequest, RenamePlaylistRequest,
+    RepeatMode, RescanMediaRequest, ReverseGear, ReverseGearSourceKind, ReverseGearStatus,
+    SaveInstallSettingsRequest, SearchMediaRequest, SearchMediaResponse, SeekRequest,
+    ServiceVersion, SetDisplayBrightnessRequest, SetExitPasswordRequest, SetRepeatModeRequest,
+    SetReverseGearRequest, SetShuffleModeRequest, SetVolumeRequest, SystemMetrics, ThermalStatus,
+    UiState, VolumeResponse,
 };
 
 #[derive(Debug, Default)]
@@ -202,6 +203,7 @@ fn power_supply_to_proto(status: &power_supply::PowerSupplyStatus) -> PowerSuppl
         input_voltage_volts: status.voltage_tenths.map(|tenths| f64::from(tenths) / 10.0),
         alive_count: status.alive.map(u32::from),
         firmware_version: status.firmware_version.map(|version| version.to_string()),
+        service_mode: status.service_mode,
     }
 }
 
@@ -326,6 +328,18 @@ impl carnine::system_service_server::SystemService for SystemServiceImpl {
                 })
                 .collect(),
         }))
+    }
+
+    async fn set_power_supply_service_mode(
+        &self,
+        request: Request<PowerSupplyServiceModeRequest>,
+    ) -> Result<Response<PowerSupplyStatus>, Status> {
+        let enabled = request.into_inner().enabled;
+        info!(enabled, "power supply service mode set by a client");
+        self.power_supply.set_service_mode(enabled);
+        Ok(Response::new(power_supply_to_proto(
+            &self.power_supply.current(),
+        )))
     }
 
     async fn get_ui_state(&self, _request: Request<Empty>) -> Result<Response<UiState>, Status> {
@@ -2389,6 +2403,23 @@ async fn run() -> Result<()> {
                 Ok(result) => result?,
                 Err(_) => warn!("gRPC shutdown grace period expired"),
             }
+            // As late as possible: from `$` on the supply keeps the power
+            // for 15 s, without it the watchdog cuts it about 8 s after the
+            // last sign of life.
+            if power_supply_hub.current().configured {
+                let hub = power_supply_hub.clone();
+                let told = tokio::task::spawn_blocking(move || match power_supply::system_stop() {
+                    Some(power_supply::SystemStop::PowerOff) => hub.announce_power_off(),
+                    Some(power_supply::SystemStop::Reboot) => {
+                        info!("system reboots: the power supply is not told")
+                    }
+                    None => {}
+                })
+                .await;
+                if let Err(error) = told {
+                    warn!(%error, "telling the power supply about the power-off failed");
+                }
+            }
         }
     }
 
@@ -3152,6 +3183,7 @@ mod tests {
                 minor: 4,
                 patch: 1,
             }),
+            service_mode: false,
         });
         let changed = stream.next().await.expect("the change").unwrap();
         assert!(changed.configured && changed.connected);
@@ -3160,6 +3192,29 @@ mod tests {
         assert_eq!(changed.input_voltage_volts, Some(13.4));
         assert_eq!(changed.alive_count, Some(2));
         assert_eq!(changed.firmware_version.as_deref(), Some("V2.4.1"));
+        assert!(!changed.service_mode);
+    }
+
+    #[tokio::test]
+    async fn system_service_sets_the_power_supply_service_mode() {
+        let hub = crate::power_supply::PowerSupplyHub::new(true);
+        let service = SystemServiceImpl::new(
+            Arc::new(system_metrics::SystemMetricsHandle::new()),
+            PathBuf::new(),
+            hub.clone(),
+        );
+        let set = |enabled| {
+            SystemService::set_power_supply_service_mode(
+                &service,
+                Request::new(crate::PowerSupplyServiceModeRequest { enabled }),
+            )
+        };
+        let on = set(true).await.expect("service mode on").into_inner();
+        assert!(on.configured && on.service_mode);
+        assert!(hub.current().service_mode);
+        let off = set(false).await.expect("service mode off").into_inner();
+        assert!(!off.service_mode);
+        assert!(!hub.current().service_mode);
     }
 
     #[tokio::test]

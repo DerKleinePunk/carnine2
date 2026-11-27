@@ -18,7 +18,7 @@ Die Schritte unten sind für ein fertiges Image, das auf HDMI steht. Die
 fertigen Images `…-waveshare-jack` und `…-waveshare-7c` stehen
 schon auf der Klinke ([Welche Variante?](image-schreiben.md#welche-variante)).
 
-**Ab der Version nach 0.22.0 geht es auch ohne die Schritte unten**, in der
+**Es geht auch ohne die Schritte unten**, in der
 Oberfläche: **Optionen → System → Experten** (mit dem
 [Beenden-Passwort](optionen.md#beenden-passwort)), unter **Tonausgabe** bei
 **Ausgang** die Karte **Headphones** wählen, **Speichern** und das Gerät neu
@@ -144,7 +144,7 @@ Gemessen am Waveshare-Display von `carnine-pc-843d` (02.10.2026): Dort war kein
 **128 Byte ohne Audioteil** (1024 × 600). Das erklärt, warum über HDMI kein Ton
 kam: Das Display meldet keinen Ton, der Pi schickt ihn nicht dorthin.
 
-Den Ausgang in der Oberfläche wählen geht ab der Version nach 0.22.0 auf der
+Den Ausgang in der Oberfläche wählen geht auf der
 Seite [Experten](optionen.md#experten) (#207, siehe oben).
 
 *Geprüft:* genau nach dieser Seite auf einem **Pi 3** (carnine-pc, 29.09.):

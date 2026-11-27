@@ -191,7 +191,7 @@ its values, use the page or the CLI below, and by hand only delete the file.
   default) and whether it waits for a restart, i.e. differs from what the
   running backend uses. `ui_drop_in_error` says why the file was left out at
   start, if it was.
-- **Language** (#217, since the release after 0.22.0): texts come in the
+- **Language** (#217, since 0.23.0): texts come in the
   requested `language`; `SaveInstallSettingsRequest` has `language` too.
   An empty or unknown language and an old client sending `Empty` get German.
   The texts are in `src/backend/src/install_settings_texts.toml`.
@@ -671,6 +671,19 @@ frames came incomplete and the page showed about 10 per second; at 360, the
 default, all 30 arrive. At 720 on a hub shared with the boot SSD the grabber
 stalled the USB controller, so put grabber and camera straight on the Pi.
 
+Plug the camera in only while the Pi is off. On jeep-pi (2026-11-27) a USB
+camera plugged into a Pi port while running (with the USB power meter in
+between) made the supply on that port
+dip (a USB power meter on the same port restarted), and the Pi's whole USB
+side hung: touch dead, SSH dropped at once while ping still answered (the root
+file system is on the USB SSD). Only switching the power off and on
+brought it back. The likely cause is the camera's inrush current; there is
+no log, the journal on jeep-pi is not persistent.
+Measured current of the grabber, not the camera that hung (FNB58,
+2026-11-27, on the powered hub): the STK1160 grabber draws about
+0.21 A at rest and 0.22 A while it delivers NTSC at 30 frames/s (it
+announces 500 mA), the camera behind it has its own supply.
+
 **Settings.** The backend keeps them (`CameraService`); the frontend reads
 the settings in effect when it opens the page. Defaults come from `[camera]`
 in the configuration (template in `resources/config/carnine.toml`, best set
@@ -892,7 +905,7 @@ the old way once, reads the mapped percent back and keeps that, so the level
 does not change with the update (on carnine-pc 65 became 42, -17.80 dB then
 -18.00 dB).
 
-Since the release after 0.22.0 the output can be chosen in the UI, on the
+Since 0.23.0 the output can be chosen in the UI, on the
 expert page (**Optionen → System → Experten**, `audio.output_card`, #207);
 it takes effect at the next start of the backend.
 
@@ -954,7 +967,7 @@ output_card = "Headphones"   # ALSA card id from /proc/asound/cards
 - **In 0.22.0 the choice did not take effect:** the backend looked for a
   device named `default:CARD=<id>`, which cpal does not list, so playback
   stayed on card 0 while the volume went to the configured card. Fixed with
-  #214, since the release after 0.22.0. No device had `output_card` set.
+  #214, since 0.23.0. No device had `output_card` set.
 - A card that is not in `/proc/asound/cards` gives the warning
   `configured audio output not found, playing and setting the volume on card 0`;
   playback and volume then both stay on card 0, as without the setting.
@@ -1153,7 +1166,7 @@ measurements: [26 – Spoken Turn Announcements](26-turn-announcements.md).
     and stores the network for `wpa_supplicant@wlan0`
     (`/etc/wpa_supplicant/wpa_supplicant-wlan0.conf`, root only); `--off` and
     `--on` switch it off and back on across reboots.
-    **Band** (since the release after 0.22.0, #227): the scan list shows the
+    **Band** (since 0.23.0, #227): the scan list shows the
     band each network was seen on (2,4 / 5 / 2,4+5 GHz), `--status` also the
     frequency. `--band 5` stores the network with a `freq_list` of every
     5 GHz channel (36–177; wpa_supplicant drops what the country or the
@@ -1170,8 +1183,13 @@ measurements: [26 – Spoken Turn Announcements](26-turn-announcements.md).
     second until they are stable, scans once more and stops after 15 s at
     the latest (`CARNINE_SCAN_STEP`/`CARNINE_SCAN_MAX`; 4 s was too short
     for the USB stick right after wpa_supplicant started).
-    Why: the USB stick RTL8822BU is poor on 2.4 GHz and good on 5 GHz
-    (jeep-pi, 2026-11-23); in the car the phone's hotspot runs on 5 GHz.
+    Why: in the car the phone's hotspot runs on 5 GHz, away from Bluetooth,
+    which shares 2.4 GHz (music from the phone, #225). On 2026-11-23 the
+    USB stick RTL8822BU moved no traffic on two 2.4 GHz home networks, but
+    the Pi's built-in WLAN failed there too, so it was probably those
+    networks. On the phone's hotspot at 2.4 GHz (2026-11-27, jeep-pi, stick
+    on the powered hub, channel 6) it uploaded at 28 Mbit/s, the limit of
+    the mobile network; on 5 GHz it downloaded at 77–93 Mbit/s.
     *Tested* (jeep-pi, 2026-11-23, #227 at 4b626f0, stick on the powered
     hub, `--interface wlan1 --band 5`): the phone's hotspot on 2.4 GHz was
     refused with the hint, no password asked, nothing stored; on 5 GHz it

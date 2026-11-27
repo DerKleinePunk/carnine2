@@ -25,13 +25,13 @@ use carnine::{
     GetLocationNameRequest, GetPlaylistRequest, GetReplayRouteRequest, ImportMusicVolumeRequest,
     InstallSettingChange, InstallSettings, LatLon, LibraryEventType, NavigationStatus,
     PlayPlaylistRequest, PlayQueueEntryRequest, PlayRequest, PositionFix, PositionSourceKind,
-    PowerSupplyState, PowerSupplyStatus, PrepareAnnouncementsRequest, RemovePlaylistEntryRequest,
-    RenamePlaylistRequest, RepeatMode, RescanMediaRequest, ReverseGear, ReverseGearStatus, Route,
-    SaveInstallSettingsRequest, SearchMediaRequest, SearchPlacesRequest, SeekRequest,
-    SetDisplayBrightnessRequest, SetExitPasswordRequest, SetRepeatModeRequest,
-    SetReverseGearRequest, SetShuffleModeRequest, SetTrackRecordingRequest,
-    SetVoiceSettingsRequest, SetVolumeRequest, SystemMetrics, ThermalStatus, UiState,
-    VoiceSettings,
+    PowerSupplyServiceModeRequest, PowerSupplyState, PowerSupplyStatus,
+    PrepareAnnouncementsRequest, RemovePlaylistEntryRequest, RenamePlaylistRequest, RepeatMode,
+    RescanMediaRequest, ReverseGear, ReverseGearStatus, Route, SaveInstallSettingsRequest,
+    SearchMediaRequest, SearchPlacesRequest, SeekRequest, SetDisplayBrightnessRequest,
+    SetExitPasswordRequest, SetRepeatModeRequest, SetReverseGearRequest, SetShuffleModeRequest,
+    SetTrackRecordingRequest, SetVoiceSettingsRequest, SetVolumeRequest, SystemMetrics,
+    ThermalStatus, UiState, VoiceSettings,
 };
 
 #[tokio::main]
@@ -95,6 +95,7 @@ async fn main() -> Result<()> {
         "set-brightness" => set_display_brightness(&endpoint).await?,
         "power-supply-stream" => stream_power_supply_status(&endpoint).await?,
         "licenses" => get_licenses(&endpoint).await?,
+        "power-supply-service" => set_power_supply_service_mode(&endpoint).await?,
         "reverse-gear" => get_reverse_gear(&endpoint).await?,
         "reverse-gear-stream" => stream_reverse_gear(&endpoint).await?,
         "set-reverse-gear" => set_reverse_gear(&endpoint).await?,
@@ -1148,6 +1149,24 @@ async fn get_power_supply_status(endpoint: &str) -> Result<()> {
     Ok(())
 }
 
+/// `power-supply-service <on|off>`: holds the supply in its service mode
+/// (watchdog off) as the UI does before the maintenance mode, or ends it.
+async fn set_power_supply_service_mode(endpoint: &str) -> Result<()> {
+    let usage = "usage: media_grpc_client [endpoint] power-supply-service <on|off>";
+    let enabled = match env::args().nth(3).context(usage)?.as_str() {
+        "on" => true,
+        "off" => false,
+        _ => bail!(usage),
+    };
+    let mut client = SystemServiceClient::<Channel>::connect(endpoint.to_string()).await?;
+    let status = client
+        .set_power_supply_service_mode(PowerSupplyServiceModeRequest { enabled })
+        .await?
+        .into_inner();
+    print_power_supply_status(&status);
+    Ok(())
+}
+
 /// Reports the UI ready as the frontend does once it draws; with a power
 /// supply the amplifier on Rel3 comes on after it.
 async fn report_ui_ready(endpoint: &str) -> Result<()> {
@@ -1360,7 +1379,7 @@ fn print_power_supply_status(status: &PowerSupplyStatus) {
         None => "-",
     };
     println!(
-        "connected={} ignition={ignition} state={state} voltage={} alive={} firmware={}",
+        "connected={} ignition={ignition} state={state} voltage={} alive={} firmware={} service_mode={}",
         status.connected,
         status
             .input_voltage_volts
@@ -1371,6 +1390,7 @@ fn print_power_supply_status(status: &PowerSupplyStatus) {
             .map(|count| count.to_string())
             .unwrap_or_else(|| "-".to_string()),
         status.firmware_version.as_deref().unwrap_or("-"),
+        status.service_mode,
     );
 }
 

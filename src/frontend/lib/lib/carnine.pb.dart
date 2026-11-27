@@ -3993,6 +3993,7 @@ class PowerSupplyStatus extends $pb.GeneratedMessage {
     $core.double? inputVoltageVolts,
     $core.int? aliveCount,
     $core.String? firmwareVersion,
+    $core.bool? serviceMode,
   }) {
     final result = create();
     if (configured != null) result.configured = configured;
@@ -4002,6 +4003,7 @@ class PowerSupplyStatus extends $pb.GeneratedMessage {
     if (inputVoltageVolts != null) result.inputVoltageVolts = inputVoltageVolts;
     if (aliveCount != null) result.aliveCount = aliveCount;
     if (firmwareVersion != null) result.firmwareVersion = firmwareVersion;
+    if (serviceMode != null) result.serviceMode = serviceMode;
     return result;
   }
 
@@ -4026,6 +4028,7 @@ class PowerSupplyStatus extends $pb.GeneratedMessage {
     ..aD(5, _omitFieldNames ? '' : 'inputVoltageVolts')
     ..aI(6, _omitFieldNames ? '' : 'aliveCount', fieldType: $pb.PbFieldType.OU3)
     ..aOS(7, _omitFieldNames ? '' : 'firmwareVersion')
+    ..aOB(8, _omitFieldNames ? '' : 'serviceMode')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -4116,6 +4119,73 @@ class PowerSupplyStatus extends $pb.GeneratedMessage {
   $core.bool hasFirmwareVersion() => $_has(6);
   @$pb.TagNumber(7)
   void clearFirmwareVersion() => $_clearField(7);
+
+  /// The backend holds the supply in its service mode (SetPowerSupplyServiceMode).
+  @$pb.TagNumber(8)
+  $core.bool get serviceMode => $_getBF(7);
+  @$pb.TagNumber(8)
+  set serviceMode($core.bool value) => $_setBool(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasServiceMode() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearServiceMode() => $_clearField(8);
+}
+
+class PowerSupplyServiceModeRequest extends $pb.GeneratedMessage {
+  factory PowerSupplyServiceModeRequest({
+    $core.bool? enabled,
+  }) {
+    final result = create();
+    if (enabled != null) result.enabled = enabled;
+    return result;
+  }
+
+  PowerSupplyServiceModeRequest._();
+
+  factory PowerSupplyServiceModeRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory PowerSupplyServiceModeRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'PowerSupplyServiceModeRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'enabled')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PowerSupplyServiceModeRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PowerSupplyServiceModeRequest copyWith(
+          void Function(PowerSupplyServiceModeRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as PowerSupplyServiceModeRequest))
+          as PowerSupplyServiceModeRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PowerSupplyServiceModeRequest create() =>
+      PowerSupplyServiceModeRequest._();
+  @$core.override
+  PowerSupplyServiceModeRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static PowerSupplyServiceModeRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<PowerSupplyServiceModeRequest>(create);
+  static PowerSupplyServiceModeRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get enabled => $_getBF(0);
+  @$pb.TagNumber(1)
+  set enabled($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasEnabled() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEnabled() => $_clearField(1);
 }
 
 class LicenseDocument extends $pb.GeneratedMessage {

@@ -1207,6 +1207,18 @@ class SystemServiceClient extends $grpc.Client {
     return $createUnaryCall(_$getLicenses, request, options: options);
   }
 
+  /// Holds the power supply in its service mode (watchdog off) or ends it
+  /// (#36). The UI turns it on before "Beenden" leaves for the maintenance
+  /// mode and off on its next start. The backend keeps it and sends it again
+  /// after every reconnect of the supply. Succeeds without a supply too.
+  $grpc.ResponseFuture<$0.PowerSupplyStatus> setPowerSupplyServiceMode(
+    $0.PowerSupplyServiceModeRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setPowerSupplyServiceMode, request,
+        options: options);
+  }
+
   /// What the UI keeps across restarts, stored in the media database next to
   /// the resume state. Unknown values are the UI's to ignore.
   $grpc.ResponseFuture<$0.UiState> getUiState(
@@ -1337,6 +1349,11 @@ class SystemServiceClient extends $grpc.Client {
       '/carnine.SystemService/GetLicenses',
       ($0.Empty value) => value.writeToBuffer(),
       $0.LicenseList.fromBuffer);
+  static final _$setPowerSupplyServiceMode = $grpc.ClientMethod<
+          $0.PowerSupplyServiceModeRequest, $0.PowerSupplyStatus>(
+      '/carnine.SystemService/SetPowerSupplyServiceMode',
+      ($0.PowerSupplyServiceModeRequest value) => value.writeToBuffer(),
+      $0.PowerSupplyStatus.fromBuffer);
   static final _$getUiState = $grpc.ClientMethod<$0.Empty, $0.UiState>(
       '/carnine.SystemService/GetUiState',
       ($0.Empty value) => value.writeToBuffer(),
@@ -1444,6 +1461,15 @@ abstract class SystemServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($0.LicenseList value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.PowerSupplyServiceModeRequest,
+            $0.PowerSupplyStatus>(
+        'SetPowerSupplyServiceMode',
+        setPowerSupplyServiceMode_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.PowerSupplyServiceModeRequest.fromBuffer(value),
+        ($0.PowerSupplyStatus value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.Empty, $0.UiState>(
         'GetUiState',
         getUiState_Pre,
@@ -1580,6 +1606,15 @@ abstract class SystemServiceBase extends $grpc.Service {
 
   $async.Future<$0.LicenseList> getLicenses(
       $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.PowerSupplyStatus> setPowerSupplyServiceMode_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.PowerSupplyServiceModeRequest> $request) async {
+    return setPowerSupplyServiceMode($call, await $request);
+  }
+
+  $async.Future<$0.PowerSupplyStatus> setPowerSupplyServiceMode(
+      $grpc.ServiceCall call, $0.PowerSupplyServiceModeRequest request);
 
   $async.Future<$0.UiState> getUiState_Pre(
       $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {

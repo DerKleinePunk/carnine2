@@ -35,8 +35,8 @@ einem Neustart.
 | `sudo carnine-wlan` | sucht die Netze in Reichweite, fragt nach Netz und Passwort |
 | `sudo carnine-wlan --ssid <name>` | ein Netz nach Namen, auch ein verstecktes |
 | `sudo carnine-wlan --country <XX>` | Land für die Funkkanäle (Vorgabe `DE`) |
-| `sudo carnine-wlan --band 5` | speichert das Netz nur für 5 GHz (ab der Version nach 0.22.0) |
-| `sudo carnine-wlan --interface <name>` | nimmt dieses WLAN-Gerät, z. B. einen USB-Stick neben dem eingebauten (ab der Version nach 0.22.0) |
+| `sudo carnine-wlan --band 5` | speichert das Netz nur für 5 GHz |
+| `sudo carnine-wlan --interface <name>` | nimmt dieses WLAN-Gerät, z. B. einen USB-Stick neben dem eingebauten |
 | `sudo carnine-wlan --status` | zeigt Netz, Zustand und Adresse |
 | `sudo carnine-wlan --off` | schaltet WLAN aus, auch über Neustarts |
 | `sudo carnine-wlan --on` | schaltet es mit den gespeicherten Netzen wieder ein |
