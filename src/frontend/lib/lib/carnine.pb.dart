@@ -2434,9 +2434,11 @@ class SeekRequest extends $pb.GeneratedMessage {
 class PlayQueueEntryRequest extends $pb.GeneratedMessage {
   factory PlayQueueEntryRequest({
     $core.int? index,
+    $fixnum.Int64? playlistId,
   }) {
     final result = create();
     if (index != null) result.index = index;
+    if (playlistId != null) result.playlistId = playlistId;
     return result;
   }
 
@@ -2454,6 +2456,9 @@ class PlayQueueEntryRequest extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'carnine'),
       createEmptyInstance: create)
     ..aI(1, _omitFieldNames ? '' : 'index', fieldType: $pb.PbFieldType.OU3)
+    ..a<$fixnum.Int64>(
+        2, _omitFieldNames ? '' : 'playlistId', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2484,6 +2489,19 @@ class PlayQueueEntryRequest extends $pb.GeneratedMessage {
   $core.bool hasIndex() => $_has(0);
   @$pb.TagNumber(1)
   void clearIndex() => $_clearField(1);
+
+  /// The playlist the caller's list shows (#251). When it is set (not 0) and
+  /// the backend's queue is another one - a loose track or another playlist
+  /// started in between - the call fails with FAILED_PRECONDITION instead of
+  /// playing whatever sits at that index now. 0 skips the check.
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get playlistId => $_getI64(1);
+  @$pb.TagNumber(2)
+  set playlistId($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasPlaylistId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPlaylistId() => $_clearField(2);
 }
 
 class CreatePlaylistRequest extends $pb.GeneratedMessage {
