@@ -160,6 +160,16 @@ im Gerät selbst, Internet braucht es dafür nicht.
   1 km und 400 m, dazu kurz vor der Abbiegung selbst. Vor dem Ziel „In 300
   Metern erreichen Sie Ihr Ziel.“, am Ziel etwa „Sie haben Ihr Ziel
   erreicht.“
+- **Spurhinweise:** Bei mehreren Spuren sagt CarNine mit der Vorankündigung,
+  welche Spur man nehmen soll, zum Beispiel „In 300 Metern rechts halten auf
+  B 8. Die rechten vier Spuren benutzen.“ Das gibt es nur, wenn die Karte
+  es eindeutig weiß, sonst kommt die Ansage ohne den Satz. Möglich sind „Die
+  rechte/linke Spur“, „Die rechten/linken zwei Spuren“, „Die mittlere Spur“,
+  „Die mittleren Spuren“ und „Die zweite Spur von links“ (oder von rechts).
+  Ab Werk sind sie an. Der Schalter in den Optionen kommt mit #256; bis dahin
+  schaltet man sie nur über die Kommandozeile ab
+  ([26 – Spoken Turn Announcements, „Lane hints“](../26-turn-announcements.md#lane-hints)).
+  Ein- oder Ausschalten gilt ab der nächsten Route.
 - **Neu berechnen:** Kommt das Auto von der Route ab, sagt CarNine einmal „Die
   Route wird neu berechnet.“
 - Im Stand und neben der Route gibt es keine Ansagen. Jede Ansage kommt

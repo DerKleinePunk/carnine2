@@ -147,6 +147,46 @@ Announce(text, priority) ──► in the cache? ── yes ──► play now �
   logs it once and runs on silently; `PrepareAnnouncements` and `Announce`
   still answer OK, so the frontend needs no special case.
 
+### Lane hints
+
+Since #257 (#159, Michael 2026-11-27: "ja, aber abschaltbar") the backend
+adds a short sentence on which lanes to take, e.g. "In 300 Metern rechts
+halten auf B 8. **Die rechten vier Spuren benutzen.**" It goes into the
+route itself, so the library prepares and speaks it like any other text and
+needs no change (`src/backend/src/navigation/lane_hint.rs`).
+
+- **Where:** appended to the maneuver's advance text (`verbal_alert`), so it
+  comes with every warning stage, while there is still time to change lanes.
+  A maneuver without an advance text gets it on its "jetzt" text
+  (`verbal_pre`). The shown `instruction` stays as it is.
+- **Only when the map is clear:** the lanes that lead on without a further
+  change (`active`) lie side by side and are not all lanes. Lanes that are
+  only `valid` need another change later and are never named, as in the lane
+  display. Otherwise there is no hint.
+- **Wording** (Michael, 2026-11-27):
+
+  | Active lanes | Hint |
+  |---|---|
+  | one or more at the right edge | "Die rechte Spur benutzen." / "Die rechten zwei Spuren benutzen." |
+  | one or more at the left edge | "Die linke Spur benutzen." / "Die linken drei Spuren benutzen." |
+  | the middle one of three | "Die mittlere Spur benutzen." |
+  | one inner lane of four or more | "Die zweite Spur von links benutzen.", counted from the nearer edge |
+  | several inner lanes (not touching an edge) | "Die mittleren Spuren benutzen." |
+
+  Numbers up to twelve are words. English route texts get the same in
+  English ("Use the right two lanes."); other languages get no hint. Since
+  the announcements are German only, the English texts are not heard today.
+- **Switch:** `lane_hints` in the voice settings, default on, saved like the
+  others (see [Configuration](#configuration)). It is applied when a route
+  goes out (`ComputeRoute`, `GetReplayRoute`, also the cached replay
+  route), so a change **takes effect on the next route**. Without a voice
+  nothing is added.
+
+On the recorded route Frankfurt–Wiesbaden 10 of 11 maneuvers with lanes get
+a hint, e.g. "Leicht nach links in Richtung Deutsche Bank Park abbiegen. Die
+mittlere Spur benutzen." and "An der Ausfahrt 6 abfahren. Die rechte Spur
+benutzen."
+
 ### gRPC
 
 `NavigationService` in `src/proto/carnine.proto`:
@@ -155,8 +195,8 @@ Announce(text, priority) ──► in the cache? ── yes ──► play now �
 |---|---|
 | `PrepareAnnouncements(texts)` | synthesizes the texts in the background |
 | `Announce(text, priority)` | speaks the text; unspecified priority counts as `MANEUVER` |
-| `GetVoiceSettings()` | `available` (voice loaded), `enabled`, `volume_percent`, `voice`, `music_under_percent` |
-| `SetVoiceSettings(enabled?, volume_percent?, music_under_percent?)` | changes and saves; a value above 100 is `INVALID_ARGUMENT` and nothing changes |
+| `GetVoiceSettings()` | `available` (voice loaded), `enabled`, `volume_percent`, `voice`, `music_under_percent`, `lane_hints` |
+| `SetVoiceSettings(enabled?, volume_percent?, music_under_percent?, lane_hints?)` | changes and saves; a value above 100 is `INVALID_ARGUMENT` and nothing changes |
 
 `Maneuver` carries Valhalla's texts as `verbal_alert` (7, before),
 `verbal_pre` (8, at) and `verbal_post` (9, after), also in `GetReplayRoute`.
@@ -207,6 +247,7 @@ checks them against pinned SHA-256 values (see
 | `cache_dir` | `/run/carnine/voice` | synthesized sentences (tmpfs) |
 | `volume_percent` | `100` | loudness of the announcements, 0–100 |
 | `music_under_percent` | `30` | music level while a sentence plays, 0–100; 0 holds the track |
+| `lane_hints` | `true` | add the [lane hints](#lane-hints) to the route's spoken texts |
 | `fixed_texts` | `["Die Route wird neu berechnet.", "In 300 Metern rechts abbiegen."]` | sentences kept ready for good, see below; `[]` for none |
 
 **Fixed sentences.** "Die Route wird neu berechnet." already stands at the
@@ -244,15 +285,18 @@ them into the media database (schema 13, columns `voice_enabled`,
 win over `enabled`, `volume_percent` and `music_under_percent` in the
 configuration. A database from before schema 13 is migrated at start with
 the missing columns empty, which means "as the configuration says". The
+lane hints switch is saved the same way since schema 16 (column
+`voice_lane_hints`, #257) and wins over `lane_hints`. The
 options page does not have the switch and the sliders yet
 ([#110](https://github.com/DerKleinePunk/carnine2/issues/110)); until then
 the example client does it:
 
 ```sh
-media_grpc_client <endpoint> voice-settings                 # available=true enabled=true volume=100% music_under=30% voice=thorsten-medium
+media_grpc_client <endpoint> voice-settings                 # available=true enabled=true volume=100% music_under=30% lane_hints=true voice=thorsten-medium
 media_grpc_client <endpoint> set-voice-settings off         # or on
 media_grpc_client <endpoint> set-voice-settings - 80        # '-' keeps the switch
 media_grpc_client <endpoint> set-voice-settings - - 0       # music level; 0 holds the track
+media_grpc_client <endpoint> set-voice-settings - - - off   # lane hints off (or on), from the next route
 media_grpc_client <endpoint> announce "Links abbiegen."     # MANEUVER; add 'info' for INFO
 media_grpc_client <endpoint> prepare-announcements "Erster Satz." "Zweiter Satz."
 ```
