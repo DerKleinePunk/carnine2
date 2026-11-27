@@ -155,11 +155,10 @@ ausgegraut und sagt „Dieses Display hat keine Helligkeitsregelung“.
 
 ## System
 
-![System: zwei Gruppen mit je drei Kacheln, Wartung (Logansicht, Updates, Passwort ändern) und Oberfläche (Neustart, Beenden, Version)](bilder/optionen-system.png)
+![System: Wartung mit vier Kacheln (Logansicht, Updates, Passwort ändern, Experten) und Oberfläche mit drei (Neustart, Beenden, Version 0.23.0 vom 2026-11-27)](bilder/optionen-system.png)
 
 Die Seite hat sieben große Kacheln in zwei Gruppen, vier unter **Wartung** und
-drei unter **Oberfläche**. Jede Kachel nennt in einer Zeile, was sie tut. (Das
-Bild zeigt noch den Stand vor der Kachel **Experten**.)
+drei unter **Oberfläche**. Jede Kachel nennt in einer Zeile, was sie tut.
 
 **Wartung**
 
@@ -206,6 +205,10 @@ Backend nennt. Überschriften, Bezeichnungen und Hilfe sind deshalb vorerst
 deutsch, auch wenn die Oberfläche eine andere Sprache hat. Das Backend kann
 sie schon in allen Sprachen der Oberfläche liefern; die Seite fragt danach,
 sobald #217 auch im Frontend fertig ist.
+
+![Experten, oben Rückwärtsgang: Quelle mit den Knöpfen keine, GPIO-Eingang (gewählt) und Vorführung (über gRPC), die Zeile links markiert und mit „geändert“; darunter GPIO-Chip /dev/gpiochip0 mit „Vorgabe“; unten die Leiste „Geänderte Werte: 1“ mit Verwerfen und Speichern](bilder/optionen-experten.png)
+
+![Experten weiter unten: Pegel hinten 30 % aus config.toml mit Zurücksetzen, dann Netzteil mit den Schaltern Netzteil angeschlossen (aus), Endstufe über Relais 3 und Mit der Zündung herunterfahren (beide an)](bilder/optionen-experten-netzteil.png)
 
 | Art des Werts | Ändern |
 |---|---|
