@@ -37,6 +37,12 @@ schaltet die Oberfläche selbst um (#191):
   eingelegt ist.
 - Ohne eingerichtetes Signal passiert nichts, und es gibt keinen Hinweis.
 
+*Geprüft* auf carnine-pc (Pi 4, 23.11.2026, Stand 214000f, also der Code
+von 0.23.0 für diese Seite; Quelle GPIO 26 über `40-reverse-gear.toml`): Lag
+GPIO 26 auf Masse (Gang eingelegt), stand nach dem Start sofort die Seite
+**Kamera** da. Beim Ziehen der Brücke meldete das Backend `gear=Out`, und die
+Oberfläche sprang sofort zurück.
+
 ## Welche Kameras gehen
 
 | Kamera | Anschluss | Bild |
