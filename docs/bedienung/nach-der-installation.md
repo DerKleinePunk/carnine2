@@ -165,9 +165,9 @@ Hat das Gerät gar kein WLAN, steht dort „kein WLAN-Gerät gefunden“.
 - **Band in der Liste:** Hinter jedem Netz steht, wo es zu sehen ist, z. B.
   „Garage (2,4 GHz)“, „Handy (5 GHz)“ oder „(2,4+5 GHz)“. `--status` zeigt
   auch die Frequenz.
-- **`--band 5`:** Das Netz wird nur für 5 GHz gespeichert. So bleibt das
-  2,4-GHz-Band frei für Bluetooth. Dann muss auch der Hotspot am Handy auf
-  5 GHz laufen.
+- **`--band 5`:** Das Netz wird nur für 5 GHz gespeichert. So kommt sich das
+  WLAN nicht mit Bluetooth in die Quere, das ebenfalls auf 2,4 GHz funkt.
+  Dann muss auch der Hotspot am Handy auf 5 GHz laufen.
 - **Netz nur auf 2,4 GHz:** Ist es mit `--band 5` nur auf 2,4 GHz zu sehen,
   bricht der Befehl vor der Passwortfrage ab und speichert nichts. Das gilt
   auch für einen eingetippten Namen und für `--ssid`. Er meldet:
