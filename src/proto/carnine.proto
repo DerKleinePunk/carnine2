@@ -449,6 +449,11 @@ message SeekRequest {
 
 message PlayQueueEntryRequest {
   uint32 index = 1;
+  // The playlist the caller's list shows (#251). When it is set (not 0) and
+  // the backend's queue is another one - a loose track or another playlist
+  // started in between - the call fails with FAILED_PRECONDITION instead of
+  // playing whatever sits at that index now. 0 skips the check.
+  uint64 playlist_id = 2;
 }
 
 message CreatePlaylistRequest {

@@ -1427,7 +1427,9 @@ impl MediaService for MediaServiceImpl {
         &self,
         request: Request<PlayQueueEntryRequest>,
     ) -> Result<Response<CommandResponse>, Status> {
-        self.command("queue-entry", request.into_inner().index.to_string())
+        let request = request.into_inner();
+        check_queue_playlist(request.playlist_id, self.player.playlist_id())?;
+        self.command("queue-entry", request.index.to_string())
     }
 
     async fn play_playlist(
@@ -1872,6 +1874,23 @@ impl MediaServiceImpl {
             message,
         }))
     }
+}
+
+/// The check behind `PlayQueueEntryRequest.playlist_id` (#251): an index
+/// from a list of playlist `expected` must not land in another queue.
+/// `expected` 0 skips it; `current` is None for a loose track.
+fn check_queue_playlist(expected: u64, current: Option<i64>) -> Result<(), Status> {
+    if expected == 0 || current == Some(expected as i64) {
+        return Ok(());
+    }
+    warn!(
+        expected,
+        current = current.unwrap_or_default(),
+        "queue entry from a list that no longer plays"
+    );
+    Err(Status::failed_precondition(format!(
+        "the queue changed: playlist {expected} no longer plays, reload the list"
+    )))
 }
 
 #[tonic::async_trait]
@@ -4644,6 +4663,19 @@ mod tests {
             .expect("a missing track must not fail the start");
         assert_eq!(without_file.player.media_path(), "");
         let _ = std::fs::remove_file(database_path);
+    }
+
+    #[test]
+    fn a_queue_entry_from_a_stale_list_is_refused() {
+        assert!(
+            super::check_queue_playlist(0, None).is_ok(),
+            "0 skips the check"
+        );
+        assert!(super::check_queue_playlist(7, Some(7)).is_ok());
+        let loose = super::check_queue_playlist(6, None).expect_err("a loose track plays");
+        assert_eq!(loose.code(), tonic::Code::FailedPrecondition);
+        let other = super::check_queue_playlist(6, Some(7)).expect_err("another playlist plays");
+        assert_eq!(other.code(), tonic::Code::FailedPrecondition);
     }
 
     // Seen on carnine-pc: the shutdown saves, stops the player and saves

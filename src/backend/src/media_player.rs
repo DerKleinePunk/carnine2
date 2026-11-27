@@ -399,7 +399,7 @@ impl MediaPlayer {
         let result = match command.trim().to_ascii_lowercase().as_str() {
             "play" | "resume" => self.play(parameters),
             "pause" => self.pause(),
-            "stop" => self.stop(),
+            "stop" => self.stop_playback(true),
             "next" => self.next(),
             "previous" => self.previous(),
             "restart" => self.switch_track(0),
@@ -597,8 +597,10 @@ impl MediaPlayer {
         });
     }
 
+    /// Stops for the shutdown: unlike the Stop command the position stays,
+    /// so the save after it resumes the track where it was.
     pub fn shutdown(&self) -> Result<()> {
-        self.stop().map(|_| ())
+        self.stop_playback(false).map(|_| ())
     }
 
     pub fn shutdown_output(&self) -> Result<()> {
@@ -992,7 +994,10 @@ impl MediaPlayer {
         }
         drop(playback);
         if self.media_path().is_empty() {
-            bail!("play requires an audio file path in parameters");
+            // Only answered to the caller before (#251), so nobody saw why
+            // the play button did nothing.
+            tracing::warn!("play without a track: nothing to play");
+            bail!("nothing to play: choose a track or a playlist");
         }
         self.start_current_path()
     }
@@ -1414,12 +1419,17 @@ impl MediaPlayer {
         Ok("playback paused".to_string())
     }
 
-    fn stop(&self) -> Result<String> {
+    /// Stops the track but keeps it, and the queue, as the current one (#251):
+    /// Play afterwards starts it again. The UI only sends Play while it
+    /// knows a track, so dropping it here left the play button dead after a
+    /// Stop. `rewind` (the Stop command) puts the position back to the start;
+    /// the shutdown keeps it for the resume state.
+    fn stop_playback(&self, rewind: bool) -> Result<String> {
         let mut playback = self
             .playback
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let position_ms = self.position_ms();
+        let position_ms = if rewind { 0 } else { self.position_ms() };
         if let Some(active_playback) = playback.take() {
             self.publish_audio(
                 AudioEventType::AudioSourceStopRequested,
@@ -1429,10 +1439,6 @@ impl MediaPlayer {
             self.publish_audio(AudioEventType::AudioDecoderStopped, "audio decoder stopped");
             self.publish_audio(AudioEventType::AudioSourceRemoved, "audio source removed");
         }
-        *self
-            .media_path
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
         *self
             .position_ms
             .lock()
@@ -2373,16 +2379,52 @@ mod tests {
     }
 
     #[test]
-    fn stopping_playback_preserves_resume_position() {
+    fn the_shutdown_stop_preserves_the_resume_position() {
         let player = player();
         *player
             .position_ms
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = 12_345;
 
-        player.stop().expect("playback should stop");
+        player.shutdown().expect("playback should stop");
 
         assert_eq!(player.position_ms(), 12_345);
+    }
+
+    // #251: after Stop the UI's play button sends Play only while it knows a
+    // track; Stop used to drop it, and the button did nothing.
+    #[test]
+    fn play_after_stop_starts_the_same_track_from_the_beginning() {
+        let (player, starts) = playing_at(42_000);
+        assert_eq!(
+            last_start(&starts),
+            ("/music/first.mp3".to_string(), 42_000)
+        );
+
+        player.execute("stop", "").expect("playback stops");
+        assert_eq!(player.state(), "stopped");
+        assert_eq!(
+            player.media_path(),
+            "/music/first.mp3",
+            "Stop keeps the track"
+        );
+        assert_eq!(player.position_ms(), 0, "Stop rewinds");
+        assert_eq!(player.playlist_id(), Some(7), "and the queue");
+
+        player.execute("play", "").expect("Play starts it again");
+        assert_eq!(player.state(), "playing");
+        assert_eq!(last_start(&starts), ("/music/first.mp3".to_string(), 0));
+    }
+
+    #[test]
+    fn play_without_any_track_says_there_is_nothing_to_play() {
+        let player = player();
+        let error = player.execute("play", "").expect_err("nothing to play");
+        assert!(
+            error.to_string().contains("nothing to play"),
+            "a message the UI can show: {error}"
+        );
+        assert_eq!(player.state(), "stopped");
     }
 
     #[test]

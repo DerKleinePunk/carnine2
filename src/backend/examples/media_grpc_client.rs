@@ -149,10 +149,15 @@ async fn play_playlist(client: &mut MediaServiceClient<Channel>) -> Result<()> {
 async fn play_queue_entry(client: &mut MediaServiceClient<Channel>) -> Result<()> {
     let index = env::args()
         .nth(3)
-        .context("queue-entry requires a zero-based queue index")?
+        .context("queue-entry requires a zero-based queue index [playlist id]")?
         .parse::<u32>()?;
+    // Optional: the playlist the index belongs to (#251), 0 or left out skips the check.
+    let playlist_id = match env::args().nth(4) {
+        Some(value) => value.parse::<u64>()?,
+        None => 0,
+    };
     let response = client
-        .play_queue_entry(PlayQueueEntryRequest { index })
+        .play_queue_entry(PlayQueueEntryRequest { index, playlist_id })
         .await?
         .into_inner();
     println!("{}: {}", response.success, response.message);
