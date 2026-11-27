@@ -37,8 +37,8 @@ Mitigiert wurde das vorerst nur Dart-seitig in `src/frontend/lib/main.dart`
 nach mehreren Timing-Reports (oder einem Timeout) wird UI-Ready gemeldet — das
 verkleinert das Zeitfenster, behebt es aber nicht grundsätzlich, da flutter-pi
 selbst nicht retried und Commit-Fehler nicht nach oben durchreicht.
-*Nachtrag (#37):* Unter ivi-homescreen entfällt das Erzwingen ab der Version
-nach 0.22.0. „UI bereit“ kommt mit dem ersten Frame (`UiReadyDetector`,
+*Nachtrag (#37):* Unter ivi-homescreen entfällt das Erzwingen ab
+0.23.0. „UI bereit“ kommt mit dem ersten Frame (`UiReadyDetector`,
 ADR-019).
 
 **Für den ivi-homescreen-Spike explizit mitprüfen:**

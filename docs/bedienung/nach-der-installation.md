@@ -160,14 +160,14 @@ ein, ersetzt das den alten Eintrag, etwa nach einem neuen Passwort.
 Findet die Suche nichts, meldet er „kein Netz gefunden“ und nennt `--ssid`.
 Hat das Gerät gar kein WLAN, steht dort „kein WLAN-Gerät gefunden“.
 
-**Ab der Version nach 0.22.0:**
+**Band und WLAN-Gerät:**
 
 - **Band in der Liste:** Hinter jedem Netz steht, wo es zu sehen ist, z. B.
   „Garage (2,4 GHz)“, „Handy (5 GHz)“ oder „(2,4+5 GHz)“. `--status` zeigt
   auch die Frequenz.
-- **`--band 5`:** Das Netz wird nur für 5 GHz gespeichert. Das braucht ein
-  WLAN-Stick, der auf 2,4 GHz schlecht funkt. Dann muss auch der Hotspot am
-  Handy auf 5 GHz laufen.
+- **`--band 5`:** Das Netz wird nur für 5 GHz gespeichert. So kommt sich das
+  WLAN nicht mit Bluetooth in die Quere, das ebenfalls auf 2,4 GHz funkt.
+  Dann muss auch der Hotspot am Handy auf 5 GHz laufen.
 - **Netz nur auf 2,4 GHz:** Ist es mit `--band 5` nur auf 2,4 GHz zu sehen,
   bricht der Befehl vor der Passwortfrage ab und speichert nichts. Das gilt
   auch für einen eingetippten Namen und für `--ssid`. Er meldet:

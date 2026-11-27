@@ -136,6 +136,11 @@ impl MediaPlayer {
     /// and goes on from there afterwards. A newer announcement replaces a running one
     /// of the same or lower priority; an information that meets a running
     /// turn instruction is dropped (false).
+    ///
+    /// The replaced announcement fades out beside the new one, which starts
+    /// at once: stopping waits for the fade (250 ms in the cpal engine,
+    /// against a click), and the new one used to wait for it (07.10.2026,
+    /// every overlapping announcement ~¼ s late).
     pub fn play_announcement(&self, path: &str, priority: AnnouncementPriority) -> Result<bool> {
         let mut active = self
             .announcement
@@ -148,7 +153,11 @@ impl MediaPlayer {
             return Ok(false);
         }
         if let Some(previous) = active.take() {
-            let _ = previous.playback.stop();
+            std::thread::spawn(move || {
+                if let Err(error) = previous.playback.stop() {
+                    tracing::warn!(%error, "stopping the replaced announcement failed");
+                }
+            });
         }
         let levels = *self
             .announcement_levels
@@ -1478,6 +1487,7 @@ fn shuffled_order(len: usize, pinned_first: Option<usize>) -> Vec<usize> {
 mod tests {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::{Arc, Mutex};
+    use std::time::{Duration, Instant};
 
     use super::MediaPlayer;
     use crate::audio_engine::{AudioEngine, Playback};
@@ -1577,6 +1587,8 @@ mod tests {
         finished: Arc<AtomicBool>,
         gains: Arc<Mutex<Vec<(String, f32)>>>,
         speaker_levels: Arc<Mutex<Vec<(String, f32, f32)>>>,
+        /// How long stopping takes, like the cpal engine's fade.
+        stop_delay: Duration,
     }
 
     impl Playback for LevelPlayback {
@@ -1600,6 +1612,7 @@ mod tests {
             self.set_gain(front)
         }
         fn stop(self: Box<Self>) -> Result<()> {
+            std::thread::sleep(self.stop_delay);
             self.gains.lock().unwrap().push((self.path.clone(), -1.0));
             Ok(())
         }
@@ -1615,6 +1628,7 @@ mod tests {
         gains: Arc<Mutex<Vec<(String, f32)>>>,
         speaker_levels: Arc<Mutex<Vec<(String, f32, f32)>>>,
         rear_speakers: bool,
+        stop_delay: Duration,
     }
 
     impl AudioEngine for LevelEngine {
@@ -1629,6 +1643,7 @@ mod tests {
                 finished,
                 gains: Arc::clone(&self.gains),
                 speaker_levels: Arc::clone(&self.speaker_levels),
+                stop_delay: self.stop_delay,
             }))
         }
 
@@ -1691,6 +1706,19 @@ mod tests {
             self.finished.lock().unwrap()[path].store(true, Ordering::Release);
         }
 
+        /// Gains set since the last call, up to the moment `path` has been
+        /// stopped; a replaced announcement stops on its own thread.
+        fn take_until_stopped(&self, path: &str) -> Vec<(String, f32)> {
+            let deadline = Instant::now() + Duration::from_secs(3);
+            let mut seen = Vec::new();
+            while !seen.contains(&(path.to_string(), -1.0)) {
+                assert!(Instant::now() < deadline, "{path} never stopped: {seen:?}");
+                seen.extend(self.take());
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            seen
+        }
+
         /// Gains set since the last call, as (path, gain).
         fn take(&self) -> Vec<(String, f32)> {
             std::mem::take(&mut *self.gains.lock().unwrap())
@@ -1747,6 +1775,43 @@ mod tests {
         assert!(levels.take().is_empty(), "nothing left to follow");
     }
 
+    /// The cpal engine fades a stopped source out for 250 ms. The new
+    /// announcement must not wait for that (07.10.2026: ~¼ s late whenever
+    /// two overlapped).
+    #[test]
+    fn a_new_announcement_starts_at_once_while_the_old_one_fades_out() {
+        let levels = Levels::with_engine(LevelEngine {
+            stop_delay: Duration::from_millis(250),
+            ..LevelEngine::default()
+        });
+        assert!(levels
+            .player
+            .play_announcement("/run/first.wav", AnnouncementPriority::Maneuver)
+            .unwrap());
+        levels.take();
+
+        let started = Instant::now();
+        assert!(levels
+            .player
+            .play_announcement("/run/second.wav", AnnouncementPriority::Maneuver)
+            .unwrap());
+        let took = started.elapsed();
+        assert!(
+            took < Duration::from_millis(100),
+            "waited for the fade: {took:?}"
+        );
+        let at_once = levels.take();
+        assert!(
+            at_once.iter().any(|(path, _)| path == "/run/second.wav"),
+            "the new one plays at once: {at_once:?}"
+        );
+        assert!(
+            !at_once.contains(&("/run/first.wav".to_string(), -1.0)),
+            "the old one is still fading: {at_once:?}"
+        );
+        levels.take_until_stopped("/run/first.wav");
+    }
+
     #[test]
     fn a_turn_instruction_cuts_an_information_short_but_not_the_other_way() {
         let levels = Levels::new();
@@ -1758,10 +1823,7 @@ mod tests {
             .player
             .play_announcement("/run/turn.wav", AnnouncementPriority::Maneuver)
             .unwrap());
-        assert!(
-            levels.take().contains(&("/run/info.wav".to_string(), -1.0)),
-            "the information stopped"
-        );
+        levels.take_until_stopped("/run/info.wav");
 
         assert!(
             !levels
@@ -1786,7 +1848,7 @@ mod tests {
                 .unwrap(),
             "a newer turn instruction replaces the older"
         );
-        assert!(levels.take().contains(&("/run/turn.wav".to_string(), -1.0)));
+        levels.take_until_stopped("/run/turn.wav");
 
         levels.finish("/run/turn2.wav");
         assert!(
