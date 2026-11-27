@@ -1189,7 +1189,11 @@ sherpa-onnx 1.13.8 and the German voices `thorsten-medium` (default) and
 `thorsten-low`; the backend loads them at run time and runs on silently
 without them. `[voice]` picks the voice, the core (default 3) and the levels;
 switch, loudness and the music's level set over gRPC are saved in the media
-database (schema 13) and win over the configuration. Details, the flow and the
+database (schema 13) and win over the configuration. Since #257 (#159) the
+backend adds spoken lane hints ("Die rechten zwei Spuren benutzen.") to the
+advance notice where the lanes are clear; `[voice] lane_hints` (default
+`true`) sets the default, the saved switch (schema 16) wins, a change counts
+from the next route. Details, the flow and the
 measurements: [26 – Spoken Turn Announcements](26-turn-announcements.md).
 
 #### Operating System
