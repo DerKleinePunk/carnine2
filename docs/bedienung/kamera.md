@@ -4,7 +4,7 @@
 
 Die Seite **Kamera** zeigt das Bild einer Rückfahrkamera.
 
-![Seite Kamera mit dem Bild einer analogen Rückfahrkamera am Grabber, darin die farbigen Hilfslinien der Kamera](bilder/cam-grabber.png)
+![Seite Kamera mit dem Bild einer analogen Rückfahrkamera am Grabber: ein Zimmer mit Fenster, Fahne und Regal in Weitwinkel, darin die farbigen Hilfslinien der Kamera; links in der Leiste ist Kamera gewählt](bilder/cam-grabber.png)
 
 *Analoge Rückfahrkamera am Grabber, auf dem Test-Pi (Pi 4). Die Hilfslinien
 kommen aus der Kamera selbst.*
