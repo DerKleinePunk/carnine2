@@ -18,7 +18,7 @@ fn main() -> Result<()> {
     let supported = device
         .default_output_config()
         .context("failed to read default output configuration")?;
-    let sample_rate = supported.sample_rate().0 as f32;
+    let sample_rate = supported.sample_rate() as f32;
     let channels = supported.channels() as usize;
     let stream_config = supported.config();
     let music_gain = Arc::new(AtomicU32::new(MUSIC_GAIN));
@@ -86,7 +86,7 @@ where
     let mut frame_index = 0_u64;
     let error_callback = |error| eprintln!("cpal stream error: {error}");
     let stream = device.build_output_stream(
-        config,
+        *config,
         move |output: &mut [T], _info| {
             let music = music_gain.load(Ordering::Relaxed) as f32 / MUSIC_GAIN as f32;
             let navigation = navigation_gain.load(Ordering::Relaxed) as f32 / MUSIC_GAIN as f32;

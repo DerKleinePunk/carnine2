@@ -54,7 +54,7 @@ fn main() -> Result<()> {
         .context("failed to start cpal output stream")?;
     println!(
         "cpal external decoder stream started: {} Hz, {} output channels, {:?}",
-        supported.sample_rate().0,
+        supported.sample_rate(),
         output_channels,
         supported.sample_format()
     );
@@ -78,7 +78,7 @@ fn select_output_device(host: &cpal::Host, requested: Option<&str>) -> Result<cp
         .context("failed to enumerate output devices")?;
     let mut first_device = None;
     for device in devices {
-        let name = device.name().unwrap_or_else(|_| "<unnamed>".to_string());
+        let name = device.to_string();
         println!("cpal output device: {name}");
         if first_device.is_none() {
             first_device = Some(device.clone());
@@ -187,7 +187,7 @@ where
 {
     let mut output_frame_index = 0_usize;
     Ok(device.build_output_stream(
-        config,
+        *config,
         move |output: &mut [T], _info| {
             for frame in output.chunks_mut(channels) {
                 let left = music_consumer.try_pop().unwrap_or(0.0);

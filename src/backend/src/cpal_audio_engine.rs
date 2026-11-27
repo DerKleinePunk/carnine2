@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
 use crate::audio_engine::{AudioEngine, Playback};
 use crate::audio_mixer::{AudioMixer, SourceId, CHANNELS, SURROUND_CHANNELS};
@@ -85,12 +85,10 @@ impl CpalAudioEngine {
             .default_output_device()
             .context("no default cpal output device")?;
         let supported = match channels {
-            None => device
-                .default_output_config()
-                .context("failed to read cpal output configuration")?,
+            None => default_output_config(&device)?,
             Some(wanted) => output_config_with_channels(&device, wanted)?,
         };
-        let sample_rate = supported.sample_rate().0;
+        let sample_rate = supported.sample_rate();
         let channels = supported.channels() as usize;
         let (command_sender, command_receiver) = mpsc::channel();
         let mixer = AudioMixer::new(sample_rate, FADE_MILLISECONDS);
@@ -98,7 +96,7 @@ impl CpalAudioEngine {
         let fault = Arc::new(StreamFault::default());
         let stream = build_stream(
             &device,
-            &supported.config(),
+            supported.config(),
             supported.sample_format(),
             OutputLayout {
                 channels,
@@ -128,6 +126,30 @@ impl CpalAudioEngine {
     }
 }
 
+/// The device's default configuration when the stream can write its sample
+/// format. Since cpal 0.18 the default may be I32 or I24 on precise
+/// hardware; then the same channels and rate in a format of ours.
+fn default_output_config(device: &cpal::Device) -> Result<cpal::SupportedStreamConfig> {
+    let default = device
+        .default_output_config()
+        .context("failed to read cpal output configuration")?;
+    if WRITABLE_FORMATS.contains(&default.sample_format()) {
+        return Ok(default);
+    }
+    let ranges: Vec<_> = device
+        .supported_output_configs()
+        .context("failed to list cpal output configurations")?
+        .collect();
+    choose_output_config(&ranges, default.channels(), default.sample_rate())
+}
+
+/// The sample formats the stream writes, best first.
+const WRITABLE_FORMATS: [cpal::SampleFormat; 3] = [
+    cpal::SampleFormat::F32,
+    cpal::SampleFormat::I16,
+    cpal::SampleFormat::U16,
+];
+
 /// A configuration of `device` with exactly `channels`, at 48 kHz when the
 /// device takes it; see [`choose_output_config`]. 48 kHz is what the AC-3
 /// chain behind the multichannel output runs at: opened at the device's
@@ -155,20 +177,16 @@ fn choose_output_config(
     preferred_rate: u32,
 ) -> Result<cpal::SupportedStreamConfig> {
     let holds = |range: &cpal::SupportedStreamConfigRange, rate: u32| {
-        (range.min_sample_rate().0..=range.max_sample_rate().0).contains(&rate)
+        (range.min_sample_rate()..=range.max_sample_rate()).contains(&rate)
     };
-    for format in [
-        cpal::SampleFormat::F32,
-        cpal::SampleFormat::I16,
-        cpal::SampleFormat::U16,
-    ] {
+    for format in WRITABLE_FORMATS {
         let usable: Vec<_> = ranges
             .iter()
             .filter(|range| range.channels() == channels && range.sample_format() == format)
             .collect();
         for rate in [preferred_rate, 48_000] {
             if let Some(range) = usable.iter().find(|range| holds(range, rate)) {
-                return Ok(range.with_sample_rate(cpal::SampleRate(rate)));
+                return Ok(range.with_sample_rate(rate));
             }
         }
         if let Some(range) = usable.first() {
@@ -181,11 +199,29 @@ fn choose_output_config(
 /// The cpal error callback: logs the first error, then drops the stream on
 /// a thread of its own - dropping it joins cpal's worker, which is the
 /// thread running this callback - so the error loop stops.
+///
+/// An underrun (xrun) is no fault: since cpal 0.18 ALSA reports each one
+/// here and recovers by itself. Dropping the stream then would silence the
+/// output after every hiccup under load. Only the first is logged at warn,
+/// every further [`XRUN_LOG_EVERY`]th at debug.
+/// How often further underruns are noted (at debug).
+const XRUN_LOG_EVERY: u64 = 100;
+
 fn stream_error_handler(
     fault: Arc<StreamFault>,
     slot: StreamSlot,
-) -> impl FnMut(cpal::StreamError) + Send + 'static {
+) -> impl FnMut(cpal::Error) + Send + 'static {
+    let mut xruns: u64 = 0;
     move |stream_error| {
+        if stream_error.kind() == cpal::ErrorKind::Xrun {
+            xruns += 1;
+            if xruns == 1 {
+                warn!(error = %stream_error, "cpal audio output underrun (xrun), recovered by cpal");
+            } else if xruns.is_multiple_of(XRUN_LOG_EVERY) {
+                debug!(xruns, "cpal audio output underruns so far");
+            }
+            return;
+        }
         if !fault.record() {
             return;
         }
@@ -386,12 +422,12 @@ impl OutputLayout {
 
 fn build_stream(
     device: &cpal::Device,
-    config: &cpal::StreamConfig,
+    config: cpal::StreamConfig,
     sample_format: cpal::SampleFormat,
     layout: OutputLayout,
     mixer: AudioMixer,
     command_receiver: Receiver<MixerCommand>,
-    on_error: impl FnMut(cpal::StreamError) + Send + 'static,
+    on_error: impl FnMut(cpal::Error) + Send + 'static,
 ) -> Result<cpal::Stream> {
     match sample_format {
         cpal::SampleFormat::F32 => {
@@ -409,11 +445,11 @@ fn build_stream(
 
 fn build_typed_stream<T>(
     device: &cpal::Device,
-    config: &cpal::StreamConfig,
+    config: cpal::StreamConfig,
     layout: OutputLayout,
     mut mixer: AudioMixer,
     command_receiver: Receiver<MixerCommand>,
-    on_error: impl FnMut(cpal::StreamError) + Send + 'static,
+    on_error: impl FnMut(cpal::Error) + Send + 'static,
 ) -> Result<cpal::Stream>
 where
     T: cpal::SizedSample + cpal::FromSample<f32>,
@@ -602,8 +638,8 @@ mod tests {
     ) -> cpal::SupportedStreamConfigRange {
         cpal::SupportedStreamConfigRange::new(
             channels,
-            cpal::SampleRate(min),
-            cpal::SampleRate(max),
+            min,
+            max,
             cpal::SupportedBufferSize::Unknown,
             format,
         )
@@ -625,7 +661,7 @@ mod tests {
 
         assert_eq!(chosen.channels(), 4);
         assert_eq!(chosen.sample_format(), I16, "i16 before u16, I8 never");
-        assert_eq!(chosen.sample_rate().0, 44_100, "the device's default rate");
+        assert_eq!(chosen.sample_rate(), 44_100, "the device's default rate");
 
         let with_f32 = [range(4, 4_000, 192_000, I16), range(4, 4_000, 192_000, F32)];
         assert_eq!(
@@ -643,16 +679,14 @@ mod tests {
         assert_eq!(
             super::choose_output_config(&only_48k, 4, 44_100)
                 .unwrap()
-                .sample_rate()
-                .0,
+                .sample_rate(),
             48_000
         );
         let only_96k = [range(4, 96_000, 96_000, I16)];
         assert_eq!(
             super::choose_output_config(&only_96k, 4, 44_100)
                 .unwrap()
-                .sample_rate()
-                .0,
+                .sample_rate(),
             96_000
         );
     }
@@ -707,11 +741,28 @@ mod tests {
         let mut handler = stream_error_handler(Arc::clone(&fault), Arc::new(Mutex::new(None)));
 
         for _ in 0..10_000 {
-            handler(cpal::StreamError::DeviceNotAvailable);
+            handler(cpal::ErrorKind::DeviceNotAvailable.into());
         }
 
         assert!(fault.is_broken());
         assert_eq!(fault.errors(), 10_000);
+    }
+
+    /// cpal 0.18 reports every ALSA underrun to the error callback and
+    /// recovers by itself; the output must stay up.
+    #[test]
+    fn underruns_leave_the_output_up() {
+        let fault = Arc::new(StreamFault::default());
+        let mut handler = stream_error_handler(Arc::clone(&fault), Arc::new(Mutex::new(None)));
+
+        for _ in 0..1_000 {
+            handler(cpal::ErrorKind::Xrun.into());
+        }
+        assert!(!fault.is_broken());
+        assert_eq!(fault.errors(), 0);
+
+        handler(cpal::ErrorKind::DeviceNotAvailable.into());
+        assert!(fault.is_broken(), "a lost device still counts");
     }
 
     #[test]
