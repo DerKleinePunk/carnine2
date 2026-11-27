@@ -140,6 +140,9 @@ Announce(text, priority) ──► in the cache? ── yes ──► play now �
   ("Die Route wird neu berechnet."). A turn instruction cuts a running
   information short; an information that meets a running turn instruction is
   dropped. A newer turn instruction replaces a running one.
+  When a sentence replaces or cuts short a running one, the new one starts
+  at once and the old one fades out beside it (250 ms, against a click).
+  Before #234 the new one waited for that fade, about ¼ s.
 - **Without a voice** (package missing, voice not loadable, WSL) the backend
   logs it once and runs on silently; `PrepareAnnouncements` and `Announce`
   still answer OK, so the frontend needs no special case.
