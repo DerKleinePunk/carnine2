@@ -8,11 +8,12 @@
 //! before any thread runs, so ALSA's `default` device is that card's own
 //! default (`default:CARD=<id>`, with the card's configuration: the softvol
 //! `PCM` and IEC958 on the Pi's HDMI), and sets the volume on that card's
-//! mixer control. cpal cannot open such a name itself: under ALSA it only
-//! lists `default` and `plughw:<n>` named after the card (jeep-pi
-//! 20.11.2026), and `plughw` would skip the card's configuration. A card that
-//! is not there leaves everything on card 0. Nothing here knows about a
-//! particular board: the cards come from `/proc/asound/cards`.
+//! mixer control. Since cpal 0.18 the engine also opens that card by its own
+//! ALSA name (`cpal_audio_engine::output_device`, #250): an image that
+//! defines `pcm.!default` itself, like the AC-3 chain into the Loopback, is
+//! not bound by `ALSA_PCM_CARD`. A card that is not there leaves everything
+//! on card 0. Nothing here knows about a particular board: the cards come
+//! from `/proc/asound/cards`.
 
 use std::fs;
 use std::path::Path;
