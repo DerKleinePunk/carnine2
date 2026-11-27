@@ -32,8 +32,8 @@ Der Debos-Build soll optionale Profile für den Entwicklungs-Pi unterstützen:
 Überholt: flutter-pi meldet fehlgeschlagene DRM-Commits nicht zurück
 
 Seit ADR-020 läuft die Oberfläche unter ivi-homescreen, flutter-pi wird nicht
-mehr verwendet. Die Frame-Erzwingung in `main.dart` ist seit der Version nach
-0.22.0 entfernt (#37): „UI bereit“ kommt mit dem ersten gezeichneten Frame,
+mehr verwendet. Die Frame-Erzwingung in `main.dart` ist seit
+0.23.0 entfernt (#37): „UI bereit“ kommt mit dem ersten gezeichneten Frame,
 auf carnine-pc (Pi 4) am 23.11.2026 mit 10 Frontend-Neustarts und drei
 Kaltstarts ohne Fehler geprüft (siehe ADR-019). Der alte Text:
 
