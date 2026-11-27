@@ -25,7 +25,7 @@ abspielt, versteht den AC-3-Strom nicht und bleibt **stumm**. Darum gibt es
 dafür keinen Schalter in der Oberfläche, umgestellt wird wie unten
 beschrieben.
 
-**Experten-Seite** (ab der Version nach 0.22.0, **Optionen → System →
+**Experten-Seite** (**Optionen → System →
 Experten**, siehe [Optionen](optionen.md#experten)): Mit vier Boxen dort bei
 **Ausgang** immer **Vorgabe des Systems** lassen. Mit einer gewählten Karte
 läuft die Musik zwar weiter über den Kodierer, aber der Lautstärkeregler in

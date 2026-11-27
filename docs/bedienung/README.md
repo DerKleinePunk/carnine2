@@ -1,6 +1,6 @@
 # Bedienungsanleitung carnine2
 
-**Diese Anleitung gilt ab CarNine 0.22.0.**
+**Diese Anleitung gilt ab CarNine 0.23.0.**
 
 Für alle, die carnine2 bedienen, testen oder einrichten. Beschreibt, was man
 auf dem Bildschirm sieht und was jedes Bedienelement tut. Die hinteren
@@ -47,9 +47,8 @@ Die Kapitel 2 bis 6 folgen dem Seitenmenü von oben nach unten.
 - **Musik hören:** Seitenmenü → **Medien** → Kachel **SAMMLUNGEN** → bei einer
   Playlist auf **▶**. Einzelne Titel startet man aus der **BIBLIOTHEK**
   ([Medien](medien.md)).
-- **Oberfläche neu starten:** **Optionen** → **System** → **Neustart**, ab der
-  Version nach 0.22.0 dann noch **Neu starten** in der Rückfrage. Die Musik
-  läuft dabei weiter ([Optionen](optionen.md#system)).
+- **Oberfläche neu starten:** **Optionen** → **System** → **Neustart**, dann
+  **Neu starten** in der Rückfrage. Die Musik läuft dabei weiter ([Optionen](optionen.md#system)).
 
 ## Aufbau des Bildschirms
 

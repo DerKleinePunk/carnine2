@@ -414,8 +414,8 @@ guide describes it in `verhalten.md`, section „Messe-Modus“, and `karte.md`)
   "Abbrechen" the field is empty again; a destination the user picked is not
   overwritten.
 - **No own destination** in trade fair mode
-  ([#174](https://github.com/DerKleinePunk/carnine2/issues/174), since the
-  release after 0.22.0): with `demo_mode` on and the replay as position source,
+  ([#174](https://github.com/DerKleinePunk/carnine2/issues/174), since
+  0.23.0): with `demo_mode` on and the replay as position source,
   `ComputeRoute` answers `PERMISSION_DENIED`. The map shows "Route konnte nicht
   berechnet werden" and the tour drives on. Before, a chosen destination was
   left at once and computed again and again (11 times in 4 min at the trade

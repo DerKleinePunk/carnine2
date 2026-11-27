@@ -799,7 +799,7 @@ multiple `SchedulerBinding.addTimingsCallback` reports before reporting
 ready. This does not verify on-screen presentation (flutter-pi does not
 expose that), but it gives the commit path repeated chances to succeed
 instead of one, compensating in practice for flutter-pi's missing retry.
-*Removed in the release after 0.22.0 (#37):* under ivi-homescreen (ADR-020)
+*Removed in 0.23.0 (#37):* under ivi-homescreen (ADR-020)
 no frames are forced any more. `UiReadyDetector`
 (`src/frontend/lib/app/ui_ready_detector.dart`) reports ready with the first
 `FrameTiming`, i.e. the first rasterized frame, with the 5-second safety net
@@ -890,8 +890,8 @@ the one pinned in the emb workspace, not the one on `PATH`.
   long run (page-flip events reported lost). Long runs on the test Pi on
   2026-09-24 and 2026-09-25 (freeze-watch, music and map for hours) showed
   no freeze. ADR-019's frame forcing in `main.dart` was a flutter-pi
-  workaround; ivi-homescreen does not need it, it was removed in the release
-  after 0.22.0 (#37, see ADR-019).
+  workaround; ivi-homescreen does not need it, it was removed in 0.23.0
+  (#37, see ADR-019).
 - There is no rollback path any more: `main` builds with emb_cli too, and the
   flutter-pi packaging is gone.
 

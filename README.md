@@ -52,14 +52,14 @@ and never drain the battery. CarNine is built around that:
 | 🗺️ **Navigation** | offline vector map with contour lines, routes by [Valhalla](https://github.com/valhalla/valhalla) on the Pi, routing data one country at a time with routes kept inside the installed countries, place search that forgives typos, follow mode |
 | 🗣️ **Spoken directions** | turn-by-turn announcements made on the device (sherpa-onnx, Piper voice); the music goes down while a sentence plays (German for now) |
 | 🎵 **Music** | your library on the device, import from a USB stick, playlists, queue |
-| 📷 **Reversing camera** | analog camera through a USB grabber or a USB webcam, measured delay about 0.06–0.08 s |
+| 📷 **Reversing camera** | analog camera through a USB grabber or a USB webcam, measured delay about 0.06–0.08 s; the camera page comes up by itself while the reverse gear is in (GPIO input) |
 | 🔌 **Power supply** | ignition-controlled start and clean shutdown, battery protection, amplifier relay, watchdog ([docs/23](docs/23-power-supply.md)) |
-| 🔊 **Sound** | headphone jack or four speakers front and rear through a 5.1 decoder; the output card can be chosen in the configuration |
+| 🔊 **Sound** | headphone jack or four speakers front and rear through a 5.1 decoder; the output is chosen on the expert page |
+| 🛠️ **Installation** | expert page for the values set once per car (reverse gear, sound output, power supply), checked before they are saved, behind a password |
 | 🌍 **Languages** | UI in 15 languages, on-screen keyboard |
 
-Coming: lane guidance (the backend already delivers the lanes), switching to
-the camera with the reverse gear (the backend already reads it from a GPIO),
-an expert page for the installation values, OTA updates from GitHub releases. Ideas and plans:
+Coming: lane guidance (the backend already delivers the lanes), music and
+phone calls from the phone over Bluetooth, OTA updates from GitHub releases. Ideas and plans:
 [docs/17](docs/17-ideas-roadmap.md).
 
 ## Hardware
