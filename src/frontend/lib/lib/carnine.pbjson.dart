@@ -1374,6 +1374,7 @@ const PowerSupplyStatus$json = {
       '10': 'firmwareVersion',
       '17': true
     },
+    {'1': 'service_mode', '3': 8, '4': 1, '5': 8, '10': 'serviceMode'},
   ],
   '8': [
     {'1': '_ignition'},
@@ -1390,8 +1391,23 @@ final $typed_data.Uint8List powerSupplyStatusDescriptor = $convert.base64Decode(
     'iAEBEi8KBXN0YXRlGAQgASgOMhkuY2FybmluZS5Qb3dlclN1cHBseVN0YXRlUgVzdGF0ZRIzCh'
     'NpbnB1dF92b2x0YWdlX3ZvbHRzGAUgASgBSAFSEWlucHV0Vm9sdGFnZVZvbHRziAEBEiQKC2Fs'
     'aXZlX2NvdW50GAYgASgNSAJSCmFsaXZlQ291bnSIAQESLgoQZmlybXdhcmVfdmVyc2lvbhgHIA'
-    'EoCUgDUg9maXJtd2FyZVZlcnNpb26IAQFCCwoJX2lnbml0aW9uQhYKFF9pbnB1dF92b2x0YWdl'
-    'X3ZvbHRzQg4KDF9hbGl2ZV9jb3VudEITChFfZmlybXdhcmVfdmVyc2lvbg==');
+    'EoCUgDUg9maXJtd2FyZVZlcnNpb26IAQESIQoMc2VydmljZV9tb2RlGAggASgIUgtzZXJ2aWNl'
+    'TW9kZUILCglfaWduaXRpb25CFgoUX2lucHV0X3ZvbHRhZ2Vfdm9sdHNCDgoMX2FsaXZlX2NvdW'
+    '50QhMKEV9maXJtd2FyZV92ZXJzaW9u');
+
+@$core.Deprecated('Use powerSupplyServiceModeRequestDescriptor instead')
+const PowerSupplyServiceModeRequest$json = {
+  '1': 'PowerSupplyServiceModeRequest',
+  '2': [
+    {'1': 'enabled', '3': 1, '4': 1, '5': 8, '10': 'enabled'},
+  ],
+};
+
+/// Descriptor for `PowerSupplyServiceModeRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List powerSupplyServiceModeRequestDescriptor =
+    $convert.base64Decode(
+        'Ch1Qb3dlclN1cHBseVNlcnZpY2VNb2RlUmVxdWVzdBIYCgdlbmFibGVkGAEgASgIUgdlbmFibG'
+        'Vk');
 
 @$core.Deprecated('Use latLonDescriptor instead')
 const LatLon$json = {
