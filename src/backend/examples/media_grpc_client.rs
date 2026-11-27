@@ -870,11 +870,12 @@ async fn announce(endpoint: &str) -> Result<()> {
 
 fn print_voice_settings(settings: &VoiceSettings) {
     println!(
-        "available={} enabled={} volume={}% music_under={}% voice={}",
+        "available={} enabled={} volume={}% music_under={}% lane_hints={} voice={}",
         settings.available,
         settings.enabled,
         settings.volume_percent,
         settings.music_under_percent,
+        settings.lane_hints,
         settings.voice
     );
 }
@@ -888,7 +889,7 @@ async fn get_voice_settings(endpoint: &str) -> Result<()> {
 
 /// `set-voice-settings [on|off|-] [volume 0-100|-] [music_under 0-100]`.
 async fn set_voice_settings(endpoint: &str) -> Result<()> {
-    let usage = "usage: media_grpc_client [endpoint] set-voice-settings [on|off|-] [volume 0-100|-] [music_under 0-100]";
+    let usage = "usage: media_grpc_client [endpoint] set-voice-settings [on|off|-] [volume 0-100|-] [music_under 0-100|-] [lane-hints on|off]";
     let enabled = match env::args().nth(3).as_deref() {
         Some("on") => Some(true),
         Some("off") => Some(false),
@@ -903,12 +904,19 @@ async fn set_voice_settings(endpoint: &str) -> Result<()> {
     };
     let volume_percent = level(4)?;
     let music_under_percent = level(5)?;
+    let lane_hints = match env::args().nth(6).as_deref() {
+        Some("on") => Some(true),
+        Some("off") => Some(false),
+        Some("-") | None => None,
+        Some(other) => bail!("unknown lane hints state: {other}\n{usage}"),
+    };
     let mut client = NavigationServiceClient::<Channel>::connect(endpoint.to_string()).await?;
     let settings = client
         .set_voice_settings(SetVoiceSettingsRequest {
             enabled,
             volume_percent,
             music_under_percent,
+            lane_hints,
         })
         .await?
         .into_inner();

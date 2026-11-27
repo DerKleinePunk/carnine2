@@ -257,6 +257,8 @@ pub struct VoiceControl {
     voice_name: String,
     volume_percent: AtomicU32,
     music_under_percent: AtomicU32,
+    /// Spoken lane hints after the turn announcements (#159).
+    lane_hints: AtomicBool,
     set_levels: LevelSetter,
     /// Media database that keeps the settings; `None` in tests.
     database: Option<PathBuf>,
@@ -271,6 +273,8 @@ pub struct VoiceState {
     /// The music's level while a sentence plays, 0-100.
     pub music_under_percent: u32,
     pub voice: String,
+    /// Spoken lane hints on (#159).
+    pub lane_hints: bool,
 }
 
 impl std::fmt::Debug for VoiceControl {
@@ -307,6 +311,7 @@ impl VoiceControl {
                     .unwrap_or(config.music_under_percent)
                     .min(100),
             ),
+            lane_hints: AtomicBool::new(saved.lane_hints.unwrap_or(config.lane_hints)),
             set_levels,
             database,
         };
@@ -321,6 +326,7 @@ impl VoiceControl {
             volume_percent: self.volume_percent.load(Ordering::Acquire),
             music_under_percent: self.music_under_percent.load(Ordering::Acquire),
             voice: self.voice_name.clone(),
+            lane_hints: self.lane_hints.load(Ordering::Acquire),
         }
     }
 
@@ -331,6 +337,7 @@ impl VoiceControl {
         enabled: Option<bool>,
         volume_percent: Option<u32>,
         music_under_percent: Option<u32>,
+        lane_hints: Option<bool>,
     ) -> Result<VoiceState> {
         if let Some(volume) = volume_percent.filter(|volume| *volume > 100) {
             anyhow::bail!("volume_percent {volume} is above 100");
@@ -350,11 +357,15 @@ impl VoiceControl {
         if let Some(enabled) = enabled {
             self.voice.set_enabled(enabled);
         }
+        if let Some(lane_hints) = lane_hints {
+            self.lane_hints.store(lane_hints, Ordering::Release);
+        }
         let state = self.state();
         info!(
             enabled = state.enabled,
             volume_percent = state.volume_percent,
             music_under_percent = state.music_under_percent,
+            lane_hints = state.lane_hints,
             "voice settings changed"
         );
         if let Some(database) = &self.database {
@@ -364,6 +375,7 @@ impl VoiceControl {
                     state.enabled,
                     state.volume_percent,
                     state.music_under_percent,
+                    state.lane_hints,
                 )
             }) {
                 warn!(error = %format!("{error:#}"), "voice settings not saved");
@@ -1283,11 +1295,13 @@ mod tests {
             enabled: Some(false),
             volume_percent: Some(40),
             music_under_percent: Some(0),
+            lane_hints: Some(false),
         };
         let (control, levels) = voice_control(&config, saved);
         assert!(!control.state().enabled);
         assert_eq!(control.state().volume_percent, 40);
         assert_eq!(control.state().music_under_percent, 0);
+        assert!(!control.state().lane_hints, "saved off wins over [voice]");
         assert_eq!(
             levels.lock().unwrap().last(),
             Some(&AnnouncementLevels {
@@ -1302,15 +1316,19 @@ mod tests {
         let (control, levels) =
             voice_control(&VoiceConfig::default(), SavedVoiceSettings::default());
         assert_eq!(control.state().music_under_percent, 30, "as [voice] says");
-        let state = control.update(Some(false), Some(55), None).unwrap();
+        assert!(control.state().lane_hints, "on as [voice] says");
+        let state = control.update(Some(false), Some(55), None, None).unwrap();
         assert!(!state.enabled);
         assert_eq!(state.volume_percent, 55);
         assert_eq!(levels.lock().unwrap().last().unwrap().volume, 0.55);
 
-        assert!(control.update(None, Some(101), None).is_err());
+        assert!(control.update(None, Some(101), None, None).is_err());
         assert_eq!(control.state().volume_percent, 55, "unchanged");
-        let state = control.update(Some(true), None, None).unwrap();
+        let state = control.update(Some(true), None, None, None).unwrap();
         assert!(state.enabled);
+        assert!(state.lane_hints, "only what is given changes");
+        let state = control.update(None, None, None, Some(false)).unwrap();
+        assert!(!state.lane_hints, "lane hints switched off");
         assert_eq!(state.volume_percent, 55, "only what is given changes");
         assert_eq!(state.music_under_percent, 30, "only what is given changes");
     }
@@ -1319,7 +1337,7 @@ mod tests {
     fn the_music_level_changes_live_and_above_100_nothing_changes() {
         let (control, levels) =
             voice_control(&VoiceConfig::default(), SavedVoiceSettings::default());
-        let state = control.update(None, None, Some(10)).unwrap();
+        let state = control.update(None, None, Some(10), None).unwrap();
         assert_eq!(state.music_under_percent, 10);
         assert_eq!(
             levels.lock().unwrap().last(),
@@ -1331,7 +1349,9 @@ mod tests {
         let seen = levels.lock().unwrap().len();
 
         // One value out of range refuses the whole request.
-        assert!(control.update(Some(false), Some(40), Some(101)).is_err());
+        assert!(control
+            .update(Some(false), Some(40), Some(101), None)
+            .is_err());
         let state = control.state();
         assert!(state.enabled && state.volume_percent == 100 && state.music_under_percent == 10);
         assert_eq!(levels.lock().unwrap().len(), seen, "no levels applied");
@@ -1362,7 +1382,7 @@ mod tests {
             )
         };
         start(SavedVoiceSettings::default())
-            .update(Some(false), Some(70), Some(0))
+            .update(Some(false), Some(70), Some(0), Some(false))
             .unwrap();
 
         // The next start reads what the options saved, as main does.
@@ -1374,6 +1394,10 @@ mod tests {
         assert!(!state.enabled);
         assert_eq!(state.volume_percent, 70);
         assert_eq!(state.music_under_percent, 0);
+        assert!(
+            !state.lane_hints,
+            "the lane hints switch survives a restart"
+        );
         let _ = std::fs::remove_file(&path);
     }
 

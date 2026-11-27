@@ -79,6 +79,9 @@ pub struct VoiceConfig {
     pub volume_percent: u32,
     /// Music level while an announcement plays, 0-100.
     pub music_under_percent: u32,
+    /// Spoken lane hints after the turn announcements (#159); the options
+    /// can switch them.
+    pub lane_hints: bool,
     /// Sentences kept synthesized for good, synthesized once the voice is on
     /// and pinned in the cache, so they play at once even when the prepared
     /// list did not reach them. They have to match the map library's texts
@@ -109,6 +112,7 @@ impl Default for VoiceConfig {
             cache_dir: PathBuf::from("/run/carnine/voice"),
             volume_percent: 100,
             music_under_percent: 30,
+            lane_hints: true,
             fixed_texts: vec![REROUTING_TEXT.to_string(), TEST_TEXT.to_string()],
         }
     }

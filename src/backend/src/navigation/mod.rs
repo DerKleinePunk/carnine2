@@ -3,6 +3,7 @@
 
 pub mod border;
 pub mod clock;
+pub mod lane_hint;
 pub mod location_name;
 pub mod nmea;
 pub mod places;
