@@ -218,7 +218,9 @@ fn stream_error_handler(
             if xruns == 1 {
                 warn!(error = %stream_error, "cpal audio output underrun (xrun), recovered by cpal");
             } else if xruns.is_multiple_of(XRUN_LOG_EVERY) {
-                debug!(xruns, "cpal audio output underruns so far");
+                info!(xruns, "cpal audio output underruns so far");
+            } else {
+                debug!(xruns, "cpal audio output underrun (xrun)");
             }
             return;
         }
