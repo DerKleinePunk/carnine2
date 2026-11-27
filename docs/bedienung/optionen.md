@@ -267,9 +267,10 @@ erscheint er ohne Änderung der Oberfläche):
 | | `power_supply.amplifier_relay` | Endstufe über Relais 3 |
 | | `power_supply.shutdown_on_poweroff` | Mit der Zündung herunterfahren |
 
-**Ton über vier Boxen (AC-3):** Dort bei **Ausgang** immer **Vorgabe des
-Systems** lassen, sonst tut der Lautstärkeregler nichts mehr (siehe
-[Ton über vier Boxen](ton-vier-boxen.md)). Für die Klinke siehe
+**Ton über vier Boxen (AC-3):** Dort bei **Ausgang** **Vorgabe des
+Systems** lassen. Eine andere Karte spielt ab CarNine 0.24.0 auf dieser
+Karte statt über die vier Boxen. Bis 0.23.0 tat der Lautstärkeregler dann
+nichts mehr (siehe [Ton über vier Boxen](ton-vier-boxen.md)). Für die Klinke siehe
 [Ton über die Klinke](ton-klinke.md).
 
 Mehr zur Datei `99-ui.toml` und zum Prüfen über die Kommandozeile in
