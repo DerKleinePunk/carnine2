@@ -90,13 +90,17 @@ impl CpalAudioEngine {
         };
         let sample_rate = supported.sample_rate();
         let channels = supported.channels() as usize;
+        let mut config = supported.config();
+        config.buffer_size =
+            buffer_size_for(sample_rate, period_milliseconds(), supported.buffer_size());
+        let buffer_size = config.buffer_size;
         let (command_sender, command_receiver) = mpsc::channel();
         let mixer = AudioMixer::new(sample_rate, FADE_MILLISECONDS);
         let slot: StreamSlot = Arc::new(Mutex::new(None));
         let fault = Arc::new(StreamFault::default());
         let stream = build_stream(
             &device,
-            supported.config(),
+            config,
             supported.sample_format(),
             OutputLayout {
                 channels,
@@ -113,6 +117,7 @@ impl CpalAudioEngine {
             sample_rate,
             channels,
             sample_format = ?supported.sample_format(),
+            ?buffer_size,
             "cpal audio output stream started"
         );
         *slot.lock().unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(stream);
@@ -123,6 +128,40 @@ impl CpalAudioEngine {
             sample_rate,
             rear_speakers: channels >= SURROUND_CHANNELS,
         })
+    }
+}
+
+/// Length of one ALSA period. cpal rings two periods, so 50 ms gives the
+/// 100 ms buffer cpal 0.16 asked ALSA for (25 ms periods, 100 ms buffer).
+/// cpal 0.18 keeps the device's period with only two periods by default,
+/// and on carnine-pc that underran whenever the callback came late, e.g.
+/// when an announcement source was dropped or speech was being synthesized
+/// (#240, listening test 2026-11-27).
+const PERIOD_MILLISECONDS: u32 = 50;
+
+/// The period length, overridable for listening tests through
+/// `CARNINE_AUDIO_PERIOD_MS` (5 to 500 ms; anything else is ignored).
+fn period_milliseconds() -> u32 {
+    std::env::var("CARNINE_AUDIO_PERIOD_MS")
+        .ok()
+        .and_then(|value| value.trim().parse::<u32>().ok())
+        .filter(|ms| (5..=500).contains(ms))
+        .unwrap_or(PERIOD_MILLISECONDS)
+}
+
+/// A fixed period of `period_ms` at `sample_rate`, kept within the range
+/// the device reports; the device's own choice when it reports none.
+fn buffer_size_for(
+    sample_rate: u32,
+    period_ms: u32,
+    supported: &cpal::SupportedBufferSize,
+) -> cpal::BufferSize {
+    let frames = (u64::from(sample_rate) * u64::from(period_ms) / 1000) as u32;
+    match supported {
+        cpal::SupportedBufferSize::Range { min, max } => {
+            cpal::BufferSize::Fixed(frames.clamp(*min, (*max).max(*min)))
+        }
+        cpal::SupportedBufferSize::Unknown => cpal::BufferSize::Default,
     }
 }
 
@@ -585,6 +624,33 @@ pub(crate) fn engine_with_null_output(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn the_period_is_fifty_milliseconds_within_the_device_range() {
+        let range = cpal::SupportedBufferSize::Range {
+            min: 64,
+            max: 65_536,
+        };
+        assert_eq!(
+            super::buffer_size_for(48_000, 50, &range),
+            cpal::BufferSize::Fixed(2_400)
+        );
+        assert_eq!(
+            super::buffer_size_for(44_100, 50, &range),
+            cpal::BufferSize::Fixed(2_205)
+        );
+        let small = cpal::SupportedBufferSize::Range {
+            min: 64,
+            max: 1_024,
+        };
+        assert_eq!(
+            super::buffer_size_for(48_000, 50, &small),
+            cpal::BufferSize::Fixed(1_024)
+        );
+        assert_eq!(
+            super::buffer_size_for(48_000, 50, &cpal::SupportedBufferSize::Unknown),
+            cpal::BufferSize::Default
+        );
+    }
     use std::sync::mpsc;
     use std::sync::{Arc, Mutex};
 
