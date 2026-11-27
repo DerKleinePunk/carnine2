@@ -2,8 +2,10 @@
 
 **Status:** partly integrated (v0.9.3). The backend sends the sign of life and
 reports the supply's state since v0.6.0, shuts the Pi down on POWEROFF
-since e1aa949 and switches the amplifier on Rel3 since 9730edf; `$` and the
-service mode are still open (#36, see
+since e1aa949 and switches the amplifier on Rel3 since 9730edf. Since
+#232 (1c75fd1, after v0.23.0) it also sends `$` when the Pi powers off by itself
+and holds the supply in its service mode on request (#36); the user
+interface does not ask for it yet (#233, see
 [What carnine2 needs for it](#what-carnine2-needs-for-it)).
 The hardware and its firmware
 come from the predecessor project
@@ -465,8 +467,9 @@ stream; a receiver must skip them.
 
 The image is prepared, the backend sends the sign of life, reports the
 supply's state up to the user interface, shuts the Pi down when the
-supply goes to POWEROFF and switches the amplifier on Rel3. `$` and the
-service mode are still to be built.
+supply goes to POWEROFF, switches the amplifier on Rel3, sends `$` when the
+Pi powers off by itself and holds the service mode on request. Still to be
+built: the user interface asking for the service mode (#233).
 
 - **Image:** done – `uart5`, optional `gpio-poweroff`, `/dev/powersupply`
   (see [Wiring to the Pi 4](#wiring-to-the-pi-4)). The serial console is not
@@ -606,8 +609,47 @@ service mode are still to be built.
       08:26:00.32, `amplifier (Rel3) on` 0.14 s after RUN. With firmware
       V2.4.1 RUN comes before the UI is ready, so Rel3 follows the UI:
       on 2.0 s after `UI ready` (carnine-pc, 2026-10-16 17:56).
-  - **Still open** (#36): sending `$` when the Pi shuts down on its own;
-    service mode `!`/`?`.
+  - **`$` when the Pi powers off by itself** (#232, commit 1c75fd1, #36,
+    after v0.23.0): when systemd stops the backend, the backend looks at
+    systemd's job queue (`systemctl list-jobs`). With `poweroff.target` or
+    `halt.target` queued it sends `$` as late as possible, after the
+    gRPC server has closed. The supply then goes to POWEROFF and keeps the
+    power for its 15 s, instead of cutting it about 8 s after the last
+    sign of life (3 s alive timeout plus 5 s). The log says `power supply
+    told the Pi powers off ($): POWEROFF, power for 15 s`; if `$` is not
+    out within 2 s, `power supply did not get $ (POWEROFF) in time`.
+    - **No `$`** on a reboot (log: `system reboots: the power supply is
+      not told`), when only the backend stops (restart, package update),
+      without a configured supply, or when the supply is in POWEROFF
+      already because it started the power-off itself.
+    - The POWEROFF that follows our own `$` does not start a second
+      shutdown.
+  - **Service mode** (#232, commit 1c75fd1, #36): `SystemService` has
+    `SetPowerSupplyServiceMode`. `true` holds the supply in its service
+    mode (`!`, watchdog off), `false` ends it (`?`). The firmware keeps
+    the mode in RAM only, so the backend keeps the wish and sends it again
+    on every new connection and whenever the supply talks again after
+    being silent. A new connection gets `?` once, so a service mode an
+    earlier backend left behind does not linger. The log says `power
+    supply in service mode (!): its watchdog is off`.
+    - `PowerSupplyStatus.service_mode` (field 8) shows the wish;
+      `media_grpc_client <endpoint> power-supply-service <on|off>` sets
+      it, and `power-supply` prints `service_mode=…`.
+    - Meant for the maintenance mode: **Beenden** is to switch it on
+      before the user interface ends, and the next start of the user
+      interface switches it off again. That part is the frontend's
+      (#233) and not built yet. Until then
+      `power-supply-service on` does it by hand.
+    - **Restarting only the backend** (package update, `systemctl
+      restart`) with a supply connected: send `!` to `/dev/powersupply`
+      first (as root) and `?` afterwards. Otherwise the gap without `+`
+      can lead to POWEROFF, and the new backend shuts the Pi down. Done
+      this way on carnine-pc on 2026-11-27, with a gap under 1 s. Once
+      #233 is built, `power-supply-service on|off` does it without root.
+    - **Tested:** unit tests, two of them over a pseudo-terminal (sent
+      again after silence, `$` exactly once). Not yet on the device: the
+      test Pi still runs from its own power supply, the shutdown test
+      follows with the motherboard.
 - **Timing to check on the device:**
   - The alive `+` must start within about 63 s of the Pi getting power
     (since V2.3.0: 60 s PIBOOT, RUN starts with the alive counter at 3), or the
