@@ -122,6 +122,11 @@ service SystemService {
   // Starts with the current status, then pushes one on every change of
   // connection, ignition, state or input voltage.
   rpc StreamPowerSupplyStatus (Empty) returns (stream PowerSupplyStatus);
+  // Holds the power supply in its service mode (watchdog off) or ends it
+  // (#36). The UI turns it on before "Beenden" leaves for the maintenance
+  // mode and off on its next start. The backend keeps it and sends it again
+  // after every reconnect of the supply. Succeeds without a supply too.
+  rpc SetPowerSupplyServiceMode (PowerSupplyServiceModeRequest) returns (PowerSupplyStatus);
   // What the UI keeps across restarts, stored in the media database next to
   // the resume state. Unknown values are the UI's to ignore.
   rpc GetUiState (Empty) returns (UiState);
@@ -645,6 +650,12 @@ message PowerSupplyStatus {
   // Firmware version as the supply reports it ("V2.4.1"); asked once per
   // connection, absent until it answered.
   optional string firmware_version = 7;
+  // The backend holds the supply in its service mode (SetPowerSupplyServiceMode).
+  bool service_mode = 8;
+}
+
+message PowerSupplyServiceModeRequest {
+  bool enabled = 1;
 }
 
 message LatLon {

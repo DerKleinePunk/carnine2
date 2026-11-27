@@ -18,8 +18,16 @@
 //! (`#`) text lines come in between; they go to the debug log. What the supply
 //! reports is kept in a [`PowerSupplyHub`] for SystemService. When the supply
 //! goes to POWEROFF (ignition off), [`shut_down_on_poweroff`] shuts the Pi
-//! down through logind. `$` on a shutdown of our own and the service mode
-//! follow later (#36).
+//! down through logind.
+//!
+//! When the Pi powers off by itself (systemd's poweroff or halt target, not a
+//! reboot and not a restart of the backend alone), the backend sends `$` as
+//! its last act, see [`PowerSupplyHub::announce_power_off`]: the supply then
+//! keeps the power for 15 s instead of about 8 s after the last sign of
+//! life. For the maintenance mode the UI holds the supply in its service mode
+//! (`!`, watchdog off; `?` ends it), see
+//! [`PowerSupplyHub::set_service_mode`]. The supply keeps that in RAM only,
+//! so the backend sends it again on every new connection (#36).
 //!
 //! Rel3 switches the amplifier's remote input (REM). The firmware never
 //! closes it by itself and opens it once when it goes to POWEROFF; a `3`
@@ -65,6 +73,12 @@ const ALIVE: &[u8] = b"+";
 /// sign of life in the firmware too.
 const AMPLIFIER_ON: &[u8] = b"3";
 const AMPLIFIER_OFF: &[u8] = b"6";
+/// Service mode on (the firmware's watchdog stops counting down in RUN) and
+/// off. Neither is a sign of life; the firmware keeps the mode in RAM only.
+const SERVICE_MODE_ON: &[u8] = b"!";
+const SERVICE_MODE_OFF: &[u8] = b"?";
+/// The Pi powers off: relay 2 open, POWEROFF with 15 s until the power goes.
+const POWER_OFF: &[u8] = b"$";
 /// Asks for the firmware version; not a sign of life, so it goes with one.
 const VERSION_QUERY: &[u8] = b"v";
 /// Tells the module's bootloader to start the firmware. The leading CR ends
@@ -319,30 +333,19 @@ pub struct PowerSupplyStatus {
     pub alive: Option<u8>,
     /// From the answer to `v`, per connection.
     pub firmware_version: Option<FirmwareVersion>,
+    /// The backend holds the supply in its service mode (watchdog off, for
+    /// the maintenance mode); sent again after every reconnect.
+    pub service_mode: bool,
 }
 
 impl PowerSupplyStatus {
     /// What a client watches for; the alive counter moves every second and
     /// is left out.
-    #[allow(clippy::type_complexity)]
-    fn watched(
-        &self,
-    ) -> (
-        bool,
-        bool,
-        Option<bool>,
-        Option<SupplyState>,
-        Option<u16>,
-        Option<FirmwareVersion>,
-    ) {
-        (
-            self.configured,
-            self.connected,
-            self.ignition,
-            self.state,
-            self.voltage_tenths,
-            self.firmware_version,
-        )
+    fn watched(&self) -> Self {
+        Self {
+            alive: None,
+            ..*self
+        }
     }
 }
 
@@ -351,13 +354,15 @@ impl PowerSupplyStatus {
 #[derive(Debug, Clone)]
 pub struct PowerSupplyHub {
     sender: Arc<watch::Sender<PowerSupplyStatus>>,
-    amplifier: Arc<Amplifier>,
+    requests: Arc<LineRequests>,
 }
 
-/// What the backend wants from the amplifier relay and what the line last
-/// got; the sender thread turns the difference into `3` or `6`.
+/// What the backend wants from the supply beyond the signs of life and what
+/// the line last got; the sender thread turns the difference into commands:
+/// `3`/`6` for the amplifier relay, `!`/`?` for the service mode, `$` once
+/// when the Pi powers off by itself.
 #[derive(Debug, Default)]
-struct AmplifierRequest {
+struct LineRequest {
     /// `[power_supply] amplifier_relay`; without it neither `3` nor `6`.
     enabled: bool,
     /// When the UI reported ready.
@@ -367,9 +372,37 @@ struct AmplifierRequest {
     /// What the line last got, `None` on a new connection or after the
     /// supply went silent (it may have restarted with every relay open).
     sent: Option<bool>,
+    /// The service mode the backend holds the supply in (watchdog off).
+    service_mode: bool,
+    /// The service mode the line last got; `None` on a new connection or
+    /// after silence, since the firmware keeps it in RAM only.
+    service_sent: Option<bool>,
+    /// `$` (POWEROFF) is to go out, and whether it has.
+    power_off: PowerOffRequest,
 }
 
-impl AmplifierRequest {
+/// `$` on a power-off of the Pi's own.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+enum PowerOffRequest {
+    #[default]
+    None,
+    Wanted,
+    Sent,
+}
+
+impl LineRequest {
+    /// The service mode to send now, if any: whenever it differs from what
+    /// the line last got, so also `?` once on every new connection (an
+    /// earlier backend may have left the supply in service mode). A silent
+    /// supply gets nothing and is told afresh once it talks again.
+    fn decide_service(&mut self, connected: bool) -> Option<bool> {
+        if !connected {
+            self.service_sent = None;
+            return None;
+        }
+        (self.service_sent != Some(self.service_mode)).then_some(self.service_mode)
+    }
+
     /// Whether the amplifier should be on now.
     fn wanted(&self, status: &PowerSupplyStatus, now: Instant) -> bool {
         !self.stopping
@@ -396,14 +429,14 @@ impl AmplifierRequest {
 }
 
 #[derive(Debug, Default)]
-struct Amplifier {
-    request: Mutex<AmplifierRequest>,
+struct LineRequests {
+    request: Mutex<LineRequest>,
     /// Wakes the sender on a new request and a stop once `6` is out.
     changed: Condvar,
 }
 
-impl Amplifier {
-    fn lock(&self) -> MutexGuard<'_, AmplifierRequest> {
+impl LineRequests {
+    fn lock(&self) -> MutexGuard<'_, LineRequest> {
         self.request
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
@@ -425,20 +458,20 @@ impl PowerSupplyHub {
         });
         Self {
             sender: Arc::new(sender),
-            amplifier: Arc::default(),
+            requests: Arc::default(),
         }
     }
 
     /// Lets the backend switch the amplifier on Rel3 (`[power_supply]
     /// amplifier_relay`).
     pub fn with_amplifier_relay(self, enabled: bool) -> Self {
-        self.amplifier.lock().enabled = enabled;
+        self.requests.lock().enabled = enabled;
         self
     }
 
     /// The UI is up: the amplifier may come on once the supply runs.
     pub fn ui_ready(&self) {
-        let mut request = self.amplifier.lock();
+        let mut request = self.requests.lock();
         if request.ready_since.is_some() || request.stopping {
             return;
         }
@@ -446,7 +479,7 @@ impl PowerSupplyHub {
         if request.enabled {
             info!("UI ready: the amplifier (Rel3) comes on while the power supply runs");
         }
-        self.amplifier.changed.notify_all();
+        self.requests.changed.notify_all();
     }
 
     /// Switches the amplifier off for good and waits until `6` is out and
@@ -454,14 +487,14 @@ impl PowerSupplyHub {
     /// click in the speakers. Blocks for a moment; returns at once when the
     /// amplifier is not on.
     pub fn switch_amplifier_off(&self) {
-        let mut request = self.amplifier.lock();
+        let mut request = self.requests.lock();
         request.stopping = true;
         if !request.enabled || request.sent != Some(true) {
             return;
         }
-        self.amplifier.changed.notify_all();
+        self.requests.changed.notify_all();
         let (request, waited) = self
-            .amplifier
+            .requests
             .changed
             .wait_timeout_while(request, AMPLIFIER_OFF_WAIT, |request| {
                 request.sent == Some(true)
@@ -475,21 +508,95 @@ impl PowerSupplyHub {
         std::thread::sleep(AMPLIFIER_OFF_SETTLE);
     }
 
-    /// The next switch for the line, see [`AmplifierRequest::decide`].
+    /// Holds the supply in its service mode (`!`, watchdog off) or lets it
+    /// watch the Pi again (`?`). The UI sets it before it leaves for the
+    /// maintenance mode and clears it on its next start. Kept here and sent
+    /// again after every reconnect, since the supply forgets it on a reset.
+    pub fn set_service_mode(&self, on: bool) {
+        let mut request = self.requests.lock();
+        if request.service_mode != on {
+            info!(on, "power supply service mode requested");
+        }
+        request.service_mode = on;
+        self.update(|status| status.service_mode = on);
+        self.requests.changed.notify_all();
+    }
+
+    /// The service mode to send now, see [`LineRequest::decide_service`].
+    fn service_switch(&self) -> Option<bool> {
+        let connected = self.current().connected;
+        self.requests.lock().decide_service(connected)
+    }
+
+    /// The line got `!` (`true`) or `?`.
+    fn service_sent(&self, on: bool) {
+        self.requests.lock().service_sent = Some(on);
+        if on {
+            info!("power supply in service mode (!): its watchdog is off");
+        } else {
+            debug!("power supply service mode off (?)");
+        }
+    }
+
+    /// The Pi powers off by itself: sends `$`, so the supply goes to POWEROFF
+    /// and keeps the power on for its 15 s instead of cutting it about 8 s
+    /// after the last sign of life (3 s alive timeout plus 5 s). Waits until
+    /// `$` is out, at most [`AMPLIFIER_OFF_WAIT`]. Nothing when the supply is
+    /// not configured, or already in POWEROFF (it started the power-off).
+    pub fn announce_power_off(&self) {
+        let status = self.current();
+        if !status.configured || status.state == Some(SupplyState::PowerOff) {
+            return;
+        }
+        let mut request = self.requests.lock();
+        request.power_off = PowerOffRequest::Wanted;
+        self.requests.changed.notify_all();
+        let (request, waited) = self
+            .requests
+            .changed
+            .wait_timeout_while(request, AMPLIFIER_OFF_WAIT, |request| {
+                request.power_off == PowerOffRequest::Wanted
+            })
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        drop(request);
+        if waited.timed_out() {
+            warn!("power supply did not get $ (POWEROFF) in time");
+        }
+    }
+
+    /// Whether `$` is to go out now.
+    fn power_off_due(&self) -> bool {
+        self.requests.lock().power_off == PowerOffRequest::Wanted
+    }
+
+    /// The line got `$`.
+    fn power_off_sent(&self) {
+        self.requests.lock().power_off = PowerOffRequest::Sent;
+        info!("power supply told the Pi powers off ($): POWEROFF, power for 15 s");
+        self.requests.changed.notify_all();
+    }
+
+    /// Whether the backend asked the supply for POWEROFF itself, so a
+    /// POWEROFF that follows is no reason to shut down again.
+    fn powering_off(&self) -> bool {
+        self.requests.lock().power_off != PowerOffRequest::None
+    }
+
+    /// The next switch for the line, see [`LineRequest::decide`].
     fn amplifier_switch(&self) -> Option<bool> {
         let status = self.current();
-        let mut request = self.amplifier.lock();
+        let mut request = self.requests.lock();
         let before = request.sent;
         let switch = request.decide(&status, Instant::now());
         if request.sent != before {
-            self.amplifier.changed.notify_all();
+            self.requests.changed.notify_all();
         }
         switch
     }
 
     /// The line got `3` (`true`) or `6`.
     fn amplifier_sent(&self, on: bool) {
-        let before = self.amplifier.lock().sent.replace(on);
+        let before = self.requests.lock().sent.replace(on);
         if on {
             info!("amplifier (Rel3) on");
         } else if before == Some(true) {
@@ -497,19 +604,19 @@ impl PowerSupplyHub {
         } else {
             debug!("amplifier (Rel3) off");
         }
-        self.amplifier.changed.notify_all();
+        self.requests.changed.notify_all();
     }
 
     /// A new connection: the relay's state is not known.
     fn amplifier_unknown(&self) {
-        self.amplifier.lock().sent = None;
-        self.amplifier.changed.notify_all();
+        self.requests.lock().sent = None;
+        self.requests.changed.notify_all();
     }
 
     /// Sleeps up to `interval`; a new request wakes it early.
     fn wait_for_amplifier_request(&self, interval: Duration) {
-        let request = self.amplifier.lock();
-        let _ = self.amplifier.changed.wait_timeout(request, interval);
+        let request = self.requests.lock();
+        let _ = self.requests.changed.wait_timeout(request, interval);
     }
 
     pub fn current(&self) -> PowerSupplyStatus {
@@ -523,7 +630,7 @@ impl PowerSupplyHub {
     /// Whether the UI has been reported ready, for tests of the service.
     #[cfg(test)]
     pub fn ui_reported(&self) -> bool {
-        self.amplifier.lock().ready_since.is_some()
+        self.requests.lock().ready_since.is_some()
     }
 
     /// Sets the whole status, for tests of the service on top.
@@ -720,6 +827,10 @@ where
             return;
         }
     }
+    if hub.powering_off() {
+        debug!("power supply in POWEROFF after our own $: already shutting down");
+        return;
+    }
     info!("power supply in POWEROFF (ignition off): shutting the Pi down");
     match tokio::task::spawn_blocking(shut_down).await {
         Ok(Ok(())) => {}
@@ -737,6 +848,45 @@ pub fn power_off() -> Result<()> {
         .context("running systemctl poweroff")?;
     anyhow::ensure!(status.success(), "systemctl poweroff exited with {status}");
     Ok(())
+}
+
+/// Why the system stops, from systemd's job queue.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SystemStop {
+    /// poweroff.target or halt.target: the Pi goes off.
+    PowerOff,
+    /// reboot.target or kexec.target.
+    Reboot,
+}
+
+/// Reads `systemctl list-jobs --no-legend --plain` output: while the system
+/// shuts down, the start job of its target is queued. `None` when only the
+/// backend stops (restart, package update), which must not tell the supply
+/// anything.
+pub fn system_stop_from_jobs(jobs: &str) -> Option<SystemStop> {
+    jobs.lines().find_map(|line| {
+        let mut fields = line.split_whitespace();
+        let unit = fields.nth(1)?;
+        if fields.next()? != "start" {
+            return None;
+        }
+        match unit {
+            "poweroff.target" | "halt.target" => Some(SystemStop::PowerOff),
+            "reboot.target" | "kexec.target" => Some(SystemStop::Reboot),
+            _ => None,
+        }
+    })
+}
+
+/// Whether the system is shutting down and how, asked from systemd. Anything
+/// unclear counts as no.
+pub fn system_stop() -> Option<SystemStop> {
+    let output = std::process::Command::new("systemctl")
+        .args(["list-jobs", "--no-legend", "--plain"])
+        .stderr(std::process::Stdio::null())
+        .output()
+        .ok()?;
+    system_stop_from_jobs(&String::from_utf8_lossy(&output.stdout))
 }
 
 /// Whether the frontend's unit is already active, i.e. it reported ready
@@ -844,6 +994,20 @@ fn send_alive(
                     hub.amplifier_sent(on);
                 }
                 None => line.write_all(ALIVE).context("sending the sign of life")?,
+            }
+            if let Some(on) = hub.service_switch() {
+                line.write_all(if on {
+                    SERVICE_MODE_ON
+                } else {
+                    SERVICE_MODE_OFF
+                })
+                .context("setting the service mode")?;
+                hub.service_sent(on);
+            }
+            if hub.power_off_due() {
+                line.write_all(POWER_OFF)
+                    .context("telling the supply the Pi powers off")?;
+                hub.power_off_sent();
             }
             match version.next(&hub.current(), Instant::now()) {
                 VersionStep::Ask => line
@@ -1224,10 +1388,10 @@ mod tests {
         .expect("the watcher ends after the failed shutdown");
     }
 
-    fn amplifier_request(enabled: bool) -> AmplifierRequest {
-        AmplifierRequest {
+    fn amplifier_request(enabled: bool) -> LineRequest {
+        LineRequest {
             enabled,
-            ..AmplifierRequest::default()
+            ..LineRequest::default()
         }
     }
 
@@ -1269,11 +1433,12 @@ mod tests {
     fn the_amplifier_goes_off_when_run_ends_or_the_backend_stops() {
         let start = Instant::now();
         let later = start + AMPLIFIER_ON_DELAY;
-        let on = || AmplifierRequest {
+        let on = || LineRequest {
             enabled: true,
             ready_since: Some(start),
             stopping: false,
             sent: Some(true),
+            ..LineRequest::default()
         };
 
         // The firmware opened Rel3 once in POWEROFF; we say so too, so a `3`
@@ -1295,11 +1460,12 @@ mod tests {
     fn a_silent_supply_is_switched_afresh_when_it_talks_again() {
         let start = Instant::now();
         let later = start + AMPLIFIER_ON_DELAY;
-        let mut request = AmplifierRequest {
+        let mut request = LineRequest {
             enabled: true,
             ready_since: Some(start),
             stopping: false,
             sent: Some(true),
+            ..LineRequest::default()
         };
         let silent = PowerSupplyStatus {
             connected: false,
@@ -1335,11 +1501,11 @@ mod tests {
     fn the_ui_counts_once_and_not_after_a_stop() {
         let hub = PowerSupplyHub::new(true).with_amplifier_relay(true);
         hub.ui_ready();
-        let first = hub.amplifier.lock().ready_since;
+        let first = hub.requests.lock().ready_since;
         assert!(first.is_some());
         hub.ui_ready();
         assert_eq!(
-            hub.amplifier.lock().ready_since,
+            hub.requests.lock().ready_since,
             first,
             "a second report changes nothing"
         );
@@ -1347,7 +1513,7 @@ mod tests {
         let stopped = PowerSupplyHub::new(true).with_amplifier_relay(true);
         stopped.switch_amplifier_off();
         stopped.ui_ready();
-        assert_eq!(stopped.amplifier.lock().ready_since, None);
+        assert_eq!(stopped.requests.lock().ready_since, None);
     }
 
     #[test]
@@ -1356,7 +1522,7 @@ mod tests {
         let started = Instant::now();
         hub.switch_amplifier_off();
         assert!(started.elapsed() < AMPLIFIER_OFF_SETTLE);
-        assert!(hub.amplifier.lock().stopping);
+        assert!(hub.requests.lock().stopping);
     }
 
     /// Reads from the master side until `wanted` has come, skipping signs
@@ -1394,7 +1560,7 @@ mod tests {
         };
 
         // RUN, UI ready long enough ago: `3` follows.
-        hub.amplifier.lock().ready_since = Some(Instant::now() - AMPLIFIER_ON_DELAY);
+        hub.requests.lock().ready_since = Some(Instant::now() - AMPLIFIER_ON_DELAY);
         master
             .write_all(&status_telegrams(b'1', "3", b'3', "132"))
             .unwrap();
@@ -1426,7 +1592,7 @@ mod tests {
             took < AMPLIFIER_OFF_SETTLE + Duration::from_millis(500),
             "the sender woke at once: {took:?}"
         );
-        assert_eq!(hub.amplifier.lock().sent, Some(false));
+        assert_eq!(hub.requests.lock().sent, Some(false));
 
         stop.store(true, Ordering::Relaxed);
         sender.join().unwrap().unwrap();
@@ -1447,7 +1613,7 @@ mod tests {
     fn the_line_switches_off_first_while_the_state_is_unknown() {
         let (mut master, slave_path) = pseudo_terminal();
         let hub = PowerSupplyHub::new(true).with_amplifier_relay(true);
-        hub.amplifier.lock().ready_since = Some(Instant::now() - AMPLIFIER_ON_DELAY);
+        hub.requests.lock().ready_since = Some(Instant::now() - AMPLIFIER_ON_DELAY);
         let stop = Arc::new(AtomicBool::new(false));
         let last_heard = Arc::new(Mutex::new(Instant::now()));
         let line = open_line(Path::new(&slave_path), 38400).expect("open the pseudo-terminal");
@@ -1490,7 +1656,7 @@ mod tests {
         let (mut master, slave_path) = pseudo_terminal();
         let hub = PowerSupplyHub::new(true).with_amplifier_relay(false);
         hub.ui_ready();
-        hub.amplifier.lock().ready_since = Some(Instant::now() - AMPLIFIER_ON_DELAY);
+        hub.requests.lock().ready_since = Some(Instant::now() - AMPLIFIER_ON_DELAY);
         hub.update(|status| *status = status_in(SupplyState::Run));
         let stop = Arc::new(AtomicBool::new(false));
         let line = open_line(Path::new(&slave_path), 38400).expect("open the pseudo-terminal");
@@ -1507,8 +1673,12 @@ mod tests {
         }
         stop.store(true, Ordering::Relaxed);
         sender.join().unwrap().unwrap();
-        // Signs of life and the version question, never `3` or `6`.
-        assert!(seen.iter().all(|&b| b == b'+' || b == b'v'), "{seen:?}");
+        // Signs of life, the version question and the service mode (`?` on
+        // the new connection), never `3` or `6`.
+        assert!(
+            seen.iter().all(|&b| matches!(b, b'+' | b'v' | b'?')),
+            "{seen:?}"
+        );
     }
 
     #[test]
@@ -1708,6 +1878,7 @@ mod tests {
     /// on `master`.
     struct LineUnderTest {
         master: File,
+        hub: PowerSupplyHub,
         stop: Arc<AtomicBool>,
         sender: std::thread::JoinHandle<Result<()>>,
         reader: std::thread::JoinHandle<Result<()>>,
@@ -1742,6 +1913,7 @@ mod tests {
         };
         LineUnderTest {
             master,
+            hub,
             stop,
             sender,
             reader,
@@ -1868,5 +2040,156 @@ mod tests {
         assert_eq!(starts, 2, "{seen:?}");
 
         line.finish();
+    }
+
+    #[test]
+    fn the_system_stop_is_read_from_the_job_queue() {
+        assert_eq!(system_stop_from_jobs(""), None);
+        assert_eq!(
+            system_stop_from_jobs("1203 poweroff.target start waiting\n"),
+            Some(SystemStop::PowerOff)
+        );
+        assert_eq!(
+            system_stop_from_jobs("17 halt.target start waiting"),
+            Some(SystemStop::PowerOff)
+        );
+        assert_eq!(
+            system_stop_from_jobs(
+                "88 carnine-backend.service stop running\n1203 reboot.target start waiting\n"
+            ),
+            Some(SystemStop::Reboot)
+        );
+        assert_eq!(
+            system_stop_from_jobs("9 kexec.target start waiting"),
+            Some(SystemStop::Reboot)
+        );
+        // Only the backend restarts (package update, systemctl restart).
+        assert_eq!(
+            system_stop_from_jobs("88 carnine-backend.service restart running"),
+            None
+        );
+        assert_eq!(
+            system_stop_from_jobs("5 poweroff.target stop waiting"),
+            None
+        );
+    }
+
+    #[test]
+    fn the_service_mode_goes_out_on_every_connection() {
+        let mut request = LineRequest::default();
+        assert_eq!(request.decide_service(false), None, "silent: nothing");
+        // A new connection gets `?` once: an earlier backend may have left
+        // the supply in service mode.
+        assert_eq!(request.decide_service(true), Some(false));
+        request.service_sent = Some(false);
+        assert_eq!(request.decide_service(true), None);
+        request.service_mode = true;
+        assert_eq!(request.decide_service(true), Some(true));
+        request.service_sent = Some(true);
+        assert_eq!(request.decide_service(true), None);
+        // Silence: the supply may have reset and forgotten it.
+        assert_eq!(request.decide_service(false), None);
+        assert_eq!(request.service_sent, None);
+        assert_eq!(request.decide_service(true), Some(true));
+    }
+
+    #[test]
+    fn the_service_mode_shows_in_the_status_and_wakes_watchers() {
+        let hub = PowerSupplyHub::new(true);
+        let mut updates = hub.subscribe();
+        updates.borrow_and_update();
+        hub.set_service_mode(true);
+        assert!(updates.has_changed().unwrap());
+        assert!(updates.borrow_and_update().service_mode);
+        hub.set_service_mode(true);
+        assert!(!updates.has_changed().unwrap(), "no change, no wake-up");
+    }
+
+    /// Waits until the hub counts the supply as talking.
+    fn wait_connected(hub: &PowerSupplyHub, connected: bool) {
+        let deadline = Instant::now() + Duration::from_secs(6);
+        while hub.current().connected != connected {
+            assert!(Instant::now() < deadline, "connected never {connected}");
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+
+    #[test]
+    fn the_line_sets_the_service_mode_again_after_the_supply_was_silent() {
+        let mut line = silent_line(Some(SupplyState::Run), Duration::ZERO);
+        line.hub.set_service_mode(true);
+        line.master
+            .write_all(&status_telegrams(b'1', "2", b'3', "132"))
+            .unwrap();
+        let mut seen = Vec::new();
+        read_until(&mut line.master, b'!', &mut seen);
+        assert!(!seen.contains(&b'?'), "{seen:?}");
+
+        // Silent (the supply restarted, its RAM is gone), then talking again.
+        wait_connected(&line.hub, false);
+        let silent = read_for(&mut line.master, Duration::from_millis(300));
+        line.master
+            .write_all(&status_telegrams(b'1', "3", b'3', "132"))
+            .unwrap();
+        let mut again = Vec::new();
+        read_until(&mut line.master, b'!', &mut again);
+        assert!(!silent.contains(&b'!'), "nothing while silent: {silent:?}");
+
+        // Off again: `?` once.
+        line.hub.set_service_mode(false);
+        let mut off = Vec::new();
+        read_until(&mut line.master, b'?', &mut off);
+        line.finish();
+    }
+
+    #[test]
+    fn a_power_off_of_our_own_sends_dollar_once_and_waits_for_it() {
+        let mut line = silent_line(Some(SupplyState::Run), Duration::ZERO);
+        line.master
+            .write_all(&status_telegrams(b'1', "2", b'3', "132"))
+            .unwrap();
+        wait_connected(&line.hub, true);
+        let started = Instant::now();
+        line.hub.announce_power_off();
+        let took = started.elapsed();
+        // The sender sleeps a second between signs of life; the request
+        // wakes it.
+        assert!(took < Duration::from_millis(500), "{took:?}");
+        assert!(line.hub.powering_off());
+        let mut seen = Vec::new();
+        read_until(&mut line.master, b'$', &mut seen);
+        let after = read_for(&mut line.master, Duration::from_millis(1500));
+        assert!(!after.contains(&b'$'), "only once: {after:?}");
+        line.finish();
+    }
+
+    #[test]
+    fn no_dollar_without_a_supply_or_when_it_started_the_power_off() {
+        let absent = PowerSupplyHub::new(false);
+        let started = Instant::now();
+        absent.announce_power_off();
+        assert!(started.elapsed() < Duration::from_millis(100));
+        assert!(!absent.powering_off());
+
+        let in_poweroff = PowerSupplyHub::new(true);
+        in_poweroff.set(status_in(SupplyState::PowerOff));
+        let started = Instant::now();
+        in_poweroff.announce_power_off();
+        assert!(started.elapsed() < Duration::from_millis(100));
+        assert!(!in_poweroff.powering_off());
+    }
+
+    #[tokio::test]
+    async fn poweroff_after_our_own_dollar_does_not_shut_down_again() {
+        let hub = PowerSupplyHub::new(true);
+        hub.set(status_in(SupplyState::Run));
+        let (calls, task) = watch_counting(&hub);
+        hub.requests.lock().power_off = PowerOffRequest::Sent;
+        hub.set(status_in(SupplyState::PowerOff));
+        tokio::time::timeout(Duration::from_secs(5), task)
+            .await
+            .expect("the watcher ends")
+            .unwrap();
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
     }
 }
